@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import User from '../models/User';
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
+import logger from '../utils/logger';
 
 const generateToken = (id: string) => {
     return jwt.sign({ id }, process.env.JWT_SECRET || 'secret', {
@@ -23,6 +24,7 @@ export const registerUser = async (req: Request, res: Response) => {
         const userExists = await User.findOne({ email });
 
         if (userExists) {
+            logger.warn(`Failed registration attempt: Email ${email} already exists`);
             return res.status(400).json({ message: 'Invalid data or user already exists' });
         }
 
@@ -36,6 +38,7 @@ export const registerUser = async (req: Request, res: Response) => {
         });
 
         if (user) {
+            logger.info(`User registered: ${user._id}`);
             res.status(201).json({
                 _id: user._id,
                 email: user.email,
@@ -72,12 +75,15 @@ export const loginUser = async (req: Request, res: Response) => {
                 maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
             });
 
+            logger.info(`User logged in: ${user.email}`);
+
             res.json({
                 _id: user._id,
                 email: user.email,
                 message: 'Login successful'
             });
         } else {
+            logger.warn(`Failed login attempt for email: ${email}`);
             // Generic error
             res.status(401).json({ message: 'Invalid credentials' });
         }
