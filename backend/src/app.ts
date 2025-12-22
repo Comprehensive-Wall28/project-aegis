@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import connectDB from './config/database';
 import authRoutes from './routes/authRoutes';
+import vaultRoutes from './routes/vaultRoutes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -24,6 +25,7 @@ app.use(cors({
 }));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/vault', vaultRoutes);
 
 app.use(errorHandler);
 
