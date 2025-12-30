@@ -43,10 +43,15 @@
 
   --radius: 0.5rem;
 
-  /* Custom OKLCH Colors for Aegis */
+  /* Premium OKLCH Colors for Aegis 2025 */
   --color-aegis-zinc: oklch(0.20 0.02 265);
   --color-aegis-indigo: oklch(0.55 0.25 280);
   --color-aegis-emerald: oklch(0.60 0.18 150);
+
+  /* Vibrant Gradient Colors */
+  --color-gradient-start: oklch(70% 0.2 250);
+  --color-gradient-end: oklch(85% 0.15 190);
+  --color-electric-lime: oklch(80% 0.2 140);
 }
 
 :root {
@@ -130,4 +135,39 @@ body {
 
 .pause {
   animation-play-state: paused;
+}
+
+/* Mesh Gradient Animation */
+@keyframes mesh-float {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(5%, 10%) scale(1.05);
+  }
+
+  50% {
+    transform: translate(-5%, 5%) scale(0.95);
+  }
+
+  75% {
+    transform: translate(10%, -5%) scale(1.02);
+  }
+}
+
+.animate-mesh {
+  animation: mesh-float 20s ease-in-out infinite;
+}
+
+.animate-mesh-delayed {
+  animation: mesh-float 25s ease-in-out infinite;
+  animation-delay: -8s;
+}
+
+.animate-mesh-slow {
+  animation: mesh-float 30s ease-in-out infinite;
+  animation-delay: -15s;
 }

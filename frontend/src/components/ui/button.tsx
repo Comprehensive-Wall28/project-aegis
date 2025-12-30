@@ -15,8 +15,8 @@ const buttonVariants = cva(
                 secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
                 ghost: "hover:bg-accent hover:text-accent-foreground",
                 link: "text-primary underline-offset-4 hover:underline",
-                // Custom variant for Aegis
-                glow: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(99,102,241,0.5)] border border-primary/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.8)] transition-all duration-300",
+                // Custom variant for Aegis - Premium Glow
+                glow: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(99,102,241,0.5)] border border-primary/50 hover:shadow-[0_0_35px_rgba(99,102,241,0.8)] hover:border-primary/70 transition-all duration-300 ease-out",
             },
             size: {
                 default: "h-10 px-4 py-2",

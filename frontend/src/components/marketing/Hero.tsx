@@ -67,13 +67,17 @@ export function Hero() {
     } as any;
 
     return (
-        <section className="relative overflow-hidden pt-32 pb-16 md:pt-48 md:pb-32 bg-zinc-950">
-            {/* Mesh Gradient Background */}
-            <div className="absolute inset-0 -z-10 overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-900/20 rounded-full blur-[120px] animate-pulse" />
-                <div className="absolute top-[20%] right-[-5%] w-[35%] h-[35%] bg-teal-900/10 rounded-full blur-[100px] animate-pulse [animation-delay:2s]" />
-                <div className="absolute bottom-[10%] left-[20%] w-[50%] h-[50%] bg-indigo-950/15 rounded-full blur-[140px] animate-pulse [animation-delay:4s]" />
+        <section className="relative overflow-hidden pt-32 pb-16 md:pt-48 md:pb-32">
+            {/* Base Background */}
+            <div className="absolute inset-0 bg-zinc-950 -z-20" />
+
+            {/* Mesh Gradient Background - Slow Moving */}
+            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-15%] left-[-15%] w-[50%] h-[50%] bg-indigo-900/40 rounded-full blur-[140px] animate-mesh" />
+                <div className="absolute top-[15%] right-[-10%] w-[45%] h-[45%] bg-teal-900/30 rounded-full blur-[120px] animate-mesh-delayed" />
+                <div className="absolute bottom-[5%] left-[15%] w-[55%] h-[55%] bg-indigo-950/35 rounded-full blur-[160px] animate-mesh-slow" />
             </div>
+
 
             <motion.div
                 variants={containerVariants}
