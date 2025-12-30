@@ -7,7 +7,6 @@ import connectDB from './config/database';
 import authRoutes from './routes/authRoutes';
 import vaultRoutes from './routes/vaultRoutes';
 import integrityRoutes from './routes/integrityRoutes';
-import mongoSanitize from 'express-mongo-sanitize';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -32,7 +31,6 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 app.use(express.json());
-app.use(mongoSanitize());
 app.use(cookieParser());
 
 // Apply Rate Limiting
