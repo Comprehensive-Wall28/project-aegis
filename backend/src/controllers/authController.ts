@@ -4,27 +4,28 @@ import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import logger from '../utils/logger';
 
-const generateToken = (id: string) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET || 'secret', {
+const generateToken = (id: string, username: string) => {
+    return jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
         expiresIn: '30d',
     });
 };
 
 export const registerUser = async (req: Request, res: Response) => {
     try {
-        const { email, pqcPublicKey, argon2Hash } = req.body;
+        const { username, email, pqcPublicKey, argon2Hash } = req.body;
 
         // Use a generic error if fields are missing to verify input? 
         // Usually validation errors can be specific, but auth *failures* should be generic.
         // However, missing fields is a bad request, not an auth failure per se.
-        if (!email || !pqcPublicKey || !argon2Hash) {
+        if (!username || !email || !pqcPublicKey || !argon2Hash) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
-        const userExists = await User.findOne({ email });
+        const userExistsByEmail = await User.findOne({ email });
+        const userExistsByUsername = await User.findOne({ username });
 
-        if (userExists) {
-            logger.warn(`Failed registration attempt: Email ${email} already exists`);
+        if (userExistsByEmail || userExistsByUsername) {
+            logger.warn(`Failed registration attempt: Email ${email} or username ${username} already exists`);
             return res.status(400).json({ message: 'Invalid data or user already exists' });
         }
 
@@ -32,6 +33,7 @@ export const registerUser = async (req: Request, res: Response) => {
         const passwordHash = await argon2.hash(argon2Hash);
 
         const user = await User.create({
+            username,
             email,
             pqcPublicKey,
             passwordHash,
@@ -41,6 +43,7 @@ export const registerUser = async (req: Request, res: Response) => {
             logger.info(`User registered: ${user._id}`);
             res.status(201).json({
                 _id: user._id,
+                username: user.username,
                 email: user.email,
                 message: 'User registered successfully'
             });
@@ -65,7 +68,7 @@ export const loginUser = async (req: Request, res: Response) => {
         const user = await User.findOne({ email });
 
         if (user && (await argon2.verify(user.passwordHash, argon2Hash))) {
-            const token = generateToken(user._id.toString());
+            const token = generateToken(user._id.toString(), user.username);
 
             // HTTP-only cookie
             res.cookie('token', token, {
@@ -79,6 +82,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
             res.json({
                 _id: user._id,
+                username: user.username,
                 email: user.email,
                 message: 'Login successful'
             });
