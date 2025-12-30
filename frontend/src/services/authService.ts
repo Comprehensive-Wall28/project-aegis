@@ -73,6 +73,23 @@ const authService = {
         });
         return response.data;
     },
+
+    validateSession: async (): Promise<{ _id: string; email: string; username: string } | null> => {
+        try {
+            const response = await apiClient.get<{ _id: string; email: string; username: string }>('/me');
+            return response.data;
+        } catch {
+            return null;
+        }
+    },
+
+    logout: async (): Promise<void> => {
+        try {
+            await apiClient.post('/logout');
+        } catch {
+            // Ignore errors on logout
+        }
+    },
 };
 
 export default authService;

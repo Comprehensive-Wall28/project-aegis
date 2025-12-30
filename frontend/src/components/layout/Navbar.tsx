@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Shield, Menu, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,8 +14,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
 import authService from '@/services/authService';
+import { useSessionStore } from '@/stores/sessionStore';
 
 export function Navbar() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { user, setUser, clearSession } = useSessionStore();
     const [isOpen, setIsOpen] = useState(false);
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -22,7 +27,13 @@ export function Navbar() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [user, setUser] = useState<{ email: string } | null>(null);
+
+    // Check if we should show login dialog from redirect
+    useEffect(() => {
+        if (location.state?.showLogin) {
+            setIsLoginOpen(true);
+        }
+    }, [location.state]);
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,18 +43,20 @@ export function Navbar() {
         try {
             if (isRegisterMode) {
                 const response = await authService.register(email, password);
-                setUser({ email: response.email });
+                setUser({ _id: response._id, email: response.email, username: response.email.split('@')[0] });
                 setIsLoginOpen(false);
-                // Reset state
                 setEmail('');
                 setPassword('');
+                // Redirect to dashboard after registration
+                navigate('/dashboard');
             } else {
                 const response = await authService.login(email, password);
-                setUser({ email: response.email });
+                setUser({ _id: response._id, email: response.email, username: response.email.split('@')[0] });
                 setIsLoginOpen(false);
-                // Reset state
                 setEmail('');
                 setPassword('');
+                // Redirect to dashboard after login
+                navigate('/dashboard');
             }
         } catch (err: any) {
             console.error(err);
@@ -51,6 +64,11 @@ export function Navbar() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleLogout = async () => {
+        await authService.logout();
+        clearSession();
     };
 
     const toggleMode = () => {
@@ -92,8 +110,10 @@ export function Navbar() {
                     <div className="hidden md:block">
                         {user ? (
                             <div className="flex items-center gap-4">
-                                <span className="text-sm font-medium text-emerald-400">Welcome, {user.email}</span>
-                                <Button variant="outline" size="sm" onClick={() => setUser(null)}>Logout</Button>
+                                <a href="/dashboard" className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors">
+                                    Dashboard
+                                </a>
+                                <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
                             </div>
                         ) : (
                             <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
@@ -189,8 +209,10 @@ export function Navbar() {
                             </a>
                             {user ? (
                                 <div className="px-3 py-2">
-                                    <p className="text-sm font-medium text-emerald-400 mb-2">Logged in as {user.email}</p>
-                                    <Button variant="outline" size="sm" onClick={() => setUser(null)} className="w-full">Logout</Button>
+                                    <a href="/dashboard" className="block text-sm font-medium text-emerald-400 mb-2 hover:text-emerald-300">
+                                        Go to Dashboard
+                                    </a>
+                                    <Button variant="outline" size="sm" onClick={handleLogout} className="w-full">Logout</Button>
                                 </div>
                             ) : (
                                 <Button variant="default" className="w-full mt-4" onClick={() => setIsLoginOpen(true)}>Login / Register</Button>

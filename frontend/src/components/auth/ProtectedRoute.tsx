@@ -1,0 +1,60 @@
+import { useEffect, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useSessionStore } from '@/stores/sessionStore';
+import authService from '@/services/authService';
+
+interface ProtectedRouteProps {
+    children: React.ReactNode;
+}
+
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
+    const location = useLocation();
+    const { isAuthenticated, setUser } = useSessionStore();
+    const [isLoading, setIsLoading] = useState(true);
+    const [isValid, setIsValid] = useState(false);
+
+    useEffect(() => {
+        const validateSession = async () => {
+            try {
+                // Check session validity via HTTP-only cookie
+                const user = await authService.validateSession();
+                if (user) {
+                    setUser(user);
+                    setIsValid(true);
+                } else {
+                    setIsValid(false);
+                }
+            } catch (error) {
+                console.error('Session validation failed:', error);
+                setIsValid(false);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (!isAuthenticated) {
+            validateSession();
+        } else {
+            setIsValid(true);
+            setIsLoading(false);
+        }
+    }, [isAuthenticated, setUser]);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                    <p className="text-muted-foreground text-sm">Validating session...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isValid) {
+        // Redirect to home page with login prompt (state can be used to show login dialog)
+        return <Navigate to="/" state={{ from: location, showLogin: true }} replace />;
+    }
+
+    return <>{children}</>;
+}

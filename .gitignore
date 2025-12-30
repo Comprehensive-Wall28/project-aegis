@@ -1,4 +1,5 @@
 backend/src/creds/aegis-482020-35b5feba7b4b.json
-backend/.env
 backend/combined.log
 backend/error.log
+frontend/.env
+backend/.env

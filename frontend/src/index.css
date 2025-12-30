@@ -94,6 +94,29 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Safety Green for verified states - OKLCH based */
+.text-safety-green {
+  color: oklch(75% 0.18 145);
+}
+
+.bg-safety-green {
+  background-color: oklch(75% 0.18 145);
+}
+
+/* Dashboard-specific glass effects */
+.glass-card {
+  background: rgba(9, 9, 11, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+}
+
+.glass-sidebar {
+  background: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(16px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 .glass-nav {
   background: rgba(9, 9, 11, 0.7);
   backdrop-filter: blur(10px);

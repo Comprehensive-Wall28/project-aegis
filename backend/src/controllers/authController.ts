@@ -14,9 +14,6 @@ export const registerUser = async (req: Request, res: Response) => {
     try {
         const { username, email, pqcPublicKey, argon2Hash } = req.body;
 
-        // Use a generic error if fields are missing to verify input? 
-        // Usually validation errors can be specific, but auth *failures* should be generic.
-        // However, missing fields is a bad request, not an auth failure per se.
         if (!username || !email || !pqcPublicKey || !argon2Hash) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
@@ -92,6 +89,46 @@ export const loginUser = async (req: Request, res: Response) => {
             res.status(401).json({ message: 'Invalid credentials' });
         }
 
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+interface AuthRequest extends Request {
+    user?: { id: string; username: string };
+}
+
+export const getMe = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const user = await User.findById(req.user.id).select('-passwordHash -pqcPublicKey');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({
+            _id: user._id,
+            username: user.username,
+            email: user.email
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const logoutUser = async (_req: Request, res: Response) => {
+    try {
+        res.cookie('token', '', {
+            httpOnly: true,
+            expires: new Date(0),
+        });
+        res.json({ message: 'Logged out successfully' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });

@@ -89,3 +89,56 @@ export const verifyGPA = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+interface AuthRequest extends Request {
+    user?: { id: string; username: string };
+}
+
+/**
+ * Returns the current Merkle Root for the authenticated user.
+ */
+export const getMerkleRoot = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const registry = await MerkleRegistry.findOne({ userId: req.user.id });
+
+        if (!registry) {
+            // Return a placeholder if no registry exists yet
+            return res.status(200).json({
+                merkleRoot: '0x0000000000000000000000000000000000000000000000000000000000000000',
+                lastUpdated: new Date().toISOString()
+            });
+        }
+
+        res.status(200).json({
+            merkleRoot: registry.merkleRoot,
+            lastUpdated: (registry as any).updatedAt || new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Error fetching Merkle root:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+/**
+ * Returns all GPA logs for the authenticated user.
+ */
+export const getGPALogs = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const logs = await GPALog.find({ userId: req.user.id }).sort({ semester: 1 });
+
+        res.status(200).json(logs);
+
+    } catch (error) {
+        console.error('Error fetching GPA logs:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
