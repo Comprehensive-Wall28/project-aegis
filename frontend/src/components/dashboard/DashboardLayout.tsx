@@ -36,14 +36,14 @@ export function DashboardLayout() {
                 </div>
 
                 {/* Inset Content Area (The 'Stage') */}
-                <div className="flex-1 m-4 mt-2 overflow-hidden">
+                <div className="flex-1 m-3 mt-2 overflow-hidden">
                     <motion.div
                         layout
-                        className="h-full w-full bg-zinc-900/50 backdrop-blur-2xl rounded-[2rem] border border-white/5 shadow-2xl flex flex-col overflow-hidden"
+                        className="h-full w-full bg-zinc-950/40 backdrop-blur-2xl rounded-2xl border border-white/5 shadow-2xl flex flex-col overflow-hidden"
                     >
                         {/* Inner Content Area with scroll */}
                         <main className="flex-1 p-8 overflow-y-auto scrollbar-thin">
-                            <div className="max-w-7xl mx-auto">
+                            <div className="w-full h-full">
                                 <Outlet />
                             </div>
                         </main>

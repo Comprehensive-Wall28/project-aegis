@@ -34,9 +34,9 @@ export function Dashboard() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
         >
-            {/* Top Row / Section: Vault (3/4) and Side Info (1/4) */}
+            {/* Vault Quick-View: 3/4 Width */}
             <motion.div
                 variants={itemVariants}
                 className="lg:col-span-3 lg:row-span-2"
@@ -55,31 +55,21 @@ export function Dashboard() {
             {/* System Metrics - Under GPA */}
             <motion.div
                 variants={itemVariants}
-                className="glass-panel p-6 rounded-2xl"
+                className="bento-card p-6 flex flex-col h-full bg-zinc-900/40"
             >
-                <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-primary" />
-                    System Metrics
+                <h3 className="text-[10px] uppercase tracking-widest font-bold text-primary/60 mb-4 flex items-center gap-2">
+                    <Activity className="h-3 w-3 text-primary" />
+                    Live Metrics
                 </h3>
                 <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs text-text-secondary">Encryption Ops</span>
-                        <span className="text-sm font-mono-tech text-text-primary">0</span>
+                    <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-muted-foreground/60 font-medium">Encryption Ops</span>
+                        <span className="font-mono-tech text-foreground/80">0</span>
                     </div>
                     <div className="h-px bg-white/5" />
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs text-text-secondary">Proofs Generated</span>
-                        <span className="text-sm font-mono-tech text-text-primary">0</span>
-                    </div>
-                    <div className="h-px bg-white/5" />
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs text-text-secondary">Integrity Checks</span>
-                        <span className="text-sm font-mono-tech text-accent-blue">Standby</span>
-                    </div>
-                    <div className="h-px bg-white/5" />
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs text-text-secondary">Last Sync</span>
-                        <span className="text-sm font-mono-tech text-text-primary">Never</span>
+                    <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-muted-foreground/60 font-medium">Integrity Checks</span>
+                        <span className="font-mono-tech text-primary/80">Standby</span>
                     </div>
                 </div>
             </motion.div>
@@ -93,27 +83,31 @@ export function Dashboard() {
             </motion.div>
 
             {/* Action Buttons */}
-            <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-5">
                 <motion.div
                     variants={itemVariants}
-                    className="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white/5 transition-colors group"
+                    className="bento-card p-6 flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all group bg-zinc-900/40"
                 >
-                    <div className="p-3 rounded-xl bg-primary/10 mb-3 group-hover:bg-primary/20 transition-colors">
-                        <Zap className="h-6 w-6 text-primary" />
+                    <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        <Zap className="h-5 w-5 text-primary" />
                     </div>
-                    <span className="text-sm font-medium text-text-primary">Quick Encrypt</span>
-                    <span className="text-xs text-text-secondary mt-1">Upload & protect</span>
+                    <div>
+                        <span className="text-xs font-bold text-foreground block">Quick Encrypt</span>
+                        <span className="text-[10px] text-muted-foreground/60">Upload & protect with ML-KEM</span>
+                    </div>
                 </motion.div>
 
                 <motion.div
                     variants={itemVariants}
-                    className="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white/5 transition-colors group"
+                    className="bento-card p-6 flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all group bg-zinc-900/40"
                 >
-                    <div className="p-3 rounded-xl bg-violet-500/10 mb-3 group-hover:bg-violet-500/20 transition-colors">
-                        <Lock className="h-6 w-6 text-violet-400" />
+                    <div className="p-3 rounded-lg bg-violet-500/10 group-hover:bg-violet-500/20 transition-colors">
+                        <Lock className="h-5 w-5 text-violet-400" />
                     </div>
-                    <span className="text-sm font-medium text-text-primary">Key Rotation</span>
-                    <span className="text-xs text-text-secondary mt-1">ML-KEM-768</span>
+                    <div>
+                        <span className="text-xs font-bold text-foreground block">Key Rotation</span>
+                        <span className="text-[10px] text-muted-foreground/60">Rotate PQC keys regularly</span>
+                    </div>
                 </motion.div>
             </div>
         </motion.div>

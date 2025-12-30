@@ -32,14 +32,18 @@ export function TopHeader() {
 
     return (
         <header className="h-14 bg-transparent flex items-center justify-between px-6">
-            {/* Left: Welcome Message */}
+            {/* Left: Section Title & Welcome Footprint */}
             <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3 }}
+                className="flex flex-col"
             >
-                <h1 className="text-xl font-extrabold tracking-tight text-foreground">
-                    Welcome back, <span className="text-primary">{username}</span>
+                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground/50 leading-none mb-1">
+                    System Overview
+                </span>
+                <h1 className="text-2xl font-black tracking-tighter text-foreground leading-none">
+                    Dashboard <span className="text-xs font-medium tracking-normal text-muted-foreground/40 ml-2">Welcome, {username}</span>
                 </h1>
             </motion.div>
 

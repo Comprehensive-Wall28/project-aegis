@@ -66,7 +66,7 @@ export function VaultQuickView() {
 
 
     return (
-        <div className="glass-panel rounded-2xl h-full p-6 flex flex-col">
+        <div className="bento-card h-full p-6 flex flex-col relative overflow-hidden bg-zinc-900/40">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div>

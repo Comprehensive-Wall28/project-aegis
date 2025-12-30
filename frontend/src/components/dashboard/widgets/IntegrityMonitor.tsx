@@ -103,7 +103,7 @@ export function IntegrityMonitor() {
     const statusDisplay = getStatusDisplay();
 
     return (
-        <div className="glass-panel rounded-2xl h-full p-6 flex flex-col relative overflow-hidden">
+        <div className="bento-card h-full p-6 flex flex-col relative overflow-hidden bg-zinc-900/40">
             {/* Scanning Overlay */}
             <AnimatePresence>
                 {status === 'verifying' && (
@@ -166,7 +166,7 @@ export function IntegrityMonitor() {
                         </div>
                         <div
                             ref={feedRef}
-                            className="h-32 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+                            className="h-24 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
                         >
                             {proofFeed.length === 0 ? (
                                 <div className="h-full flex items-center justify-center text-muted-foreground/50 text-xs">

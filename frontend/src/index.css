@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
 
 @theme {
   /* Shadcn CSS Variables based Theme */
@@ -50,13 +50,17 @@
   --color-aegis-indigo: oklch(55% 0.25 280);
   --color-aegis-emerald: oklch(60% 0.18 210);
 
-  /* New Redesign Palette */
-  --color-background-aegis: oklch(12% 0.01 250);
-  --color-card-aegis: oklch(18% 0.02 250);
+  /* New Redesign Palette: 60-30-10 Rule */
+  --color-background-aegis: #09090b;
+  /* Zinc-950 (60%) */
+  --color-card-aegis: #18181b;
+  /* Zinc-900 (30%) */
   --color-text-primary: oklch(98% 0.01 250);
   --color-text-secondary: oklch(75% 0.02 250);
   --color-accent-blue: oklch(60% 0.22 250);
+  /* PQC Cyan (Accents 10%) */
   --color-accent-lime: oklch(85% 0.2 140);
+  /* PQC Lime (Accents 10%) */
 
   /* Vibrant Gradient Colors */
   --color-gradient-start: oklch(55% 0.22 250);
@@ -136,14 +140,12 @@ body {
 
 /* Dashboard-specific glass effects */
 .glass-card {
-  background: color-mix(in oklch, var(--color-card-aegis) 60%, transparent);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-  border-left: 1px solid rgba(255, 255, 255, 0.05);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 1rem;
+  background: color-mix(in oklch, var(--color-card-aegis) 80%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  /* 12px for nested harmony */
 }
 
 .glass-sidebar {
@@ -256,14 +258,16 @@ body {
 
 /* Bento Command Center Styles */
 .bento-card {
-  background: rgba(9, 9, 11, 0.5);
+  background: rgba(24, 24, 27, 0.4);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  /* 12px for nested harmony (16px outer - 4px gap = 12px) */
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.5);
 }
 
 .bento-card::before {
