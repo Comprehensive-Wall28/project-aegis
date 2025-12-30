@@ -9,7 +9,7 @@ export function DashboardLayout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-foreground flex overflow-hidden">
+        <div className="min-h-screen bg-background text-foreground flex overflow-hidden">
             {/* Animated Background */}
             <div className="fixed inset-0 -z-10 overflow-hidden">
                 <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full blur-3xl animate-mesh" />
@@ -39,7 +39,7 @@ export function DashboardLayout() {
                 <div className="flex-1 m-3 mt-2 overflow-hidden">
                     <motion.div
                         layout
-                        className="h-full w-full bg-zinc-950/40 backdrop-blur-2xl rounded-2xl border border-white/5 shadow-2xl flex flex-col overflow-hidden"
+                        className="h-full w-full bg-card/40 backdrop-blur-2xl rounded-2xl border border-white/5 shadow-2xl flex flex-col overflow-hidden"
                     >
                         {/* Inner Content Area with scroll */}
                         <main className="flex-1 p-8 overflow-y-auto scrollbar-thin">

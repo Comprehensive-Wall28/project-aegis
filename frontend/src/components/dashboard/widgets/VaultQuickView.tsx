@@ -66,7 +66,7 @@ export function VaultQuickView() {
 
 
     return (
-        <div className="bento-card h-full p-6 flex flex-col relative overflow-hidden bg-zinc-900/40">
+        <div className="bento-card h-full p-6 flex flex-col relative overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div>
@@ -117,7 +117,7 @@ export function VaultQuickView() {
                                         <div className="p-2 rounded-lg bg-primary/10">
                                             <FileIcon className="h-4 w-4 text-primary" />
                                         </div>
-                                        <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-zinc-900">
+                                        <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-background">
                                             <ShieldCheck className="h-3 w-3 text-cyan-400 animate-quantum-pulse" />
                                         </div>
                                     </div>

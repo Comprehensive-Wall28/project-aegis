@@ -164,14 +164,14 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 initial={false}
                 animate={{ width: isCollapsed ? '4rem' : '14rem' }}
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="hidden lg:flex flex-col fixed left-0 top-0 h-screen z-40 bg-zinc-950 border-r border-white/5"
+                className="hidden lg:flex flex-col fixed left-0 top-0 h-screen z-40 bg-background border-r border-white/5"
             >
                 <SidebarContent isCollapsed={isCollapsed} onToggle={onToggle} />
             </motion.aside>
 
             {/* Mobile Menu Button */}
             <button
-                className="lg:hidden fixed top-3 left-3 z-50 p-2.5 rounded-xl bg-zinc-900/80 backdrop-blur-sm border border-white/10"
+                className="lg:hidden fixed top-3 left-3 z-50 p-2.5 rounded-xl bg-background/80 backdrop-blur-sm border border-white/10"
                 onClick={() => setIsMobileOpen(!isMobileOpen)}
             >
                 {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -193,7 +193,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                             animate={{ x: 0 }}
                             exit={{ x: '-100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="lg:hidden fixed left-0 top-0 h-screen w-56 bg-zinc-900/95 backdrop-blur-xl border-r border-white/10 z-50"
+                            className="lg:hidden fixed left-0 top-0 h-screen w-56 bg-background/95 backdrop-blur-xl border-r border-white/10 z-50"
                         >
                             <SidebarContent
                                 isCollapsed={false}

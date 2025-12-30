@@ -103,7 +103,7 @@ export function IntegrityMonitor() {
     const statusDisplay = getStatusDisplay();
 
     return (
-        <div className="bento-card h-full p-6 flex flex-col relative overflow-hidden bg-zinc-900/40">
+        <div className="bento-card h-full p-6 flex flex-col relative overflow-hidden">
             {/* Scanning Overlay */}
             <AnimatePresence>
                 {status === 'verifying' && (
@@ -111,7 +111,7 @@ export function IntegrityMonitor() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center"
+                        className="absolute inset-0 bg-card/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center"
                     >
                         <div className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent animate-scan-bar" />
                         <Loader2 className="h-10 w-10 text-primary animate-spin mb-3" />
@@ -159,7 +159,7 @@ export function IntegrityMonitor() {
                     )}
 
                     {/* Terminal Feed - Fixed Height with Scrollbar */}
-                    <div className="flex-1 rounded-xl bg-zinc-950/50 border border-white/5 overflow-hidden flex flex-col min-h-0">
+                    <div className="flex-1 rounded-xl bg-card/50 border border-white/5 overflow-hidden flex flex-col min-h-0">
                         <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5 bg-white/5 flex-shrink-0">
                             <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-[10px] font-mono-tech text-muted-foreground uppercase tracking-wider">Integrity Proofs</span>

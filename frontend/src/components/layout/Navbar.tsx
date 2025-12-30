@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Shield, Menu, X, Loader2 } from 'lucide-react';
+import { Shield, Menu, X, Loader2, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -15,11 +15,13 @@ import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
 import authService from '@/services/authService';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useThemeStore } from '@/stores/themeStore';
 
 export function Navbar() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, setUser, clearSession } = useSessionStore();
+    const { theme, toggleTheme } = useThemeStore();
     const [isOpen, setIsOpen] = useState(false);
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -106,6 +108,16 @@ export function Navbar() {
                                     </button>
                                 )}
                             </div>
+                        </div>
+                        {/* Theme Toggle */}
+                        <div className="hidden md:flex items-center ml-4 border-l border-white/10 pl-4">
+                            <button
+                                onClick={toggleTheme}
+                                className="p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-white/5 transition-all"
+                                title={`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)} (Click to switch)`}
+                            >
+                                <Palette className="h-5 w-5" />
+                            </button>
                         </div>
                     </div>
 
@@ -225,6 +237,12 @@ export function Navbar() {
                             <a href="#security" className="text-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium">
                                 Security
                             </a>
+                            <button
+                                onClick={toggleTheme}
+                                className="w-full text-left text-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium"
+                            >
+                                Switch Theme ({theme.charAt(0).toUpperCase() + theme.slice(1)})
+                            </button>
                             {user ? (
                                 <div className="px-3 py-2">
                                     <a href="/dashboard" className="block text-sm font-medium text-emerald-400 mb-2 hover:text-emerald-300">

@@ -51,10 +51,10 @@
   --color-aegis-emerald: oklch(60% 0.18 210);
 
   /* New Redesign Palette: 60-30-10 Rule */
-  --color-background-aegis: #09090b;
-  /* Zinc-950 (60%) */
-  --color-card-aegis: #18181b;
-  /* Zinc-900 (30%) */
+  --color-background-aegis: #18181b;
+  /* Zinc-900 (Background) */
+  --color-card-aegis: #27272a;
+  /* Zinc-800 (Cards) */
   --color-text-primary: oklch(98% 0.01 250);
   --color-text-secondary: oklch(75% 0.02 250);
   --color-accent-blue: oklch(60% 0.22 250);
@@ -74,21 +74,25 @@
   --color-card-foreground: var(--color-text-primary);
   --color-muted-foreground: var(--color-text-secondary);
   --color-primary: var(--color-accent-blue);
+  --color-primary-foreground: var(--color-primary-fg-aegis);
 }
 
 :root {
-  /* Shadcn variables expected by components */
-  --background: 250 1% 12%;
-  --foreground: 250 1% 98%;
+  /* Default Theme (Modern Zinc - Darker) */
+  --background: 240 5% 3%;
+  /* #070708 - Almost Black */
+  --foreground: 0 0% 98%;
 
-  --card: 250 2% 18%;
-  --card-foreground: 250 1% 98%;
+  --card: 240 4% 8%;
+  /* #131315 - Very Dark Grey */
+  --card-foreground: 0 0% 98%;
 
   --popover: 250 2% 18%;
   --popover-foreground: 250 1% 98%;
 
-  --primary: 225 80% 60%;
-  --primary-foreground: 250 1% 98%;
+  --primary: 0 0% 100%;
+  /* White */
+  --primary-foreground: 0 0% 0%;
 
   --secondary: 250 2% 25%;
   --secondary-foreground: 250 1% 98%;
@@ -96,8 +100,8 @@
   --muted: 250 2% 25%;
   --muted-foreground: 250 2% 75%;
 
-  --accent: 250 4% 25%;
-  --accent-foreground: 250 1% 98%;
+  --accent: 0 0% 100%;
+  --accent-foreground: 0 0% 0%;
 
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
@@ -107,6 +111,134 @@
   --ring: 200 15% 75%;
 
   --radius: 0.75rem;
+
+  /* Aegis Custom Variables (Default) */
+  --color-background-aegis: #070708;
+  /* Deep Zinc/Near Black */
+  --color-card-aegis: #131315;
+  /* Very Dark Zinc */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: oklch(75% 0.02 250);
+  --color-accent-blue: #ffffff;
+  /* White Accent */
+  --color-accent-lime: #ffffff;
+  /* White Accent */
+  --color-primary-fg-aegis: #000000;
+  /* Black text on White primary */
+}
+
+[data-theme="catppuccin"] {
+  /* Catppuccin Mocha Theme */
+  --background: 240 21% 15%;
+  /* Base #1e1e2e */
+  --foreground: 226 64% 88%;
+  /* Text #cdd6f4 */
+
+  --card: 240 21% 15%;
+  /* Base #1e1e2e (using Base for card bg to match user request styles or Surface0 if preferred) */
+  /* Actually using Surface0 #313244 for card distinction or Mantle #181825 */
+  --card: 237 16% 23%;
+  /* Surface0 #313244 */
+  --card-foreground: 226 64% 88%;
+
+  --popover: 240 21% 15%;
+  --popover-foreground: 226 64% 88%;
+
+  --primary: 217 92% 76%;
+  /* Blue #89b4fa */
+  --primary-foreground: 240 21% 15%;
+
+  --secondary: 237 16% 23%;
+  /* Surface0 */
+  --secondary-foreground: 226 64% 88%;
+
+  --muted: 237 16% 23%;
+  --muted-foreground: 228 24% 72%;
+  /* Overlay0 #9399b2 */
+
+  --accent: 217 92% 76%;
+  /* Blue as accent */
+  --accent-foreground: 240 21% 15%;
+
+  --destructive: 343 81% 75%;
+  /* Red #f38ba8 */
+  --destructive-foreground: 240 21% 15%;
+
+  --border: 240 21% 15%;
+  /* Base or Overlay0 */
+  --input: 237 16% 23%;
+
+  --ring: 217 92% 76%;
+
+  /* Aegis Custom Variables (Catppuccin) */
+  /* Re-mapping hex/oklch vars to Catppuccin values */
+  --color-background-aegis: #1e1e2e;
+  /* Base */
+  --color-card-aegis: #313244;
+  /* Surface0 */
+  --color-text-primary: #cdd6f4;
+  /* Text */
+  --color-text-secondary: #a6adc8;
+  /* Subtext0 */
+  --color-accent-blue: #89b4fa;
+  /* Blue */
+  --color-accent-lime: #a6e3a1;
+  /* Green */
+  --color-primary-fg-aegis: #1e1e2e;
+  /* Base text on Blue primary */
+}
+
+[data-theme="amoled"] {
+  /* AMOLED Theme (True Black + White Accents) */
+  --background: 0 0% 0%;
+  /* Black #000000 */
+  --foreground: 0 0% 100%;
+  /* White #ffffff */
+
+  --card: 0 0% 0%;
+  /* Black */
+  --card-foreground: 0 0% 100%;
+
+  --popover: 0 0% 0%;
+  --popover-foreground: 0 0% 100%;
+
+  --primary: 0 0% 100%;
+  /* White */
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 0 0% 10%;
+  /* Very dark gray */
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 64%;
+
+  --accent: 0 0% 100%;
+  /* White */
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  --ring: 0 0% 100%;
+
+  /* Aegis Custom Variables (AMOLED) */
+  --color-background-aegis: #000000;
+  /* True Black */
+  --color-card-aegis: #000000;
+  /* True Black */
+  --color-text-primary: #ffffff;
+  /* White */
+  --color-text-secondary: #a1a1aa;
+  /* Zinc-400 */
+  --color-accent-blue: #ffffff;
+  /* White */
+  --color-accent-lime: #ffffff;
+  /* White */
+  --color-primary-fg-aegis: #000000;
+  /* Black text on White primary */
 }
 
 body {
@@ -258,7 +390,7 @@ body {
 
 /* Bento Command Center Styles */
 .bento-card {
-  background: rgba(24, 24, 27, 0.4);
+  background: color-mix(in srgb, var(--color-card-aegis) 40%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.08);
