@@ -3,7 +3,6 @@ import { ShieldCheck, ShieldAlert, Loader2, RefreshCw, Hash, Terminal } from 'lu
 import { Button } from '@/components/ui/button';
 import integrityService from '@/services/integrityService';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSessionStore } from '@/stores/sessionStore';
 
 type VerificationStatus = 'idle' | 'verifying' | 'verified' | 'tampered';
 
@@ -17,7 +16,6 @@ const generateProofEntry = (index: number) => {
 };
 
 export function IntegrityMonitor() {
-    const { pqcEngineStatus } = useSessionStore();
     const [merkleRoot, setMerkleRoot] = useState<string | null>(null);
     const [lastVerified, setLastVerified] = useState<Date | null>(null);
     const [status, setStatus] = useState<VerificationStatus>('idle');
@@ -103,10 +101,9 @@ export function IntegrityMonitor() {
     };
 
     const statusDisplay = getStatusDisplay();
-    const isOperational = pqcEngineStatus === 'operational';
 
     return (
-        <div className={`glass-panel rounded-2xl ${isOperational ? 'bento-card-glow' : ''} h-full p-6 flex flex-col relative overflow-hidden`}>
+        <div className="glass-panel rounded-2xl h-full p-6 flex flex-col relative overflow-hidden">
             {/* Scanning Overlay */}
             <AnimatePresence>
                 {status === 'verifying' && (
@@ -155,7 +152,7 @@ export function IntegrityMonitor() {
                     {merkleRoot && (
                         <div className="p-3 rounded-xl bg-white/5 border border-white/10 mb-4 flex-shrink-0">
                             <p className="text-xs text-muted-foreground mb-1">Current Root Hash</p>
-                            <p className="font-mono-tech text-xs text-foreground break-all">
+                            <p className="font-mono-tech text-xs text-text-primary break-all leading-relaxed">
                                 {merkleRoot.slice(0, 20)}...{merkleRoot.slice(-12)}
                             </p>
                         </div>
@@ -184,10 +181,10 @@ export function IntegrityMonitor() {
                                             animate={{ opacity: 1, x: 0 }}
                                             className="flex items-center gap-2 font-mono-tech text-[10px]"
                                         >
-                                            <span className="text-muted-foreground">{entry.timestamp}</span>
-                                            <span className="text-cyan-400">[{entry.type}]</span>
-                                            <span className="text-foreground/70">{entry.hash}</span>
-                                            <span className="text-[oklch(75%_0.18_210)]">{entry.status}</span>
+                                            <span className="text-text-secondary/50">{entry.timestamp}</span>
+                                            <span className="text-accent-blue/80">[{entry.type}]</span>
+                                            <span className="text-text-primary/90">{entry.hash}</span>
+                                            <span className="text-accent-lime">{entry.status}</span>
                                         </motion.div>
                                     ))}
                                 </div>

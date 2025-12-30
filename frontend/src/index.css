@@ -46,96 +46,117 @@
   --radius: 0.5rem;
 
   /* Premium OKLCH Colors for Aegis 2025 */
-  --color-aegis-zinc: oklch(0.20 0.02 265);
-  --color-aegis-indigo: oklch(0.55 0.25 280);
-  --color-aegis-emerald: oklch(0.60 0.18 210);
+  --color-aegis-zinc: oklch(20% 0.02 250);
+  --color-aegis-indigo: oklch(55% 0.25 280);
+  --color-aegis-emerald: oklch(60% 0.18 210);
+
+  /* New Redesign Palette */
+  --color-background-aegis: oklch(12% 0.01 250);
+  --color-card-aegis: oklch(18% 0.02 250);
+  --color-text-primary: oklch(98% 0.01 250);
+  --color-text-secondary: oklch(75% 0.02 250);
+  --color-accent-blue: oklch(60% 0.22 250);
+  --color-accent-lime: oklch(85% 0.2 140);
 
   /* Vibrant Gradient Colors */
-  --color-gradient-start: oklch(70% 0.2 250);
-  --color-gradient-end: oklch(85% 0.15 190);
-  --color-electric-lime: oklch(80% 0.2 210);
+  --color-gradient-start: oklch(55% 0.22 250);
+  --color-gradient-end: oklch(75% 0.15 200);
+  --color-electric-lime: var(--color-accent-lime);
+
+  /* Base shadcn overrides for consistency */
+  --color-background: var(--color-background-aegis);
+  --color-foreground: var(--color-text-primary);
+  --color-card: var(--color-card-aegis);
+  --color-card-foreground: var(--color-text-primary);
+  --color-muted-foreground: var(--color-text-secondary);
+  --color-primary: var(--color-accent-blue);
 }
 
 :root {
   /* Shadcn variables expected by components */
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
+  --background: 250 1% 12%;
+  --foreground: 250 1% 98%;
 
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
+  --card: 250 2% 18%;
+  --card-foreground: 250 1% 98%;
 
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
+  --popover: 250 2% 18%;
+  --popover-foreground: 250 1% 98%;
 
-  --primary: 263.4 70% 50.4%;
-  /* Deep Indigo */
-  --primary-foreground: 210 40% 98%;
+  --primary: 225 80% 60%;
+  --primary-foreground: 250 1% 98%;
 
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
+  --secondary: 250 2% 25%;
+  --secondary-foreground: 250 1% 98%;
 
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
+  --muted: 250 2% 25%;
+  --muted-foreground: 250 2% 75%;
 
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
+  --accent: 250 4% 25%;
+  --accent-foreground: 250 1% 98%;
 
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 240 4.9% 83.9%;
+  --border: 250 2% 20%;
+  --input: 250 2% 20%;
+  --ring: 200 15% 75%;
 
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
+  background-color: var(--color-background-aegis);
+  color: var(--color-text-primary);
   font-family: var(--font-sans);
 }
 
 /* Monospaced Technical Font */
 .font-mono-tech {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  letter-spacing: -0.01em;
 }
 
 /* Safety Blue for verified states - OKLCH based */
 .text-safety-green {
-  color: oklch(75% 0.18 210);
+  color: var(--color-accent-lime);
 }
 
 .bg-safety-green {
-  background-color: oklch(75% 0.18 210);
+  background-color: var(--color-accent-lime);
 }
 
-/* Glassmorphism Panel - Consistent styling for all cards */
+/* Glassmorphism Panel - Redesigned with Dual-Border technique */
 .glass-panel {
-  background: rgba(39, 39, 42, 0.40);
+  background: rgba(18, 18, 22, 0.4);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Dashboard-specific glass effects */
 .glass-card {
-  background: rgba(9, 9, 11, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--color-card-aegis) 60%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
 }
 
 .glass-sidebar {
-  background: rgba(9, 9, 11, 0.85);
-  backdrop-filter: blur(16px);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  background: color-mix(in oklch, var(--color-background-aegis) 85%, transparent);
+  backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-nav {
-  background: rgba(9, 9, 11, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in oklch, var(--color-card-aegis) 70%, transparent);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 1rem;
 }
 
@@ -259,19 +280,7 @@ body {
 }
 
 .bento-card-glow {
-  box-shadow:
-    0 0 0 1px rgba(59, 130, 246, 0.1),
-    inset 0 0 40px rgba(59, 130, 246, 0.03),
-    0 0 60px rgba(59, 130, 246, 0.05);
-}
-
-.bento-card-glow::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(ellipse at 50% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
-  pointer-events: none;
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 /* Ping Animation */

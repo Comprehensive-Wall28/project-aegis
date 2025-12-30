@@ -3,7 +3,6 @@ import { FileIcon, Download, Loader2, FolderOpen, ShieldCheck } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import vaultService, { type FileMetadata } from '@/services/vaultService';
 import { motion } from 'framer-motion';
-import { useSessionStore } from '@/stores/sessionStore';
 
 function formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';
@@ -22,7 +21,6 @@ function truncateFileName(name: string, maxLength: number = 24): string {
 }
 
 export function VaultQuickView() {
-    const { pqcEngineStatus } = useSessionStore();
     const [files, setFiles] = useState<FileMetadata[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -66,10 +64,9 @@ export function VaultQuickView() {
         }
     };
 
-    const isOperational = pqcEngineStatus === 'operational';
 
     return (
-        <div className={`glass-panel rounded-2xl ${isOperational ? 'bento-card-glow' : ''} h-full p-6 flex flex-col`}>
+        <div className="glass-panel rounded-2xl h-full p-6 flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div>
@@ -129,7 +126,7 @@ export function VaultQuickView() {
                                         <p className="text-sm font-medium text-foreground truncate" title={file.fileName}>
                                             {truncateFileName(file.fileName)}
                                         </p>
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-xs font-mono-tech text-text-secondary">
                                             {formatFileSize(file.fileSize)} • {file.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
                                         </p>
                                     </div>

@@ -29,11 +29,17 @@ interface SidebarProps {
     onToggle: () => void;
 }
 
-export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+interface SidebarContentProps {
+    isCollapsed: boolean;
+    onToggle: () => void;
+    isMobile?: boolean;
+    onClose?: () => void;
+}
+
+function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarContentProps) {
     const location = useLocation();
     const navigate = useNavigate();
     const { clearSession } = useSessionStore();
-    const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     const handleLogout = async () => {
         await authService.logout();
@@ -41,7 +47,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         navigate('/');
     };
 
-    const SidebarContent = () => (
+    return (
         <div className="flex flex-col h-full">
             {/* Logo */}
             <div className={`flex items-center gap-2 h-14 px-4 border-b border-white/5 ${isCollapsed ? 'justify-center' : ''}`}>
@@ -71,17 +77,25 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                             key={item.name}
                             to={item.href}
                             className={`
-                                flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
+                                flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative group
                                 ${isCollapsed ? 'justify-center' : ''}
                                 ${isActive
-                                    ? 'bg-primary/20 text-primary border border-primary/30'
+                                    ? 'bg-[oklch(25%_0.04_250)] text-primary'
                                     : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
                                 }
                             `}
                             title={isCollapsed ? item.name : undefined}
-                            onClick={() => setIsMobileOpen(false)}
+                            onClick={() => onClose?.()}
                         >
-                            <Icon className="h-5 w-5 flex-shrink-0" />
+                            {/* Active Indicator Line */}
+                            {isActive && (
+                                <motion.div
+                                    layoutId="active-nav-indicator"
+                                    className="absolute left-0 top-2 bottom-2 w-0.5 bg-primary rounded-full"
+                                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                                />
+                            )}
+                            <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-primary' : ''}`} />
                             <AnimatePresence>
                                 {!isCollapsed && (
                                     <motion.span
@@ -123,19 +137,25 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 </Button>
 
                 {/* Collapse Toggle - Desktop only */}
-                <div className="hidden lg:block">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-center text-muted-foreground hover:text-foreground"
-                        onClick={onToggle}
-                    >
-                        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-                    </Button>
-                </div>
+                {!isMobile && (
+                    <div className="hidden lg:block">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-center text-muted-foreground hover:text-foreground"
+                            onClick={onToggle}
+                        >
+                            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );
+}
+
+export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     return (
         <>
@@ -144,9 +164,9 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 initial={false}
                 animate={{ width: isCollapsed ? '4rem' : '14rem' }}
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-zinc-900/40 backdrop-blur-xl border-r border-white/10 z-40"
+                className="hidden lg:flex flex-col fixed left-0 top-0 h-screen z-40 bg-zinc-950 border-r border-white/5"
             >
-                <SidebarContent />
+                <SidebarContent isCollapsed={isCollapsed} onToggle={onToggle} />
             </motion.aside>
 
             {/* Mobile Menu Button */}
@@ -175,7 +195,12 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                             className="lg:hidden fixed left-0 top-0 h-screen w-56 bg-zinc-900/95 backdrop-blur-xl border-r border-white/10 z-50"
                         >
-                            <SidebarContent />
+                            <SidebarContent
+                                isCollapsed={false}
+                                onToggle={() => { }}
+                                isMobile
+                                onClose={() => setIsMobileOpen(false)}
+                            />
                         </motion.aside>
                     </>
                 )}

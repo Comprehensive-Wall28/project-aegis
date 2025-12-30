@@ -3,12 +3,10 @@ import { GraduationCap, Sparkles, Loader2, CheckCircle2, Clock } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import integrityService from '@/services/integrityService';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSessionStore } from '@/stores/sessionStore';
 
 type ProofStatus = 'none' | 'generating' | 'generated' | 'error';
 
 export function GPASnapshot() {
-    const { pqcEngineStatus } = useSessionStore();
     const [currentGPA, setCurrentGPA] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [proofStatus, setProofStatus] = useState<ProofStatus>('none');
@@ -56,7 +54,6 @@ export function GPASnapshot() {
 
     const gpaPercentage = currentGPA ? (currentGPA / 4.0) * 100 : 0;
     const meetsThreshold = currentGPA !== null && currentGPA >= 3.5;
-    const isOperational = pqcEngineStatus === 'operational';
 
     const gaugeAngle = (gpaPercentage / 100) * 180;
     const createArc = (startAngle: number, endAngle: number, radius: number) => {
@@ -75,7 +72,7 @@ export function GPASnapshot() {
     };
 
     return (
-        <div className={`glass-panel rounded-2xl ${isOperational ? 'bento-card-glow' : ''} h-full p-6 flex flex-col`}>
+        <div className="glass-panel rounded-2xl h-full p-6 flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div>

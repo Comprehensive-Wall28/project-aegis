@@ -3,11 +3,8 @@ import { VaultQuickView } from '@/components/dashboard/widgets/VaultQuickView';
 import { IntegrityMonitor } from '@/components/dashboard/widgets/IntegrityMonitor';
 import { GPASnapshot } from '@/components/dashboard/widgets/GPASnapshot';
 import { Activity, Zap, Lock } from 'lucide-react';
-import { useSessionStore } from '@/stores/sessionStore';
 
 export function Dashboard() {
-    const { pqcEngineStatus } = useSessionStore();
-    const isOperational = pqcEngineStatus === 'operational';
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -39,23 +36,15 @@ export function Dashboard() {
             animate="visible"
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         >
-            {/* Widget A: Vault Quick-View - Large, spans 2 columns and 2 rows */}
+            {/* Top Row / Section: Vault (3/4) and Side Info (1/4) */}
             <motion.div
                 variants={itemVariants}
-                className="lg:col-span-2 lg:row-span-2"
+                className="lg:col-span-3 lg:row-span-2"
             >
                 <VaultQuickView />
             </motion.div>
 
-            {/* Widget B: Integrity Monitor - Tall, spans 2 columns and 2 rows */}
-            <motion.div
-                variants={itemVariants}
-                className="lg:col-span-2 lg:row-span-2"
-            >
-                <IntegrityMonitor />
-            </motion.div>
-
-            {/* Widget C: GPA Snapshot */}
+            {/* GPA Snapshot - Top Right */}
             <motion.div
                 variants={itemVariants}
                 className="lg:col-span-1"
@@ -63,10 +52,10 @@ export function Dashboard() {
                 <GPASnapshot />
             </motion.div>
 
-            {/* System Metrics Widget */}
+            {/* System Metrics - Under GPA */}
             <motion.div
                 variants={itemVariants}
-                className={`glass-panel p-6 rounded-2xl ${isOperational ? 'bento-card-glow' : ''}`}
+                className="glass-panel p-6 rounded-2xl"
             >
                 <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
                     <Activity className="h-4 w-4 text-primary" />
@@ -74,50 +63,59 @@ export function Dashboard() {
                 </h3>
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Encryption Ops</span>
-                        <span className="text-sm font-mono-tech text-foreground">0</span>
+                        <span className="text-xs text-text-secondary">Encryption Ops</span>
+                        <span className="text-sm font-mono-tech text-text-primary">0</span>
                     </div>
                     <div className="h-px bg-white/5" />
                     <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Proofs Generated</span>
-                        <span className="text-sm font-mono-tech text-foreground">0</span>
+                        <span className="text-xs text-text-secondary">Proofs Generated</span>
+                        <span className="text-sm font-mono-tech text-text-primary">0</span>
                     </div>
                     <div className="h-px bg-white/5" />
                     <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Integrity Checks</span>
-                        <span className="text-sm font-mono-tech text-primary">Standby</span>
+                        <span className="text-xs text-text-secondary">Integrity Checks</span>
+                        <span className="text-sm font-mono-tech text-accent-blue">Standby</span>
                     </div>
                     <div className="h-px bg-white/5" />
                     <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Last Sync</span>
-                        <span className="text-sm font-mono-tech text-foreground">Never</span>
+                        <span className="text-xs text-text-secondary">Last Sync</span>
+                        <span className="text-sm font-mono-tech text-text-primary">Never</span>
                     </div>
                 </div>
             </motion.div>
 
-            {/* Quick Encrypt Action */}
+            {/* Bottom Section: Wide Integrity Monitor */}
             <motion.div
                 variants={itemVariants}
-                className={`glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white/5 transition-colors group ${isOperational ? 'bento-card-glow' : ''}`}
+                className="lg:col-span-4"
             >
-                <div className="p-3 rounded-xl bg-primary/10 mb-3 group-hover:bg-primary/20 transition-colors">
-                    <Zap className="h-6 w-6 text-primary" />
-                </div>
-                <span className="text-sm font-medium text-foreground">Quick Encrypt</span>
-                <span className="text-xs text-muted-foreground mt-1">Upload & protect</span>
+                <IntegrityMonitor />
             </motion.div>
 
-            {/* Key Rotation Action */}
-            <motion.div
-                variants={itemVariants}
-                className={`glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white/5 transition-colors group ${isOperational ? 'bento-card-glow' : ''}`}
-            >
-                <div className="p-3 rounded-xl bg-violet-500/10 mb-3 group-hover:bg-violet-500/20 transition-colors">
-                    <Lock className="h-6 w-6 text-violet-400" />
-                </div>
-                <span className="text-sm font-medium text-foreground">Key Rotation</span>
-                <span className="text-xs text-muted-foreground mt-1">ML-KEM-768</span>
-            </motion.div>
+            {/* Action Buttons */}
+            <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <motion.div
+                    variants={itemVariants}
+                    className="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white/5 transition-colors group"
+                >
+                    <div className="p-3 rounded-xl bg-primary/10 mb-3 group-hover:bg-primary/20 transition-colors">
+                        <Zap className="h-6 w-6 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium text-text-primary">Quick Encrypt</span>
+                    <span className="text-xs text-text-secondary mt-1">Upload & protect</span>
+                </motion.div>
+
+                <motion.div
+                    variants={itemVariants}
+                    className="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white/5 transition-colors group"
+                >
+                    <div className="p-3 rounded-xl bg-violet-500/10 mb-3 group-hover:bg-violet-500/20 transition-colors">
+                        <Lock className="h-6 w-6 text-violet-400" />
+                    </div>
+                    <span className="text-sm font-medium text-text-primary">Key Rotation</span>
+                    <span className="text-xs text-text-secondary mt-1">ML-KEM-768</span>
+                </motion.div>
+            </div>
         </motion.div>
     );
 }

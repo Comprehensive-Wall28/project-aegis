@@ -31,14 +31,14 @@ export function TopHeader() {
     const username = user?.username || user?.email?.split('@')[0] || 'Agent';
 
     return (
-        <header className="h-14 bg-zinc-900/40 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-6">
+        <header className="h-14 bg-transparent flex items-center justify-between px-6">
             {/* Left: Welcome Message */}
             <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3 }}
             >
-                <h1 className="text-lg font-semibold text-foreground">
+                <h1 className="text-xl font-extrabold tracking-tight text-foreground">
                     Welcome back, <span className="text-primary">{username}</span>
                 </h1>
             </motion.div>

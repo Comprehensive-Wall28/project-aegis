@@ -46,12 +46,12 @@ export function SystemStatusBar() {
     const isOperational = pqcEngineStatus === 'operational';
 
     return (
-        <div className="h-10 bg-zinc-950/60 border-b border-white/5 flex items-center justify-between px-6">
+        <div className="h-10 bg-transparent flex items-center justify-between px-6">
             {/* Left: System Label */}
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>System Health</span>
                 <span className="text-white/20">•</span>
-                <span className="font-mono-tech">v1.0.0</span>
+                <span className="font-mono-tech text-text-primary/70">v1.0.0</span>
             </div>
 
             {/* Right: PQC Engine Status */}

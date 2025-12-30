@@ -9,48 +9,53 @@ export function DashboardLayout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
+        <div className="min-h-screen bg-zinc-950 text-foreground flex overflow-hidden">
             {/* Animated Background */}
             <div className="fixed inset-0 -z-10 overflow-hidden">
                 <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full blur-3xl animate-mesh" />
                 <div className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-[oklch(75%_0.18_145)]/5 rounded-full blur-3xl animate-mesh-delayed" />
             </div>
 
-            {/* Sidebar */}
-            <Sidebar
-                isCollapsed={isSidebarCollapsed}
-                onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            />
-
-            {/* Main Content Area */}
-            <motion.div
-                initial={false}
-                animate={{
-                    marginLeft: isSidebarCollapsed ? '4rem' : '14rem',
-                    width: isSidebarCollapsed ? 'calc(100% - 4rem)' : 'calc(100% - 14rem)'
-                }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="min-h-screen flex flex-col lg:ml-56"
+            {/* Sidebar Wrapper */}
+            <div
+                className="hidden lg:block shrink-0 transition-all duration-200"
+                style={{ width: isSidebarCollapsed ? '4rem' : '14rem' }}
             >
-                {/* Top Header */}
-                <TopHeader />
+                <Sidebar
+                    isCollapsed={isSidebarCollapsed}
+                    onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                />
+            </div>
 
-                {/* System Status Bar */}
-                <SystemStatusBar />
+            {/* Main Wrapper: Frames the stage */}
+            <div className="flex-1 flex flex-col min-w-0 h-screen relative overflow-hidden">
+                {/* Top Header & Status sitting above the stage */}
+                <div className="z-20">
+                    <TopHeader />
+                    <SystemStatusBar />
+                </div>
 
-                {/* Page Content */}
-                <main className="flex-1 p-6 overflow-auto">
-                    <Outlet />
-                </main>
-            </motion.div>
+                {/* Inset Content Area (The 'Stage') */}
+                <div className="flex-1 m-4 mt-2 overflow-hidden">
+                    <motion.div
+                        layout
+                        className="h-full w-full bg-zinc-900/50 backdrop-blur-2xl rounded-[2rem] border border-white/5 shadow-2xl flex flex-col overflow-hidden"
+                    >
+                        {/* Inner Content Area with scroll */}
+                        <main className="flex-1 p-8 overflow-y-auto scrollbar-thin">
+                            <div className="max-w-7xl mx-auto">
+                                <Outlet />
+                            </div>
+                        </main>
+                    </motion.div>
+                </div>
+            </div>
 
-            {/* Mobile: Reset margin */}
+            {/* Mobile: Reset structure would be handled by responsive classes, 
+                but let's ensure Sidebar and Main Wrapper play nice. */}
             <style>{`
                 @media (max-width: 1023px) {
-                    .lg\\:ml-56 {
-                        margin-left: 0 !important;
-                        width: 100% !important;
-                    }
+                    /* Adjustments for mobile if needed */
                 }
             `}</style>
         </div>
