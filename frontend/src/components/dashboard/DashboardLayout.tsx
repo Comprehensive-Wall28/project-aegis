@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
-import { DashboardHeader } from './DashboardHeader';
+import { TopHeader } from './TopHeader';
+import { SystemStatusBar } from './SystemStatusBar';
 import { motion } from 'framer-motion';
 
 export function DashboardLayout() {
@@ -21,27 +22,37 @@ export function DashboardLayout() {
                 onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             />
 
-            {/* Main Content */}
-            <motion.main
+            {/* Main Content Area */}
+            <motion.div
                 initial={false}
                 animate={{
-                    marginLeft: isSidebarCollapsed ? '5rem' : '16rem',
-                    paddingLeft: '0rem'
+                    marginLeft: isSidebarCollapsed ? '4rem' : '14rem',
+                    width: isSidebarCollapsed ? 'calc(100% - 4rem)' : 'calc(100% - 14rem)'
                 }}
-                transition={{ duration: 0.2 }}
-                className="min-h-screen p-6 lg:p-8 transition-all"
-                style={{ marginLeft: '0' }} // Override for mobile
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                className="min-h-screen flex flex-col lg:ml-56"
             >
-                {/* Responsive margin for desktop */}
-                <div className="lg:hidden h-16" /> {/* Spacer for mobile menu button */}
+                {/* Top Header */}
+                <TopHeader />
 
-                <div className="max-w-7xl mx-auto">
-                    <DashboardHeader />
+                {/* System Status Bar */}
+                <SystemStatusBar />
 
-                    {/* Page Content */}
+                {/* Page Content */}
+                <main className="flex-1 p-6 overflow-auto">
                     <Outlet />
-                </div>
-            </motion.main>
+                </main>
+            </motion.div>
+
+            {/* Mobile: Reset margin */}
+            <style>{`
+                @media (max-width: 1023px) {
+                    .lg\\:ml-56 {
+                        margin-left: 0 !important;
+                        width: 100% !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 }

@@ -142,3 +142,38 @@ export const getGPALogs = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+/**
+ * Verifies integrity and returns GPA summary for the authenticated user.
+ */
+export const verifyIntegrity = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        // Fetch all GPA logs for the user
+        const logs = await GPALog.find({ userId: req.user.id }).sort({ semester: 1 });
+
+        // Calculate current GPA (average of all semesters)
+        let currentGPA = 0;
+        if (logs.length > 0) {
+            const totalGPA = logs.reduce((sum, log) => sum + log.gpa, 0);
+            currentGPA = totalGPA / logs.length;
+        }
+
+        // Fetch the Merkle root
+        const registry = await MerkleRegistry.findOne({ userId: req.user.id });
+
+        res.status(200).json({
+            currentGPA: currentGPA,
+            merkleRoot: registry?.merkleRoot || '0x0000000000000000000000000000000000000000000000000000000000000000',
+            logs: logs
+        });
+
+    } catch (error) {
+        console.error('Error verifying integrity:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+

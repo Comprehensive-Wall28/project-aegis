@@ -1,8 +1,10 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @theme {
   /* Shadcn CSS Variables based Theme */
   --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
   --color-border: #27272a;
   /* zinc-800 */
@@ -46,12 +48,12 @@
   /* Premium OKLCH Colors for Aegis 2025 */
   --color-aegis-zinc: oklch(0.20 0.02 265);
   --color-aegis-indigo: oklch(0.55 0.25 280);
-  --color-aegis-emerald: oklch(0.60 0.18 150);
+  --color-aegis-emerald: oklch(0.60 0.18 210);
 
   /* Vibrant Gradient Colors */
   --color-gradient-start: oklch(70% 0.2 250);
   --color-gradient-end: oklch(85% 0.15 190);
-  --color-electric-lime: oklch(80% 0.2 140);
+  --color-electric-lime: oklch(80% 0.2 210);
 }
 
 :root {
@@ -94,13 +96,26 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Safety Green for verified states - OKLCH based */
+/* Monospaced Technical Font */
+.font-mono-tech {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* Safety Blue for verified states - OKLCH based */
 .text-safety-green {
-  color: oklch(75% 0.18 145);
+  color: oklch(75% 0.18 210);
 }
 
 .bg-safety-green {
-  background-color: oklch(75% 0.18 145);
+  background-color: oklch(75% 0.18 210);
+}
+
+/* Glassmorphism Panel - Consistent styling for all cards */
+.glass-panel {
+  background: rgba(39, 39, 42, 0.40);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
 }
 
 /* Dashboard-specific glass effects */
@@ -122,6 +137,29 @@ body {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1rem;
+}
+
+/* Scrollbar styling for terminal */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 @layer utilities {
@@ -193,4 +231,144 @@ body {
 .animate-mesh-slow {
   animation: mesh-float 30s ease-in-out infinite;
   animation-delay: -15s;
+}
+
+/* Bento Command Center Styles */
+.bento-card {
+  background: rgba(9, 9, 11, 0.5);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.bento-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 50%, rgba(255, 255, 255, 0.05));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.bento-card-glow {
+  box-shadow:
+    0 0 0 1px rgba(59, 130, 246, 0.1),
+    inset 0 0 40px rgba(59, 130, 246, 0.03),
+    0 0 60px rgba(59, 130, 246, 0.05);
+}
+
+.bento-card-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 50% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Ping Animation */
+@keyframes ping-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+}
+
+.animate-ping-glow {
+  animation: ping-glow 2s ease-in-out infinite;
+}
+
+/* Scanline Animation */
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(400%);
+  }
+}
+
+.animate-scanline {
+  animation: scanline 2s linear infinite;
+}
+
+/* Terminal Scroll */
+@keyframes terminal-scroll {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-terminal-scroll {
+  animation: terminal-scroll 20s linear infinite;
+}
+
+/* Quantum Pulse */
+@keyframes quantum-pulse {
+
+  0%,
+  100% {
+    opacity: 0.6;
+    box-shadow: 0 0 4px rgba(34, 211, 238, 0.4);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.8);
+  }
+}
+
+.animate-quantum-pulse {
+  animation: quantum-pulse 2s ease-in-out infinite;
+}
+
+/* Scanning Overlay */
+@keyframes scan-bar {
+
+  0%,
+  100% {
+    top: 0%;
+  }
+
+  50% {
+    top: 100%;
+  }
+}
+
+.animate-scan-bar {
+  animation: scan-bar 1.5s ease-in-out infinite;
+}
+
+/* Gauge Scanline */
+@keyframes gauge-scan {
+  0% {
+    transform: rotate(-90deg);
+  }
+
+  100% {
+    transform: rotate(90deg);
+  }
+}
+
+.animate-gauge-scan {
+  animation: gauge-scan 3s ease-in-out infinite;
+  transform-origin: center bottom;
 }

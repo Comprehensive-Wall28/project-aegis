@@ -25,6 +25,7 @@ export function Navbar() {
     const [isRegisterMode, setIsRegisterMode] = useState(false);
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
@@ -42,18 +43,20 @@ export function Navbar() {
 
         try {
             if (isRegisterMode) {
-                const response = await authService.register(email, password);
-                setUser({ _id: response._id, email: response.email, username: response.email.split('@')[0] });
+                const response = await authService.register(username, email, password);
+                setUser({ _id: response._id, email: response.email, username: response.username });
                 setIsLoginOpen(false);
                 setEmail('');
+                setUsername('');
                 setPassword('');
                 // Redirect to dashboard after registration
                 navigate('/dashboard');
             } else {
                 const response = await authService.login(email, password);
-                setUser({ _id: response._id, email: response.email, username: response.email.split('@')[0] });
+                setUser({ _id: response._id, email: response.email, username: response.username });
                 setIsLoginOpen(false);
                 setEmail('');
+                setUsername('');
                 setPassword('');
                 // Redirect to dashboard after login
                 navigate('/dashboard');
@@ -143,6 +146,21 @@ export function Navbar() {
                                                 required
                                             />
                                         </div>
+
+                                        {isRegisterMode && (
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label htmlFor="username" className="text-right">
+                                                    Username
+                                                </Label>
+                                                <Input
+                                                    id="username"
+                                                    value={username}
+                                                    onChange={(e) => setUsername(e.target.value)}
+                                                    className="col-span-3"
+                                                    required
+                                                />
+                                            </div>
+                                        )}
                                         <div className="grid grid-cols-4 items-center gap-4">
                                             <Label htmlFor="password" className="text-right">
                                                 Password

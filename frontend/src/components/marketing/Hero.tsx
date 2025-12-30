@@ -26,7 +26,7 @@ function MerkleIntegrityFeed() {
                         <motion.div
                             animate={{ opacity: [0.3, 1, 0.3], scale: [0.9, 1.1, 0.9] }}
                             transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
-                            className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                            className="w-1.5 h-1.5 rounded-full bg-blue-500/50 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
                         />
                     </div>
                 ))}
@@ -40,7 +40,7 @@ function MerkleIntegrityFeed() {
                         <motion.div
                             animate={{ opacity: [0.3, 1, 0.3], scale: [0.9, 1.1, 0.9] }}
                             transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
-                            className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                            className="w-1.5 h-1.5 rounded-full bg-blue-500/50 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
                         />
                     </div>
                 ))}

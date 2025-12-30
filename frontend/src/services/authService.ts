@@ -18,6 +18,7 @@ export interface LoginCredentials {
 }
 
 export interface RegisterCredentials {
+    username: string;
     email: string;
     pqcPublicKey: string;
     argon2Hash: string;
@@ -26,6 +27,7 @@ export interface RegisterCredentials {
 export interface AuthResponse {
     _id: string;
     email: string;
+    username: string;
     message: string;
 }
 
@@ -58,7 +60,7 @@ const authService = {
         return response.data;
     },
 
-    register: async (email: string, passwordRaw: string): Promise<AuthResponse> => {
+    register: async (username: string, email: string, passwordRaw: string): Promise<AuthResponse> => {
         // 1. Client-side hashing
         const argon2Hash = await hashPassword(passwordRaw);
 
@@ -67,6 +69,7 @@ const authService = {
 
         // 3. Send to backend
         const response = await apiClient.post<AuthResponse>('/register', {
+            username,
             email,
             pqcPublicKey,
             argon2Hash,

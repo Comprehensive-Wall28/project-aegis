@@ -8,7 +8,7 @@ export function DashboardHeader() {
     const getStatusColor = () => {
         switch (pqcEngineStatus) {
             case 'operational':
-                return 'text-[oklch(75%_0.18_145)]'; // Safety Green
+                return 'text-[oklch(75%_0.18_210)]';
             case 'initializing':
                 return 'text-amber-400';
             case 'error':
@@ -61,30 +61,49 @@ export function DashboardHeader() {
                     </p>
                 </motion.div>
 
-                {/* System Health Badge */}
+                {/* System Health Badge - Enhanced */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3, delay: 0.1 }}
                     className="flex items-center gap-3"
                 >
-                    <div className="glass-card px-4 py-2.5 rounded-xl flex items-center gap-3">
+                    <div className="bento-card px-4 py-3 flex items-center gap-4">
+                        {/* PQC Engine Section */}
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <Shield className="h-5 w-5 text-primary" />
+                                {pqcEngineStatus === 'operational' && (
+                                    <div className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[oklch(75%_0.18_210)] animate-ping-glow" />
+                                )}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-medium text-foreground">
+                                    PQC Engine
+                                </span>
+                                <span className="text-[10px] font-mono text-muted-foreground">
+                                    @noble/post-quantum v0.2.1
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="h-8 w-px bg-white/10" />
+
+                        {/* Status Section */}
                         <div className="flex items-center gap-2">
-                            <Shield className="h-5 w-5 text-primary" />
-                            <span className="text-sm font-medium text-foreground hidden sm:inline">
-                                PQC Engine
-                            </span>
+                            <div className={`flex items-center gap-1.5 ${getStatusColor()}`}>
+                                {getStatusIcon()}
+                                <span className="text-sm font-medium">
+                                    {getStatusText()}
+                                </span>
+                            </div>
+                            {pqcEngineStatus === 'operational' && (
+                                <div className="relative">
+                                    <div className="h-2.5 w-2.5 rounded-full bg-[oklch(75%_0.18_210)]" />
+                                    <div className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-[oklch(75%_0.18_210)] animate-ping-glow" />
+                                </div>
+                            )}
                         </div>
-                        <div className="h-4 w-px bg-white/10" />
-                        <div className={`flex items-center gap-1.5 ${getStatusColor()}`}>
-                            {getStatusIcon()}
-                            <span className="text-sm font-medium">
-                                {getStatusText()}
-                            </span>
-                        </div>
-                        {pqcEngineStatus === 'operational' && (
-                            <div className="h-2 w-2 rounded-full bg-[oklch(75%_0.18_145)] animate-pulse" />
-                        )}
                     </div>
                 </motion.div>
             </div>
