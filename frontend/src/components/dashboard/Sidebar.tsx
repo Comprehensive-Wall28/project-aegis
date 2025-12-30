@@ -10,7 +10,8 @@ import {
     Menu,
     X,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    FolderOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import authService from '@/services/authService';
 
 const navItems = [
     { name: 'Vault', href: '/dashboard', icon: Vault },
+    { name: 'Files', href: '/dashboard/files', icon: FolderOpen },
     { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChart },
     { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: Fingerprint },
     { name: 'Security', href: '/dashboard/security', icon: Settings },

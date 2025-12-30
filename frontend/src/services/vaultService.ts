@@ -14,9 +14,12 @@ const apiClient = axios.create({
 export interface FileMetadata {
     _id: string;
     fileName: string;
+    originalFileName: string;
     fileSize: number;
     mimeType: string;
-    status: 'pending' | 'completed' | 'failed';
+    encapsulatedKey: string;
+    encryptedSymmetricKey: string;
+    status: 'pending' | 'uploading' | 'completed' | 'failed';
     createdAt: string;
     updatedAt: string;
 }
@@ -33,6 +36,11 @@ const vaultService = {
         });
         return response.data;
     },
+
+    deleteFile: async (fileId: string): Promise<void> => {
+        await apiClient.delete(`/files/${fileId}`);
+    },
 };
 
 export default vaultService;
+

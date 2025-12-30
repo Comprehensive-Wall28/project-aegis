@@ -267,7 +267,7 @@ body {
   background: rgba(18, 18, 22, 0.4);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Dashboard-specific glass effects */
@@ -275,9 +275,9 @@ body {
   background: color-mix(in oklch, var(--color-card-aegis) 80%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.75rem;
-  /* 12px for nested harmony */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  /* 8px for sharper look */
 }
 
 .glass-sidebar {
@@ -393,27 +393,18 @@ body {
   background: color-mix(in srgb, var(--color-card-aegis) 40%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.75rem;
-  /* 12px for nested harmony (16px outer - 4px gap = 12px) */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* Slightly more visible solid border */
+  border-radius: 0.5rem;
+  /* 8px - Sharper than 12px */
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.5);
+  /* Removed box-shadow for flatter look */
 }
 
-.bento-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 50%, rgba(255, 255, 255, 0.05));
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
+/* Removed complex gradient ::before for cleaner look */
+
 
 .bento-card-glow {
   border: 1px solid rgba(59, 130, 246, 0.2);

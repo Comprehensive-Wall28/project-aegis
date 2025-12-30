@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Landing } from '@/pages/Landing';
 import { Dashboard } from '@/pages/Dashboard';
+import { FilesPage } from '@/pages/FilesPage';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
@@ -50,6 +51,10 @@ const router = createBrowserRouter([
                 element: <Dashboard />,
             },
             {
+                path: 'files',
+                element: <FilesPage />,
+            },
+            {
                 path: 'gpa',
                 element: <GPATracker />,
             },
@@ -68,3 +73,4 @@ const router = createBrowserRouter([
 export function AppRouter() {
     return <RouterProvider router={router} />;
 }
+
