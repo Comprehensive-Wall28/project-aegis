@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import connectDB from './config/database';
 import authRoutes from './routes/authRoutes';
 import vaultRoutes from './routes/vaultRoutes';
+import integrityRoutes from './routes/integrityRoutes';
 import mongoSanitize from 'express-mongo-sanitize';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
@@ -33,6 +34,7 @@ app.use('/api/auth', authLimiter); // Stricter limit for auth
 
 app.use('/api/auth', authRoutes);
 app.use('/api/vault', vaultRoutes);
+app.use('/api/integrity', integrityRoutes);
 
 app.use(errorHandler);
 
