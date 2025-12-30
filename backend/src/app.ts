@@ -17,16 +17,23 @@ connectDB();
 
 const app = express();
 
-app.use(helmet());
+const allowedOrigins = [
+    process.env.CLIENT_ORIGIN,
+    'http://localhost:3000',
+    'http://localhost:5173'
+].filter((origin): origin is string => !!origin);
+
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+}));
+
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(express.json());
 app.use(mongoSanitize());
 app.use(cookieParser());
-
-// CORS restricted to frontend origin
-app.use(cors({
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
-    credentials: true
-}));
 
 // Apply Rate Limiting
 app.use('/api/', apiLimiter);

@@ -45,7 +45,7 @@ export function Features() {
                             viewport={{ once: true }}
                             transition={{ delay: index * 0.1 }}
                         >
-                            <Card className="bg-zinc-900/50 border-zinc-800 backdrop-blur-sm hover:border-indigo-500/30 hover:bg-zinc-900/80 h-full group">
+                            <Card className="bg-white/5 border-white/10 backdrop-blur-md hover:border-indigo-500/30 hover:bg-white/10 h-full group transition-all duration-300">
                                 <CardHeader>
                                     <div className={`p-3 rounded-lg w-fit bg-zinc-800/50 mb-4 group-hover:scale-110 transition-transform duration-300`}>
                                         <feature.icon className={`w-8 h-8 ${feature.color}`} />

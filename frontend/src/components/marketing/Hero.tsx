@@ -1,93 +1,152 @@
 import { Button } from "@/components/ui/button";
-import { MoveRight, ShieldCheck, Lock, Fingerprint } from "lucide-react";
+import { ArrowRight, ShieldCheck, Lock, Fingerprint } from "lucide-react";
 import { motion } from "framer-motion";
 import { StatelessIndicator } from "./StatelessIndicator";
+import { useEffect, useState } from "react";
+
+function MerkleIntegrityFeed() {
+    const [hashes, setHashes] = useState<string[]>([]);
+
+    useEffect(() => {
+        const generateHash = () => Math.random().toString(16).substring(2, 10).toUpperCase();
+        setHashes(Array.from({ length: 12 }, generateHash));
+        const interval = setInterval(() => {
+            setHashes(prev => [...prev.slice(1), generateHash()]);
+        }, 2000);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="w-full overflow-hidden whitespace-nowrap py-4 border-y border-white/5 bg-black/20 flex items-center">
+            <div className="flex animate-scroll hover:pause gap-8 px-4">
+                {hashes.map((hash, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-zinc-500">HASH:</span>
+                        <span className="text-[10px] font-mono text-zinc-400">{hash}</span>
+                        <motion.div
+                            animate={{ opacity: [0.3, 1, 0.3], scale: [0.9, 1.1, 0.9] }}
+                            transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+                            className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                        />
+                    </div>
+                ))}
+            </div>
+            {/* Duplicate for seamless scrolling */}
+            <div className="flex animate-scroll hover:pause gap-8 px-4">
+                {hashes.map((hash, i) => (
+                    <div key={i + 12} className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-zinc-500">HASH:</span>
+                        <span className="text-[10px] font-mono text-zinc-400">{hash}</span>
+                        <motion.div
+                            animate={{ opacity: [0.3, 1, 0.3], scale: [0.9, 1.1, 0.9] }}
+                            transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+                            className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                        />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
 
 export function Hero() {
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1,
+                delayChildren: 0.2,
+            },
+        },
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
+    } as any;
+
     return (
-        <section className="relative overflow-hidden pt-32 pb-16 md:pt-48 md:pb-32">
-            {/* Background Gradients */}
-            <div className="absolute inset-0 -z-10">
-                <div className="absolute top-0 transform -translate-x-1/2 left-1/2 w-[1000px] h-[500px] bg-indigo-600/20 rounded-[100%] blur-[100px] opacity-30" />
-                <div className="absolute bottom-0 right-0 w-[800px] h-[600px] bg-emerald-600/10 rounded-[100%] blur-[120px] opacity-20" />
+        <section className="relative overflow-hidden pt-32 pb-16 md:pt-48 md:pb-32 bg-zinc-950">
+            {/* Mesh Gradient Background */}
+            <div className="absolute inset-0 -z-10 overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-900/20 rounded-full blur-[120px] animate-pulse" />
+                <div className="absolute top-[20%] right-[-5%] w-[35%] h-[35%] bg-teal-900/10 rounded-full blur-[100px] animate-pulse [animation-delay:2s]" />
+                <div className="absolute bottom-[10%] left-[20%] w-[50%] h-[50%] bg-indigo-950/15 rounded-full blur-[140px] animate-pulse [animation-delay:4s]" />
             </div>
 
-            <div className="container px-4 md:px-6 mx-auto relative z-10 flex flex-col items-center text-center">
-
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="mb-8"
-                >
+            <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="container px-4 md:px-6 mx-auto relative z-10 flex flex-col items-center text-center"
+            >
+                <motion.div variants={itemVariants} className="mb-8">
                     <StatelessIndicator />
                 </motion.div>
 
                 <motion.h1
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
+                    variants={itemVariants}
                     className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6 max-w-4xl"
                 >
                     Quantum-Safe Productivity for the
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-300"> Post-Quantum Era</span>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[oklch(70%_0.2_250)] to-[oklch(85%_0.15_190)]"> Post-Quantum Era</span>
                 </motion.h1>
 
                 <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed"
+                    variants={itemVariants}
+                    className="text-lg md:text-xl text-zinc-400 max-w-2xl mb-10 leading-relaxed"
                 >
                     Experience the world's first stateless productivity suite powered by ML-KEM encryption.
                     Your data never leaves your browser unencrypted.
                 </motion.p>
 
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
+                    variants={itemVariants}
                     className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
                 >
-                    <Button size="lg" variant="glow" className="group">
+                    <Button size="lg" variant="glow" className="group relative overflow-hidden">
                         Secure Your Vault
-                        <MoveRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+                        <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </Button>
-                    <Button size="lg" variant="outline" className="border-indigo-500/20 hover:border-indigo-500/50 hover:bg-indigo-500/10">
+                    <Button size="lg" variant="outline" className="border-white/10 hover:border-indigo-500/50 hover:bg-white/5 transition-colors">
                         Learn about PQC
                     </Button>
                 </motion.div>
 
                 {/* Product Preview / Visual Abstract */}
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.8, delay: 0.5 }}
-                    className="mt-20 w-full max-w-5xl rounded-xl border border-white/10 bg-black/40 backdrop-blur-sm p-2 shadow-2xl relative overflow-hidden"
+                    variants={itemVariants}
+                    className="mt-20 w-full max-w-5xl rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-2 shadow-2xl relative overflow-hidden"
                 >
                     {/* Fake UI Header */}
                     <div className="h-8 border-b border-white/10 flex items-center px-4 gap-2 bg-white/5">
-                        <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
-                        <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-                        <div className="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500/50" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
                     </div>
                     {/* Fake UI Body Placeholder */}
-                    <div className="aspect-[16/9] w-full bg-gradient-to-br from-indigo-950/30 to-black flex items-center justify-center relative">
-                        <div className="absolute inset-0 flex items-center justify-center gap-12 opacity-50">
-                            <ShieldCheck className="w-24 h-24 text-indigo-500/50" />
-                            <Lock className="w-24 h-24 text-indigo-500/50" />
-                            <Fingerprint className="w-24 h-24 text-indigo-500/50" />
+                    <div className="aspect-[16/9] w-full bg-gradient-to-br from-indigo-950/20 to-zinc-950 flex items-center justify-center relative">
+                        <div className="absolute inset-0 flex items-center justify-center gap-12 opacity-30">
+                            <ShieldCheck className="w-24 h-24 text-indigo-500/40" />
+                            <Lock className="w-24 h-24 text-indigo-500/40" />
+                            <Fingerprint className="w-24 h-24 text-indigo-500/40" />
                         </div>
                         <div className="z-10 text-center">
-                            <p className="text-sm uppercase tracking-widest text-indigo-400 mb-2">Encrypted Session Active</p>
-                            <p className="text-2xl font-mono text-white">0x7F...3A9C</p>
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-indigo-400/80 mb-3 font-medium">Encrypted Session Active</p>
+                            <p className="text-3xl font-mono text-white/90 tracking-tighter">0x7F...3A9C</p>
                         </div>
+
+                        {/* Scan line effect */}
+                        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-indigo-500/10 to-transparent animate-scan pointer-events-none" />
                     </div>
-                    {/* Scan line effect */}
-                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-indigo-500/5 to-transparent animate-scan pointer-events-none" />
+
+                    {/* Merkle Integrity Feed */}
+                    <MerkleIntegrityFeed />
                 </motion.div>
 
-            </div>
+            </motion.div>
         </section>
     );
 }
+

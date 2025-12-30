@@ -4,25 +4,35 @@
   /* Shadcn CSS Variables based Theme */
   --font-sans: "Inter", system-ui, sans-serif;
 
-  --color-border: #27272a; /* zinc-800 */
+  --color-border: #27272a;
+  /* zinc-800 */
   --color-input: #27272a;
-  --color-ring: #6366f1; /* indigo-500 */
-  --color-background: #09090b; /* zinc-950 */
-  --color-foreground: #fafafa; /* zinc-50 */
+  --color-ring: #6366f1;
+  /* indigo-500 */
+  --color-background: #09090b;
+  /* zinc-950 */
+  --color-foreground: #fafafa;
+  /* zinc-50 */
 
-  --color-primary: #6366f1; /* indigo-500 */
+  --color-primary: #6366f1;
+  /* indigo-500 */
   --color-primary-foreground: #fafafa;
 
-  --color-secondary: #27272a; /* zinc-800 */
+  --color-secondary: #27272a;
+  /* zinc-800 */
   --color-secondary-foreground: #fafafa;
 
-  --color-destructive: #ef4444; /* red-500 */
+  --color-destructive: #ef4444;
+  /* red-500 */
   --color-destructive-foreground: #fafafa;
 
-  --color-muted: #27272a; /* zinc-800 */
-  --color-muted-foreground: #a1a1aa; /* zinc-400 */
+  --color-muted: #27272a;
+  /* zinc-800 */
+  --color-muted-foreground: #a1a1aa;
+  /* zinc-400 */
 
-  --color-accent: #27272a; /* zinc-800 */
+  --color-accent: #27272a;
+  /* zinc-800 */
   --color-accent-foreground: #fafafa;
 
   --color-popover: #09090b;
@@ -32,10 +42,10 @@
   --color-card-foreground: #fafafa;
 
   --radius: 0.5rem;
-  
+
   /* Custom OKLCH Colors for Aegis */
   --color-aegis-zinc: oklch(0.20 0.02 265);
-  --color-aegis-indigo: oklch(0.55 0.25 280); 
+  --color-aegis-indigo: oklch(0.55 0.25 280);
   --color-aegis-emerald: oklch(0.60 0.18 150);
 }
 
@@ -50,7 +60,8 @@
   --popover: 240 10% 3.9%;
   --popover-foreground: 0 0% 98%;
 
-  --primary: 263.4 70% 50.4%; /* Deep Indigo */
+  --primary: 263.4 70% 50.4%;
+  /* Deep Indigo */
   --primary-foreground: 210 40% 98%;
 
   --secondary: 240 3.7% 15.9%;
@@ -73,13 +84,49 @@
 }
 
 body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
 }
 
 .glass-nav {
-    background: rgba(9, 9, 11, 0.7);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(9, 9, 11, 0.7);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@layer utilities {
+  .animate-scroll {
+    animation: scroll 40s linear infinite;
+    display: flex;
+    width: max-content;
+  }
+}
+
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scan {
+  from {
+    transform: translateY(-100%);
+  }
+
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.animate-scan {
+  animation: scan 4s linear infinite;
+}
+
+.pause {
+  animation-play-state: paused;
 }
