@@ -1,0 +1,510 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Shadcn CSS Variables based Theme */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  --color-border: #27272a;
+  /* zinc-800 */
+  --color-input: #27272a;
+  --color-ring: #6366f1;
+  /* indigo-500 */
+  --color-background: #09090b;
+  /* zinc-950 */
+  --color-foreground: #fafafa;
+  /* zinc-50 */
+
+  --color-primary: #6366f1;
+  /* indigo-500 */
+  --color-primary-foreground: #fafafa;
+
+  --color-secondary: #27272a;
+  /* zinc-800 */
+  --color-secondary-foreground: #fafafa;
+
+  --color-destructive: #ef4444;
+  /* red-500 */
+  --color-destructive-foreground: #fafafa;
+
+  --color-muted: #27272a;
+  /* zinc-800 */
+  --color-muted-foreground: #a1a1aa;
+  /* zinc-400 */
+
+  --color-accent: #27272a;
+  /* zinc-800 */
+  --color-accent-foreground: #fafafa;
+
+  --color-popover: #09090b;
+  --color-popover-foreground: #fafafa;
+
+  --color-card: #09090b;
+  --color-card-foreground: #fafafa;
+
+  --radius: 0.5rem;
+
+  /* Premium OKLCH Colors for Aegis 2025 */
+  --color-aegis-zinc: oklch(20% 0.02 250);
+  --color-aegis-indigo: oklch(55% 0.25 280);
+  --color-aegis-emerald: oklch(60% 0.18 210);
+
+  /* New Redesign Palette: 60-30-10 Rule */
+  --color-background-aegis: #18181b;
+  /* Zinc-900 (Background) */
+  --color-card-aegis: #27272a;
+  /* Zinc-800 (Cards) */
+  --color-text-primary: oklch(98% 0.01 250);
+  --color-text-secondary: oklch(75% 0.02 250);
+  --color-accent-blue: oklch(60% 0.22 250);
+  /* PQC Cyan (Accents 10%) */
+  --color-accent-lime: oklch(85% 0.2 140);
+  /* PQC Lime (Accents 10%) */
+
+  /* Vibrant Gradient Colors */
+  --color-gradient-start: oklch(55% 0.22 250);
+  --color-gradient-end: oklch(75% 0.15 200);
+  --color-electric-lime: var(--color-accent-lime);
+
+  /* Base shadcn overrides for consistency */
+  --color-background: var(--color-background-aegis);
+  --color-foreground: var(--color-text-primary);
+  --color-card: var(--color-card-aegis);
+  --color-card-foreground: var(--color-text-primary);
+  --color-muted-foreground: var(--color-text-secondary);
+  --color-primary: var(--color-accent-blue);
+  --color-primary-foreground: var(--color-primary-fg-aegis);
+}
+
+:root {
+  /* Default Theme (Modern Zinc - Darker) */
+  --background: 240 5% 3%;
+  /* #070708 - Almost Black */
+  --foreground: 0 0% 98%;
+
+  --card: 240 4% 8%;
+  /* #131315 - Very Dark Grey */
+  --card-foreground: 0 0% 98%;
+
+  --popover: 250 2% 18%;
+  --popover-foreground: 250 1% 98%;
+
+  --primary: 0 0% 100%;
+  /* White */
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 250 2% 25%;
+  --secondary-foreground: 250 1% 98%;
+
+  --muted: 250 2% 25%;
+  --muted-foreground: 250 2% 75%;
+
+  --accent: 0 0% 100%;
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 250 2% 20%;
+  --input: 250 2% 20%;
+  --ring: 200 15% 75%;
+
+  --radius: 0.75rem;
+
+  /* Aegis Custom Variables (Default) */
+  --color-background-aegis: #070708;
+  /* Deep Zinc/Near Black */
+  --color-card-aegis: #131315;
+  /* Very Dark Zinc */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: oklch(75% 0.02 250);
+  --color-accent-blue: #ffffff;
+  /* White Accent */
+  --color-accent-lime: #ffffff;
+  /* White Accent */
+  --color-primary-fg-aegis: #000000;
+  /* Black text on White primary */
+}
+
+[data-theme="catppuccin"] {
+  /* Catppuccin Mocha Theme */
+  --background: 240 21% 15%;
+  /* Base #1e1e2e */
+  --foreground: 226 64% 88%;
+  /* Text #cdd6f4 */
+
+  --card: 240 21% 15%;
+  /* Base #1e1e2e (using Base for card bg to match user request styles or Surface0 if preferred) */
+  /* Actually using Surface0 #313244 for card distinction or Mantle #181825 */
+  --card: 237 16% 23%;
+  /* Surface0 #313244 */
+  --card-foreground: 226 64% 88%;
+
+  --popover: 240 21% 15%;
+  --popover-foreground: 226 64% 88%;
+
+  --primary: 217 92% 76%;
+  /* Blue #89b4fa */
+  --primary-foreground: 240 21% 15%;
+
+  --secondary: 237 16% 23%;
+  /* Surface0 */
+  --secondary-foreground: 226 64% 88%;
+
+  --muted: 237 16% 23%;
+  --muted-foreground: 228 24% 72%;
+  /* Overlay0 #9399b2 */
+
+  --accent: 217 92% 76%;
+  /* Blue as accent */
+  --accent-foreground: 240 21% 15%;
+
+  --destructive: 343 81% 75%;
+  /* Red #f38ba8 */
+  --destructive-foreground: 240 21% 15%;
+
+  --border: 240 21% 15%;
+  /* Base or Overlay0 */
+  --input: 237 16% 23%;
+
+  --ring: 217 92% 76%;
+
+  /* Aegis Custom Variables (Catppuccin) */
+  /* Re-mapping hex/oklch vars to Catppuccin values */
+  --color-background-aegis: #1e1e2e;
+  /* Base */
+  --color-card-aegis: #313244;
+  /* Surface0 */
+  --color-text-primary: #cdd6f4;
+  /* Text */
+  --color-text-secondary: #a6adc8;
+  /* Subtext0 */
+  --color-accent-blue: #89b4fa;
+  /* Blue */
+  --color-accent-lime: #a6e3a1;
+  /* Green */
+  --color-primary-fg-aegis: #1e1e2e;
+  /* Base text on Blue primary */
+}
+
+[data-theme="amoled"] {
+  /* AMOLED Theme (True Black + White Accents) */
+  --background: 0 0% 0%;
+  /* Black #000000 */
+  --foreground: 0 0% 100%;
+  /* White #ffffff */
+
+  --card: 0 0% 0%;
+  /* Black */
+  --card-foreground: 0 0% 100%;
+
+  --popover: 0 0% 0%;
+  --popover-foreground: 0 0% 100%;
+
+  --primary: 0 0% 100%;
+  /* White */
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 0 0% 10%;
+  /* Very dark gray */
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 64%;
+
+  --accent: 0 0% 100%;
+  /* White */
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  --ring: 0 0% 100%;
+
+  /* Aegis Custom Variables (AMOLED) */
+  --color-background-aegis: #000000;
+  /* True Black */
+  --color-card-aegis: #000000;
+  /* True Black */
+  --color-text-primary: #ffffff;
+  /* White */
+  --color-text-secondary: #a1a1aa;
+  /* Zinc-400 */
+  --color-accent-blue: #ffffff;
+  /* White */
+  --color-accent-lime: #ffffff;
+  /* White */
+  --color-primary-fg-aegis: #000000;
+  /* Black text on White primary */
+}
+
+body {
+  background-color: var(--color-background-aegis);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+/* Monospaced Technical Font */
+.font-mono-tech {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  letter-spacing: -0.01em;
+}
+
+/* Safety Blue for verified states - OKLCH based */
+.text-safety-green {
+  color: var(--color-accent-lime);
+}
+
+.bg-safety-green {
+  background-color: var(--color-accent-lime);
+}
+
+/* Glassmorphism Panel - Redesigned with Dual-Border technique */
+.glass-panel {
+  background: rgba(18, 18, 22, 0.4);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Dashboard-specific glass effects */
+.glass-card {
+  background: color-mix(in oklch, var(--color-card-aegis) 80%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  /* 8px for sharper look */
+}
+
+.glass-sidebar {
+  background: color-mix(in oklch, var(--color-background-aegis) 85%, transparent);
+  backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-nav {
+  background: color-mix(in oklch, var(--color-card-aegis) 70%, transparent);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 1rem;
+}
+
+/* Scrollbar styling for terminal */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@layer utilities {
+  .animate-scroll {
+    animation: scroll 40s linear infinite;
+    display: flex;
+    width: max-content;
+  }
+}
+
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scan {
+  from {
+    transform: translateY(-100%);
+  }
+
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.animate-scan {
+  animation: scan 4s linear infinite;
+}
+
+.pause {
+  animation-play-state: paused;
+}
+
+/* Mesh Gradient Animation */
+@keyframes mesh-float {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(5%, 10%) scale(1.05);
+  }
+
+  50% {
+    transform: translate(-5%, 5%) scale(0.95);
+  }
+
+  75% {
+    transform: translate(10%, -5%) scale(1.02);
+  }
+}
+
+.animate-mesh {
+  animation: mesh-float 20s ease-in-out infinite;
+}
+
+.animate-mesh-delayed {
+  animation: mesh-float 25s ease-in-out infinite;
+  animation-delay: -8s;
+}
+
+.animate-mesh-slow {
+  animation: mesh-float 30s ease-in-out infinite;
+  animation-delay: -15s;
+}
+
+/* Bento Command Center Styles */
+.bento-card {
+  background: color-mix(in srgb, var(--color-card-aegis) 40%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* Slightly more visible solid border */
+  border-radius: 0.5rem;
+  /* 8px - Sharper than 12px */
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  /* Removed box-shadow for flatter look */
+}
+
+/* Removed complex gradient ::before for cleaner look */
+
+
+.bento-card-glow {
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Ping Animation */
+@keyframes ping-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+}
+
+.animate-ping-glow {
+  animation: ping-glow 2s ease-in-out infinite;
+}
+
+/* Scanline Animation */
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(400%);
+  }
+}
+
+.animate-scanline {
+  animation: scanline 2s linear infinite;
+}
+
+/* Terminal Scroll */
+@keyframes terminal-scroll {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-terminal-scroll {
+  animation: terminal-scroll 20s linear infinite;
+}
+
+/* Quantum Pulse */
+@keyframes quantum-pulse {
+
+  0%,
+  100% {
+    opacity: 0.6;
+    box-shadow: 0 0 4px rgba(34, 211, 238, 0.4);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.8);
+  }
+}
+
+.animate-quantum-pulse {
+  animation: quantum-pulse 2s ease-in-out infinite;
+}
+
+/* Scanning Overlay */
+@keyframes scan-bar {
+
+  0%,
+  100% {
+    top: 0%;
+  }
+
+  50% {
+    top: 100%;
+  }
+}
+
+.animate-scan-bar {
+  animation: scan-bar 1.5s ease-in-out infinite;
+}
+
+/* Gauge Scanline */
+@keyframes gauge-scan {
+  0% {
+    transform: rotate(-90deg);
+  }
+
+  100% {
+    transform: rotate(90deg);
+  }
+}
+
+.animate-gauge-scan {
+  animation: gauge-scan 3s ease-in-out infinite;
+  transform-origin: center bottom;
+}
