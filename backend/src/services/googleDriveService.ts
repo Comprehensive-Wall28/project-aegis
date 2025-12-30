@@ -75,3 +75,16 @@ export const listFiles = async () => {
     // This function might be useful for verification or admin
     return [];
 }
+
+export const testConnection = async () => {
+    try {
+        await drive.files.list({
+            pageSize: 1,
+            fields: 'files(id, name)',
+        });
+        return true;
+    } catch (error) {
+        console.error('Google Drive connection test failed:', error);
+        return false;
+    }
+};
