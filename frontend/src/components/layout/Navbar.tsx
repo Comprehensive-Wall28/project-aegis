@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Shield, Menu, X, Loader2, Palette } from 'lucide-react';
+import { Menu, X, Loader2, Palette } from 'lucide-react';
+import { AegisLogo } from '@/components/AegisLogo';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -89,7 +90,7 @@ export function Navbar() {
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
                             <a href="#" className="flex items-center gap-2">
-                                <Shield className="h-8 w-8 text-primary" strokeWidth={2.5} />
+                                <AegisLogo size={32} />
                                 <span className="text-xl font-bold tracking-tight text-foreground">Aegis</span>
                             </a>
                         </div>

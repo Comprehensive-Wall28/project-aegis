@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-    Shield,
     Vault,
     LineChart,
     Fingerprint,
@@ -10,6 +9,7 @@ import {
     Menu,
     X
 } from 'lucide-react';
+import { AegisLogo } from '@/components/AegisLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -42,7 +42,7 @@ export function DashboardNavbar() {
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
                             <Link to="/dashboard" className="flex items-center gap-2">
-                                <Shield className="h-8 w-8 text-primary" strokeWidth={2.5} />
+                                <AegisLogo size={32} />
                                 <span className="text-xl font-bold tracking-tight text-foreground">Aegis</span>
                             </Link>
                         </div>
