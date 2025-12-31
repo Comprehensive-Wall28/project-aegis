@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
-import { GridFSBucket, ObjectId } from 'mongodb';
 import { Readable, Writable } from 'stream';
 import logger from '../utils/logger';
 
-let bucket: GridFSBucket | null = null;
+// Use mongoose's internal mongodb types to avoid version mismatches
+const { GridFSBucket, ObjectId } = mongoose.mongo;
+
+let bucket: any | null = null;
 
 // In-memory store for active upload streams
 const activeStreams: Map<string, {
@@ -16,7 +18,7 @@ const activeStreams: Map<string, {
 /**
  * Initialize GridFS bucket. Must be called after MongoDB connection is established.
  */
-export const initGridFS = (): GridFSBucket => {
+export const initGridFS = (): any => {
     if (!bucket) {
         const db = mongoose.connection.db;
         if (!db) {
@@ -31,7 +33,7 @@ export const initGridFS = (): GridFSBucket => {
 /**
  * Get the GridFS bucket instance
  */
-export const getBucket = (): GridFSBucket => {
+export const getBucket = (): any => {
     if (!bucket) {
         return initGridFS();
     }
@@ -100,7 +102,7 @@ export const finalizeUpload = async (
     streamId: string,
     fileName: string,
     metadata?: Record<string, any>
-): Promise<ObjectId> => {
+): Promise<any> => {
     const session = activeStreams.get(streamId);
 
     if (!session) {
@@ -126,7 +128,7 @@ export const finalizeUpload = async (
         readableStream.pipe(uploadStream);
 
         uploadStream.on('finish', () => {
-            const fileId = uploadStream.id as ObjectId;
+            const fileId = uploadStream.id as any;
             logger.info(`GridFS upload finalized: streamId=${streamId}, fileId=${fileId}`);
 
             // Cleanup
@@ -135,7 +137,7 @@ export const finalizeUpload = async (
             resolve(fileId);
         });
 
-        uploadStream.on('error', (err) => {
+        uploadStream.on('error', (err: Error) => {
             logger.error(`GridFS upload error: ${err}`);
             activeStreams.delete(streamId);
             reject(err);
@@ -147,11 +149,11 @@ export const finalizeUpload = async (
  * Get a readable stream for downloading a file from GridFS.
  * @param fileId - The GridFS file ID (can be mongodb ObjectId, mongoose ObjectId, or string)
  */
-export const getFileStream = (fileId: ObjectId | mongoose.Types.ObjectId | string): Readable => {
+export const getFileStream = (fileId: any): Readable => {
     const gridBucket = getBucket();
     // Convert to string first to handle both mongoose and mongodb ObjectId types
     const idString = fileId.toString();
-    const id = new ObjectId(idString);
+    const id = new mongoose.mongo.ObjectId(idString);
 
     logger.info(`GridFS download stream opened: fileId=${id}`);
     return gridBucket.openDownloadStream(id);
@@ -161,9 +163,10 @@ export const getFileStream = (fileId: ObjectId | mongoose.Types.ObjectId | strin
  * Delete a file from GridFS.
  * @param fileId - The GridFS file ID
  */
-export const deleteFile = async (fileId: ObjectId | string): Promise<void> => {
+export const deleteFile = async (fileId: any): Promise<void> => {
     const gridBucket = getBucket();
-    const id = typeof fileId === 'string' ? new ObjectId(fileId) : fileId;
+    const idString = fileId.toString();
+    const id = new mongoose.mongo.ObjectId(idString);
 
     await gridBucket.delete(id);
     logger.info(`GridFS file deleted: fileId=${id}`);
