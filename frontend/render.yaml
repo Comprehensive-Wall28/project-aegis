@@ -1,0 +1,5 @@
+# Render Blueprint - SPA fallback for client-side routing
+routes:
+  - type: rewrite
+    source: /*
+    destination: /index.html
