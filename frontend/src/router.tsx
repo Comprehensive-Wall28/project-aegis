@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Landing } from '@/pages/Landing';
 import { Dashboard } from '@/pages/Dashboard';
 import { FilesPage } from '@/pages/FilesPage';
+import { NotFound } from '@/pages/NotFound';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
@@ -67,6 +68,10 @@ const router = createBrowserRouter([
                 element: <SecuritySettings />,
             },
         ],
+    },
+    {
+        path: '*',
+        element: <NotFound />,
     },
 ]);
 
