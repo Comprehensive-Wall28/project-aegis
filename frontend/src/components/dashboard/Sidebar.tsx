@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-    Shield,
     Vault,
     LineChart,
     Fingerprint,
@@ -16,6 +15,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useSessionStore } from '@/stores/sessionStore';
+import { AegisLogo } from '@/components/AegisLogo';
 import authService from '@/services/authService';
 
 const navItems = [
@@ -53,7 +53,7 @@ function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarCon
         <div className="flex flex-col h-full">
             {/* Logo */}
             <div className={`flex items-center gap-2 h-14 px-4 border-b border-white/5 ${isCollapsed ? 'justify-center' : ''}`}>
-                <Shield className="h-7 w-7 text-primary flex-shrink-0" strokeWidth={2.5} />
+                <AegisLogo size={28} className="flex-shrink-0" />
                 <AnimatePresence>
                     {!isCollapsed && (
                         <motion.span
