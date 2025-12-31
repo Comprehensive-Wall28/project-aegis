@@ -16,6 +16,9 @@ connectDB();
 
 const app = express();
 
+// Trust proxy for secure cookies in production (behind Render/other load balancers)
+app.set('trust proxy', 1);
+
 const allowedOrigins = [
     process.env.CLIENT_ORIGIN,
     'http://localhost:3000',
