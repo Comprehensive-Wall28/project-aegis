@@ -31,7 +31,11 @@ app.use(cors({
 }));
 
 app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    // Disable CSP - the frontend is served from a different origin (static site)
+    // and has its own security context. The default CSP blocks eval() which
+    // some bundlers/libraries use.
+    contentSecurityPolicy: false
 }));
 app.use(express.json());
 app.use(cookieParser());
