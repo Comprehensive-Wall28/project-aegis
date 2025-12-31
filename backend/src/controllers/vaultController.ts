@@ -117,7 +117,7 @@ export const uploadChunk = async (req: AuthRequest, res: Response) => {
                 }
             );
 
-            fileRecord.gridfsFileId = gridfsFileId;
+            fileRecord.gridfsFileId = gridfsFileId as any;
             fileRecord.status = 'completed';
             fileRecord.uploadStreamId = undefined; // Clear session
             await fileRecord.save();
