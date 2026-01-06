@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
 import authService from '@/services/authService';
+import tokenService from '@/services/tokenService';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
 
@@ -31,6 +32,23 @@ export function Navbar() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+
+    // Check for existing session on mount (for page refreshes)
+    useEffect(() => {
+        const checkSession = async () => {
+            if (!user && tokenService.hasValidToken()) {
+                try {
+                    const validatedUser = await authService.validateSession();
+                    if (validatedUser) {
+                        setUser(validatedUser);
+                    }
+                } catch {
+                    // Token invalid, will show login button
+                }
+            }
+        };
+        checkSession();
+    }, [user, setUser]);
 
     // Check if we should show login dialog from redirect
     useEffect(() => {
