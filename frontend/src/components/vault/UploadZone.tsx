@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { CloudUpload as UploadIcon, Lock as FileLockIcon, GppGood as ShieldCheckIcon } from '@mui/icons-material';
 import { Box, Typography, Paper, LinearProgress, alpha, useTheme } from '@mui/material';
 import { useVaultUpload } from '../../hooks/useVaultUpload';
-import { useSessionStore } from '../../stores/sessionStore';
+
 
 interface UploadZoneProps {
     onUploadComplete?: () => void;
@@ -10,20 +10,11 @@ interface UploadZoneProps {
 
 const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete }) => {
     const { uploadFile, state } = useVaultUpload();
-    const { user, initializeQuantumKeys } = useSessionStore();
+
     const [isDragging, setIsDragging] = useState(false);
     const theme = useTheme();
 
-    // Auto-init keys if missing
-    React.useEffect(() => {
-        if (user && !user.publicKey) {
-            try {
-                initializeQuantumKeys();
-            } catch (error) {
-                console.error('Failed to initialize quantum keys:', error);
-            }
-        }
-    }, [user, initializeQuantumKeys]);
+
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();

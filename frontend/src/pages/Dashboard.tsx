@@ -83,7 +83,7 @@ export function Dashboard() {
                                     </Box>
 
                                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', p: 1.5, borderRadius: 3, bgcolor: alpha(theme.palette.common.white, 0.02) }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', p: 1.5, borderRadius: '12px', bgcolor: alpha(theme.palette.common.white, 0.02) }}>
                                             <Box>
                                                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>Encryptions Today</Typography>
                                                 <Typography variant="h5" sx={{ fontWeight: 600, fontFamily: 'JetBrains Mono' }}>0</Typography>
@@ -91,7 +91,7 @@ export function Dashboard() {
                                             <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'JetBrains Mono' }}>OPS</Typography>
                                         </Box>
 
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: 3, bgcolor: alpha(theme.palette.common.white, 0.02) }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: '12px', bgcolor: alpha(theme.palette.common.white, 0.02) }}>
                                             <Box>
                                                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Integrity Monitor</Typography>
                                                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#10b981' }}>Active & Secure</Typography>

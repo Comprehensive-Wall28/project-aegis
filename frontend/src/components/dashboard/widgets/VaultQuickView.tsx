@@ -172,7 +172,7 @@ export function VaultQuickView() {
                                         elevation={0}
                                         sx={{
                                             p: 2,
-                                            borderRadius: '16px',
+                                            borderRadius: '12px',
                                             bgcolor: alpha(theme.palette.common.white, 0.03),
                                             border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
                                             display: 'flex',

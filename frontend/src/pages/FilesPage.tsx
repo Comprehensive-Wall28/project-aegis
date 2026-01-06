@@ -9,7 +9,8 @@ import {
     CheckBox as CheckSquareIcon,
     CheckBoxOutlineBlank as SquareIcon,
     IndeterminateCheckBox as XSquareIcon,
-    Search as SearchIcon
+    Search as SearchIcon,
+    GridView as GridViewIcon
 } from '@mui/icons-material';
 import {
     Box,
@@ -24,9 +25,11 @@ import {
     Checkbox,
     Stack,
     Collapse,
-    Tooltip,
     TextField,
-    InputAdornment
+    InputAdornment,
+    MenuItem,
+    Select,
+    FormControl
 } from '@mui/material';
 import vaultService, { type FileMetadata } from '@/services/vaultService';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,32 +44,6 @@ function formatFileSize(bytes: number): string {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-function getFriendlyMimeType(mimeType: string): string {
-    if (!mimeType) return 'FILE';
-    const parts = mimeType.split('/');
-    const subType = parts[1] || parts[0];
-
-    const typeMap: Record<string, string> = {
-        'vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
-        'vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
-        'vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
-        'pdf': 'PDF',
-        'png': 'PNG',
-        'jpeg': 'JPEG',
-        'jpg': 'JPG',
-        'gif': 'GIF',
-        'plain': 'TXT',
-        'json': 'JSON',
-        'zip': 'ZIP',
-        'javascript': 'JS',
-        'typescript': 'TS',
-        'x-typescript': 'TS',
-        'application/octet-stream': 'BIN'
-    };
-
-    return typeMap[subType.toLowerCase()] || subType.toUpperCase().split('-').pop() || 'FILE';
-}
-
 function truncateFileName(name: string, maxLength: number = 32): string {
     if (!name) return 'Unknown File';
     if (name.length <= maxLength) return name;
@@ -76,15 +53,18 @@ function truncateFileName(name: string, maxLength: number = 32): string {
     return `${truncatedBase}.${ext}`;
 }
 
+type ViewPreset = 'compact' | 'standard' | 'comfort' | 'detailed';
+
 export function FilesPage() {
     const [files, setFiles] = useState<FileMetadata[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [, setError] = useState<string | null>(null);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showUpload, setShowUpload] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [viewPreset, setViewPreset] = useState<ViewPreset>('standard');
     const { downloadAndDecrypt } = useVaultDownload();
     const theme = useTheme();
 
@@ -109,13 +89,8 @@ export function FilesPage() {
     const handleDownload = async (file: FileMetadata) => {
         try {
             setDownloadingId(file._id);
-
             const decryptedBlob = await downloadAndDecrypt(file);
-
-            if (!decryptedBlob) {
-                console.error('Decryption failed');
-                return;
-            }
+            if (!decryptedBlob) return;
 
             const url = window.URL.createObjectURL(decryptedBlob);
             const a = document.createElement('a');
@@ -134,7 +109,6 @@ export function FilesPage() {
 
     const handleDelete = async (fileId: string) => {
         if (!confirm('Are you sure you want to delete this file?')) return;
-
         try {
             setDeletingIds(prev => new Set(prev).add(fileId));
             await vaultService.deleteFile(fileId);
@@ -157,11 +131,9 @@ export function FilesPage() {
 
     const handleMassDelete = async () => {
         if (selectedIds.size === 0) return;
-        if (!confirm(`Are you sure you want to delete ${selectedIds.size} file(s)? This cannot be undone.`)) return;
+        if (!confirm(`Are you sure you want to delete ${selectedIds.size} file(s)?`)) return;
 
-        const idsToDelete = Array.from(selectedIds);
-
-        for (const id of idsToDelete) {
+        for (const id of Array.from(selectedIds)) {
             try {
                 setDeletingIds(prev => new Set(prev).add(id));
                 await vaultService.deleteFile(id);
@@ -182,26 +154,47 @@ export function FilesPage() {
     const toggleSelect = (id: string) => {
         setSelectedIds(prev => {
             const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.add(id);
-            }
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
             return next;
         });
     };
 
     const selectAll = () => {
-        if (selectedIds.size === files.length) {
-            setSelectedIds(new Set());
-        } else {
-            setSelectedIds(new Set(files.map(f => f._id)));
-        }
+        if (selectedIds.size === files.length) setSelectedIds(new Set());
+        else setSelectedIds(new Set(files.map(f => f._id)));
     };
 
     const filteredFiles = files.filter(f =>
         f.originalFileName.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const getGridSize = () => {
+        switch (viewPreset) {
+            case 'compact': return { xs: 6, sm: 4, md: 3, lg: 2 };
+            case 'comfort': return { xs: 12, sm: 12, md: 6, lg: 4 };
+            case 'detailed': return { xs: 12, sm: 12, md: 12, lg: 6 };
+            default: return { xs: 12, sm: 6, md: 4, lg: 3 }; // Standard
+        }
+    };
+
+    const getIconScaling = () => {
+        switch (viewPreset) {
+            case 'compact': return { size: 28, padding: 1, badge: 12 };
+            case 'comfort': return { size: 64, padding: 2.5, badge: 18 };
+            case 'detailed': return { size: 96, padding: 3.5, badge: 24 };
+            default: return { size: 44, padding: 2, badge: 14 }; // Standard
+        }
+    };
+
+    const getTypographyScaling = () => {
+        switch (viewPreset) {
+            case 'compact': return { name: 'caption', size: 10, mb: 0.25 };
+            case 'comfort': return { name: 'subtitle1', size: 24, mb: 1 };
+            case 'detailed': return { name: 'h6', size: 36, mb: 1.5 };
+            default: return { name: 'body2', size: 18, mb: 0.5 }; // Standard
+        }
+    };
 
     return (
         <Stack spacing={4} className="text-sharp">
@@ -216,7 +209,7 @@ export function FilesPage() {
                         {files.length} file{files.length !== 1 ? 's' : ''} in your vault
                     </Typography>
                 </Box>
-                <Stack direction="row" spacing={2}>
+                <Stack direction="row" spacing={2} alignItems="center">
                     <AnimatePresence>
                         {selectedIds.size > 0 && (
                             <Button
@@ -229,7 +222,7 @@ export function FilesPage() {
                                 size="small"
                                 startIcon={<TrashIcon />}
                                 onClick={handleMassDelete}
-                                sx={{ fontWeight: 700, borderRadius: 2 }}
+                                sx={{ fontWeight: 700, borderRadius: '8px' }}
                             >
                                 Delete ({selectedIds.size})
                             </Button>
@@ -242,8 +235,9 @@ export function FilesPage() {
                         onClick={() => setShowUpload(!showUpload)}
                         sx={{
                             fontWeight: 700,
-                            borderRadius: 2,
+                            borderRadius: '8px',
                             borderColor: alpha(theme.palette.primary.main, 0.2),
+                            height: 36,
                             '&:hover': { borderColor: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.05) }
                         }}
                     >
@@ -252,30 +246,64 @@ export function FilesPage() {
                 </Stack>
             </Box>
 
-            {/* Search and Selection */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                <TextField
-                    placeholder="Search files..."
-                    size="small"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    sx={{
-                        width: { xs: '100%', sm: 300 },
-                        '& .MuiOutlinedInput-root': {
-                            borderRadius: 3,
-                            bgcolor: alpha(theme.palette.background.paper, 0.5),
-                            backdropFilter: 'blur(8px)',
-                            border: `1px solid ${alpha(theme.palette.divider, 0.5)}`
-                        }
-                    }}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                            </InputAdornment>
-                        ),
-                    }}
-                />
+            {/* View Controls & Search */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 3 }}>
+                <Stack direction="row" spacing={3} alignItems="center" sx={{ flex: 1, minWidth: 300 }}>
+                    <TextField
+                        placeholder="Search files..."
+                        size="small"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        sx={{
+                            flex: 1,
+                            maxWidth: 320,
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: '12px',
+                                bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                backdropFilter: 'blur(8px)',
+                                border: `1px solid ${alpha(theme.palette.divider, 0.5)}`
+                            }
+                        }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+
+                    {/* Resize Control (Preset Dropdown) */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
+                            VIEW SIZE
+                        </Typography>
+                        <FormControl size="small" sx={{ minWidth: 130 }}>
+                            <Select
+                                value={viewPreset}
+                                onChange={(e) => setViewPreset(e.target.value as ViewPreset)}
+                                sx={{
+                                    borderRadius: '10px',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                                    fontSize: '13px',
+                                    fontWeight: 700,
+                                    '& .MuiSelect-select': { py: 0.75, display: 'flex', alignItems: 'center', gap: 1 }
+                                }}
+                                renderValue={(value) => (
+                                    <>
+                                        <GridViewIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+                                        {value.charAt(0).toUpperCase() + value.slice(1)}
+                                    </>
+                                )}
+                            >
+                                <MenuItem value="compact" sx={{ fontSize: '13px', fontWeight: 600 }}>Compact</MenuItem>
+                                <MenuItem value="standard" sx={{ fontSize: '13px', fontWeight: 600 }}>Standard</MenuItem>
+                                <MenuItem value="comfort" sx={{ fontSize: '13px', fontWeight: 600 }}>Comfort</MenuItem>
+                                <MenuItem value="detailed" sx={{ fontSize: '13px', fontWeight: 600 }}>Detailed</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Box>
+                </Stack>
 
                 {files.length > 0 && (
                     <Button
@@ -294,7 +322,7 @@ export function FilesPage() {
 
             {/* Upload Section */}
             <Collapse in={showUpload}>
-                <Paper variant="glass" sx={{ p: 4, borderRadius: 4 }}>
+                <Paper variant="glass" sx={{ p: 4, borderRadius: '16px' }}>
                     <UploadZone onUploadComplete={() => {
                         fetchFiles();
                         setShowUpload(false);
@@ -307,129 +335,119 @@ export function FilesPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 10 }}>
                     <CircularProgress thickness={5} size={40} />
                 </Box>
-            ) : error && files.length === 0 ? (
-                <Paper variant="glass" sx={{ p: 10, textAlign: 'center', borderRadius: 4 }}>
-                    <Typography color="text.secondary">{error}</Typography>
-                    <Button variant="text" size="small" onClick={fetchFiles} sx={{ mt: 2 }}>
-                        Retry
-                    </Button>
-                </Paper>
-            ) : files.length === 0 ? (
-                <Paper variant="glass" sx={{ p: 10, textAlign: 'center', borderRadius: 4 }}>
+            ) : filteredFiles.length === 0 ? (
+                <Paper variant="glass" sx={{ p: 10, textAlign: 'center', borderRadius: '16px' }}>
                     <FolderOpenIcon sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.3, mb: 2 }} />
-                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 700 }}>No files in vault yet</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>Upload your first encrypted file to get started</Typography>
-                    <Button
-                        variant="contained"
-                        startIcon={<UploadIcon />}
-                        onClick={() => setShowUpload(true)}
-                        sx={{ borderRadius: 2, fontWeight: 700 }}
-                    >
-                        Upload File
-                    </Button>
+                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 700 }}>No files match your criteria</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>Try a different search term or upload a new file</Typography>
                 </Paper>
             ) : (
-                <Grid container spacing={3}>
+                <Grid container spacing={viewPreset === 'compact' ? 2 : 3}>
                     <AnimatePresence mode="popLayout">
-                        {filteredFiles.map((file, index) => (
-                            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={file._id}>
-                                <motion.div
-                                    layout
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    transition={{ duration: 0.2, delay: index * 0.02 }}
-                                >
-                                    <Paper
-                                        variant="glass"
-                                        onClick={() => toggleSelect(file._id)}
-                                        sx={{
-                                            p: 3,
-                                            position: 'relative',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                            borderRadius: 4,
-                                            border: selectedIds.has(file._id) ? `2px solid ${theme.palette.primary.main}` : `1px solid ${alpha(theme.palette.divider, 0.3)}`,
-                                            bgcolor: selectedIds.has(file._id) ? alpha(theme.palette.primary.main, 0.03) : 'transparent',
-                                            '&:hover': {
-                                                transform: 'translateY(-4px)',
-                                                borderColor: selectedIds.has(file._id) ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.3),
-                                                bgcolor: alpha(theme.palette.common.white, 0.02),
-                                                boxShadow: `0 12px 24px ${alpha(theme.palette.common.black, 0.4)}`
-                                            }
-                                        }}
-                                    >
-                                        {/* Selection Checkbox */}
-                                        <Box sx={{ position: 'absolute', top: 12, left: 12 }}>
-                                            <Checkbox
-                                                checked={selectedIds.has(file._id)}
-                                                onClick={(e) => { e.stopPropagation(); toggleSelect(file._id); }}
-                                                size="small"
-                                                sx={{ color: alpha(theme.palette.common.white, 0.1), '&.Mui-checked': { color: theme.palette.primary.main } }}
-                                            />
-                                        </Box>
+                        {filteredFiles.map((file) => {
+                            const iconScaling = getIconScaling();
+                            const typoScaling = getTypographyScaling();
 
-                                        {/* File Icon & Badge */}
-                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2, mb: 3 }}>
-                                            <Box sx={{ position: 'relative', mb: 2 }}>
-                                                <Box sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.05), border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}` }}>
-                                                    <FileIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
-                                                </Box>
-                                                <Box sx={{ position: 'absolute', bottom: -6, right: -6, p: 0.5, borderRadius: '50%', bgcolor: theme.palette.background.paper, display: 'flex', border: `1px solid ${alpha(theme.palette.divider, 0.5)}` }}>
-                                                    <ShieldCheckIcon sx={{ fontSize: 16, color: 'info.main' }} />
+                            return (
+                                <Grid size={getGridSize()} key={file._id}>
+                                    <motion.div
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        transition={{ duration: 0.2 }}
+                                        style={{ height: '100%', width: '100%' }}
+                                    >
+                                        <Paper
+                                            variant="glass"
+                                            onClick={() => toggleSelect(file._id)}
+                                            sx={{
+                                                p: viewPreset === 'compact' ? 1.5 : 3,
+                                                position: 'relative',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.3s ease',
+                                                borderRadius: '16px',
+                                                border: selectedIds.has(file._id) ? `2px solid ${theme.palette.primary.main}` : `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+                                                bgcolor: selectedIds.has(file._id) ? alpha(theme.palette.primary.main, 0.03) : 'transparent',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                height: '100%',
+                                                aspectRatio: '1 / 1',
+                                                overflow: 'hidden',
+                                                '&:hover': {
+                                                    transform: 'translateY(-4px)',
+                                                    borderColor: selectedIds.has(file._id) ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.3),
+                                                    bgcolor: alpha(theme.palette.common.white, 0.02),
+                                                    boxShadow: `0 12px 24px ${alpha(theme.palette.common.black, 0.4)}`
+                                                }
+                                            }}
+                                        >
+                                            <Box sx={{ position: 'absolute', top: 8, left: 8 }}>
+                                                <Checkbox
+                                                    checked={selectedIds.has(file._id)}
+                                                    onClick={(e) => { e.stopPropagation(); toggleSelect(file._id); }}
+                                                    size="small"
+                                                    sx={{ color: alpha(theme.palette.common.white, 0.05), '&.Mui-checked': { color: theme.palette.primary.main } }}
+                                                />
+                                            </Box>
+
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 1, width: '100%' }}>
+                                                <Box sx={{ position: 'relative', mb: typoScaling.mb }}>
+                                                    <Box sx={{ p: iconScaling.padding, borderRadius: '12px', bgcolor: alpha(theme.palette.primary.main, 0.05), display: 'flex' }}>
+                                                        <FileIcon sx={{ fontSize: iconScaling.size, color: theme.palette.primary.main }} />
+                                                    </Box>
+                                                    <Box sx={{ position: 'absolute', bottom: -2, right: -2, p: 0.2, borderRadius: '50%', bgcolor: theme.palette.background.paper, border: `1px solid ${alpha(theme.palette.divider, 0.5)}`, display: 'flex' }}>
+                                                        <ShieldCheckIcon sx={{ fontSize: iconScaling.badge, color: 'info.main' }} />
+                                                    </Box>
                                                 </Box>
                                             </Box>
-                                            <Box sx={{ px: 1, py: 0.2, borderRadius: 0.5, bgcolor: alpha(theme.palette.info.main, 0.1), border: `1px solid ${alpha(theme.palette.info.main, 0.2)}` }}>
-                                                <Typography variant="caption" sx={{ color: 'info.main', fontSize: '10px', fontWeight: 800, fontFamily: 'JetBrains Mono' }}>
-                                                    ML-KEM
+
+                                            <Box sx={{ textAlign: 'center', width: '100%', px: 1 }}>
+                                                <Typography
+                                                    variant={typoScaling.name as any}
+                                                    noWrap
+                                                    sx={{ fontWeight: 700, display: 'block', mb: 0.5, px: 0.5 }}
+                                                    title={file.originalFileName}
+                                                >
+                                                    {truncateFileName(file.originalFileName, typoScaling.size)}
+                                                </Typography>
+                                                <Typography variant="caption" noWrap sx={{ color: 'text.secondary', display: 'block', fontSize: viewPreset === 'compact' ? '8px' : '10px', opacity: 0.8 }}>
+                                                    {formatFileSize(file.fileSize)}
                                                 </Typography>
                                             </Box>
-                                        </Box>
 
-                                        {/* File Info */}
-                                        <Box sx={{ textAlign: 'center', mb: 3, overflow: 'hidden' }}>
-                                            <Typography variant="body2" noWrap sx={{ fontWeight: 700, display: 'block', px: 1 }} title={file.originalFileName}>
-                                                {truncateFileName(file.originalFileName, 24)}
-                                            </Typography>
-                                            <Typography variant="caption" noWrap sx={{ color: 'text.secondary', fontWeight: 500, mt: 0.5, display: 'block', px: 1 }}>
-                                                {formatFileSize(file.fileSize)} • {getFriendlyMimeType(file.mimeType)}
-                                            </Typography>
-                                        </Box>
-
-                                        {/* Actions */}
-                                        <Stack direction="row" spacing={1} justifyContent="center" onClick={e => e.stopPropagation()}>
-                                            <Tooltip title="Decrypt & Download">
-                                                <Button
+                                            <Stack
+                                                direction="row"
+                                                spacing={viewPreset === 'compact' ? 0.25 : 1}
+                                                justifyContent="center"
+                                                onClick={e => e.stopPropagation()}
+                                                sx={{ mt: viewPreset === 'compact' ? 1 : 2 }}
+                                            >
+                                                <IconButton
                                                     size="small"
-                                                    variant="text"
                                                     onClick={() => handleDownload(file)}
                                                     disabled={downloadingId === file._id}
-                                                    startIcon={downloadingId === file._id ? <CircularProgress size={14} color="inherit" /> : <DownloadIcon sx={{ fontSize: 18 }} />}
-                                                    sx={{ fontSize: '12px', fontWeight: 700, borderRadius: 1.5 }}
+                                                    sx={{ color: 'primary.main', p: viewPreset === 'compact' ? 0.4 : 0.8 }}
                                                 >
-                                                    {downloadingId === file._id ? '' : 'Decrypt'}
-                                                </Button>
-                                            </Tooltip>
-                                            <Tooltip title="Delete">
+                                                    {downloadingId === file._id ? <CircularProgress size={iconScaling.badge} /> : <DownloadIcon sx={{ fontSize: iconScaling.badge + 4 }} />}
+                                                </IconButton>
                                                 <IconButton
                                                     size="small"
                                                     color="error"
                                                     onClick={() => handleDelete(file._id)}
                                                     disabled={deletingIds.has(file._id)}
-                                                    sx={{
-                                                        borderRadius: 1.5,
-                                                        border: `1px solid ${alpha(theme.palette.error.main, 0.1)}`,
-                                                        '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) }
-                                                    }}
+                                                    sx={{ p: viewPreset === 'compact' ? 0.4 : 0.8 }}
                                                 >
-                                                    {deletingIds.has(file._id) ? <CircularProgress size={16} color="inherit" /> : <TrashIcon sx={{ fontSize: 18 }} />}
+                                                    {deletingIds.has(file._id) ? <CircularProgress size={iconScaling.badge} /> : <TrashIcon sx={{ fontSize: iconScaling.badge + 4 }} />}
                                                 </IconButton>
-                                            </Tooltip>
-                                        </Stack>
-                                    </Paper>
-                                </motion.div>
-                            </Grid>
-                        ))}
+                                            </Stack>
+                                        </Paper>
+                                    </motion.div>
+                                </Grid>
+                            );
+                        })}
                     </AnimatePresence>
                 </Grid>
             )}

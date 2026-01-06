@@ -127,7 +127,7 @@ export function IntegrityMonitor() {
                 display: 'flex',
                 flexDirection: 'column',
                 position: 'relative',
-                overflow: 'hidden', borderRadius: 4
+                overflow: 'hidden', borderRadius: '16px'
             }}
             className="text-sharp"
         >
@@ -194,7 +194,7 @@ export function IntegrityMonitor() {
                         gap: 1,
                         px: 1.5,
                         py: 0.5,
-                        borderRadius: 5,
+                        borderRadius: '20px',
                         bgcolor: alpha(statusDisplay.color === 'primary.main' ? theme.palette.primary.main :
                             statusDisplay.color === 'info.main' ? theme.palette.info.main :
                                 statusDisplay.color === 'error.main' ? theme.palette.error.main : theme.palette.common.white, 0.05),
@@ -223,7 +223,7 @@ export function IntegrityMonitor() {
                         <Box
                             sx={{
                                 p: 2,
-                                borderRadius: 3,
+                                borderRadius: '12px',
                                 bgcolor: alpha(theme.palette.common.white, 0.02),
                                 border: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
                                 mb: 2,
@@ -252,7 +252,7 @@ export function IntegrityMonitor() {
                     {/* Terminal Feed */}
                     <Box sx={{
                         flex: 1,
-                        borderRadius: 3,
+                        borderRadius: '12px',
                         bgcolor: alpha(theme.palette.common.black, 0.4),
                         border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
                         overflow: 'hidden',
@@ -343,7 +343,7 @@ export function IntegrityMonitor() {
                     py: 1.2,
                     fontSize: '12px',
                     fontWeight: 800,
-                    borderRadius: 2,
+                    borderRadius: '10px',
                     transition: 'all 0.3s ease',
                     ...(status !== 'verifying' && status !== 'verified' && {
                         boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.25)}`,

@@ -29,11 +29,19 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     pqcEngineStatus: 'initializing',
     sessionKey: null,
 
-    setUser: (user) => set({
-        user,
-        isAuthenticated: true,
-        pqcEngineStatus: 'operational'
-    }),
+    setUser: (user) => {
+        set({
+            user,
+            isAuthenticated: true,
+        });
+
+        // Auto-initialize keys if they are not already in the user object
+        if (!user.publicKey || !user.privateKey) {
+            get().initializeQuantumKeys();
+        } else {
+            set({ pqcEngineStatus: 'operational' });
+        }
+    },
 
     setSessionKey: (key) => set({ sessionKey: key }),
 
@@ -47,13 +55,16 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     setPqcEngineStatus: (status) => set({ pqcEngineStatus: status }),
 
     initializeQuantumKeys: () => {
+        // Set to initializing state
+        set({ pqcEngineStatus: 'initializing' });
+
         // Run async initialization without blocking
         (async () => {
             try {
                 // Dynamic import to handle WASM loading issues
                 const { ml_kem768 } = await import('@noble/post-quantum/ml-kem.js');
 
-                // @ts-ignore
+                // Generate keys
                 const { publicKey, secretKey } = ml_kem768.keygen();
 
                 // Helper to convert to Hex
@@ -73,8 +84,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                         },
                         pqcEngineStatus: 'operational'
                     });
+                    console.log("Quantum Keys Initialized for Session");
+                } else {
+                    // If no user, we still set it as operational for the engine itself
+                    set({ pqcEngineStatus: 'operational' });
                 }
-                console.log("Quantum Keys Initialized for Session");
             } catch (e) {
                 console.error("Failed to generate PQC keys:", e);
                 set({ pqcEngineStatus: 'error' });
