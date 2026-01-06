@@ -127,8 +127,11 @@ export const logoutUser = async (_req: Request, res: Response) => {
     try {
         res.cookie('token', '', {
             httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             expires: new Date(0),
-        });
+            partitioned: process.env.NODE_ENV === 'production',
+        } as any);
         res.json({ message: 'Logged out successfully' });
     } catch (error) {
         console.error(error);
