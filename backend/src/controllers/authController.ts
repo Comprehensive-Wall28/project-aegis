@@ -6,7 +6,7 @@ import logger from '../utils/logger';
 
 const generateToken = (id: string, username: string) => {
     return jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
-        expiresIn: '30d',
+        expiresIn: '1d', // Short-lived for security with localStorage
     });
 };
 
@@ -67,13 +67,13 @@ export const loginUser = async (req: Request, res: Response) => {
         if (user && (await argon2.verify(user.passwordHash, argon2Hash))) {
             const token = generateToken(user._id.toString(), user.username);
 
-            // HTTP-only cookie
+            // HTTP-only cookie (kept for same-origin scenarios)
             res.cookie('token', token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Use 'none' for cross-site in prod
-                maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-                partitioned: process.env.NODE_ENV === 'production', // CHIPS compliance for cross-site cookies
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 24 * 60 * 60 * 1000, // 1 day
+                partitioned: process.env.NODE_ENV === 'production',
             } as any);
 
             logger.info(`User logged in: ${user.email}`);
@@ -82,7 +82,8 @@ export const loginUser = async (req: Request, res: Response) => {
                 _id: user._id,
                 username: user.username,
                 email: user.email,
-                message: 'Login successful'
+                message: 'Login successful',
+                token, // Return token for localStorage-based auth in cross-origin scenarios
             });
         } else {
             logger.warn(`Failed login attempt for email: ${email}`);

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import tokenService from './tokenService';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Remove trailing slash if present and append auth path
@@ -11,6 +12,26 @@ const apiClient = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+// Add Authorization header if token exists
+apiClient.interceptors.request.use((config) => {
+    const token = tokenService.getToken();
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// Clear token on 401 responses (auto-logout)
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            tokenService.removeToken();
+        }
+        return Promise.reject(error);
+    }
+);
 
 export interface LoginCredentials {
     email: string;
@@ -29,6 +50,7 @@ export interface AuthResponse {
     email: string;
     username: string;
     message: string;
+    token?: string; // Token returned for cross-origin localStorage auth
 }
 
 // Web Crypto API helper to simulate Argon2 client-side hashing (using SHA-256 for demo)
@@ -57,6 +79,12 @@ const authService = {
             email,
             argon2Hash,
         });
+
+        // 3. Store token in localStorage if provided (cross-origin scenario)
+        if (response.data.token) {
+            tokenService.setToken(response.data.token);
+        }
+
         return response.data;
     },
 
@@ -91,8 +119,12 @@ const authService = {
             await apiClient.post('/logout');
         } catch {
             // Ignore errors on logout
+        } finally {
+            // Always clear localStorage token
+            tokenService.removeToken();
         }
     },
 };
 
 export default authService;
+
