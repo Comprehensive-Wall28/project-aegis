@@ -1,15 +1,18 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 interface AegisLogoProps {
     size?: number;
     className?: string;
+    disableLink?: boolean;
 }
 
 export const AegisLogo: React.FC<AegisLogoProps> = ({
     size = 32,
-    className = ''
+    className = '',
+    disableLink = false
 }) => {
-    return (
+    const content = (
         <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 40 40"
@@ -40,6 +43,25 @@ export const AegisLogo: React.FC<AegisLogoProps> = ({
                 fill="none"
             />
         </svg>
+    );
+
+    if (disableLink) return content;
+
+    return (
+        <Link
+            to="/"
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                textDecoration: 'none',
+                color: 'inherit',
+                transition: 'opacity 0.2s ease',
+                cursor: 'pointer'
+            }}
+            className="hover:opacity-80"
+        >
+            {content}
+        </Link>
     );
 };
 

@@ -127,9 +127,9 @@ export function IntegrityMonitor() {
                 display: 'flex',
                 flexDirection: 'column',
                 position: 'relative',
-                overflow: 'hidden',
-                borderRadius: 4
+                overflow: 'hidden', borderRadius: 4
             }}
+            className="text-sharp"
         >
             {/* Scanning Overlay */}
             <AnimatePresence>
@@ -142,8 +142,8 @@ export function IntegrityMonitor() {
                         sx={{
                             position: 'absolute',
                             inset: 0,
-                            bgcolor: alpha(theme.palette.background.paper, 0.8),
-                            backdropFilter: 'blur(8px)',
+                            bgcolor: alpha(theme.palette.background.default, 0.8),
+                            backdropFilter: 'blur(12px)',
                             zIndex: 10,
                             display: 'flex',
                             flexDirection: 'column',
@@ -157,14 +157,15 @@ export function IntegrityMonitor() {
                                 insetX: 0,
                                 height: '2px',
                                 background: `linear-gradient(to right, transparent, ${theme.palette.primary.main}, transparent)`,
-                                animation: 'scan 2s infinite ease-in-out'
+                                animation: 'scan 2s infinite ease-in-out',
+                                boxShadow: `0 0 15px ${theme.palette.primary.main}`
                             }}
                         />
-                        <CircularProgress sx={{ mb: 2 }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                            Verifying Merkle Tree
+                        <CircularProgress sx={{ mb: 2 }} thickness={5} size={48} />
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: 1 }}>
+                            VERIFYING MERKLE TREE
                         </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, fontWeight: 500 }}>
                             Scanning integrity proofs...
                         </Typography>
                     </Box>
@@ -176,7 +177,7 @@ export function IntegrityMonitor() {
                 <Box>
                     <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontWeight: 700 }}>
                         <ShieldCheckIcon color="primary" sx={{ fontSize: 20 }} />
-                        Integrity Monitor
+                        <span>Integrity Monitor</span>
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                         Merkle tree verification
@@ -194,14 +195,18 @@ export function IntegrityMonitor() {
                         px: 1.5,
                         py: 0.5,
                         borderRadius: 5,
-                        bgcolor: alpha(theme.palette.common.white, 0.05),
+                        bgcolor: alpha(statusDisplay.color === 'primary.main' ? theme.palette.primary.main :
+                            statusDisplay.color === 'info.main' ? theme.palette.info.main :
+                                statusDisplay.color === 'error.main' ? theme.palette.error.main : theme.palette.common.white, 0.05),
                         color: statusDisplay.color,
-                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                        border: `1px solid ${alpha(statusDisplay.color === 'primary.main' ? theme.palette.primary.main :
+                            statusDisplay.color === 'info.main' ? theme.palette.info.main :
+                                statusDisplay.color === 'error.main' ? theme.palette.error.main : theme.palette.common.white, 0.15)}`
                     }}
                 >
                     {statusDisplay.icon}
-                    <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '10px' }}>
-                        {statusDisplay.text}
+                    <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '10px', letterSpacing: 0.5 }}>
+                        {statusDisplay.text.toUpperCase()}
                     </Typography>
                 </Box>
             </Box>
@@ -209,7 +214,7 @@ export function IntegrityMonitor() {
             {/* Content */}
             {isLoading ? (
                 <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CircularProgress size={32} />
+                    <CircularProgress size={32} thickness={5} />
                 </Box>
             ) : (
                 <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -219,26 +224,55 @@ export function IntegrityMonitor() {
                             sx={{
                                 p: 2,
                                 borderRadius: 3,
-                                bgcolor: alpha(theme.palette.common.white, 0.03),
-                                border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                                bgcolor: alpha(theme.palette.common.white, 0.02),
+                                border: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
                                 mb: 2,
-                                flexShrink: 0
+                                flexShrink: 0,
+                                transition: 'all 0.3s ease',
+                                '&:hover': { borderColor: alpha(theme.palette.primary.main, 0.3) }
                             }}
                         >
-                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5, fontSize: '10px', fontWeight: 600 }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1, fontSize: '10px', fontWeight: 800, letterSpacing: 1 }}>
                                 CURRENT ROOT HASH
                             </Typography>
-                            <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', color: 'text.primary', fontWeight: 500, breakAll: 'true', lineHeight: 1.4 }}>
-                                {merkleRoot.slice(0, 20)}...{merkleRoot.slice(-12)}
+                            <Typography variant="caption" sx={{
+                                fontFamily: 'JetBrains Mono',
+                                color: 'text.primary',
+                                fontWeight: 500,
+                                breakAll: 'true',
+                                lineHeight: 1.5,
+                                fontSize: '11px',
+                                opacity: 0.9
+                            }}>
+                                {merkleRoot.length > 40 ? `${merkleRoot.slice(0, 24)}...${merkleRoot.slice(-16)}` : merkleRoot}
                             </Typography>
                         </Box>
                     )}
 
                     {/* Terminal Feed */}
-                    <Box sx={{ flex: 1, borderRadius: 3, bgcolor: alpha(theme.palette.common.black, 0.2), border: `1px solid ${alpha(theme.palette.divider, 0.5)}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                        <Box sx={{ px: 2, py: 1, borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`, bgcolor: alpha(theme.palette.common.white, 0.02), flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <TerminalIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                            <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: 'JetBrains Mono', color: 'text.secondary', fontSize: '9px', letterSpacing: 1 }}>
+                    <Box sx={{
+                        flex: 1,
+                        borderRadius: 3,
+                        bgcolor: alpha(theme.palette.common.black, 0.4),
+                        border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight: 0,
+                        boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5)'
+                    }}>
+                        <Box sx={{
+                            px: 2,
+                            py: 1,
+                            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                            bgcolor: alpha(theme.palette.common.white, 0.03),
+                            flexShrink: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5
+                        }}>
+                            <TerminalIcon sx={{ fontSize: 14, color: 'primary.main' }} />
+                            <Typography variant="caption" sx={{ fontWeight: 800, fontFamily: 'JetBrains Mono', color: 'text.secondary', fontSize: '10px', letterSpacing: 1.5 }}>
                                 INTEGRITY_PROOFS
                             </Typography>
                         </Box>
@@ -255,12 +289,12 @@ export function IntegrityMonitor() {
                         >
                             {proofFeed.length === 0 ? (
                                 <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.5 }}>
-                                        Run verification to see proofs
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.4, fontWeight: 500 }}>
+                                        Run verification to see sequence
                                     </Typography>
                                 </Box>
                             ) : (
-                                <Stack spacing={0.5}>
+                                <Stack spacing={1}>
                                     {proofFeed.map((entry, i) => (
                                         <Box
                                             key={i}
@@ -269,16 +303,16 @@ export function IntegrityMonitor() {
                                             animate={{ opacity: 1, x: 0 }}
                                             sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'JetBrains Mono', fontSize: '10px' }}
                                         >
-                                            <Typography variant="caption" sx={{ fontSize: '10px', color: alpha(theme.palette.text.secondary, 0.5), fontFamily: 'inherit' }}>
+                                            <Typography variant="caption" sx={{ fontSize: '10px', color: alpha(theme.palette.text.secondary, 0.5), fontFamily: 'inherit', minWidth: '60px' }}>
                                                 {entry.timestamp}
                                             </Typography>
-                                            <Typography variant="caption" sx={{ fontSize: '10px', color: 'primary.main', fontWeight: 700, fontFamily: 'inherit' }}>
+                                            <Typography variant="caption" sx={{ fontSize: '10px', color: 'primary.main', fontWeight: 700, fontFamily: 'inherit', minWidth: '95px' }}>
                                                 [{entry.type}]
                                             </Typography>
-                                            <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.primary', flex: 1, fontFamily: 'inherit' }}>
+                                            <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.primary', flex: 1, fontFamily: 'inherit', opacity: 0.8 }} noWrap>
                                                 {entry.hash}
                                             </Typography>
-                                            <Typography variant="caption" sx={{ fontSize: '10px', color: 'success.main', fontWeight: 700, fontFamily: 'inherit' }}>
+                                            <Typography variant="caption" sx={{ fontSize: '10px', color: 'success.main', fontWeight: 800, fontFamily: 'inherit' }}>
                                                 {entry.status}
                                             </Typography>
                                         </Box>
@@ -290,8 +324,8 @@ export function IntegrityMonitor() {
 
                     {/* Last Verified */}
                     {lastVerified && (
-                        <Typography variant="caption" sx={{ mt: 2, color: 'text.secondary', display: 'block', textAlign: 'center', fontSize: '10px', fontWeight: 500 }}>
-                            Last verified: {lastVerified.toLocaleTimeString()}
+                        <Typography variant="caption" sx={{ mt: 2, color: 'text.secondary', display: 'block', textAlign: 'center', fontSize: '10px', fontWeight: 600, letterSpacing: 0.5 }}>
+                            LAST VERIFIED: {lastVerified.toLocaleTimeString()}
                         </Typography>
                     )}
                 </Box>
@@ -303,21 +337,24 @@ export function IntegrityMonitor() {
                 variant={status === 'verified' ? 'outlined' : 'contained'}
                 onClick={handleVerify}
                 disabled={status === 'verifying'}
-                startIcon={status === 'verifying' ? <CircularProgress size={16} color="inherit" /> : <RefreshIcon />}
+                startIcon={status === 'verifying' ? <CircularProgress size={16} color="inherit" /> : <RefreshIcon sx={{ fontSize: 18 }} />}
                 sx={{
                     mt: 3,
-                    py: 1,
+                    py: 1.2,
                     fontSize: '12px',
-                    fontWeight: 700,
+                    fontWeight: 800,
+                    borderRadius: 2,
+                    transition: 'all 0.3s ease',
                     ...(status !== 'verifying' && status !== 'verified' && {
-                        boxShadow: `0 0 15px ${alpha(theme.palette.primary.main, 0.3)}`,
+                        boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.25)}`,
                         '&:hover': {
-                            boxShadow: `0 0 25px ${alpha(theme.palette.primary.main, 0.5)}`,
+                            boxShadow: `0 0 30px ${alpha(theme.palette.primary.main, 0.4)}`,
+                            transform: 'translateY(-2px)'
                         }
                     })
                 }}
             >
-                {status === 'verifying' ? 'Scanning...' : 'Verify Now'}
+                {status === 'verifying' ? 'SCANNING...' : 'VERIFY SYSTEM INTEGRITY'}
             </Button>
 
             <style>{`

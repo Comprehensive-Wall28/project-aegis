@@ -18,21 +18,21 @@ export const getTheme = (mode: ThemeMode) => {
     const palettes = {
         default: {
             background: {
-                default: '#070708',
-                paper: '#131315',
+                default: '#020617', // Slate 950 (Deep Cosmos)
+                paper: '#0f172a',   // Slate 900
             },
             primary: {
-                main: '#ffffff',
-                contrastText: '#000000',
+                main: '#0ea5e9',    // Sky 500
+                contrastText: '#020617',
             },
             secondary: {
-                main: '#6366f1', // Indigo
+                main: '#0f172a', // Slate 900
             },
             text: {
-                primary: '#ffffff',
-                secondary: 'rgba(255, 255, 255, 0.7)',
+                primary: '#f8fafc', // Slate 50
+                secondary: '#94a3b8', // Slate 400
             },
-            divider: 'rgba(255, 255, 255, 0.08)',
+            divider: 'rgba(148, 163, 184, 0.1)',
         },
         catppuccin: {
             background: {
@@ -92,7 +92,7 @@ export const getTheme = (mode: ThemeMode) => {
             button: { textTransform: 'none', fontWeight: 600 },
         },
         shape: {
-            borderRadius: 12,
+            borderRadius: 12, // Base border radius, overridden by specific components often
         },
         components: {
             MuiCssBaseline: {
@@ -145,7 +145,7 @@ export const getTheme = (mode: ThemeMode) => {
                             background: alpha(selectedPalette.background.paper, 0.4),
                             backdropFilter: 'blur(24px)',
                             WebkitBackdropFilter: 'blur(24px)',
-                            border: `1px solid ${alpha('#ffffff', 0.1)}`,
+                            border: `1px solid ${alpha(selectedPalette.primary.main || '#ffffff', 0.1)}`,
                         },
                     },
                 ],

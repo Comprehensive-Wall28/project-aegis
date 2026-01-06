@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { Box, alpha, useTheme, Paper } from '@mui/material';
 
 export function DashboardLayout() {
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const theme = useTheme();
 
     return (
@@ -82,7 +82,7 @@ export function DashboardLayout() {
                             height: '100%',
                             display: 'flex',
                             flexDirection: 'column',
-                            borderRadius: { xs: 4, sm: 5 },
+                            borderRadius: '16px',
                             overflow: 'hidden',
                             bgcolor: alpha(theme.palette.background.paper, 0.2),
                             backdropFilter: 'blur(32px)',

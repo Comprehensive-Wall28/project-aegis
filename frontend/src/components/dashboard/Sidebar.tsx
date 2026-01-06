@@ -65,16 +65,26 @@ function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarCon
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', h: '100%', height: '100%' }}>
             {/* Logo */}
-            <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                height: 56,
-                px: 2,
-                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                justifyContent: isCollapsed ? 'center' : 'flex-start'
-            }}>
-                <AegisLogo size={28} />
+            <Box
+                component={Link}
+                to="/"
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    height: 56,
+                    px: 2,
+                    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    '&:hover': {
+                        '& .MuiTypography-root': { color: 'primary.main' },
+                        '& .logo-hover': { opacity: 0.8 }
+                    }
+                }}
+            >
+                <AegisLogo size={28} disableLink className="logo-hover transition-opacity" />
                 <AnimatePresence>
                     {!isCollapsed && (
                         <Typography
@@ -87,7 +97,8 @@ function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarCon
                                 fontWeight: 800,
                                 color: 'text.primary',
                                 whiteSpace: 'nowrap',
-                                overflow: 'hidden'
+                                overflow: 'hidden',
+                                transition: 'color 0.2s'
                             }}
                         >
                             Aegis
@@ -115,30 +126,18 @@ function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarCon
                                             justifyContent: isCollapsed ? 'center' : 'initial',
                                             px: 2.5,
                                             borderRadius: 3,
-                                            bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                            bgcolor: isActive ? alpha(theme.palette.primary.main, 0.06) : 'transparent',
                                             color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
+                                            border: `1px solid ${isActive ? alpha(theme.palette.primary.main, 0.2) : 'transparent'}`,
+                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                                             '&:hover': {
-                                                bgcolor: alpha(theme.palette.text.primary, 0.05),
-                                                color: theme.palette.text.primary
+                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                borderColor: alpha(theme.palette.primary.main, 0.4),
+                                                color: theme.palette.primary.main
                                             },
                                             position: 'relative'
                                         }}
                                     >
-                                        {isActive && (
-                                            <Box
-                                                component={motion.div}
-                                                layoutId="active-indicator"
-                                                sx={{
-                                                    position: 'absolute',
-                                                    left: 4,
-                                                    top: 8,
-                                                    bottom: 8,
-                                                    width: 3,
-                                                    bgcolor: theme.palette.primary.main,
-                                                    borderRadius: 1
-                                                }}
-                                            />
-                                        )}
                                         <ListItemIcon
                                             sx={{
                                                 minWidth: 0,

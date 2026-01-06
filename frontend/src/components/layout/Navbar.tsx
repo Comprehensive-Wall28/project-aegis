@@ -165,7 +165,7 @@ export function Navbar() {
                                 color: 'inherit'
                             }}
                         >
-                            <AegisLogo size={32} />
+                            <AegisLogo size={32} disableLink />
                             <Typography
                                 variant="h6"
                                 sx={{

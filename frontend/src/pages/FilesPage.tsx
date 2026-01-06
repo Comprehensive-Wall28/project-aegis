@@ -41,12 +41,38 @@ function formatFileSize(bytes: number): string {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+function getFriendlyMimeType(mimeType: string): string {
+    if (!mimeType) return 'FILE';
+    const parts = mimeType.split('/');
+    const subType = parts[1] || parts[0];
+
+    const typeMap: Record<string, string> = {
+        'vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+        'vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+        'vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+        'pdf': 'PDF',
+        'png': 'PNG',
+        'jpeg': 'JPEG',
+        'jpg': 'JPG',
+        'gif': 'GIF',
+        'plain': 'TXT',
+        'json': 'JSON',
+        'zip': 'ZIP',
+        'javascript': 'JS',
+        'typescript': 'TS',
+        'x-typescript': 'TS',
+        'application/octet-stream': 'BIN'
+    };
+
+    return typeMap[subType.toLowerCase()] || subType.toUpperCase().split('-').pop() || 'FILE';
+}
+
 function truncateFileName(name: string, maxLength: number = 32): string {
     if (!name) return 'Unknown File';
     if (name.length <= maxLength) return name;
     const ext = name.split('.').pop() || '';
     const baseName = name.slice(0, name.length - ext.length - 1);
-    const truncatedBase = baseName.slice(0, maxLength - ext.length - 4) + '...';
+    const truncatedBase = baseName.slice(0, Math.max(0, maxLength - ext.length - 4)) + '...';
     return `${truncatedBase}.${ext}`;
 }
 
@@ -178,13 +204,13 @@ export function FilesPage() {
     );
 
     return (
-        <Stack spacing={4}>
+        <Stack spacing={4} className="text-sharp">
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                     <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
                         <FolderOpenIcon color="primary" sx={{ fontSize: 32 }} />
-                        Encrypted Files
+                        <span>Encrypted Files</span>
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5, fontWeight: 500 }}>
                         {files.length} file{files.length !== 1 ? 's' : ''} in your vault
@@ -214,7 +240,12 @@ export function FilesPage() {
                         size="small"
                         startIcon={<UploadIcon />}
                         onClick={() => setShowUpload(!showUpload)}
-                        sx={{ fontWeight: 700, borderRadius: 2 }}
+                        sx={{
+                            fontWeight: 700,
+                            borderRadius: 2,
+                            borderColor: alpha(theme.palette.primary.main, 0.2),
+                            '&:hover': { borderColor: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.05) }
+                        }}
                     >
                         {showUpload ? 'Close' : 'Upload'}
                     </Button>
@@ -233,7 +264,8 @@ export function FilesPage() {
                         '& .MuiOutlinedInput-root': {
                             borderRadius: 3,
                             bgcolor: alpha(theme.palette.background.paper, 0.5),
-                            backdropFilter: 'blur(8px)'
+                            backdropFilter: 'blur(8px)',
+                            border: `1px solid ${alpha(theme.palette.divider, 0.5)}`
                         }
                     }}
                     InputProps={{
@@ -273,7 +305,7 @@ export function FilesPage() {
             {/* Files Grid */}
             {isLoading ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 10 }}>
-                    <CircularProgress />
+                    <CircularProgress thickness={5} size={40} />
                 </Box>
             ) : error && files.length === 0 ? (
                 <Paper variant="glass" sx={{ p: 10, textAlign: 'center', borderRadius: 4 }}>
@@ -315,14 +347,15 @@ export function FilesPage() {
                                             p: 3,
                                             position: 'relative',
                                             cursor: 'pointer',
-                                            transition: 'all 0.2s ease-in-out',
+                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                             borderRadius: 4,
-                                            border: selectedIds.has(file._id) ? `2.5px solid ${theme.palette.primary.main}` : `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-                                            bgcolor: selectedIds.has(file._id) ? alpha(theme.palette.primary.main, 0.05) : 'transparent',
+                                            border: selectedIds.has(file._id) ? `2px solid ${theme.palette.primary.main}` : `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+                                            bgcolor: selectedIds.has(file._id) ? alpha(theme.palette.primary.main, 0.03) : 'transparent',
                                             '&:hover': {
                                                 transform: 'translateY(-4px)',
                                                 borderColor: selectedIds.has(file._id) ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.3),
-                                                bgcolor: alpha(theme.palette.common.white, 0.02)
+                                                bgcolor: alpha(theme.palette.common.white, 0.02),
+                                                boxShadow: `0 12px 24px ${alpha(theme.palette.common.black, 0.4)}`
                                             }
                                         }}
                                     >
@@ -332,21 +365,21 @@ export function FilesPage() {
                                                 checked={selectedIds.has(file._id)}
                                                 onClick={(e) => { e.stopPropagation(); toggleSelect(file._id); }}
                                                 size="small"
-                                                sx={{ color: alpha(theme.palette.common.white, 0.2) }}
+                                                sx={{ color: alpha(theme.palette.common.white, 0.1), '&.Mui-checked': { color: theme.palette.primary.main } }}
                                             />
                                         </Box>
 
                                         {/* File Icon & Badge */}
                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2, mb: 3 }}>
                                             <Box sx={{ position: 'relative', mb: 2 }}>
-                                                <Box sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+                                                <Box sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.05), border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}` }}>
                                                     <FileIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
                                                 </Box>
-                                                <Box sx={{ position: 'absolute', bottom: -6, right: -6, p: 0.5, borderRadius: '50%', bgcolor: theme.palette.background.paper, display: 'flex' }}>
+                                                <Box sx={{ position: 'absolute', bottom: -6, right: -6, p: 0.5, borderRadius: '50%', bgcolor: theme.palette.background.paper, display: 'flex', border: `1px solid ${alpha(theme.palette.divider, 0.5)}` }}>
                                                     <ShieldCheckIcon sx={{ fontSize: 16, color: 'info.main' }} />
                                                 </Box>
                                             </Box>
-                                            <Box sx={{ px: 1, py: 0.2, borderRadius: 1, bgcolor: alpha(theme.palette.info.main, 0.1), border: `1px solid ${alpha(theme.palette.info.main, 0.2)}` }}>
+                                            <Box sx={{ px: 1, py: 0.2, borderRadius: 0.5, bgcolor: alpha(theme.palette.info.main, 0.1), border: `1px solid ${alpha(theme.palette.info.main, 0.2)}` }}>
                                                 <Typography variant="caption" sx={{ color: 'info.main', fontSize: '10px', fontWeight: 800, fontFamily: 'JetBrains Mono' }}>
                                                     ML-KEM
                                                 </Typography>
@@ -354,12 +387,12 @@ export function FilesPage() {
                                         </Box>
 
                                         {/* File Info */}
-                                        <Box sx={{ textAlign: 'center', mb: 3 }}>
-                                            <Typography variant="body2" noWrap sx={{ fontWeight: 700, display: 'block' }} title={file.originalFileName}>
-                                                {truncateFileName(file.originalFileName, 20)}
+                                        <Box sx={{ textAlign: 'center', mb: 3, overflow: 'hidden' }}>
+                                            <Typography variant="body2" noWrap sx={{ fontWeight: 700, display: 'block', px: 1 }} title={file.originalFileName}>
+                                                {truncateFileName(file.originalFileName, 24)}
                                             </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, mt: 0.5, display: 'block' }}>
-                                                {formatFileSize(file.fileSize)} • {file.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
+                                            <Typography variant="caption" noWrap sx={{ color: 'text.secondary', fontWeight: 500, mt: 0.5, display: 'block', px: 1 }}>
+                                                {formatFileSize(file.fileSize)} • {getFriendlyMimeType(file.mimeType)}
                                             </Typography>
                                         </Box>
 
@@ -372,7 +405,7 @@ export function FilesPage() {
                                                     onClick={() => handleDownload(file)}
                                                     disabled={downloadingId === file._id}
                                                     startIcon={downloadingId === file._id ? <CircularProgress size={14} color="inherit" /> : <DownloadIcon sx={{ fontSize: 18 }} />}
-                                                    sx={{ fontSize: '12px', fontWeight: 700 }}
+                                                    sx={{ fontSize: '12px', fontWeight: 700, borderRadius: 1.5 }}
                                                 >
                                                     {downloadingId === file._id ? '' : 'Decrypt'}
                                                 </Button>
@@ -383,7 +416,11 @@ export function FilesPage() {
                                                     color="error"
                                                     onClick={() => handleDelete(file._id)}
                                                     disabled={deletingIds.has(file._id)}
-                                                    sx={{ border: `1px solid ${alpha(theme.palette.error.main, 0.1)}`, '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) } }}
+                                                    sx={{
+                                                        borderRadius: 1.5,
+                                                        border: `1px solid ${alpha(theme.palette.error.main, 0.1)}`,
+                                                        '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) }
+                                                    }}
                                                 >
                                                     {deletingIds.has(file._id) ? <CircularProgress size={16} color="inherit" /> : <TrashIcon sx={{ fontSize: 18 }} />}
                                                 </IconButton>
