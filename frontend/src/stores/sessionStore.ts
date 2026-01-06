@@ -23,10 +23,7 @@ interface SessionState {
     initializeQuantumKeys: () => void;
 }
 
-// @ts-ignore
-import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
-
-export const useSessionStore = create<SessionState>((set) => ({
+export const useSessionStore = create<SessionState>((set, get) => ({
     user: null,
     isAuthenticated: false,
     pqcEngineStatus: 'initializing',
@@ -50,35 +47,38 @@ export const useSessionStore = create<SessionState>((set) => ({
     setPqcEngineStatus: (status) => set({ pqcEngineStatus: status }),
 
     initializeQuantumKeys: () => {
-        try {
-            // @ts-ignore
-            const { publicKey, secretKey } = ml_kem768.keygen();
+        // Run async initialization without blocking
+        (async () => {
+            try {
+                // Dynamic import to handle WASM loading issues
+                const { ml_kem768 } = await import('@noble/post-quantum/ml-kem.js');
 
-            // Helper to convert to Hex
-            const bytesToHex = (bytes: Uint8Array) =>
-                Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+                // @ts-ignore
+                const { publicKey, secretKey } = ml_kem768.keygen();
 
-            const pubHex = bytesToHex(publicKey);
-            const privHex = bytesToHex(secretKey);
+                // Helper to convert to Hex
+                const bytesToHex = (bytes: Uint8Array) =>
+                    Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-            set(state => {
-                if (state.user) {
-                    return {
+                const pubHex = bytesToHex(publicKey);
+                const privHex = bytesToHex(secretKey);
+
+                const currentState = get();
+                if (currentState.user) {
+                    set({
                         user: {
-                            ...state.user,
+                            ...currentState.user,
                             publicKey: pubHex,
-                            privateKey: privHex // Store private key in memory for decryption
+                            privateKey: privHex
                         },
                         pqcEngineStatus: 'operational'
-                    };
+                    });
                 }
-                return {};
-            });
-            console.log("Quantum Keys Initialized for Session");
-        } catch (e) {
-            console.error("Failed to generate PQC keys", e);
-            set({ pqcEngineStatus: 'error' });
-        }
+                console.log("Quantum Keys Initialized for Session");
+            } catch (e) {
+                console.error("Failed to generate PQC keys:", e);
+                set({ pqcEngineStatus: 'error' });
+            }
+        })();
     }
 }));
-

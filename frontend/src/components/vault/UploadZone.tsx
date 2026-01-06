@@ -12,10 +12,14 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete }) => {
     const { user, initializeQuantumKeys } = useSessionStore();
     const [isDragging, setIsDragging] = useState(false);
 
-    // Auto-init keys if missing
+    // Auto-init keys if missing (with error handling to prevent crashes)
     React.useEffect(() => {
         if (user && !user.publicKey) {
-            initializeQuantumKeys();
+            try {
+                initializeQuantumKeys();
+            } catch (error) {
+                console.error('Failed to initialize quantum keys:', error);
+            }
         }
     }, [user, initializeQuantumKeys]);
 
