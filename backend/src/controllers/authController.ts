@@ -73,7 +73,8 @@ export const loginUser = async (req: Request, res: Response) => {
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Use 'none' for cross-site in prod
                 maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-            });
+                partitioned: process.env.NODE_ENV === 'production', // CHIPS compliance for cross-site cookies
+            } as any);
 
             logger.info(`User logged in: ${user.email}`);
 
