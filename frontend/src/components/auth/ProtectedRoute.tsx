@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
 import authService from '@/services/authService';
+import tokenService from '@/services/tokenService';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -16,16 +17,30 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     useEffect(() => {
         const validateSession = async () => {
             try {
-                // Check session validity via HTTP-only cookie
+                // First check if we have a valid token in localStorage
+                const hasToken = tokenService.hasValidToken();
+
+                if (!hasToken) {
+                    // No token = definitely not authenticated
+                    setIsValid(false);
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Token exists, validate with backend
                 const user = await authService.validateSession();
                 if (user) {
                     setUser(user);
                     setIsValid(true);
                 } else {
+                    // Token was invalid, clear it
+                    tokenService.removeToken();
                     setIsValid(false);
                 }
             } catch (error) {
                 console.error('Session validation failed:', error);
+                // On error, clear potentially corrupt token
+                tokenService.removeToken();
                 setIsValid(false);
             } finally {
                 setIsLoading(false);
@@ -58,3 +73,4 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
     return <>{children}</>;
 }
+
