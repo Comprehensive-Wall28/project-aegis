@@ -1,6 +1,33 @@
 import { useState, useEffect } from 'react';
-import { FileIcon, Download, Loader2, FolderOpen, ShieldCheck, Trash2, Upload, CheckSquare, Square, XSquare } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {
+    InsertDriveFile as FileIcon,
+    FileDownload as DownloadIcon,
+    FolderOpen as FolderOpenIcon,
+    GppGood as ShieldCheckIcon,
+    Delete as TrashIcon,
+    FileUpload as UploadIcon,
+    CheckBox as CheckSquareIcon,
+    CheckBoxOutlineBlank as SquareIcon,
+    IndeterminateCheckBox as XSquareIcon,
+    Search as SearchIcon
+} from '@mui/icons-material';
+import {
+    Box,
+    Typography,
+    Button,
+    IconButton,
+    CircularProgress,
+    Paper,
+    alpha,
+    useTheme,
+    Grid,
+    Checkbox,
+    Stack,
+    Collapse,
+    Tooltip,
+    TextField,
+    InputAdornment
+} from '@mui/material';
 import vaultService, { type FileMetadata } from '@/services/vaultService';
 import { motion, AnimatePresence } from 'framer-motion';
 import UploadZone from '@/components/vault/UploadZone';
@@ -31,7 +58,9 @@ export function FilesPage() {
     const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showUpload, setShowUpload] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const { downloadAndDecrypt } = useVaultDownload();
+    const theme = useTheme();
 
     useEffect(() => {
         fetchFiles();
@@ -144,191 +173,229 @@ export function FilesPage() {
         }
     };
 
+    const filteredFiles = files.filter(f =>
+        f.originalFileName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
-        <div className="space-y-6">
+        <Stack spacing={4}>
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-                        <FolderOpen className="h-7 w-7 text-primary" />
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                    <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
+                        <FolderOpenIcon color="primary" sx={{ fontSize: 32 }} />
                         Encrypted Files
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5, fontWeight: 500 }}>
                         {files.length} file{files.length !== 1 ? 's' : ''} in your vault
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    {selectedIds.size > 0 && (
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleMassDelete}
-                            className="gap-2"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                            Delete ({selectedIds.size})
-                        </Button>
-                    )}
+                    </Typography>
+                </Box>
+                <Stack direction="row" spacing={2}>
+                    <AnimatePresence>
+                        {selectedIds.size > 0 && (
+                            <Button
+                                component={motion.button}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                variant="contained"
+                                color="error"
+                                size="small"
+                                startIcon={<TrashIcon />}
+                                onClick={handleMassDelete}
+                                sx={{ fontWeight: 700, borderRadius: 2 }}
+                            >
+                                Delete ({selectedIds.size})
+                            </Button>
+                        )}
+                    </AnimatePresence>
                     <Button
-                        variant="outline"
-                        size="sm"
+                        variant="outlined"
+                        size="small"
+                        startIcon={<UploadIcon />}
                         onClick={() => setShowUpload(!showUpload)}
-                        className="gap-2"
+                        sx={{ fontWeight: 700, borderRadius: 2 }}
                     >
-                        <Upload className="h-4 w-4" />
-                        Upload
+                        {showUpload ? 'Close' : 'Upload'}
                     </Button>
-                </div>
-            </div>
+                </Stack>
+            </Box>
+
+            {/* Search and Selection */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                <TextField
+                    placeholder="Search files..."
+                    size="small"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    sx={{
+                        width: { xs: '100%', sm: 300 },
+                        '& .MuiOutlinedInput-root': {
+                            borderRadius: 3,
+                            bgcolor: alpha(theme.palette.background.paper, 0.5),
+                            backdropFilter: 'blur(8px)'
+                        }
+                    }}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+
+                {files.length > 0 && (
+                    <Button
+                        size="small"
+                        onClick={selectAll}
+                        startIcon={
+                            selectedIds.size === files.length ? <CheckSquareIcon color="primary" /> :
+                                selectedIds.size > 0 ? <XSquareIcon /> : <SquareIcon />
+                        }
+                        sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '13px' }}
+                    >
+                        {selectedIds.size === files.length ? 'Deselect All' : 'Select All'}
+                    </Button>
+                )}
+            </Box>
 
             {/* Upload Section */}
-            <AnimatePresence>
-                {showUpload && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                    >
-                        <div className="bento-card p-6">
-                            <UploadZone onUploadComplete={() => {
-                                fetchFiles();
-                                setShowUpload(false);
-                            }} />
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Selection Actions */}
-            {files.length > 0 && (
-                <div className="flex items-center gap-4 text-sm">
-                    <button
-                        onClick={selectAll}
-                        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        {selectedIds.size === files.length ? (
-                            <CheckSquare className="h-4 w-4 text-primary" />
-                        ) : selectedIds.size > 0 ? (
-                            <XSquare className="h-4 w-4" />
-                        ) : (
-                            <Square className="h-4 w-4" />
-                        )}
-                        {selectedIds.size === files.length ? 'Deselect All' : 'Select All'}
-                    </button>
-                </div>
-            )}
+            <Collapse in={showUpload}>
+                <Paper variant="glass" sx={{ p: 4, borderRadius: 4 }}>
+                    <UploadZone onUploadComplete={() => {
+                        fetchFiles();
+                        setShowUpload(false);
+                    }} />
+                </Paper>
+            </Collapse>
 
             {/* Files Grid */}
             {isLoading ? (
-                <div className="flex items-center justify-center py-20">
-                    <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                </div>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 10 }}>
+                    <CircularProgress />
+                </Box>
             ) : error && files.length === 0 ? (
-                <div className="bento-card p-12 text-center">
-                    <p className="text-muted-foreground">{error}</p>
-                    <Button variant="ghost" size="sm" onClick={fetchFiles} className="mt-4">
+                <Paper variant="glass" sx={{ p: 10, textAlign: 'center', borderRadius: 4 }}>
+                    <Typography color="text.secondary">{error}</Typography>
+                    <Button variant="text" size="small" onClick={fetchFiles} sx={{ mt: 2 }}>
                         Retry
                     </Button>
-                </div>
+                </Paper>
             ) : files.length === 0 ? (
-                <div className="bento-card p-12 text-center">
-                    <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <p className="text-lg text-muted-foreground">No files in vault yet</p>
-                    <p className="text-sm text-muted-foreground mt-1">Upload your first encrypted file</p>
+                <Paper variant="glass" sx={{ p: 10, textAlign: 'center', borderRadius: 4 }}>
+                    <FolderOpenIcon sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.3, mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 700 }}>No files in vault yet</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>Upload your first encrypted file to get started</Typography>
                     <Button
-                        variant="outline"
-                        className="mt-6"
+                        variant="contained"
+                        startIcon={<UploadIcon />}
                         onClick={() => setShowUpload(true)}
+                        sx={{ borderRadius: 2, fontWeight: 700 }}
                     >
-                        <Upload className="h-4 w-4 mr-2" />
                         Upload File
                     </Button>
-                </div>
+                </Paper>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {files.map((file, index) => (
-                        <motion.div
-                            key={file._id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.03 }}
-                            className={`
-                                bento-card p-4 relative group cursor-pointer transition-all
-                                ${selectedIds.has(file._id) ? 'ring-2 ring-primary bg-primary/5' : ''}
-                            `}
-                            onClick={() => toggleSelect(file._id)}
-                        >
-                            {/* Selection Indicator */}
-                            <div className="absolute top-3 left-3">
-                                {selectedIds.has(file._id) ? (
-                                    <CheckSquare className="h-5 w-5 text-primary" />
-                                ) : (
-                                    <Square className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
-                            </div>
-
-                            {/* File Icon & Badge */}
-                            <div className="flex flex-col items-center pt-6 pb-4">
-                                <div className="relative mb-3">
-                                    <div className="p-4 rounded-xl bg-primary/10">
-                                        <FileIcon className="h-8 w-8 text-primary" />
-                                    </div>
-                                    <div className="absolute -bottom-1 -right-1 p-1 rounded-lg bg-background">
-                                        <ShieldCheck className="h-4 w-4 text-cyan-400" />
-                                    </div>
-                                </div>
-                                <span className="px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-mono-tech text-cyan-400">
-                                    ML-KEM
-                                </span>
-                            </div>
-
-                            {/* File Info */}
-                            <div className="text-center mb-4">
-                                <p className="text-sm font-medium text-foreground truncate px-2" title={file.originalFileName}>
-                                    {truncateFileName(file.originalFileName)}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {formatFileSize(file.fileSize)} • {file.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
-                                </p>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex items-center gap-2 justify-center" onClick={e => e.stopPropagation()}>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-primary hover:text-primary hover:bg-primary/10"
-                                    onClick={() => handleDownload(file)}
-                                    disabled={downloadingId === file._id}
+                <Grid container spacing={3}>
+                    <AnimatePresence mode="popLayout">
+                        {filteredFiles.map((file, index) => (
+                            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={file._id}>
+                                <motion.div
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    transition={{ duration: 0.2, delay: index * 0.02 }}
                                 >
-                                    {downloadingId === file._id ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <>
-                                            <Download className="h-4 w-4 mr-1" />
-                                            Decrypt
-                                        </>
-                                    )}
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                                    onClick={() => handleDelete(file._id)}
-                                    disabled={deletingIds.has(file._id)}
-                                >
-                                    {deletingIds.has(file._id) ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <Trash2 className="h-4 w-4" />
-                                    )}
-                                </Button>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
+                                    <Paper
+                                        variant="glass"
+                                        onClick={() => toggleSelect(file._id)}
+                                        sx={{
+                                            p: 3,
+                                            position: 'relative',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease-in-out',
+                                            borderRadius: 4,
+                                            border: selectedIds.has(file._id) ? `2.5px solid ${theme.palette.primary.main}` : `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                                            bgcolor: selectedIds.has(file._id) ? alpha(theme.palette.primary.main, 0.05) : 'transparent',
+                                            '&:hover': {
+                                                transform: 'translateY(-4px)',
+                                                borderColor: selectedIds.has(file._id) ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.3),
+                                                bgcolor: alpha(theme.palette.common.white, 0.02)
+                                            }
+                                        }}
+                                    >
+                                        {/* Selection Checkbox */}
+                                        <Box sx={{ position: 'absolute', top: 12, left: 12 }}>
+                                            <Checkbox
+                                                checked={selectedIds.has(file._id)}
+                                                onClick={(e) => { e.stopPropagation(); toggleSelect(file._id); }}
+                                                size="small"
+                                                sx={{ color: alpha(theme.palette.common.white, 0.2) }}
+                                            />
+                                        </Box>
+
+                                        {/* File Icon & Badge */}
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2, mb: 3 }}>
+                                            <Box sx={{ position: 'relative', mb: 2 }}>
+                                                <Box sx={{ p: 2, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+                                                    <FileIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+                                                </Box>
+                                                <Box sx={{ position: 'absolute', bottom: -6, right: -6, p: 0.5, borderRadius: '50%', bgcolor: theme.palette.background.paper, display: 'flex' }}>
+                                                    <ShieldCheckIcon sx={{ fontSize: 16, color: 'info.main' }} />
+                                                </Box>
+                                            </Box>
+                                            <Box sx={{ px: 1, py: 0.2, borderRadius: 1, bgcolor: alpha(theme.palette.info.main, 0.1), border: `1px solid ${alpha(theme.palette.info.main, 0.2)}` }}>
+                                                <Typography variant="caption" sx={{ color: 'info.main', fontSize: '10px', fontWeight: 800, fontFamily: 'JetBrains Mono' }}>
+                                                    ML-KEM
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+
+                                        {/* File Info */}
+                                        <Box sx={{ textAlign: 'center', mb: 3 }}>
+                                            <Typography variant="body2" noWrap sx={{ fontWeight: 700, display: 'block' }} title={file.originalFileName}>
+                                                {truncateFileName(file.originalFileName, 20)}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, mt: 0.5, display: 'block' }}>
+                                                {formatFileSize(file.fileSize)} • {file.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
+                                            </Typography>
+                                        </Box>
+
+                                        {/* Actions */}
+                                        <Stack direction="row" spacing={1} justifyContent="center" onClick={e => e.stopPropagation()}>
+                                            <Tooltip title="Decrypt & Download">
+                                                <Button
+                                                    size="small"
+                                                    variant="text"
+                                                    onClick={() => handleDownload(file)}
+                                                    disabled={downloadingId === file._id}
+                                                    startIcon={downloadingId === file._id ? <CircularProgress size={14} color="inherit" /> : <DownloadIcon sx={{ fontSize: 18 }} />}
+                                                    sx={{ fontSize: '12px', fontWeight: 700 }}
+                                                >
+                                                    {downloadingId === file._id ? '' : 'Decrypt'}
+                                                </Button>
+                                            </Tooltip>
+                                            <Tooltip title="Delete">
+                                                <IconButton
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={() => handleDelete(file._id)}
+                                                    disabled={deletingIds.has(file._id)}
+                                                    sx={{ border: `1px solid ${alpha(theme.palette.error.main, 0.1)}`, '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) } }}
+                                                >
+                                                    {deletingIds.has(file._id) ? <CircularProgress size={16} color="inherit" /> : <TrashIcon sx={{ fontSize: 18 }} />}
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Stack>
+                                    </Paper>
+                                </motion.div>
+                            </Grid>
+                        ))}
+                    </AnimatePresence>
+                </Grid>
             )}
-        </div>
+        </Stack>
     );
 }

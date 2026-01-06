@@ -1,30 +1,54 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Loader2, Palette } from 'lucide-react';
-import { AegisLogo } from '@/components/AegisLogo';
-import { Button } from '@/components/ui/button';
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
+    Menu as MenuIcon,
+    Close as XIcon,
+    Palette as PaletteIcon,
+    Lock as LockIcon,
+    Person as PersonIcon,
+    Email as EmailIcon,
+    ChevronRight as ChevronRightIcon
+} from '@mui/icons-material';
+import {
+    AppBar,
+    Toolbar,
+    Box,
+    Typography,
+    Button,
+    IconButton,
+    Container,
+    alpha,
+    useTheme,
     Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
     DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { motion, AnimatePresence } from 'framer-motion';
+    DialogContent,
+    DialogActions,
+    TextField,
+    CircularProgress,
+    InputAdornment,
+    Link,
+    Drawer,
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemText,
+    Tooltip,
+    Divider,
+    Stack
+} from '@mui/material';
+import { AegisLogo } from '@/components/AegisLogo';
 import authService from '@/services/authService';
 import tokenService from '@/services/tokenService';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
 
 export function Navbar() {
+    const theme = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
     const { user, setUser, clearSession } = useSessionStore();
-    const { theme, toggleTheme } = useThemeStore();
-    const [isOpen, setIsOpen] = useState(false);
+    const { theme: currentTheme, toggleTheme } = useThemeStore();
+    const [mobileOpen, setMobileOpen] = useState(false);
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [isRegisterMode, setIsRegisterMode] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -33,7 +57,7 @@ export function Navbar() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    // Check for existing session on mount (for page refreshes)
+    // Check for existing session on mount
     useEffect(() => {
         const checkSession = async () => {
             if (!user && tokenService.hasValidToken()) {
@@ -43,7 +67,7 @@ export function Navbar() {
                         setUser(validatedUser);
                     }
                 } catch {
-                    // Token invalid, will show login button
+                    // Token invalid
                 }
             }
         };
@@ -67,19 +91,13 @@ export function Navbar() {
                 const response = await authService.register(username, email, password);
                 setUser({ _id: response._id, email: response.email, username: response.username });
                 setIsLoginOpen(false);
-                setEmail('');
-                setUsername('');
-                setPassword('');
-                // Redirect to dashboard after registration
+                resetForm();
                 navigate('/dashboard');
             } else {
                 const response = await authService.login(email, password);
                 setUser({ _id: response._id, email: response.email, username: response.username });
                 setIsLoginOpen(false);
-                setEmail('');
-                setUsername('');
-                setPassword('');
-                // Redirect to dashboard after login
+                resetForm();
                 navigate('/dashboard');
             }
         } catch (err: any) {
@@ -88,6 +106,13 @@ export function Navbar() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const resetForm = () => {
+        setEmail('');
+        setUsername('');
+        setPassword('');
+        setError('');
     };
 
     const handleLogout = async () => {
@@ -101,181 +126,326 @@ export function Navbar() {
     };
 
     return (
-        <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-7xl z-50 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                    {/* Logo */}
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <a href="#" className="flex items-center gap-2">
-                                <AegisLogo size={32} />
-                                <span className="text-xl font-bold tracking-tight text-foreground">Aegis</span>
-                            </a>
-                        </div>
-                        {/* Desktop Menu */}
-                        <div className="hidden md:block">
-                            <div className="ml-10 flex items-baseline space-x-4">
-                                <a href="#features" className="text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                    Features
-                                </a>
-                                <a href="#security" className="text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                    Security
-                                </a>
-                                {!user && (
-                                    <button onClick={() => setIsLoginOpen(true)} className="text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                        Login
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                        {/* Theme Toggle */}
-                        <div className="hidden md:flex items-center ml-4 border-l border-white/10 pl-4">
-                            <button
-                                onClick={toggleTheme}
-                                className="p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-white/5 transition-all"
-                                title={`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)} (Click to switch)`}
-                            >
-                                <Palette className="h-5 w-5" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Desktop Login Button / User Profile */}
-                    <div className="hidden md:block">
-                        {user ? (
-                            <div className="flex items-center gap-4">
-                                <a href="/dashboard" className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors">
-                                    Dashboard
-                                </a>
-                                <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
-                            </div>
-                        ) : (
-                            <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="glow" size="sm">Get Started</Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-[425px]">
-                                    <DialogHeader>
-                                        <DialogTitle>{isRegisterMode ? 'Create Your Vault' : 'Access Your Vault'}</DialogTitle>
-                                        <DialogDescription>
-                                            {isRegisterMode
-                                                ? 'Generate a new PQC identity. Your keys never leave this device.'
-                                                : 'Enter your credentials to verify identity via Zero-Knowledge Proof.'}
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <form onSubmit={handleAuth} className="grid gap-4 py-4">
-                                        <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="email" className="text-right">
-                                                Email
-                                            </Label>
-                                            <Input
-                                                id="email"
-                                                type="email"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                                className="col-span-3"
-                                                required
-                                            />
-                                        </div>
-
-                                        {isRegisterMode && (
-                                            <div className="grid grid-cols-4 items-center gap-4">
-                                                <Label htmlFor="username" className="text-right">
-                                                    Username
-                                                </Label>
-                                                <Input
-                                                    id="username"
-                                                    value={username}
-                                                    onChange={(e) => setUsername(e.target.value)}
-                                                    className="col-span-3"
-                                                    required
-                                                />
-                                            </div>
-                                        )}
-                                        <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="password" className="text-right">
-                                                Password
-                                            </Label>
-                                            <Input
-                                                id="password"
-                                                type="password"
-                                                value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
-                                                className="col-span-3"
-                                                required
-                                            />
-                                        </div>
-
-                                        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-                                        <div className="flex flex-col gap-2 mt-2">
-                                            <Button type="submit" disabled={loading} className="w-full">
-                                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                {isRegisterMode ? 'Generate Keys & Register' : 'Authenticate'}
-                                            </Button>
-                                            <div className="text-center text-sm text-muted-foreground mt-2">
-                                                {isRegisterMode ? 'Already have a vault?' : 'Need a secure vault?'}
-                                                <button type="button" onClick={toggleMode} className="ml-1 text-primary hover:underline focus:outline-none">
-                                                    {isRegisterMode ? 'Login here' : 'Register here'}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                    </form>
-                                </DialogContent>
-                            </Dialog>
-                        )}
-                    </div>
-
-                    {/* Mobile menu button */}
-                    <div className="-mr-2 flex md:hidden">
-                        <button
-                            onClick={() => setIsOpen(!isOpen)}
-                            className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-primary hover:bg-accent focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
-                        >
-                            <span className="sr-only">Open main menu</span>
-                            {isOpen ? <X className="block h-6 w-6" /> : <Menu className="block h-6 w-6" />}
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Mobile Menu */}
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="md:hidden bg-background/95 backdrop-blur-md border-b border-border"
+        <>
+            <AppBar
+                position="fixed"
+                sx={{
+                    top: 16,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 'calc(100% - 32px)',
+                    maxWidth: 1400,
+                    borderRadius: 4,
+                    bgcolor: alpha(theme.palette.background.paper, 0.1),
+                    backdropFilter: 'blur(16px)',
+                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                    boxShadow: 'none',
+                    backgroundImage: 'none',
+                    zIndex: theme.zIndex.drawer + 1
+                }}
+            >
+                <Container maxWidth="xl">
+                    <Toolbar
+                        disableGutters
+                        sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            minHeight: { xs: 64, md: 72 }
+                        }}
                     >
-                        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                            <a href="#features" className="text-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium">
-                                Features
-                            </a>
-                            <a href="#security" className="text-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium">
-                                Security
-                            </a>
-                            <button
-                                onClick={toggleTheme}
-                                className="w-full text-left text-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium"
+                        {/* Logo */}
+                        <Box
+                            component={RouterLink}
+                            to="/"
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1.5,
+                                textDecoration: 'none',
+                                color: 'inherit'
+                            }}
+                        >
+                            <AegisLogo size={32} />
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    fontWeight: 900,
+                                    letterSpacing: -1,
+                                    color: 'text.primary',
+                                    display: { xs: 'none', sm: 'block' }
+                                }}
                             >
-                                Switch Theme ({theme.charAt(0).toUpperCase() + theme.slice(1)})
-                            </button>
-                            {user ? (
-                                <div className="px-3 py-2">
-                                    <a href="/dashboard" className="block text-sm font-medium text-emerald-400 mb-2 hover:text-emerald-300">
-                                        Go to Dashboard
-                                    </a>
-                                    <Button variant="outline" size="sm" onClick={handleLogout} className="w-full">Logout</Button>
-                                </div>
-                            ) : (
-                                <Button variant="default" className="w-full mt-4" onClick={() => setIsLoginOpen(true)}>Login / Register</Button>
+                                Aegis
+                            </Typography>
+                        </Box>
+
+                        {/* Navigation Links - Desktop */}
+                        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
+                            {['Features', 'Security'].map((item) => (
+                                <Button
+                                    key={item}
+                                    component="a"
+                                    href={`#${item.toLowerCase()}`}
+                                    sx={{
+                                        color: 'text.secondary',
+                                        fontWeight: 600,
+                                        fontSize: '0.9rem',
+                                        '&:hover': { color: 'primary.main', bgcolor: 'transparent' }
+                                    }}
+                                >
+                                    {item}
+                                </Button>
+                            ))}
+                            {!user && (
+                                <Button
+                                    onClick={() => setIsLoginOpen(true)}
+                                    sx={{
+                                        color: 'text.secondary',
+                                        fontWeight: 600,
+                                        fontSize: '0.9rem',
+                                        '&:hover': { color: 'primary.main', bgcolor: 'transparent' }
+                                    }}
+                                >
+                                    Login
+                                </Button>
                             )}
-                        </div>
-                    </motion.div>
+
+                            {/* Theme Toggle */}
+                            <Box sx={{ ml: 2, pl: 2, borderLeft: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+                                <Tooltip title={`Theme: ${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}`}>
+                                    <IconButton
+                                        onClick={toggleTheme}
+                                        sx={{
+                                            color: 'text.secondary',
+                                            '&:hover': { color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.05) }
+                                        }}
+                                    >
+                                        <PaletteIcon sx={{ fontSize: 20 }} />
+                                    </IconButton>
+                                </Tooltip>
+                            </Box>
+                        </Box>
+
+                        {/* Right Section / User Profile */}
+                        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2 }}>
+                            {user ? (
+                                <>
+                                    <Button
+                                        component={RouterLink}
+                                        to="/dashboard"
+                                        endIcon={<ChevronRightIcon />}
+                                        sx={{
+                                            color: 'info.main',
+                                            fontWeight: 700,
+                                            fontSize: '0.9rem',
+                                            '&:hover': { color: 'info.light', bgcolor: 'transparent' }
+                                        }}
+                                    >
+                                        Dashboard
+                                    </Button>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        onClick={handleLogout}
+                                        sx={{
+                                            borderRadius: 2,
+                                            borderColor: alpha(theme.palette.divider, 0.1),
+                                            color: 'text.primary'
+                                        }}
+                                    >
+                                        Logout
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    variant="contained"
+                                    onClick={() => setIsLoginOpen(true)}
+                                    sx={{
+                                        borderRadius: 2.5,
+                                        px: 3,
+                                        fontWeight: 700,
+                                        boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.3)}`,
+                                        '&:hover': {
+                                            boxShadow: `0 0 30px ${alpha(theme.palette.primary.main, 0.5)}`
+                                        }
+                                    }}
+                                >
+                                    Get Started
+                                </Button>
+                            )}
+                        </Box>
+
+                        {/* Mobile Menu Icon */}
+                        <IconButton
+                            onClick={() => setMobileOpen(true)}
+                            sx={{ display: { md: 'none' }, color: 'text.primary' }}
+                        >
+                            <MenuIcon />
+                        </IconButton>
+                    </Toolbar>
+                </Container>
+            </AppBar>
+
+            {/* Mobile Drawer */}
+            <Drawer
+                anchor="top"
+                open={mobileOpen}
+                onClose={() => setMobileOpen(false)}
+                sx={{
+                    '& .MuiDrawer-paper': {
+                        bgcolor: alpha(theme.palette.background.default, 0.95),
+                        backdropFilter: 'blur(20px)',
+                        px: 2,
+                        py: 4,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2
+                    }
+                }}
+            >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <AegisLogo size={32} />
+                    <IconButton onClick={() => setMobileOpen(false)}><XIcon /></IconButton>
+                </Box>
+                <List sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {['Features', 'Security'].map((item) => (
+                        <ListItem key={item} disablePadding>
+                            <ListItemButton
+                                component="a"
+                                href={`#${item.toLowerCase()}`}
+                                onClick={() => setMobileOpen(false)}
+                                sx={{ borderRadius: 2 }}
+                            >
+                                <ListItemText primary={item} primaryTypographyProps={{ fontWeight: 600 }} />
+                            </ListItemButton>
+                        </ListItem>
+                    ))}
+                    <ListItem disablePadding>
+                        <ListItemButton onClick={toggleTheme} sx={{ borderRadius: 2 }}>
+                            <ListItemText
+                                primary="Switch Theme"
+                                secondary={currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}
+                                primaryTypographyProps={{ fontWeight: 600 }}
+                            />
+                        </ListItemButton>
+                    </ListItem>
+                </List>
+                <Divider sx={{ my: 1, opacity: 0.1 }} />
+                {user ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: 1 }}>
+                        <Button
+                            variant="text"
+                            component={RouterLink}
+                            to="/dashboard"
+                            fullWidth
+                            sx={{ color: 'info.main', fontWeight: 700 }}
+                        >
+                            Go to Dashboard
+                        </Button>
+                        <Button variant="outlined" fullWidth onClick={handleLogout}>Logout</Button>
+                    </Box>
+                ) : (
+                    <Button
+                        variant="contained"
+                        fullWidth
+                        onClick={() => {
+                            setIsLoginOpen(true);
+                            setMobileOpen(false);
+                        }}
+                        sx={{ py: 1.5, fontWeight: 700 }}
+                    >
+                        Login / Register
+                    </Button>
                 )}
-            </AnimatePresence>
-        </nav>
+            </Drawer>
+
+            {/* Login / Register Dialog */}
+            <Dialog
+                open={isLoginOpen}
+                onClose={() => setIsLoginOpen(false)}
+                PaperProps={{
+                    sx: {
+                        borderRadius: 4,
+                        width: '100%',
+                        maxWidth: 420,
+                        bgcolor: alpha(theme.palette.background.paper, 0.8),
+                        backdropFilter: 'blur(32px)',
+                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        boxShadow: theme.shadows[24],
+                        backgroundImage: 'none'
+                    }
+                }}
+            >
+                <DialogTitle sx={{ textAlign: 'center', pt: 4, pb: 1, fontWeight: 900, letterSpacing: -0.5 }}>
+                    {isRegisterMode ? 'Create Your Vault' : 'Access Your Vault'}
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, mt: 1, px: 2 }}>
+                        {isRegisterMode
+                            ? 'Generate a new PQC identity. Your keys never leave this device.'
+                            : 'Enter your credentials to verify identity via Zero-Knowledge Proof.'}
+                    </Typography>
+                </DialogTitle>
+                <DialogContent sx={{ px: 4, pb: 2 }}>
+                    <Stack spacing={2.5} sx={{ mt: 2 }}>
+                        {isRegisterMode && (
+                            <TextField
+                                fullWidth
+                                label="Username"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                InputProps={{
+                                    startAdornment: <InputAdornment position="start"><PersonIcon fontSize="small" /></InputAdornment>,
+                                }}
+                            />
+                        )}
+                        <TextField
+                            fullWidth
+                            label="Email Address"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            InputProps={{
+                                startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>,
+                            }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Encryption Password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            InputProps={{
+                                startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" /></InputAdornment>,
+                            }}
+                        />
+                        {error && (
+                            <Typography variant="caption" sx={{ color: 'error.main', textAlign: 'center', fontWeight: 600 }}>
+                                {error}
+                            </Typography>
+                        )}
+                    </Stack>
+                </DialogContent>
+                <DialogActions sx={{ flexDirection: 'column', gap: 1.5, px: 4, pb: 4 }}>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        disabled={loading}
+                        onClick={handleAuth}
+                        sx={{ py: 1.5, fontWeight: 700, borderRadius: 2.5 }}
+                    >
+                        {loading ? <CircularProgress size={24} color="inherit" /> : (isRegisterMode ? 'Generate Keys & Register' : 'Authenticate')}
+                    </Button>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {isRegisterMode ? 'Already have a vault?' : 'Need a secure vault?'}
+                        <Link
+                            component="button"
+                            onClick={toggleMode}
+                            sx={{ ml: 1, fontWeight: 700, textDecoration: 'none', color: 'primary.main' }}
+                        >
+                            {isRegisterMode ? 'Login here' : 'Register here'}
+                        </Link>
+                    </Typography>
+                </DialogActions>
+            </Dialog>
+        </>
     );
 }

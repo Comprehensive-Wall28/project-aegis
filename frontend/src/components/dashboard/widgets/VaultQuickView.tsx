@@ -1,8 +1,26 @@
 import { useState, useEffect } from 'react';
-import { FileIcon, Download, Loader2, FolderOpen, ShieldCheck, Trash2, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {
+    InsertDriveFile as FileIcon,
+    FileDownload as DownloadIcon,
+    FolderOpen as FolderOpenIcon,
+    GppGood as ShieldCheckIcon,
+    Delete as TrashIcon,
+    OpenInNew as ExternalLinkIcon
+} from '@mui/icons-material';
+import {
+    Box,
+    Typography,
+    Button,
+    IconButton,
+    CircularProgress,
+    Paper,
+    alpha,
+    useTheme,
+    Tooltip,
+    Stack
+} from '@mui/material';
 import vaultService, { type FileMetadata } from '@/services/vaultService';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import UploadZone from '@/components/vault/UploadZone';
 import { useVaultDownload } from '@/hooks/useVaultDownload';
 import { Link } from 'react-router-dom';
@@ -30,6 +48,7 @@ export function VaultQuickView() {
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const { downloadAndDecrypt } = useVaultDownload();
+    const theme = useTheme();
 
     useEffect(() => {
         fetchFiles();
@@ -91,122 +110,214 @@ export function VaultQuickView() {
         }
     };
 
-
     return (
-        <div className="bento-card h-full p-6 flex flex-col relative overflow-hidden">
+        <Paper
+            variant="glass"
+            sx={{
+                height: '100%',
+                p: 3,
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: 4
+            }}
+        >
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <div>
-                    <h3 className="text-lg font-semibold flex items-center gap-2 text-foreground">
-                        <FolderOpen className="h-5 w-5 text-primary" />
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box>
+                    <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontWeight: 700 }}>
+                        <FolderOpenIcon color="primary" sx={{ fontSize: 24 }} />
                         Last Upload
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-0.5">Your most recent encrypted file</p>
-                </div>
-                <Link
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                        Your most recent encrypted file
+                    </Typography>
+                </Box>
+                <Button
+                    component={Link}
                     to="/dashboard/files"
-                    className="text-xs font-mono-tech text-cyan-400/70 hover:text-cyan-400 transition-colors flex items-center gap-1"
+                    size="small"
+                    endIcon={<ExternalLinkIcon sx={{ fontSize: 14 }} />}
+                    sx={{
+                        fontSize: '11px',
+                        fontFamily: 'JetBrains Mono',
+                        color: alpha(theme.palette.primary.main, 0.7),
+                        '&:hover': { color: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.05) }
+                    }}
                 >
                     View All
-                    <ExternalLink className="h-3 w-3" />
-                </Link>
-            </div>
+                </Button>
+            </Box>
 
             {/* Content */}
-            <div className="flex-1 overflow-hidden flex flex-col gap-4">
+            <Stack spacing={3} sx={{ flex: 1, overflow: 'hidden' }}>
                 <UploadZone onUploadComplete={fetchFiles} />
 
-                <div className="flex-1 overflow-y-auto pr-1">
+                <Box sx={{ flex: 1, overflowY: 'auto' }}>
                     {isLoading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                        </div>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 6 }}>
+                            <CircularProgress size={32} />
+                        </Box>
                     ) : error && files.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            <p>{error}</p>
-                            <Button variant="ghost" size="sm" onClick={fetchFiles} className="mt-2">
+                        <Box sx={{ textAlign: 'center', py: 6 }}>
+                            <Typography color="text.secondary" variant="body2">{error}</Typography>
+                            <Button size="small" variant="text" onClick={fetchFiles} sx={{ mt: 1 }}>
                                 Retry
                             </Button>
-                        </div>
+                        </Box>
                     ) : files.length === 0 ? (
-                        <div className="text-center py-12">
-                            <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                            <p className="text-muted-foreground">No files in vault yet</p>
-                            <p className="text-xs text-muted-foreground mt-1">Upload your first encrypted file</p>
-                        </div>
+                        <Box sx={{ textAlign: 'center', py: 6, opacity: 0.5 }}>
+                            <FolderOpenIcon sx={{ fontSize: 48, mb: 2, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">No files in vault yet</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                Upload your first encrypted file
+                            </Typography>
+                        </Box>
                     ) : (
-                        <div className="space-y-2">
-                            {files.map((file, index) => (
-                                <motion.div
-                                    key={file._id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.05 }}
-                                    whileHover={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
-                                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 transition-all group"
-                                >
-                                    {/* Left: Icon + Name + Size */}
-                                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <div className="relative flex-shrink-0">
-                                            <div className="p-2 rounded-lg bg-primary/10">
-                                                <FileIcon className="h-4 w-4 text-primary" />
-                                            </div>
-                                            <div className="absolute -bottom-1 -right-1 p-0.5 rounded bg-background">
-                                                <ShieldCheck className="h-3 w-3 text-cyan-400 animate-quantum-pulse" />
-                                            </div>
-                                        </div>
+                        <Stack spacing={2}>
+                            <AnimatePresence>
+                                {files.map((file) => (
+                                    <Box
+                                        key={file._id}
+                                        component={motion.div}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            p: 2,
+                                            borderRadius: 3,
+                                            bgcolor: alpha(theme.palette.common.white, 0.03),
+                                            transition: 'all 0.2s ease',
+                                            border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                                            '&:hover': {
+                                                bgcolor: alpha(theme.palette.common.white, 0.06),
+                                                borderColor: alpha(theme.palette.primary.main, 0.2),
+                                                transform: 'translateY(-2px)'
+                                            }
+                                        }}
+                                    >
+                                        {/* Left: Icon + Name + Size */}
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, flex: 1 }}>
+                                            <Box sx={{ position: 'relative' }}>
+                                                <Box
+                                                    sx={{
+                                                        p: 1.2,
+                                                        borderRadius: 2,
+                                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}
+                                                >
+                                                    <FileIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
+                                                </Box>
+                                                <Box
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        bottom: -4,
+                                                        right: -4,
+                                                        p: 0.2,
+                                                        borderRadius: '50%',
+                                                        bgcolor: theme.palette.background.paper,
+                                                        display: 'flex'
+                                                    }}
+                                                >
+                                                    <ShieldCheckIcon
+                                                        sx={{
+                                                            fontSize: 14,
+                                                            color: 'info.main',
+                                                            animation: 'pulse 2s infinite ease-in-out'
+                                                        }}
+                                                    />
+                                                </Box>
+                                            </Box>
 
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-medium text-foreground truncate" title={file.originalFileName}>
-                                                {truncateFileName(file.originalFileName)}
-                                            </p>
-                                            <p className="text-xs font-mono-tech text-text-secondary">
-                                                {formatFileSize(file.fileSize)} • {file.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
-                                            </p>
-                                        </div>
-                                    </div>
+                                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                                                <Typography
+                                                    variant="body2"
+                                                    noWrap
+                                                    sx={{ fontWeight: 600, color: 'text.primary' }}
+                                                    title={file.originalFileName}
+                                                >
+                                                    {truncateFileName(file.originalFileName)}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', color: 'text.secondary' }}>
+                                                    {formatFileSize(file.fileSize)} • {file.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
 
-                                    {/* Right: ML-KEM Badge + Decrypt Button */}
-                                    <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                                        <span className="px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-mono-tech text-cyan-400">
-                                            ML-KEM
-                                        </span>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[oklch(75%_0.18_210)] hover:text-[oklch(80%_0.22_210)] hover:bg-[oklch(75%_0.18_210)]/10"
-                                            onClick={() => handleDownload(file)}
-                                            disabled={downloadingId === file._id}
-                                        >
-                                            {downloadingId === file._id ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <>
-                                                    <Download className="h-4 w-4 mr-1" />
-                                                    <span className="text-xs">Decrypt</span>
-                                                </>
-                                            )}
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                                            onClick={() => handleDelete(file._id)}
-                                            disabled={deletingId === file._id}
-                                        >
-                                            {deletingId === file._id ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <Trash2 className="h-4 w-4" />
-                                            )}
-                                        </Button>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
+                                        {/* Right: Actions */}
+                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 2 }}>
+                                            <Box
+                                                sx={{
+                                                    px: 1,
+                                                    py: 0.2,
+                                                    borderRadius: 1,
+                                                    bgcolor: alpha(theme.palette.info.main, 0.1),
+                                                    border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`
+                                                }}
+                                            >
+                                                <Typography variant="caption" sx={{ color: 'info.main', fontSize: '10px', fontWeight: 700, fontFamily: 'JetBrains Mono' }}>
+                                                    ML-KEM
+                                                </Typography>
+                                            </Box>
+
+                                            <Tooltip title="Decrypt & Download">
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleDownload(file)}
+                                                    disabled={downloadingId === file._id}
+                                                    sx={{
+                                                        color: theme.palette.primary.main,
+                                                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
+                                                    }}
+                                                >
+                                                    {downloadingId === file._id ? (
+                                                        <CircularProgress size={16} color="inherit" />
+                                                    ) : (
+                                                        <DownloadIcon sx={{ fontSize: 18 }} />
+                                                    )}
+                                                </IconButton>
+                                            </Tooltip>
+
+                                            <Tooltip title="Delete">
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleDelete(file._id)}
+                                                    disabled={deletingId === file._id}
+                                                    sx={{
+                                                        color: 'error.main',
+                                                        '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) }
+                                                    }}
+                                                >
+                                                    {deletingId === file._id ? (
+                                                        <CircularProgress size={16} color="inherit" />
+                                                    ) : (
+                                                        <TrashIcon sx={{ fontSize: 18 }} />
+                                                    )}
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Stack>
+                                    </Box>
+                                ))}
+                            </AnimatePresence>
+                        </Stack>
                     )}
-                </div>
-            </div>
-        </div>
+                </Box>
+            </Stack>
+
+            <style>{`
+                @keyframes pulse {
+                    0% { transform: scale(1); opacity: 0.6; }
+                    50% { transform: scale(1.1); opacity: 1; }
+                    100% { transform: scale(1); opacity: 0.6; }
+                }
+            `}</style>
+        </Paper>
     );
 }

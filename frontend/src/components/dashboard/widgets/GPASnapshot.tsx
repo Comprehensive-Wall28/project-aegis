@@ -1,6 +1,20 @@
 import { useState, useEffect } from 'react';
-import { GraduationCap, Sparkles, Loader2, CheckCircle2, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {
+    School as GraduationCapIcon,
+    AutoAwesome as SparklesIcon,
+    CheckCircle as CheckCircleIcon,
+    AccessTime as ClockIcon
+} from '@mui/icons-material';
+import {
+    Box,
+    Typography,
+    Button,
+    CircularProgress,
+    Paper,
+    alpha,
+    useTheme,
+    Chip
+} from '@mui/material';
 import integrityService from '@/services/integrityService';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,6 +26,7 @@ export function GPASnapshot() {
     const [proofStatus, setProofStatus] = useState<ProofStatus>('none');
     const [proofHash, setProofHash] = useState<string | null>(null);
     const [isScanning, setIsScanning] = useState(false);
+    const theme = useTheme();
 
     useEffect(() => {
         fetchGPAData();
@@ -72,31 +87,42 @@ export function GPASnapshot() {
     };
 
     return (
-        <div className="bento-card h-full p-6 flex flex-col relative overflow-hidden">
+        <Paper
+            variant="glass"
+            sx={{
+                height: '100%',
+                p: 3,
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: 4
+            }}
+        >
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <div>
-                    <h3 className="text-lg font-semibold flex items-center gap-2 text-foreground">
-                        <GraduationCap className="h-5 w-5 text-primary" />
-                        GPA Snapshot
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-0.5">ZKP for GPA ≥ 3.5</p>
-                </div>
-            </div>
+            <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontWeight: 700 }}>
+                    <GraduationCapIcon color="primary" sx={{ fontSize: 20 }} />
+                    GPA Snapshot
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                    ZKP for GPA ≥ 3.5
+                </Typography>
+            </Box>
 
             {/* Content */}
-            <div className="flex-1 flex flex-col items-center justify-center">
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                 {isLoading ? (
-                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                    <CircularProgress size={32} />
                 ) : (
                     <>
                         {/* Semi-circular Gauge */}
-                        <div className="relative w-28 h-16 mb-3">
-                            <svg viewBox="0 0 120 70" className="w-full h-full">
+                        <Box sx={{ relative: 'true', width: 112, height: 64, mb: 3 }}>
+                            <svg viewBox="0 0 120 70" style={{ width: '100%', height: '100%' }}>
                                 <path
                                     d={createArc(0, 180, 50)}
                                     fill="none"
-                                    stroke="rgba(255,255,255,0.1)"
+                                    stroke={alpha(theme.palette.divider, 0.5)}
                                     strokeWidth="8"
                                     strokeLinecap="round"
                                 />
@@ -117,7 +143,7 @@ export function GPASnapshot() {
                                             y1="60"
                                             x2="60"
                                             y2="10"
-                                            stroke="rgba(99, 102, 241, 0.8)"
+                                            stroke={alpha(theme.palette.primary.main, 0.8)}
                                             strokeWidth="2"
                                             initial={{ rotate: -90 }}
                                             animate={{ rotate: 90 }}
@@ -132,88 +158,99 @@ export function GPASnapshot() {
                                 </AnimatePresence>
                                 <defs>
                                     <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" stopColor="oklch(55% 0.25 280)" />
-                                        <stop offset="100%" stopColor="oklch(75% 0.18 210)" />
+                                        <stop offset="0%" stopColor={theme.palette.primary.main} />
+                                        <stop offset="100%" stopColor={theme.palette.secondary.main} />
                                     </linearGradient>
                                 </defs>
                             </svg>
 
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
-                                <span className="text-xl font-bold text-foreground">
+                            <Box sx={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', textAlign: 'center' }}>
+                                <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1 }}>
                                     {currentGPA?.toFixed(2)}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground block -mt-0.5">/ 4.00</span>
-                            </div>
-                        </div>
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontFamily: 'JetBrains Mono', fontSize: '9px' }}>
+                                    / 4.00
+                                </Typography>
+                            </Box>
+                        </Box>
 
                         {/* Threshold Status */}
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${meetsThreshold
-                            ? 'bg-[oklch(75%_0.18_210)]/10 text-[oklch(75%_0.18_210)]'
-                            : 'bg-amber-500/10 text-amber-400'
-                            }`}>
-                            {meetsThreshold ? (
-                                <>
-                                    <CheckCircle2 className="h-3 w-3" />
-                                    <span className="text-[10px] font-medium">Threshold Met</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Clock className="h-3 w-3" />
-                                    <span className="text-[10px] font-medium">Below Threshold</span>
-                                </>
-                            )}
-                        </div>
+                        <Chip
+                            icon={meetsThreshold ? <CheckCircleIcon sx={{ fontSize: '14px !important' }} /> : <ClockIcon sx={{ fontSize: '14px !important' }} />}
+                            label={meetsThreshold ? "Threshold Met" : "Below Threshold"}
+                            size="small"
+                            sx={{
+                                height: 24,
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                bgcolor: meetsThreshold ? alpha(theme.palette.info.main, 0.1) : alpha(theme.palette.warning.main, 0.1),
+                                color: meetsThreshold ? 'info.main' : 'warning.main',
+                                border: `1px solid ${meetsThreshold ? alpha(theme.palette.info.main, 0.2) : alpha(theme.palette.warning.main, 0.2)}`,
+                                '& .MuiChip-icon': { color: 'inherit' }
+                            }}
+                        />
 
                         {/* Proof Status */}
                         <AnimatePresence>
                             {proofStatus === 'generated' && proofHash && (
-                                <motion.div
+                                <Box
+                                    component={motion.div}
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
-                                    className="mt-3 w-full p-2 rounded-lg bg-[oklch(75%_0.18_210)]/10 border border-[oklch(75%_0.18_210)]/30"
+                                    sx={{
+                                        mt: 3,
+                                        width: '100%',
+                                        p: 1.5,
+                                        borderRadius: 2,
+                                        bgcolor: alpha(theme.palette.primary.main, 0.05),
+                                        border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`
+                                    }}
                                 >
-                                    <div className="flex items-center gap-1.5 mb-1">
-                                        <Sparkles className="h-3 w-3 text-[oklch(75%_0.18_210)]" />
-                                        <span className="text-[10px] font-medium text-[oklch(75%_0.18_210)]">
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                        <SparklesIcon sx={{ fontSize: 14, color: theme.palette.primary.main }} />
+                                        <Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.primary.main, fontSize: '10px' }}>
                                             ZK Proof Generated
-                                        </span>
-                                    </div>
-                                    <p className="font-mono-tech text-[9px] text-muted-foreground truncate">
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="caption" noWrap sx={{ fontFamily: 'JetBrains Mono', color: 'text.secondary', fontSize: '9px', display: 'block' }}>
                                         {proofHash}
-                                    </p>
-                                </motion.div>
+                                    </Typography>
+                                </Box>
                             )}
                         </AnimatePresence>
                     </>
                 )}
-            </div>
+            </Box>
 
             {/* Footer */}
             <Button
-                className="w-full mt-3"
-                variant="glow"
-                size="sm"
+                fullWidth
+                variant="contained"
                 onClick={handleGenerateProof}
                 disabled={proofStatus === 'generating' || !meetsThreshold}
+                startIcon={
+                    proofStatus === 'generating' ? <CircularProgress size={16} color="inherit" /> :
+                        proofStatus === 'generated' ? <CheckCircleIcon /> : <SparklesIcon />
+                }
+                sx={{
+                    mt: 3,
+                    py: 1,
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    ...(proofStatus === 'none' && meetsThreshold && {
+                        bgcolor: theme.palette.primary.main,
+                        color: theme.palette.primary.contrastText,
+                        boxShadow: `0 0 15px ${alpha(theme.palette.primary.main, 0.4)}`,
+                        '&:hover': {
+                            bgcolor: alpha(theme.palette.primary.main, 0.9),
+                            boxShadow: `0 0 25px ${alpha(theme.palette.primary.main, 0.6)}`,
+                        }
+                    })
+                }}
             >
-                {proofStatus === 'generating' ? (
-                    <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating...
-                    </>
-                ) : proofStatus === 'generated' ? (
-                    <>
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Proof Ready
-                    </>
-                ) : (
-                    <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Generate Proof
-                    </>
-                )}
+                {proofStatus === 'generating' ? 'Generating...' : proofStatus === 'generated' ? 'Proof Ready' : 'Generate Proof'}
             </Button>
-        </div>
+        </Paper>
     );
 }

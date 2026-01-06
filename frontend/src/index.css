@@ -247,52 +247,7 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Monospaced Technical Font */
-.font-mono-tech {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  letter-spacing: -0.01em;
-}
 
-/* Safety Blue for verified states - OKLCH based */
-.text-safety-green {
-  color: var(--color-accent-lime);
-}
-
-.bg-safety-green {
-  background-color: var(--color-accent-lime);
-}
-
-/* Glassmorphism Panel - Redesigned with Dual-Border technique */
-.glass-panel {
-  background: rgba(18, 18, 22, 0.4);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Dashboard-specific glass effects */
-.glass-card {
-  background: color-mix(in oklch, var(--color-card-aegis) 80%, transparent);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.5rem;
-  /* 8px for sharper look */
-}
-
-.glass-sidebar {
-  background: color-mix(in oklch, var(--color-background-aegis) 85%, transparent);
-  backdrop-filter: blur(24px);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.glass-nav {
-  background: color-mix(in oklch, var(--color-card-aegis) 70%, transparent);
-  backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 1rem;
-}
 
 /* Scrollbar styling for terminal */
 .scrollbar-thin {
@@ -388,27 +343,7 @@ body {
   animation-delay: -15s;
 }
 
-/* Bento Command Center Styles */
-.bento-card {
-  background: color-mix(in srgb, var(--color-card-aegis) 40%, transparent);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  /* Slightly more visible solid border */
-  border-radius: 0.5rem;
-  /* 8px - Sharper than 12px */
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  /* Removed box-shadow for flatter look */
-}
 
-/* Removed complex gradient ::before for cleaner look */
-
-
-.bento-card-glow {
-  border: 1px solid rgba(59, 130, 246, 0.2);
-}
 
 /* Ping Animation */
 @keyframes ping-glow {

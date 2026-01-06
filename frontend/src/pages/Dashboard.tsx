@@ -1,20 +1,12 @@
-import { motion } from 'framer-motion';
 import { VaultQuickView } from '@/components/dashboard/widgets/VaultQuickView';
 import { IntegrityMonitor } from '@/components/dashboard/widgets/IntegrityMonitor';
 import { GPASnapshot } from '@/components/dashboard/widgets/GPASnapshot';
 import { Activity, Zap, Lock } from 'lucide-react';
+import { Box, Grid, Typography, Paper, useTheme, alpha } from '@mui/material';
+import { motion } from 'framer-motion';
 
 export function Dashboard() {
-
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.08
-            }
-        }
-    };
+    const theme = useTheme();
 
     const itemVariants = {
         hidden: { opacity: 0, y: 20, scale: 0.98 },
@@ -30,86 +22,202 @@ export function Dashboard() {
     };
 
     return (
-        <motion.div
-            variants={containerVariants}
+        <Box
+            component={motion.div}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
+            variants={{
+                visible: {
+                    transition: {
+                        staggerChildren: 0.08
+                    }
+                }
+            }}
         >
-            {/* Vault Quick-View: 3/4 Width */}
-            <motion.div
-                variants={itemVariants}
-                className="lg:col-span-3 lg:row-span-2"
-            >
-                <VaultQuickView />
-            </motion.div>
+            <Grid container spacing={2.5}>
+                {/* Vault Quick-View: 3/4 Width */}
+                <Grid size={{ xs: 12, lg: 9 }}>
+                    <Box
+                        component={motion.div}
+                        variants={itemVariants}
+                        sx={{ height: '100%' }}
+                    >
+                        <VaultQuickView />
+                    </Box>
+                </Grid>
 
-            {/* GPA Snapshot - Top Right */}
-            <motion.div
-                variants={itemVariants}
-                className="lg:col-span-1"
-            >
-                <GPASnapshot />
-            </motion.div>
+                {/* Right Column: GPA + Metrics */}
+                <Grid size={{ xs: 12, lg: 3 }}>
+                    <Grid container spacing={2.5} direction="column">
+                        {/* GPA Snapshot */}
+                        <Grid size={12}>
+                            <Box
+                                component={motion.div}
+                                variants={itemVariants}
+                            >
+                                <GPASnapshot />
+                            </Box>
+                        </Grid>
 
-            {/* System Metrics - Under GPA */}
-            <motion.div
-                variants={itemVariants}
-                className="bento-card p-6 flex flex-col h-full bg-zinc-900/40"
-            >
-                <h3 className="text-[10px] uppercase tracking-widest font-bold text-primary/60 mb-4 flex items-center gap-2">
-                    <Activity className="h-3 w-3 text-primary" />
-                    Live Metrics
-                </h3>
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-muted-foreground/60 font-medium">Encryption Ops</span>
-                        <span className="font-mono-tech text-foreground/80">0</span>
-                    </div>
-                    <div className="h-px bg-white/5" />
-                    <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-muted-foreground/60 font-medium">Integrity Checks</span>
-                        <span className="font-mono-tech text-primary/80">Standby</span>
-                    </div>
-                </div>
-            </motion.div>
+                        {/* System Metrics */}
+                        <Grid size={12}>
+                            <Box
+                                component={motion.div}
+                                variants={itemVariants}
+                            >
+                                <Paper
+                                    variant="glass"
+                                    sx={{
+                                        p: 3,
+                                        height: '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                    }}
+                                >
+                                    <Typography
+                                        variant="overline"
+                                        sx={{
+                                            fontWeight: 700,
+                                            letterSpacing: 1.5,
+                                            color: (t) => alpha(t.palette.primary.main, 0.6),
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1,
+                                            mb: 2,
+                                        }}
+                                    >
+                                        <Activity size={14} color={theme.palette.primary.main} />
+                                        Live Metrics
+                                    </Typography>
 
-            {/* Bottom Section: Wide Integrity Monitor */}
-            <motion.div
-                variants={itemVariants}
-                className="lg:col-span-4"
-            >
-                <IntegrityMonitor />
-            </motion.div>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                                Encryption Ops
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', color: 'text.primary' }}>
+                                                0
+                                            </Typography>
+                                        </Box>
+                                        <Box sx={{ height: '1px', bgcolor: 'divider' }} />
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                                Integrity Checks
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', color: alpha(theme.palette.primary.main, 0.8) }}>
+                                                Standby
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                </Paper>
+                            </Box>
+                        </Grid>
+                    </Grid>
+                </Grid>
 
-            {/* Action Buttons */}
-            <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-5">
-                <motion.div
-                    variants={itemVariants}
-                    className="bento-card p-6 flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all group bg-zinc-900/40"
-                >
-                    <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                        <Zap className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                        <span className="text-xs font-bold text-foreground block">Quick Encrypt</span>
-                        <span className="text-[10px] text-muted-foreground/60">Upload & protect with ML-KEM</span>
-                    </div>
-                </motion.div>
+                {/* Integrity Monitor */}
+                <Grid size={12}>
+                    <Box
+                        component={motion.div}
+                        variants={itemVariants}
+                    >
+                        <IntegrityMonitor />
+                    </Box>
+                </Grid>
 
-                <motion.div
-                    variants={itemVariants}
-                    className="bento-card p-6 flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all group bg-zinc-900/40"
-                >
-                    <div className="p-3 rounded-lg bg-violet-500/10 group-hover:bg-violet-500/20 transition-colors">
-                        <Lock className="h-5 w-5 text-violet-400" />
-                    </div>
-                    <div>
-                        <span className="text-xs font-bold text-foreground block">Key Rotation</span>
-                        <span className="text-[10px] text-muted-foreground/60">Rotate PQC keys regularly</span>
-                    </div>
-                </motion.div>
-            </div>
-        </motion.div>
+                {/* Action Buttons */}
+                <Grid size={12}>
+                    <Grid container spacing={2.5}>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Box
+                                component={motion.div}
+                                variants={itemVariants}
+                            >
+                                <Paper
+                                    variant="glass"
+                                    sx={{
+                                        p: 3,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 2,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        '&:hover': {
+                                            bgcolor: alpha(theme.palette.common.white, 0.08),
+                                            borderColor: alpha(theme.palette.primary.main, 0.3),
+                                        },
+                                    }}
+                                >
+                                    <Box
+                                        sx={{
+                                            p: 1.5,
+                                            borderRadius: 2,
+                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        <Zap size={20} color={theme.palette.primary.main} />
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary', display: 'block' }}>
+                                            Quick Encrypt
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>
+                                            Upload & protect with ML-KEM
+                                        </Typography>
+                                    </Box>
+                                </Paper>
+                            </Box>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Box
+                                component={motion.div}
+                                variants={itemVariants}
+                            >
+                                <Paper
+                                    variant="glass"
+                                    sx={{
+                                        p: 3,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 2,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        '&:hover': {
+                                            bgcolor: alpha(theme.palette.common.white, 0.08),
+                                            borderColor: alpha('#a78bfa', 0.3), // Violet accent
+                                        },
+                                    }}
+                                >
+                                    <Box
+                                        sx={{
+                                            p: 1.5,
+                                            borderRadius: 2,
+                                            bgcolor: alpha('#8b5cf6', 0.1),
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        <Lock size={20} color="#a78bfa" />
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary', display: 'block' }}>
+                                            Key Rotation
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>
+                                            Rotate PQC keys regularly
+                                        </Typography>
+                                    </Box>
+                                </Paper>
+                            </Box>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Box>
     );
 }

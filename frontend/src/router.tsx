@@ -5,6 +5,10 @@ import { FilesPage } from '@/pages/FilesPage';
 import { NotFound } from '@/pages/NotFound';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { getTheme } from './theme';
+import { useThemeStore } from '@/stores/themeStore';
+import { useMemo } from 'react';
 
 // Placeholder pages for future implementation
 function GPATracker() {
@@ -76,6 +80,14 @@ const router = createBrowserRouter([
 ]);
 
 export function AppRouter() {
-    return <RouterProvider router={router} />;
+    const themeMode = useThemeStore((state) => state.theme);
+    const theme = useMemo(() => getTheme(themeMode), [themeMode]);
+
+    return (
+        <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <RouterProvider router={router} />
+        </ThemeProvider>
+    );
 }
 

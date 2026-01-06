@@ -1,43 +1,56 @@
-import { Shield, CheckCircle2, AlertCircle, Loader2, Activity } from 'lucide-react';
+import {
+    Shield as ShieldIcon,
+    CheckCircle as CheckCircleIcon,
+    Report as AlertCircleIcon,
+    Insights as ActivityIcon
+} from '@mui/icons-material';
+import {
+    Box,
+    Typography,
+    alpha,
+    useTheme,
+    CircularProgress
+} from '@mui/material';
 import { useSessionStore } from '@/stores/sessionStore';
 import { motion } from 'framer-motion';
 
 export function SystemStatusBar() {
     const { pqcEngineStatus } = useSessionStore();
+    const theme = useTheme();
 
     const getStatusConfig = () => {
         switch (pqcEngineStatus) {
             case 'operational':
                 return {
-                    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+                    icon: <CheckCircleIcon sx={{ fontSize: 14 }} />,
                     text: 'Operational',
-                    color: 'text-[oklch(75%_0.18_210)]',
-                    bgColor: 'bg-[oklch(75%_0.18_210)]/10',
-                    dotColor: 'bg-[oklch(75%_0.18_210)]'
+                    color: theme.palette.info.main,
+                    bgcolor: alpha(theme.palette.info.main, 0.1),
+                    dotColor: theme.palette.info.main
                 };
             case 'initializing':
                 return {
-                    icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+                    icon: <CircularProgress size={12} color="inherit" />,
                     text: 'Initializing...',
-                    color: 'text-amber-400',
-                    bgColor: 'bg-amber-400/10',
-                    dotColor: 'bg-amber-400'
+                    color: theme.palette.warning.main,
+                    bgcolor: alpha(theme.palette.warning.main, 0.1),
+                    dotColor: theme.palette.warning.main
                 };
             case 'error':
                 return {
-                    icon: <AlertCircle className="h-3.5 w-3.5" />,
+                    icon: <AlertCircleIcon sx={{ fontSize: 14 }} />,
                     text: 'Error',
-                    color: 'text-destructive',
-                    bgColor: 'bg-destructive/10',
-                    dotColor: 'bg-destructive'
+                    color: theme.palette.error.main,
+                    bgcolor: alpha(theme.palette.error.main, 0.1),
+                    dotColor: theme.palette.error.main
                 };
             default:
                 return {
-                    icon: <Activity className="h-3.5 w-3.5" />,
+                    icon: <ActivityIcon sx={{ fontSize: 14 }} />,
                     text: 'Unknown',
-                    color: 'text-muted-foreground',
-                    bgColor: 'bg-muted/10',
-                    dotColor: 'bg-muted-foreground'
+                    color: theme.palette.text.secondary,
+                    bgcolor: alpha(theme.palette.text.secondary, 0.1),
+                    dotColor: theme.palette.text.secondary
                 };
         }
     };
@@ -46,48 +59,113 @@ export function SystemStatusBar() {
     const isOperational = pqcEngineStatus === 'operational';
 
     return (
-        <div className="h-10 bg-transparent flex items-center justify-between px-6">
+        <Box
+            sx={{
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                px: 3,
+                bgcolor: 'transparent'
+            }}
+        >
             {/* Left: System Label */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>System Health</span>
-                <span className="text-white/20">•</span>
-                <span className="font-mono-tech text-text-primary/70">v1.0.0</span>
-            </div>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+                <Typography variant="caption" sx={{ fontSize: '11px', fontWeight: 500 }}>System Health</Typography>
+                <Typography variant="caption" sx={{ opacity: 0.2 }}>•</Typography>
+                <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', fontWeight: 600, color: alpha(theme.palette.text.primary, 0.5), fontSize: '10px' }}>v1.0.0</Typography>
+            </Box>
 
             {/* Right: PQC Engine Status */}
-            <motion.div
+            <Box
+                component={motion.div}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-4"
+                sx={{ display: 'flex', alignItems: 'center', gap: 3 }}
             >
                 {/* PQC Engine Badge */}
-                <div className="flex items-center gap-2">
-                    <div className="relative">
-                        <Shield className="h-4 w-4 text-primary" />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ position: 'relative', display: 'flex' }}>
+                        <ShieldIcon color="primary" sx={{ fontSize: 18 }} />
                         {isOperational && (
-                            <div className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-[oklch(75%_0.18_210)] animate-ping-glow" />
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    top: -2,
+                                    right: -2,
+                                    height: 6,
+                                    width: 6,
+                                    borderRadius: '50%',
+                                    bgcolor: theme.palette.info.main,
+                                    boxShadow: `0 0 10px ${theme.palette.info.main}`,
+                                    animation: 'pulse 2s infinite'
+                                }}
+                            />
                         )}
-                    </div>
-                    <span className="text-xs font-medium text-foreground">PQC Engine</span>
-                    <span className="text-[10px] font-mono-tech text-muted-foreground hidden sm:inline">
+                    </Box>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '11px' }}>
+                        PQC Engine
+                    </Typography>
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            fontFamily: 'JetBrains Mono',
+                            color: 'text.secondary',
+                            fontSize: '9px',
+                            display: { xs: 'none', sm: 'inline' },
+                            fontWeight: 500,
+                            opacity: 0.7
+                        }}
+                    >
                         @noble/post-quantum
-                    </span>
-                </div>
+                    </Typography>
+                </Box>
 
-                <div className="h-4 w-px bg-white/10" />
+                <Box sx={{ h: 16, width: '1px', bgcolor: alpha(theme.palette.divider, 0.1) }} />
 
                 {/* Status Indicator */}
-                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${status.bgColor}`}>
-                    <span className={status.color}>{status.icon}</span>
-                    <span className={`text-xs font-medium ${status.color}`}>{status.text}</span>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 5,
+                        bgcolor: status.bgcolor,
+                        color: status.color,
+                        border: `1px solid ${alpha(status.color, 0.2)}`
+                    }}
+                >
+                    {status.icon}
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'inherit', fontSize: '10px' }}>
+                        {status.text}
+                    </Typography>
                     {isOperational && (
-                        <div className="relative ml-1">
-                            <div className={`h-2 w-2 rounded-full ${status.dotColor}`} />
-                            <div className={`absolute inset-0 h-2 w-2 rounded-full ${status.dotColor} animate-ping-glow`} />
-                        </div>
+                        <Box sx={{ position: 'relative', ml: 1, display: 'flex' }}>
+                            <Box sx={{ h: 6, width: 6, borderRadius: '50%', bgcolor: status.dotColor }} />
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    h: 6,
+                                    width: 6,
+                                    borderRadius: '50%',
+                                    bgcolor: status.dotColor,
+                                    animation: 'pulse 2s infinite'
+                                }}
+                            />
+                        </Box>
                     )}
-                </div>
-            </motion.div>
-        </div>
+                </Box>
+            </Box>
+
+            <style>{`
+                @keyframes pulse {
+                    0% { transform: scale(1); opacity: 1; }
+                    100% { transform: scale(2.5); opacity: 0; }
+                }
+            `}</style>
+        </Box>
     );
 }
