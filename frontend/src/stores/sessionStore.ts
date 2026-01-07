@@ -118,19 +118,25 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
                 if (seed) {
                     currentState.initializeQuantumKeys(seed);
+                } else {
+                    console.warn('User authenticated but no PQC seed found in storage.');
+                    set({ pqcEngineStatus: 'error' });
                 }
             } else {
                 set({
                     user: null,
                     isAuthenticated: false,
-                    isAuthChecking: false
+                    isAuthChecking: false,
+                    pqcEngineStatus: 'initializing' // Reset to default
                 });
             }
         } catch (error) {
+            console.error('Auth check failed:', error);
             set({
                 user: null,
                 isAuthenticated: false,
-                isAuthChecking: false
+                isAuthChecking: false,
+                pqcEngineStatus: 'error'
             });
         }
     }

@@ -93,13 +93,15 @@ export const updatePreferences = async (req: AuthRequest, res: Response) => {
 
         const { gpaSystem } = req.body;
 
-        if (!gpaSystem || !['NORMAL', 'GERMAN'].includes(gpaSystem)) {
+        const normalizedGpaSystem = String(gpaSystem);
+
+        if (!['NORMAL', 'GERMAN'].includes(normalizedGpaSystem)) {
             return res.status(400).json({ message: 'Invalid GPA system. Must be NORMAL or GERMAN' });
         }
 
         const user = await User.findByIdAndUpdate(
             req.user.id,
-            { gpaSystem },
+            { gpaSystem: normalizedGpaSystem },
             { new: true }
         );
 
@@ -107,7 +109,7 @@ export const updatePreferences = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        logger.info(`GPA system preference updated for user ${req.user.id}: ${gpaSystem}`);
+        logger.info(`GPA system preference updated for user ${req.user.id}: ${normalizedGpaSystem}`);
         res.status(200).json({ gpaSystem: user.gpaSystem });
     } catch (error) {
         logger.error('Error updating preferences:', error);

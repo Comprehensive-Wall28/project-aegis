@@ -1,16 +1,6 @@
-import axios from 'axios';
+import apiClient from './api';
 
-
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const API_URL = `${BASE_URL.replace(/\/$/, '')}/api/gpa`;
-
-const apiClient = axios.create({
-    baseURL: API_URL,
-    withCredentials: true,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
+const PREFIX = '/gpa';
 
 
 
@@ -84,38 +74,38 @@ export interface UnmigratedCourse {
 const gpaService = {
     // Course CRUD - now handles encrypted data
     getEncryptedCourses: async (): Promise<EncryptedCourse[]> => {
-        const response = await apiClient.get<EncryptedCourse[]>('/courses');
+        const response = await apiClient.get<EncryptedCourse[]>(`${PREFIX}/courses`);
         return response.data;
     },
 
     createEncryptedCourse: async (data: EncryptedCoursePayload): Promise<EncryptedCourse> => {
-        const response = await apiClient.post<EncryptedCourse>('/courses', data);
+        const response = await apiClient.post<EncryptedCourse>(`${PREFIX}/courses`, data);
         return response.data;
     },
 
     deleteCourse: async (id: string): Promise<void> => {
-        await apiClient.delete(`/courses/${id}`);
+        await apiClient.delete(`${PREFIX}/courses/${id}`);
     },
 
     // Preferences
     getPreferences: async (): Promise<Preferences> => {
-        const response = await apiClient.get<Preferences>('/preferences');
+        const response = await apiClient.get<Preferences>(`${PREFIX}/preferences`);
         return response.data;
     },
 
     updatePreferences: async (data: Preferences): Promise<Preferences> => {
-        const response = await apiClient.put<Preferences>('/preferences', data);
+        const response = await apiClient.put<Preferences>(`${PREFIX}/preferences`, data);
         return response.data;
     },
 
     // Migration endpoints
     getUnmigratedCourses: async (): Promise<UnmigratedCourse[]> => {
-        const response = await apiClient.get<UnmigratedCourse[]>('/courses/unmigrated');
+        const response = await apiClient.get<UnmigratedCourse[]>(`${PREFIX}/courses/unmigrated`);
         return response.data;
     },
 
     migrateCourse: async (id: string, data: EncryptedCoursePayload): Promise<EncryptedCourse> => {
-        const response = await apiClient.put<EncryptedCourse>(`/courses/${id}/migrate`, data);
+        const response = await apiClient.put<EncryptedCourse>(`${PREFIX}/courses/${id}/migrate`, data);
         return response.data;
     },
 };

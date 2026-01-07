@@ -16,15 +16,27 @@ export const getFolders = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const { parentId } = req.query;
-        const query: any = { ownerId: req.user.id };
+        const { parentId: rawParentId } = req.query;
+        let parentId: string | null = null;
 
-        // If parentId is provided, filter by it; otherwise get root folders
-        if (parentId && parentId !== 'null') {
-            query.parentId = parentId;
-        } else {
-            query.parentId = null;
+        // Normalize rawParentId: if array, take first element
+        let candidate = rawParentId;
+        if (Array.isArray(rawParentId)) {
+            candidate = rawParentId[0];
         }
+
+        // If "null", undefined, or empty, treat as root (null parentId)
+        if (!candidate || candidate === 'null') {
+            parentId = null;
+        } else {
+            // Otherwise ensure it is a string
+            if (typeof candidate !== 'string') {
+                return res.status(400).json({ message: 'Invalid parentId format' });
+            }
+            parentId = candidate;
+        }
+
+        const query = { ownerId: req.user.id, parentId };
 
         const folders = await Folder.find(query).sort({ name: 1 });
         res.status(200).json(folders);
@@ -150,7 +162,7 @@ export const moveFiles = async (req: AuthRequest, res: Response) => {
 
         // Validate folder exists (or null for root)
         if (folderId) {
-            const folder = await Folder.findOne({ _id: folderId, ownerId: req.user.id });
+            const folder = await Folder.findOne({ _id: { $eq: folderId }, ownerId: req.user.id });
             if (!folder) {
                 return res.status(404).json({ message: 'Target folder not found' });
             }

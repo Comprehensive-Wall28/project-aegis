@@ -42,7 +42,21 @@ app.use(helmet({
 app.use(express.json());
 app.use(cookieParser());
 
-// Apply Rate Limiting
+// CSRF Protection
+// We need to import csrf from 'csurf' but since we are using CommonJS/ESM mix, we need to be careful.
+// Using require for now to avoid potential ESM issues with the specific library version if needed, 
+// but import should work if esModuleInterop is on.
+import csrf from 'csurf';
+const csrfProtection = csrf({ cookie: true });
+
+// Apply CSRF protection
+app.use(csrfProtection);
+
+// Expose CSRF token to client via cookie (Axios default behavior)
+app.use((req, res, next) => {
+    res.cookie('XSRF-TOKEN', req.csrfToken());
+    next();
+});
 app.use('/api/', apiLimiter);
 app.use('/api/auth', authLimiter); // Stricter limit for auth
 
