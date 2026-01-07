@@ -1,11 +1,17 @@
 import { create } from 'zustand';
 
+export interface UserPreferences {
+    sessionTimeout: number; // minutes
+    encryptionLevel: 'STANDARD' | 'HIGH' | 'PARANOID';
+}
+
 interface User {
     _id: string;
     email: string;
     username: string;
     publicKey?: string; // Hex encoded ML-KEM-768 public key
     privateKey?: string; // Hex encoded ML-KEM-768 private key (stored only in memory, never sent to server)
+    preferences?: UserPreferences;
 }
 
 interface SessionState {

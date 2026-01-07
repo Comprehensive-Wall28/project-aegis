@@ -1,5 +1,6 @@
 import apiClient from './api';
 import { derivePQCSeed, getPQCDiscoveryKey } from '../lib/cryptoUtils';
+import type { UserPreferences } from '../stores/sessionStore';
 
 
 
@@ -24,6 +25,7 @@ export interface AuthResponse {
     message: string;
     token?: string; // Token returned for cross-origin localStorage auth
     pqcSeed?: Uint8Array; // Derived locally
+    preferences?: UserPreferences;
 }
 
 // Web Crypto API helper to simulate Argon2 client-side hashing (using SHA-256 for demo)
@@ -80,9 +82,9 @@ const authService = {
         };
     },
 
-    validateSession: async (): Promise<{ _id: string; email: string; username: string } | null> => {
+    validateSession: async (): Promise<{ _id: string; email: string; username: string; preferences?: UserPreferences } | null> => {
         try {
-            const response = await apiClient.get<{ _id: string; email: string; username: string }>('/auth/me');
+            const response = await apiClient.get<{ _id: string; email: string; username: string; preferences?: UserPreferences }>('/auth/me');
             return response.data;
         } catch {
             return null;
@@ -99,8 +101,12 @@ const authService = {
         }
     },
 
-    updateProfile: async (data: { username?: string; email?: string }): Promise<{ _id: string; email: string; username: string }> => {
-        const response = await apiClient.put<{ _id: string; email: string; username: string }>('/auth/me', data);
+    updateProfile: async (data: {
+        username?: string;
+        email?: string;
+        preferences?: Partial<UserPreferences>
+    }): Promise<{ _id: string; email: string; username: string; preferences?: UserPreferences }> => {
+        const response = await apiClient.put<{ _id: string; email: string; username: string; preferences?: UserPreferences }>('/auth/me', data);
         return response.data;
     },
 };

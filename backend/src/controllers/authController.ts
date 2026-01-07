@@ -84,6 +84,7 @@ export const loginUser = async (req: Request, res: Response) => {
                 username: user.username,
                 email: user.email,
                 pqcPublicKey: user.pqcPublicKey,
+                preferences: user.preferences || { sessionTimeout: 60, encryptionLevel: 'STANDARD' },
                 message: 'Login successful',
             });
         } else {
@@ -118,7 +119,8 @@ export const getMe = async (req: AuthRequest, res: Response) => {
             _id: user._id,
             username: user.username,
             email: user.email,
-            pqcPublicKey: user.pqcPublicKey
+            pqcPublicKey: user.pqcPublicKey,
+            preferences: user.preferences || { sessionTimeout: 60, encryptionLevel: 'STANDARD' }
         });
     } catch (error) {
         console.error(error);
@@ -132,8 +134,8 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const { username, email } = req.body;
-        const updateFields: { username?: string; email?: string } = {};
+        const { username, email, preferences } = req.body;
+        const updateFields: { username?: string; email?: string; preferences?: { sessionTimeout?: number; encryptionLevel?: string } } = {};
 
         // Validate and sanitize inputs
         if (username !== undefined) {
@@ -172,6 +174,33 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
             updateFields.email = sanitizedEmail;
         }
 
+        // Handle preferences updates
+        if (preferences !== undefined && typeof preferences === 'object') {
+            updateFields.preferences = {};
+
+            if (preferences.sessionTimeout !== undefined) {
+                const timeout = Number(preferences.sessionTimeout);
+                if (isNaN(timeout) || timeout < 5 || timeout > 480) {
+                    return res.status(400).json({ message: 'Session timeout must be between 5 and 480 minutes' });
+                }
+                updateFields.preferences.sessionTimeout = timeout;
+            }
+
+            if (preferences.encryptionLevel !== undefined) {
+                const validLevels = ['STANDARD', 'HIGH', 'PARANOID'];
+                const level = String(preferences.encryptionLevel).toUpperCase();
+                if (!validLevels.includes(level)) {
+                    return res.status(400).json({ message: 'Invalid encryption level' });
+                }
+                updateFields.preferences.encryptionLevel = level;
+            }
+
+            // Remove empty preferences object if no valid preferences were provided
+            if (Object.keys(updateFields.preferences).length === 0) {
+                delete updateFields.preferences;
+            }
+        }
+
         if (Object.keys(updateFields).length === 0) {
             return res.status(400).json({ message: 'No valid fields to update' });
         }
@@ -191,7 +220,8 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
             _id: updatedUser._id,
             username: updatedUser.username,
             email: updatedUser.email,
-            pqcPublicKey: updatedUser.pqcPublicKey
+            pqcPublicKey: updatedUser.pqcPublicKey,
+            preferences: updatedUser.preferences || { sessionTimeout: 60, encryptionLevel: 'STANDARD' }
         });
     } catch (error) {
         console.error(error);
