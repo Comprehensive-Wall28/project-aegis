@@ -52,7 +52,7 @@ export const getAuditLogs = async (req: AuthRequest, res: Response) => {
 
 /**
  * Get a summary of recent activity for the dashboard widget.
- * Returns the 5 most recent audit log entries.
+ * Returns the 3 most recent audit log entries.
  * 
  * GET /api/audit-logs/recent
  */
@@ -64,7 +64,7 @@ export const getRecentActivity = async (req: AuthRequest, res: Response) => {
 
         const logs = await AuditLog.find({ userId: req.user.id })
             .sort({ timestamp: -1 })
-            .limit(5)
+            .limit(3)
             .lean();
 
         res.status(200).json({ logs });

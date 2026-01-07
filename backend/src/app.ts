@@ -10,6 +10,7 @@ import integrityRoutes from './routes/integrityRoutes';
 import gpaRoutes from './routes/gpaRoutes';
 import folderRoutes from './routes/folderRoutes';
 import auditRoutes from './routes/auditRoutes';
+import calendarRoutes from './routes/calendarRoutes';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -97,6 +98,7 @@ app.use('/api/integrity', integrityRoutes);
 app.use('/api/gpa', gpaRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api/audit-logs', auditRoutes);
+app.use('/api/calendar', calendarRoutes);
 
 app.use(errorHandler);
 

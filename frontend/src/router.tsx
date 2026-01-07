@@ -3,6 +3,7 @@ import { Landing } from '@/pages/Landing';
 import { Dashboard } from '@/pages/Dashboard';
 import { FilesPage } from '@/pages/FilesPage';
 import { GPAPage } from '@/pages/GPAPage';
+import { CalendarPage } from '@/pages/CalendarPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { PqcLearn } from '@/pages/PqcLearn';
 import { NotFound } from '@/pages/NotFound';
@@ -62,6 +63,10 @@ const router = createBrowserRouter([
             {
                 path: 'zkp',
                 element: <ZKPVerifier />,
+            },
+            {
+                path: 'calendar',
+                element: <CalendarPage />,
             },
             {
                 path: 'security',
