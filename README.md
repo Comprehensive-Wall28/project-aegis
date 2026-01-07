@@ -34,7 +34,7 @@ Follow these instructions to set up Aegis locally for development.
 
 1.  **Clone the Repository**
     ```bash
-    git clone https://github.com/yourusername/aegis.git
+    git clone https://github.com/Comprehensive-Wall28/project-aegis
     cd aegis
     ```
 
