@@ -57,16 +57,24 @@ app.use(cookieParser());
 // Using require for now to avoid potential ESM issues with the specific library version if needed, 
 // but import should work if esModuleInterop is on.
 import csrf from 'csurf';
-const csrfProtection = csrf({
-    cookie: {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    }
-});
 
-// Apply CSRF protection
+let csrfProtection: express.RequestHandler;
 
+if (process.env.NODE_ENV === 'production') {
+    // Disable CSRF in production as requested, mocking the token function
+    csrfProtection = (req, res, next) => {
+        (req as any).csrfToken = () => 'csrf-disabled-in-production';
+        next();
+    };
+} else {
+    csrfProtection = csrf({
+        cookie: {
+            httpOnly: true,
+            secure: false, // Localhost usually isn't https
+            sameSite: 'lax',
+        }
+    });
+}
 
 app.use(csrfProtection);
 
