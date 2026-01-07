@@ -72,7 +72,7 @@ export const loginUser = async (req: Request, res: Response) => {
             res.cookie('token', token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Must be 'none' for cross-site cookie
                 maxAge: 24 * 60 * 60 * 1000, // 1 day
                 partitioned: process.env.NODE_ENV === 'production',
             } as any);
@@ -140,4 +140,8 @@ export const logoutUser = async (_req: Request, res: Response) => {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
+};
+
+export const getCsrfToken = (req: Request, res: Response) => {
+    res.json({ csrfToken: req.csrfToken() });
 };

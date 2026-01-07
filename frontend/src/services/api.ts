@@ -36,4 +36,13 @@ apiClient.interceptors.response.use(
     }
 );
 
+export const refreshCsrfToken = async () => {
+    try {
+        const response = await apiClient.get('/auth/csrf-token');
+        apiClient.defaults.headers.common['X-XSRF-TOKEN'] = response.data.csrfToken;
+    } catch (error) {
+        console.error('Failed to fetch CSRF token', error);
+    }
+};
+
 export default apiClient;
