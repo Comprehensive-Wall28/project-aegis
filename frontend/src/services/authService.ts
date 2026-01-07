@@ -98,6 +98,11 @@ const authService = {
             // No cleanup needed for http-only cookie
         }
     },
+
+    updateProfile: async (data: { username?: string; email?: string }): Promise<{ _id: string; email: string; username: string }> => {
+        const response = await apiClient.put<{ _id: string; email: string; username: string }>('/auth/me', data);
+        return response.data;
+    },
 };
 
 export default authService;

@@ -23,6 +23,7 @@ interface SessionState {
     setPqcEngineStatus: (status: 'operational' | 'initializing' | 'error') => void;
     initializeQuantumKeys: (seed?: Uint8Array) => void;
     checkAuth: () => Promise<void>;
+    updateUser: (updates: Partial<Pick<User, 'username' | 'email'>>) => void;
 }
 
 // Module-level flag to prevent concurrent auth checks
@@ -98,6 +99,18 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 set({ pqcEngineStatus: 'error' });
             }
         })();
+    },
+
+    updateUser: (updates) => {
+        const currentState = get();
+        if (currentState.user) {
+            set({
+                user: {
+                    ...currentState.user,
+                    ...updates
+                }
+            });
+        }
     },
 
     checkAuth: async () => {

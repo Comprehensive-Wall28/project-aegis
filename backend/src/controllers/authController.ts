@@ -126,6 +126,79 @@ export const getMe = async (req: AuthRequest, res: Response) => {
     }
 };
 
+export const updateMe = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { username, email } = req.body;
+        const updateFields: { username?: string; email?: string } = {};
+
+        // Validate and sanitize inputs
+        if (username !== undefined) {
+            const sanitizedUsername = String(username).trim();
+            if (sanitizedUsername.length < 3) {
+                return res.status(400).json({ message: 'Username must be at least 3 characters' });
+            }
+            // Check if username is taken by another user
+            const existingUser = await User.findOne({
+                username: sanitizedUsername,
+                _id: { $ne: req.user.id }
+            });
+            if (existingUser) {
+                logger.warn(`Profile update failed: username ${sanitizedUsername} already taken`);
+                return res.status(400).json({ message: 'Username already taken' });
+            }
+            updateFields.username = sanitizedUsername;
+        }
+
+        if (email !== undefined) {
+            const sanitizedEmail = String(email).trim().toLowerCase();
+            // Basic email format validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(sanitizedEmail)) {
+                return res.status(400).json({ message: 'Invalid email format' });
+            }
+            // Check if email is taken by another user
+            const existingUser = await User.findOne({
+                email: sanitizedEmail,
+                _id: { $ne: req.user.id }
+            });
+            if (existingUser) {
+                logger.warn(`Profile update failed: email ${sanitizedEmail} already taken`);
+                return res.status(400).json({ message: 'Email already taken' });
+            }
+            updateFields.email = sanitizedEmail;
+        }
+
+        if (Object.keys(updateFields).length === 0) {
+            return res.status(400).json({ message: 'No valid fields to update' });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id,
+            { $set: updateFields },
+            { new: true, runValidators: true }
+        ).select('-passwordHash');
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        logger.info(`Profile updated for user: ${updatedUser._id}`);
+        res.json({
+            _id: updatedUser._id,
+            username: updatedUser.username,
+            email: updatedUser.email,
+            pqcPublicKey: updatedUser.pqcPublicKey
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 export const logoutUser = async (_req: Request, res: Response) => {
     try {
         res.cookie('token', '', {
