@@ -57,7 +57,13 @@ app.use(cookieParser());
 // Using require for now to avoid potential ESM issues with the specific library version if needed, 
 // but import should work if esModuleInterop is on.
 import csrf from 'csurf';
-const csrfProtection = csrf({ cookie: true });
+const csrfProtection = csrf({
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    }
+});
 
 // Apply CSRF protection
 
@@ -69,7 +75,7 @@ app.use((req, res, next) => {
     res.cookie('XSRF-TOKEN', req.csrfToken(), {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production', // Secure in production
-        sameSite: 'lax' // Allow top-level navigation usage if needed, but important for Axios
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     });
     next();
 });
