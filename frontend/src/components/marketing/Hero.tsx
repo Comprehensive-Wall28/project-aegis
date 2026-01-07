@@ -194,6 +194,7 @@ export function Hero() {
                             background: `linear-gradient(90deg, ${theme.palette.primary.light}, ${theme.palette.info.light})`,
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
+                            whiteSpace: 'nowrap'
                         }}>
                             Post-Quantum Era
                         </Box>
@@ -211,7 +212,7 @@ export function Hero() {
                             fontWeight: 500
                         }}
                     >
-                        Experience the world's first stateless productivity suite powered by ML-KEM encryption.
+                        Experience stateless productivity suite powered by ML-KEM encryption.
                         Your data never leaves your browser unencrypted.
                     </Typography>
 
@@ -243,7 +244,7 @@ export function Hero() {
                                 '& .MuiButton-endIcon': { transition: 'transform 0.2s' }
                             }}
                         >
-                            Secure Your Vault
+                            Get Started
                         </Button>
                         <Button
                             variant="outlined"

@@ -136,7 +136,7 @@ export function Navbar() {
                     width: 'calc(100% - 32px)',
                     maxWidth: 1400,
                     borderRadius: 4,
-                    bgcolor: alpha(theme.palette.background.paper, 0.1),
+                    bgcolor: alpha(theme.palette.background.paper, 0.5),
                     backdropFilter: 'blur(16px)',
                     border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                     boxShadow: 'none',
@@ -180,7 +180,7 @@ export function Navbar() {
                         </Box>
 
                         {/* Navigation Links - Desktop */}
-                        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
+                        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center', transform: 'translateY(-1px)' }}>
                             {['Features', 'Security'].map((item) => (
                                 <Button
                                     key={item}
@@ -227,7 +227,7 @@ export function Navbar() {
                         </Box>
 
                         {/* Right Section / User Profile */}
-                        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2, transform: 'translateY(-1px)' }}>
                             {user ? (
                                 <>
                                     <Button

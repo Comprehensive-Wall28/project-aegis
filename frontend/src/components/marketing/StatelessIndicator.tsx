@@ -45,7 +45,7 @@ export function StatelessIndicator() {
                     fontSize: '0.7rem'
                 }}
             >
-                PQC Engine Operational
+                PQC Engine
             </Typography>
 
             <style>{`
