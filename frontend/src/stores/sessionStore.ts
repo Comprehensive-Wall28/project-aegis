@@ -25,6 +25,9 @@ interface SessionState {
     checkAuth: () => Promise<void>;
 }
 
+// Module-level flag to prevent concurrent auth checks
+let authCheckInProgress = false;
+
 export const useSessionStore = create<SessionState>((set, get) => ({
     user: null,
     isAuthenticated: false,
@@ -98,17 +101,42 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     },
 
     checkAuth: async () => {
+        // Skip if already successfully authenticated
+        const currentState = get();
+        if (currentState.isAuthenticated && currentState.user !== null) {
+            return;
+        }
+
+        // Skip if another check is in progress (prevents duplicate requests)
+        if (authCheckInProgress) {
+            return;
+        }
+
+        authCheckInProgress = true;
         set({ isAuthChecking: true });
         try {
+            // First check if there's a stored seed - if not, don't bother checking auth
+            // This prevents unnecessary 401 requests on the homepage for non-logged-in users
+            const { getStoredSeed } = await import('../lib/cryptoUtils');
+            const seed = getStoredSeed();
+
+            if (!seed) {
+                // No seed means no active session worth restoring
+                set({
+                    user: null,
+                    isAuthenticated: false,
+                    isAuthChecking: false,
+                    pqcEngineStatus: 'initializing'
+                });
+                return;
+            }
+
             // Dynamically import authService to avoid circular dependencies if any
             const { default: authService } = await import('../services/authService');
             const user = await authService.validateSession();
 
             if (user) {
                 const currentState = get();
-                // Recover keys from local storage if they exist
-                const { getStoredSeed } = await import('../lib/cryptoUtils');
-                const seed = getStoredSeed();
 
                 set({
                     user,
@@ -116,18 +144,16 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                     isAuthChecking: false
                 });
 
-                if (seed) {
-                    currentState.initializeQuantumKeys(seed);
-                } else {
-                    console.warn('User authenticated but no PQC seed found in storage.');
-                    set({ pqcEngineStatus: 'error' });
-                }
+                currentState.initializeQuantumKeys(seed);
             } else {
+                // Server says not authenticated but we have a seed - clear it
+                const { clearStoredSeed } = await import('../lib/cryptoUtils');
+                clearStoredSeed();
                 set({
                     user: null,
                     isAuthenticated: false,
                     isAuthChecking: false,
-                    pqcEngineStatus: 'initializing' // Reset to default
+                    pqcEngineStatus: 'initializing'
                 });
             }
         } catch (error) {
@@ -138,6 +164,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 isAuthChecking: false,
                 pqcEngineStatus: 'error'
             });
+        } finally {
+            authCheckInProgress = false;
         }
     }
 }));

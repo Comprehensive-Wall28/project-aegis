@@ -11,7 +11,8 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme';
 import { useThemeStore } from '@/stores/themeStore';
-import { useMemo } from 'react';
+import { useSessionStore } from '@/stores/sessionStore';
+import { useMemo, useEffect } from 'react';
 
 // Placeholder pages for future implementation
 
@@ -89,8 +90,21 @@ export function AppRouter() {
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
+            <AppInitializer />
             <RouterProvider router={router} />
         </ThemeProvider>
     );
+}
+
+// Separate component to handle auth initialization
+
+function AppInitializer() {
+    const checkAuth = useSessionStore((state) => state.checkAuth);
+
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth]);
+
+    return null;
 }
 
