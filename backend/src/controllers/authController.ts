@@ -85,7 +85,6 @@ export const loginUser = async (req: Request, res: Response) => {
                 email: user.email,
                 pqcPublicKey: user.pqcPublicKey,
                 message: 'Login successful',
-                token, // Return token for localStorage-based auth in cross-origin scenarios
             });
         } else {
             logger.warn(`Failed login attempt for email: ${email}`);

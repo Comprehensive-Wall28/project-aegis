@@ -11,6 +11,7 @@ interface User {
 interface SessionState {
     user: User | null;
     isAuthenticated: boolean;
+    isAuthChecking: boolean;
     pqcEngineStatus: 'operational' | 'initializing' | 'error';
     // Ephemeral session keys - stored only in memory
     sessionKey: string | null;
@@ -21,11 +22,13 @@ interface SessionState {
     clearSession: () => void;
     setPqcEngineStatus: (status: 'operational' | 'initializing' | 'error') => void;
     initializeQuantumKeys: (seed?: Uint8Array) => void;
+    checkAuth: () => Promise<void>;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
     user: null,
     isAuthenticated: false,
+    isAuthChecking: true,
     pqcEngineStatus: 'initializing',
     sessionKey: null,
 
@@ -92,5 +95,43 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 set({ pqcEngineStatus: 'error' });
             }
         })();
+    },
+
+    checkAuth: async () => {
+        set({ isAuthChecking: true });
+        try {
+            // Dynamically import authService to avoid circular dependencies if any
+            const { default: authService } = await import('../services/authService');
+            const user = await authService.validateSession();
+
+            if (user) {
+                const currentState = get();
+                // Recover keys from local storage if they exist
+                const { getStoredSeed } = await import('../lib/cryptoUtils');
+                const seed = getStoredSeed();
+
+                set({
+                    user,
+                    isAuthenticated: true,
+                    isAuthChecking: false
+                });
+
+                if (seed) {
+                    currentState.initializeQuantumKeys(seed);
+                }
+            } else {
+                set({
+                    user: null,
+                    isAuthenticated: false,
+                    isAuthChecking: false
+                });
+            }
+        } catch (error) {
+            set({
+                user: null,
+                isAuthenticated: false,
+                isAuthChecking: false
+            });
+        }
     }
 }));

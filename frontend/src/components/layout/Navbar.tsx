@@ -26,7 +26,7 @@ import {
 } from '@mui/material';
 import { AegisLogo } from '@/components/AegisLogo';
 import authService from '@/services/authService';
-import tokenService from '@/services/tokenService';
+
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { clearStoredSeed } from '@/lib/cryptoUtils';
@@ -36,7 +36,7 @@ export function Navbar() {
     const theme = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, setUser, clearSession } = useSessionStore();
+    const { user, clearSession, checkAuth } = useSessionStore();
     const { theme: currentTheme, toggleTheme } = useThemeStore();
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -63,21 +63,12 @@ export function Navbar() {
     }, []);
 
     // Check for existing session on mount
+    // Check for existing session on mount
     useEffect(() => {
-        const checkSession = async () => {
-            if (!user && tokenService.hasValidToken()) {
-                try {
-                    const validatedUser = await authService.validateSession();
-                    if (validatedUser) {
-                        setUser(validatedUser);
-                    }
-                } catch {
-                    // Token invalid
-                }
-            }
-        };
-        checkSession();
-    }, [user, setUser]);
+        if (!user) {
+            checkAuth();
+        }
+    }, [user, checkAuth]);
 
     // Check if we should show login dialog from redirect
     useEffect(() => {

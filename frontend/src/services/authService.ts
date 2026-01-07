@@ -1,5 +1,5 @@
 import axios from 'axios';
-import tokenService from './tokenService';
+
 import { derivePQCSeed, getPQCDiscoveryKey } from '../lib/cryptoUtils';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -14,25 +14,7 @@ const apiClient = axios.create({
     },
 });
 
-// Add Authorization header if token exists
-apiClient.interceptors.request.use((config) => {
-    const token = tokenService.getToken();
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
 
-// Clear token on 401 responses (auto-logout)
-apiClient.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            tokenService.removeToken();
-        }
-        return Promise.reject(error);
-    }
-);
 
 export interface LoginCredentials {
     email: string;
@@ -79,10 +61,7 @@ const authService = {
             argon2Hash,
         });
 
-        // 4. Store token in localStorage if provided (cross-origin scenario)
-        if (response.data.token) {
-            tokenService.setToken(response.data.token);
-        }
+
 
         return {
             ...response.data,
@@ -127,8 +106,7 @@ const authService = {
         } catch {
             // Ignore errors on logout
         } finally {
-            // Always clear localStorage token
-            tokenService.removeToken();
+            // No cleanup needed for http-only cookie
         }
     },
 };

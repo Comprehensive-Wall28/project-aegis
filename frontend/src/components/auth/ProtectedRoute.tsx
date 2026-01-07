@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
-import authService from '@/services/authService';
-import tokenService from '@/services/tokenService';
+
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -10,55 +9,13 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
     const location = useLocation();
-    const { isAuthenticated, setUser, initializeQuantumKeys } = useSessionStore();
-    const [isLoading, setIsLoading] = useState(true);
-    const [isValid, setIsValid] = useState(false);
+    const { isAuthenticated, isAuthChecking, checkAuth } = useSessionStore();
 
     useEffect(() => {
-        const validateSession = async () => {
-            try {
-                const hasToken = tokenService.hasValidToken();
+        checkAuth();
+    }, [checkAuth]);
 
-                if (!hasToken) {
-                    setIsValid(false);
-                    setIsLoading(false);
-                    return;
-                }
-
-                const user = await authService.validateSession();
-
-                if (user) {
-                    setUser(user);
-
-                    // Recover keys on refresh if seed exists
-                    const { getStoredSeed } = await import('@/lib/cryptoUtils');
-                    const seed = getStoredSeed();
-                    if (seed) {
-                        initializeQuantumKeys(seed);
-                    }
-
-                    setIsValid(true);
-                } else {
-                    tokenService.removeToken();
-                    setIsValid(false);
-                }
-            } catch {
-                tokenService.removeToken();
-                setIsValid(false);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (!isAuthenticated) {
-            validateSession();
-        } else {
-            setIsValid(true);
-            setIsLoading(false);
-        }
-    }, [isAuthenticated, setUser, initializeQuantumKeys]);
-
-    if (isLoading) {
+    if (isAuthChecking) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center" style={{ backgroundColor: '#070708' }}>
                 <div className="flex flex-col items-center gap-4">
@@ -69,10 +26,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         );
     }
 
-    if (!isValid) {
+    if (!isAuthenticated) {
         return <Navigate to="/" state={{ from: location, showLogin: true }} replace />;
     }
 
     return <>{children}</>;
 }
-
