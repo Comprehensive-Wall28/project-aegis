@@ -56,7 +56,8 @@ export function AccountSettings({ onNotification }: AccountSettingsProps) {
     };
 
     const validateEmail = (value: string): string | undefined => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (value.length > 254) return 'Email address is too long';
+        const emailRegex = /^[^\s@]+@[^@\s.]+(\.[^@\s.]+)+$/;
         if (!emailRegex.test(value)) return 'Please enter a valid email address';
         return undefined;
     };

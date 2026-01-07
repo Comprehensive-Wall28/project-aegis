@@ -177,8 +177,11 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
 
         if (email !== undefined) {
             const sanitizedEmail = String(email).trim().toLowerCase();
-            // Basic email format validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            // Improved email regex to avoid ReDoS and added length limit
+            if (sanitizedEmail.length > 254) {
+                return res.status(400).json({ message: 'Email too long' });
+            }
+            const emailRegex = /^[^\s@]+@[^@\s.]+(\.[^@\s.]+)+$/;
             if (!emailRegex.test(sanitizedEmail)) {
                 return res.status(400).json({ message: 'Invalid email format' });
             }

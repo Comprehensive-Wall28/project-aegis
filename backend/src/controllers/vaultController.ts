@@ -78,7 +78,10 @@ export const uploadChunk = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: 'Missing fileId or Content-Range' });
         }
 
-        const fileRecord = await FileMetadata.findOne({ _id: fileId, ownerId: req.user.id });
+        const fileRecord = await FileMetadata.findOne({
+            _id: { $eq: fileId },
+            ownerId: { $eq: req.user.id }
+        });
         if (!fileRecord || !fileRecord.uploadStreamId) {
             return res.status(404).json({ message: 'File not found or session invalid' });
         }
@@ -157,7 +160,10 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
         }
 
         const fileId = req.params.id;
-        const fileRecord = await FileMetadata.findOne({ _id: fileId, ownerId: req.user.id });
+        const fileRecord = await FileMetadata.findOne({
+            _id: { $eq: fileId },
+            ownerId: { $eq: req.user.id }
+        });
 
         if (!fileRecord || !fileRecord.gridfsFileId) {
             return res.status(404).json({ message: 'File not found or not ready' });
@@ -192,7 +198,9 @@ export const getUserFiles = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        const files = await FileMetadata.find({ ownerId: req.user.id }).sort({ createdAt: -1 });
+        const files = await FileMetadata.find({
+            ownerId: { $eq: req.user.id }
+        }).sort({ createdAt: -1 });
         res.json(files);
     } catch (error) {
         logger.error(`Get Files Error: ${error}`);
@@ -207,7 +215,10 @@ export const deleteUserFile = async (req: AuthRequest, res: Response) => {
         }
 
         const fileId = req.params.id;
-        const fileRecord = await FileMetadata.findOne({ _id: fileId, ownerId: req.user.id });
+        const fileRecord = await FileMetadata.findOne({
+            _id: { $eq: fileId },
+            ownerId: { $eq: req.user.id }
+        });
 
         if (!fileRecord) {
             return res.status(404).json({ message: 'File not found' });
@@ -220,7 +231,7 @@ export const deleteUserFile = async (req: AuthRequest, res: Response) => {
         }
 
         // Delete metadata record
-        await FileMetadata.deleteOne({ _id: fileId });
+        await FileMetadata.deleteOne({ _id: { $eq: fileId } });
 
         logger.info(`Vault file deleted: ${fileRecord.fileName} (${fileId}) by User ${req.user.id}`);
 

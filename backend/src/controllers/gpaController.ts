@@ -18,7 +18,9 @@ export const getCourses = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const courses = await Course.find({ userId: req.user.id }).sort({ createdAt: -1 });
+        const courses = await Course.find({
+            userId: { $eq: req.user.id }
+        }).sort({ createdAt: -1 });
         res.status(200).json(courses);
     } catch (error) {
         logger.error('Error fetching courses:', error);
@@ -80,7 +82,10 @@ export const deleteCourse = async (req: AuthRequest, res: Response) => {
 
         const { id } = req.params;
 
-        const course = await Course.findOneAndDelete({ _id: id, userId: req.user.id });
+        const course = await Course.findOneAndDelete({
+            _id: { $eq: id },
+            userId: { $eq: req.user.id }
+        });
         if (!course) {
             return res.status(404).json({ message: 'Course not found' });
         }
@@ -212,14 +217,17 @@ export const migrateCourse = async (req: AuthRequest, res: Response) => {
         }
 
         // Find the course and verify ownership
-        const course = await Course.findOne({ _id: id, userId: req.user.id });
+        const course = await Course.findOne({
+            _id: { $eq: id },
+            userId: { $eq: req.user.id }
+        });
         if (!course) {
             return res.status(404).json({ message: 'Course not found' });
         }
 
         // Update with encrypted data and remove plaintext fields
-        const updatedCourse = await Course.findByIdAndUpdate(
-            id,
+        const updatedCourse = await Course.findOneAndUpdate(
+            { _id: { $eq: id }, userId: { $eq: req.user.id } },
             {
                 $set: {
                     encryptedData,

@@ -104,10 +104,11 @@ export const updateEvent = async (req: AuthRequest, res: Response) => {
         delete updateData.userId;
 
         const event = await CalendarEvent.findOneAndUpdate(
-            { _id: id, userId: req.user.id },
+            { _id: { $eq: id }, userId: { $eq: req.user.id } },
             { $set: updateData },
             { new: true }
         );
+
 
         if (!event) {
             return res.status(404).json({ message: 'Event not found' });
@@ -142,7 +143,10 @@ export const deleteEvent = async (req: AuthRequest, res: Response) => {
 
         const { id } = req.params;
 
-        const event = await CalendarEvent.findOneAndDelete({ _id: id, userId: req.user.id });
+        const event = await CalendarEvent.findOneAndDelete({
+            _id: { $eq: id },
+            userId: { $eq: req.user.id }
+        });
         if (!event) {
             return res.status(404).json({ message: 'Event not found' });
         }
