@@ -41,12 +41,13 @@ import authService from '@/services/authService';
 import tokenService from '@/services/tokenService';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { storeSeed, clearStoredSeed } from '@/lib/cryptoUtils';
 
 export function Navbar() {
     const theme = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, setUser, clearSession } = useSessionStore();
+    const { user, setUser, clearSession, initializeQuantumKeys } = useSessionStore();
     const { theme: currentTheme, toggleTheme } = useThemeStore();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -56,6 +57,24 @@ export function Navbar() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+
+    // Security: Scrub any PQC keys from localStorage (fix for leaked keys)
+    useEffect(() => {
+        const scrubKeys = () => {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('aegis_pqc_keys_')) {
+                    keysToRemove.push(key);
+                }
+            }
+            if (keysToRemove.length > 0) {
+                keysToRemove.forEach(k => localStorage.removeItem(k));
+                console.log('Secure Scrub: Removed leaked PQC keys from localStorage');
+            }
+        };
+        scrubKeys();
+    }, []);
 
     // Check for existing session on mount
     useEffect(() => {
@@ -89,12 +108,26 @@ export function Navbar() {
         try {
             if (isRegisterMode) {
                 const response = await authService.register(username, email, password);
+
+                // Initialize persistent PQC keys from seed and store it
+                if (response.pqcSeed) {
+                    storeSeed(response.pqcSeed);
+                    initializeQuantumKeys(response.pqcSeed);
+                }
+
                 setUser({ _id: response._id, email: response.email, username: response.username });
                 setIsLoginOpen(false);
                 resetForm();
                 navigate('/dashboard');
             } else {
                 const response = await authService.login(email, password);
+
+                // Initialize persistent PQC keys from seed and store it
+                if (response.pqcSeed) {
+                    storeSeed(response.pqcSeed);
+                    initializeQuantumKeys(response.pqcSeed);
+                }
+
                 setUser({ _id: response._id, email: response.email, username: response.username });
                 setIsLoginOpen(false);
                 resetForm();
@@ -123,6 +156,7 @@ export function Navbar() {
 
     const handleLogout = async () => {
         await authService.logout();
+        clearStoredSeed();
         clearSession();
     };
 

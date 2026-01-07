@@ -42,6 +42,7 @@ export const registerUser = async (req: Request, res: Response) => {
                 _id: user._id,
                 username: user.username,
                 email: user.email,
+                pqcPublicKey: user.pqcPublicKey,
                 message: 'User registered successfully'
             });
         } else {
@@ -82,6 +83,7 @@ export const loginUser = async (req: Request, res: Response) => {
                 _id: user._id,
                 username: user.username,
                 email: user.email,
+                pqcPublicKey: user.pqcPublicKey,
                 message: 'Login successful',
                 token, // Return token for localStorage-based auth in cross-origin scenarios
             });
@@ -107,7 +109,7 @@ export const getMe = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const user = await User.findById(req.user.id).select('-passwordHash -pqcPublicKey');
+        const user = await User.findById(req.user.id).select('-passwordHash');
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -116,7 +118,8 @@ export const getMe = async (req: AuthRequest, res: Response) => {
         res.json({
             _id: user._id,
             username: user.username,
-            email: user.email
+            email: user.email,
+            pqcPublicKey: user.pqcPublicKey
         });
     } catch (error) {
         console.error(error);

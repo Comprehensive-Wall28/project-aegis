@@ -20,7 +20,7 @@ interface SessionState {
     setSessionKey: (key: string) => void;
     clearSession: () => void;
     setPqcEngineStatus: (status: 'operational' | 'initializing' | 'error') => void;
-    initializeQuantumKeys: () => void;
+    initializeQuantumKeys: (seed?: Uint8Array) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -35,10 +35,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             isAuthenticated: true,
         });
 
-        // Auto-initialize keys if they are not already in the user object
-        if (!user.publicKey || !user.privateKey) {
-            get().initializeQuantumKeys();
-        } else {
+        // If keys are provided, we're operational
+        if (user.publicKey && user.privateKey) {
             set({ pqcEngineStatus: 'operational' });
         }
     },
@@ -54,7 +52,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
     setPqcEngineStatus: (status) => set({ pqcEngineStatus: status }),
 
-    initializeQuantumKeys: () => {
+    initializeQuantumKeys: (seed) => {
         // Set to initializing state
         set({ pqcEngineStatus: 'initializing' });
 
@@ -64,8 +62,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 // Dynamic import to handle WASM loading issues
                 const { ml_kem768 } = await import('@noble/post-quantum/ml-kem.js');
 
-                // Generate keys
-                const { publicKey, secretKey } = ml_kem768.keygen();
+                // Generate keys - use seed if provided for persistence
+                const { publicKey, secretKey } = seed ? ml_kem768.keygen(seed) : ml_kem768.keygen();
 
                 // Helper to convert to Hex
                 const bytesToHex = (bytes: Uint8Array) =>
@@ -84,7 +82,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                         },
                         pqcEngineStatus: 'operational'
                     });
-                    console.log("Quantum Keys Initialized for Session");
+                    console.log(`Quantum Keys Initialized for Session ${seed ? '(Persistent)' : '(Ephemeral)'}`);
                 } else {
                     // If no user, we still set it as operational for the engine itself
                     set({ pqcEngineStatus: 'operational' });

@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
     const location = useLocation();
-    const { isAuthenticated, setUser } = useSessionStore();
+    const { isAuthenticated, setUser, initializeQuantumKeys } = useSessionStore();
     const [isLoading, setIsLoading] = useState(true);
     const [isValid, setIsValid] = useState(false);
 
@@ -29,6 +29,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
                 if (user) {
                     setUser(user);
+
+                    // Recover keys on refresh if seed exists
+                    const { getStoredSeed } = await import('@/lib/cryptoUtils');
+                    const seed = getStoredSeed();
+                    if (seed) {
+                        initializeQuantumKeys(seed);
+                    }
+
                     setIsValid(true);
                 } else {
                     tokenService.removeToken();
@@ -48,7 +56,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
             setIsValid(true);
             setIsLoading(false);
         }
-    }, [isAuthenticated, setUser]);
+    }, [isAuthenticated, setUser, initializeQuantumKeys]);
 
     if (isLoading) {
         return (

@@ -197,8 +197,22 @@ export const useCourseEncryption = () => {
     /**
      * Decrypt multiple courses in parallel.
      */
-    const decryptCourses = async (encryptedCourses: EncryptedCourse[]): Promise<Array<CourseData & { _id: string; createdAt: string; updatedAt: string }>> => {
-        return Promise.all(encryptedCourses.map(decryptCourseData));
+    const decryptCourses = async (encryptedCourses: EncryptedCourse[]): Promise<(CourseData & { _id: string })[]> => {
+        const decryptedResults = await Promise.allSettled(
+            encryptedCourses.map(course => decryptCourseData(course))
+        );
+
+        const successfulDecryptions = decryptedResults
+            .filter((result): result is PromiseFulfilledResult<CourseData & { _id: string; createdAt: string; updatedAt: string }> =>
+                result.status === 'fulfilled'
+            )
+            .map(result => result.value);
+
+        if (successfulDecryptions.length < encryptedCourses.length) {
+            console.warn(`${encryptedCourses.length - successfulDecryptions.length} courses failed to decrypt.`);
+        }
+
+        return successfulDecryptions;
     };
 
     return {
