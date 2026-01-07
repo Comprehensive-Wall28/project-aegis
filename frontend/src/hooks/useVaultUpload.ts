@@ -21,7 +21,7 @@ export const useVaultUpload = () => {
         error: null,
     });
 
-    const { user } = useSessionStore();
+    const { user, setCryptoStatus } = useSessionStore();
 
     // Helper: Convert Hex to Uint8Array
     const hexToBytes = (hex: string): Uint8Array => {
@@ -106,6 +106,7 @@ export const useVaultUpload = () => {
         }
 
         try {
+            setCryptoStatus('encrypting');
             setState({ status: 'encrypting', progress: 0, error: null });
 
             // 1. Generate AES-256 Key
@@ -203,6 +204,8 @@ export const useVaultUpload = () => {
         } catch (err: any) {
             console.error('Upload failed:', err);
             setState({ status: 'error', progress: 0, error: err.message || 'Upload failed' });
+        } finally {
+            setCryptoStatus('idle');
         }
     };
 

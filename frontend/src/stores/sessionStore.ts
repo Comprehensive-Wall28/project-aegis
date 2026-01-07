@@ -15,11 +15,15 @@ interface User {
     preferences?: UserPreferences;
 }
 
+export type CryptoStatus = 'idle' | 'encrypting' | 'decrypting' | 'processing' | 'done';
+
 interface SessionState {
     user: User | null;
     isAuthenticated: boolean;
     isAuthChecking: boolean;
     pqcEngineStatus: 'operational' | 'initializing' | 'error';
+    cryptoStatus: CryptoStatus;
+    cryptoOpsCount: number;
     // Ephemeral session keys - stored only in memory
     sessionKey: string | null;
     // Recent activity for dashboard widget
@@ -30,6 +34,7 @@ interface SessionState {
     setSessionKey: (key: string) => void;
     clearSession: () => void;
     setPqcEngineStatus: (status: 'operational' | 'initializing' | 'error') => void;
+    setCryptoStatus: (status: CryptoStatus) => void;
     initializeQuantumKeys: (seed?: Uint8Array) => void;
     checkAuth: () => Promise<void>;
     updateUser: (updates: Partial<Pick<User, 'username' | 'email'>>) => void;
@@ -45,6 +50,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     isAuthenticated: false,
     isAuthChecking: true,
     pqcEngineStatus: 'initializing',
+    cryptoStatus: 'idle',
+    cryptoOpsCount: 0,
     sessionKey: null,
     recentActivity: [],
 
@@ -67,10 +74,48 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         isAuthenticated: false,
         sessionKey: null,
         pqcEngineStatus: 'initializing',
+        cryptoStatus: 'idle',
+        cryptoOpsCount: 0,
         recentActivity: []
     }),
 
     setPqcEngineStatus: (status) => set({ pqcEngineStatus: status }),
+
+    setCryptoStatus: (status) => {
+        if (status === 'idle') {
+            // Use a timeout to ensure the busy state is visible for at least 500ms
+            setTimeout(() => {
+                set(state => {
+                    const newCount = Math.max(0, state.cryptoOpsCount - 1);
+
+                    if (newCount === 0) {
+                        // Start transition to "done"
+                        setTimeout(() => {
+                            set(state => {
+                                // Only set to idle if no new operations started
+                                if (state.cryptoStatus === 'done' && state.cryptoOpsCount === 0) {
+                                    return { cryptoStatus: 'idle' };
+                                }
+                                return {};
+                            });
+                        }, 1500); // Show "Done!" for 1.5s
+
+                        return {
+                            cryptoOpsCount: 0,
+                            cryptoStatus: 'done'
+                        };
+                    }
+
+                    return { cryptoOpsCount: newCount };
+                });
+            }, 500);
+        } else {
+            set(state => ({
+                cryptoOpsCount: state.cryptoOpsCount + 1,
+                cryptoStatus: status
+            }));
+        }
+    },
 
     initializeQuantumKeys: (seed) => {
         // Set to initializing state

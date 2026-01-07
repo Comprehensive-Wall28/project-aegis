@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 // @ts-ignore - Module likely exists but types are missing in environment
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
@@ -39,7 +40,7 @@ const bytesToHex = (bytes: Uint8Array): string => {
 };
 
 export const useCourseEncryption = () => {
-    const { user } = useSessionStore();
+    const { user, setCryptoStatus } = useSessionStore();
 
     /**
      * Generate a new AES-256-GCM key for encrypting course data.
@@ -120,46 +121,51 @@ export const useCourseEncryption = () => {
     /**
      * Encrypt course data and return the encrypted payload.
      */
-    const encryptCourseData = async (course: CourseData): Promise<EncryptedCoursePayload> => {
+    const encryptCourseData = useCallback(async (course: CourseData): Promise<EncryptedCoursePayload> => {
         if (!user || !user.publicKey) {
             throw new Error('User public key not found. PQC Engine must be operational.');
         }
 
-        // 1. Generate AES-256 Key
-        const aesKey = await generateAESKey();
+        try {
+            setCryptoStatus('encrypting');
+            // 1. Generate AES-256 Key
+            const aesKey = await generateAESKey();
 
-        // 2. Encapsulate Key (PQC ML-KEM-768)
-        const pubKeyBytes = hexToBytes(user.publicKey);
-        const { cipherText: encapsulatedKey, sharedSecret } = ml_kem768.encapsulate(pubKeyBytes);
+            // 2. Encapsulate Key (PQC ML-KEM-768)
+            const pubKeyBytes = hexToBytes(user.publicKey);
+            const { cipherText: encapsulatedKey, sharedSecret } = ml_kem768.encapsulate(pubKeyBytes);
 
-        // 3. Wrap AES Key with shared secret
-        const encryptedSymmetricKey = await encryptAESKey(aesKey, sharedSecret);
+            // 3. Wrap AES Key with shared secret
+            const encryptedSymmetricKey = await encryptAESKey(aesKey, sharedSecret);
 
-        // 4. Encrypt course data as JSON
-        const courseJson = JSON.stringify(course);
-        const courseBytes = new TextEncoder().encode(courseJson);
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            // 4. Encrypt course data as JSON
+            const courseJson = JSON.stringify(course);
+            const courseBytes = new TextEncoder().encode(courseJson);
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
 
-        const encryptedBuffer = await window.crypto.subtle.encrypt(
-            { name: 'AES-GCM', iv },
-            aesKey,
-            courseBytes
-        );
+            const encryptedBuffer = await window.crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv },
+                aesKey,
+                courseBytes
+            );
 
-        // Format: IV:Ciphertext (both hex)
-        const encryptedData = bytesToHex(iv) + ':' + bytesToHex(new Uint8Array(encryptedBuffer));
+            // Format: IV:Ciphertext (both hex)
+            const encryptedData = bytesToHex(iv) + ':' + bytesToHex(new Uint8Array(encryptedBuffer));
 
-        return {
-            encryptedData,
-            encapsulatedKey: bytesToHex(encapsulatedKey),
-            encryptedSymmetricKey,
-        };
-    };
+            return {
+                encryptedData,
+                encapsulatedKey: bytesToHex(encapsulatedKey),
+                encryptedSymmetricKey,
+            };
+        } finally {
+            setCryptoStatus('idle');
+        }
+    }, [user, setCryptoStatus, generateAESKey, encryptAESKey]);
 
     /**
      * Decrypt an encrypted course and return the plaintext course data.
      */
-    const decryptCourseData = async (encryptedCourse: EncryptedCourse): Promise<CourseData & { _id: string; createdAt: string; updatedAt: string }> => {
+    const decryptCourseData = useCallback(async (encryptedCourse: EncryptedCourse): Promise<CourseData & { _id: string; createdAt: string; updatedAt: string }> => {
         if (!user || !user.privateKey) {
             throw new Error('User private key not found. PQC Engine must be operational.');
         }
@@ -192,28 +198,33 @@ export const useCourseEncryption = () => {
             createdAt: encryptedCourse.createdAt,
             updatedAt: encryptedCourse.updatedAt,
         };
-    };
+    }, [user, decryptAESKey]);
 
     /**
      * Decrypt multiple courses in parallel.
      */
-    const decryptCourses = async (encryptedCourses: EncryptedCourse[]): Promise<(CourseData & { _id: string })[]> => {
-        const decryptedResults = await Promise.allSettled(
-            encryptedCourses.map(course => decryptCourseData(course))
-        );
+    const decryptCourses = useCallback(async (encryptedCourses: EncryptedCourse[]): Promise<(CourseData & { _id: string })[]> => {
+        try {
+            setCryptoStatus('decrypting');
+            const decryptedResults = await Promise.allSettled(
+                encryptedCourses.map(course => decryptCourseData(course))
+            );
 
-        const successfulDecryptions = decryptedResults
-            .filter((result): result is PromiseFulfilledResult<CourseData & { _id: string; createdAt: string; updatedAt: string }> =>
-                result.status === 'fulfilled'
-            )
-            .map(result => result.value);
+            const successfulDecryptions = decryptedResults
+                .filter((result): result is PromiseFulfilledResult<CourseData & { _id: string; createdAt: string; updatedAt: string }> =>
+                    result.status === 'fulfilled'
+                )
+                .map(result => result.value);
 
-        if (successfulDecryptions.length < encryptedCourses.length) {
-            console.warn(`${encryptedCourses.length - successfulDecryptions.length} courses failed to decrypt.`);
+            if (successfulDecryptions.length < encryptedCourses.length) {
+                console.warn(`${encryptedCourses.length - successfulDecryptions.length} courses failed to decrypt.`);
+            }
+
+            return successfulDecryptions;
+        } finally {
+            setCryptoStatus('idle');
         }
-
-        return successfulDecryptions;
-    };
+    }, [decryptCourseData, setCryptoStatus]);
 
     return {
         encryptCourseData,

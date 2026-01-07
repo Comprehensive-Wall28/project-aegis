@@ -584,8 +584,23 @@ export function FilesPage() {
 
             {/* Files Grid */}
             {isLoading ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 10 }}>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        py: 12,
+                        gap: 2,
+                        bgcolor: alpha(theme.palette.background.paper, 0.1),
+                        borderRadius: '16px',
+                        border: `1px dashed ${alpha(theme.palette.divider, 0.1)}`,
+                    }}
+                >
                     <CircularProgress thickness={5} size={40} />
+                    <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>
+                        Loading secure vault...
+                    </Typography>
                 </Box>
             ) : (filteredFiles.length === 0 && folders.length === 0) ? (
                 <Paper

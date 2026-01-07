@@ -44,7 +44,7 @@ const bytesToHex = (bytes: Uint8Array): string => {
 };
 
 export const useCalendarEncryption = () => {
-    const user = useSessionStore(state => state.user);
+    const { user, setCryptoStatus } = useSessionStore();
 
     const generateAESKey = useCallback(async (): Promise<CryptoKey> => {
         return window.crypto.subtle.generateKey(
@@ -112,29 +112,34 @@ export const useCalendarEncryption = () => {
             throw new Error('User public key not found. PQC Engine must be operational.');
         }
 
-        const aesKey = await generateAESKey();
-        const pubKeyBytes = hexToBytes(user.publicKey);
-        const { cipherText: encapsulatedKey, sharedSecret } = ml_kem768.encapsulate(pubKeyBytes);
-        const encryptedSymmetricKey = await encryptAESKey(aesKey, sharedSecret);
+        try {
+            setCryptoStatus('encrypting');
+            const aesKey = await generateAESKey();
+            const pubKeyBytes = hexToBytes(user.publicKey);
+            const { cipherText: encapsulatedKey, sharedSecret } = ml_kem768.encapsulate(pubKeyBytes);
+            const encryptedSymmetricKey = await encryptAESKey(aesKey, sharedSecret);
 
-        const dataJson = JSON.stringify(data);
-        const dataBytes = new TextEncoder().encode(dataJson);
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const dataJson = JSON.stringify(data);
+            const dataBytes = new TextEncoder().encode(dataJson);
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
 
-        const encryptedBuffer = await window.crypto.subtle.encrypt(
-            { name: 'AES-GCM', iv },
-            aesKey,
-            dataBytes
-        );
+            const encryptedBuffer = await window.crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv },
+                aesKey,
+                dataBytes
+            );
 
-        const encryptedData = bytesToHex(iv) + ':' + bytesToHex(new Uint8Array(encryptedBuffer));
+            const encryptedData = bytesToHex(iv) + ':' + bytesToHex(new Uint8Array(encryptedBuffer));
 
-        return {
-            encryptedData,
-            encapsulatedKey: bytesToHex(encapsulatedKey),
-            encryptedSymmetricKey,
-        };
-    }, [user, generateAESKey, encryptAESKey]);
+            return {
+                encryptedData,
+                encapsulatedKey: bytesToHex(encapsulatedKey),
+                encryptedSymmetricKey,
+            };
+        } finally {
+            setCryptoStatus('idle');
+        }
+    }, [user, generateAESKey, encryptAESKey, setCryptoStatus]);
 
     const decryptEventData = useCallback(async (encryptedEvent: EncryptedCalendarEvent): Promise<CalendarEventData & { _id: string; startDate: string; endDate: string; isAllDay: boolean; color: string; createdAt: string; updatedAt: string }> => {
         if (!user || !user.privateKey) {
@@ -173,14 +178,19 @@ export const useCalendarEncryption = () => {
     }, [user, decryptAESKey]);
 
     const decryptEvents = useCallback(async (encryptedEvents: EncryptedCalendarEvent[]) => {
-        const results = await Promise.allSettled(
-            encryptedEvents.map(event => decryptEventData(event))
-        );
+        try {
+            setCryptoStatus('decrypting');
+            const results = await Promise.allSettled(
+                encryptedEvents.map(event => decryptEventData(event))
+            );
 
-        return results
-            .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
-            .map(r => r.value);
-    }, [decryptEventData]);
+            return results
+                .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+                .map(r => r.value);
+        } finally {
+            setCryptoStatus('idle');
+        }
+    }, [decryptEventData, setCryptoStatus]);
 
     const generateRecordHash = useCallback(async (data: CalendarEventData, startDate: string, endDate: string): Promise<string> => {
         const content = `${data.title}|${data.description}|${data.location}|${startDate}|${endDate}`;
