@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Landing } from '@/pages/Landing';
 import { Dashboard } from '@/pages/Dashboard';
 import { FilesPage } from '@/pages/FilesPage';
+import { GPAPage } from '@/pages/GPAPage';
 import { NotFound } from '@/pages/NotFound';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -11,14 +12,6 @@ import { useThemeStore } from '@/stores/themeStore';
 import { useMemo } from 'react';
 
 // Placeholder pages for future implementation
-function GPATracker() {
-    return (
-        <div className="glass-card border-white/10 rounded-lg p-8 text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-2">GPA Tracker</h2>
-            <p className="text-muted-foreground">Full GPA history and analytics coming soon...</p>
-        </div>
-    );
-}
 
 function ZKPVerifier() {
     return (
@@ -61,7 +54,7 @@ const router = createBrowserRouter([
             },
             {
                 path: 'gpa',
-                element: <GPATracker />,
+                element: <GPAPage />,
             },
             {
                 path: 'zkp',

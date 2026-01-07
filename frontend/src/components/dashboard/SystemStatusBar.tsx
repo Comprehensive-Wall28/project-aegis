@@ -121,7 +121,7 @@ export function SystemStatusBar() {
                     </Typography>
                 </Box>
 
-                <Box sx={{ h: 16, width: '1px', bgcolor: alpha(theme.palette.divider, 0.1) }} />
+                <Box sx={{ height: 16, width: '1px', bgcolor: alpha(theme.palette.divider, 0.1) }} />
 
                 {/* Status Indicator */}
                 <Box
@@ -129,12 +129,14 @@ export function SystemStatusBar() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 1,
-                        px: 1.5,
+                        px: 2.5,
                         py: 0.5,
                         borderRadius: 5,
                         bgcolor: status.bgcolor,
                         color: status.color,
-                        border: `1px solid ${alpha(status.color, 0.2)}`
+                        border: `1px solid ${alpha(status.color, 0.2)}`,
+                        minWidth: 130,
+                        justifyContent: 'center'
                     }}
                 >
                     {status.icon}
@@ -142,13 +144,13 @@ export function SystemStatusBar() {
                         {status.text}
                     </Typography>
                     {isOperational && (
-                        <Box sx={{ position: 'relative', ml: 1, display: 'flex' }}>
-                            <Box sx={{ h: 6, width: 6, borderRadius: '50%', bgcolor: status.dotColor }} />
+                        <Box sx={{ position: 'relative', display: 'flex' }}>
+                            <Box sx={{ height: 6, width: 6, borderRadius: '50%', bgcolor: status.dotColor }} />
                             <Box
                                 sx={{
                                     position: 'absolute',
                                     inset: 0,
-                                    h: 6,
+                                    height: 6,
                                     width: 6,
                                     borderRadius: '50%',
                                     bgcolor: status.dotColor,

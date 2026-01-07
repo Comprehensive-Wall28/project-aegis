@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-    School as GraduationCapIcon,
-    CheckCircle as CheckCircleIcon
+    School as GraduationCapIcon
 } from '@mui/icons-material';
 import {
     Box,
@@ -10,20 +9,19 @@ import {
     CircularProgress,
     Paper,
     alpha,
-    useTheme,
-    Chip
+    useTheme
 } from '@mui/material';
-import integrityService from '@/services/integrityService';
-import { motion, AnimatePresence } from 'framer-motion';
-
-type ProofStatus = 'none' | 'generating' | 'generated' | 'error';
+import { useNavigate } from 'react-router-dom';
+import gpaService from '@/services/gpaService';
+import { usePreferenceStore } from '@/stores/preferenceStore';
+import { motion } from 'framer-motion';
 
 export function GPASnapshot() {
     const [currentGPA, setCurrentGPA] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [proofStatus, setProofStatus] = useState<ProofStatus>('none');
-    const [proofHash, setProofHash] = useState<string | null>(null);
     const theme = useTheme();
+    const navigate = useNavigate();
+    const gpaSystem = usePreferenceStore((state) => state.gpaSystem);
 
     useEffect(() => {
         fetchGPAData();
@@ -32,8 +30,8 @@ export function GPASnapshot() {
     const fetchGPAData = async () => {
         try {
             setIsLoading(true);
-            const data = await integrityService.verifyIntegrity();
-            setCurrentGPA(data.currentGPA);
+            const data = await gpaService.getCalculatedGPA();
+            setCurrentGPA(data.cumulativeGPA);
         } catch (err) {
             console.error('Failed to fetch GPA:', err);
             setCurrentGPA(0);
@@ -42,44 +40,21 @@ export function GPASnapshot() {
         }
     };
 
-    const handleGenerateProof = async () => {
-        try {
-            setProofStatus('generating');
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            const mockProofHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-            setProofHash(mockProofHash);
-            setProofStatus('generated');
-        } catch (err) {
-            console.error('Proof generation failed:', err);
-            setProofStatus('error');
-        }
-    };
-
-    const gpaPercentage = currentGPA ? (currentGPA / 4.0) * 100 : 0;
-    const meetsThreshold = currentGPA !== null && currentGPA >= 3.5;
-    const gaugeAngle = (gpaPercentage / 100) * 180;
-
-    const createArc = (startAngle: number, endAngle: number, radius: number) => {
-        const start = polarToCartesian(80, 80, radius, endAngle - 90);
-        const end = polarToCartesian(80, 80, radius, startAngle - 90);
-        const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
-        return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
-    };
-
-    const polarToCartesian = (cx: number, cy: number, r: number, angle: number) => {
-        const rad = (angle * Math.PI) / 180;
-        return {
-            x: cx + r * Math.cos(rad),
-            y: cy + r * Math.sin(rad)
-        };
-    };
+    // For German system: 1.0 is best, 4.0 is minimum pass.
+    // Progress gauge should show how close you are to 1.0 from 4.0.
+    const isGerman = gpaSystem === 'GERMAN';
+    const gpaPercentage = currentGPA
+        ? (isGerman
+            ? ((4.0 - currentGPA) / 3.0) * 100
+            : (currentGPA / 4.0) * 100)
+        : 0;
 
     return (
         <Paper
             sx={{
                 p: 3,
                 height: '100%',
-                borderRadius: '16px', // Standardized to 16px
+                borderRadius: '16px',
                 bgcolor: alpha(theme.palette.background.paper, 0.4),
                 backdropFilter: 'blur(12px)',
                 border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
@@ -89,6 +64,10 @@ export function GPASnapshot() {
                 overflow: 'hidden',
                 boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
                 transition: 'all 0.3s ease',
+                '&:hover': {
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                    boxShadow: `0 8px 32px -4px ${alpha(theme.palette.primary.main, 0.05)}`,
+                }
             }}
         >
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -96,115 +75,91 @@ export function GPASnapshot() {
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', height: '100%', maxWidth: '50%' }}>
                     <Box sx={{ mb: 2 }}>
                         <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, color: 'text.secondary', mb: 0.5 }}>
-                            <GraduationCapIcon sx={{ fontSize: 18 }} />
+                            <GraduationCapIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
                             GPA SNAPSHOT
                         </Typography>
-                        <Chip
-                            label={meetsThreshold ? "THRESHOLD MET" : "BELOW THRESHOLD"}
-                            size="small"
-                            sx={{
-                                height: 24,
-                                fontSize: '10px',
-                                fontWeight: 800,
-                                bgcolor: meetsThreshold ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.warning.main, 0.1),
-                                color: meetsThreshold ? theme.palette.success.main : theme.palette.warning.main,
-                                borderRadius: '6px'
-                            }}
-                        />
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, fontSize: '0.75rem', opacity: 0.8 }}>
+                            Your Academic Performance
+                        </Typography>
                     </Box>
 
                     <Button
                         variant="contained"
-                        onClick={handleGenerateProof}
-                        disabled={proofStatus === 'generating' || !meetsThreshold}
+                        onClick={() => navigate('/dashboard/gpa')}
                         disableElevation
                         sx={{
-                            borderRadius: '12px',
+                            borderRadius: '10px',
                             textTransform: 'none',
                             fontWeight: 700,
                             fontSize: '12px',
-                            px: 3,
-                            py: 1,
+                            px: 2.5,
+                            py: 0.8,
                             bgcolor: theme.palette.primary.main,
-                            color: '#000', // Assuming black text for primary contrast in this theme
-                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.9) }
+                            color: '#000',
+                            '&:hover': {
+                                bgcolor: alpha(theme.palette.primary.main, 0.9),
+                                transform: 'translateY(-1px)',
+                            },
+                            '&:active': { transform: 'translateY(0)' },
+                            transition: 'all 0.2s',
                         }}
                     >
-                        {proofStatus === 'generating' ? 'Generating...' : 'Generate Proof'}
+                        View Full Details
                     </Button>
                 </Box>
 
                 {/* Right Side: Gauge */}
-                <Box sx={{ position: 'relative', width: 160, height: 100, display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>
+                <Box sx={{ position: 'relative', width: 170, height: 100, display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>
                     {isLoading ? (
-                        <CircularProgress size={32} />
+                        <CircularProgress size={24} thickness={5} />
                     ) : (
                         <>
-                            <svg width="160" height="100" viewBox="0 0 160 100">
+                            <svg width="170" height="100" viewBox="0 0 180 105">
+                                <defs>
+                                    <linearGradient id="gauge-gradient" x1="0" y1="0" x2="1" y2="0">
+                                        <stop offset="0%" stopColor={theme.palette.primary.main} stopOpacity={0.8} />
+                                        <stop offset="100%" stopColor={theme.palette.primary.light} stopOpacity={1} />
+                                    </linearGradient>
+                                </defs>
+                                {/* Background Arc - Full 180 degrees */}
                                 <path
-                                    d={createArc(0, 180, 70)}
+                                    d="M 10 100 A 80 80 0 0 1 170 100"
                                     fill="none"
-                                    stroke={alpha(theme.palette.common.white, 0.1)}
-                                    strokeWidth="12"
+                                    stroke={alpha(theme.palette.common.white, 0.05)}
+                                    strokeWidth="16"
                                     strokeLinecap="round"
                                 />
+                                {/* Progress Arc - Animated */}
                                 <motion.path
-                                    d={createArc(0, gaugeAngle, 70)}
+                                    d="M 10 100 A 80 80 0 0 1 170 100"
                                     fill="none"
-                                    stroke={theme.palette.primary.main}
-                                    strokeWidth="12"
+                                    stroke="url(#gauge-gradient)"
+                                    strokeWidth="16"
                                     strokeLinecap="round"
                                     initial={{ pathLength: 0 }}
-                                    animate={{ pathLength: 1 }}
+                                    animate={{ pathLength: Math.min(100, Math.max(0, gpaPercentage)) / 100 }}
                                     transition={{ duration: 1.5, ease: "easeOut" }}
                                 />
                             </svg>
-                            <Box sx={{ position: 'absolute', bottom: 0, textAlign: 'center', mb: 1 }}>
-                                <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1, letterSpacing: -1 }}>
+                            <Box sx={{ position: 'absolute', bottom: 5, textAlign: 'center' }}>
+                                <Typography variant="h4" sx={{
+                                    fontWeight: 800,
+                                    lineHeight: 1,
+                                    letterSpacing: -1,
+                                    fontSize: '2.1rem',
+                                    color: theme.palette.common.white,
+                                    mb: -0.5
+                                }}>
                                     {currentGPA?.toFixed(2)}
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'JetBrains Mono' }}>
-                                    / 4.00
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, opacity: 0.8, fontSize: '0.7rem', letterSpacing: 0.5 }}>
+                                    {isGerman ? 'TARGET 1.00' : '/ 4.00'}
                                 </Typography>
                             </Box>
                         </>
                     )}
                 </Box>
             </Box>
-
-            {/* Proof ID Overlay */}
-            <AnimatePresence>
-                {proofStatus === 'generated' && proofHash && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        style={{ marginTop: 16 }}
-                    >
-                        <Box
-                            sx={{
-                                p: 1.5,
-                                borderRadius: '12px',
-                                bgcolor: alpha(theme.palette.success.main, 0.1),
-                                border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1.5
-                            }}
-                        >
-                            <CheckCircleIcon sx={{ fontSize: 16, color: theme.palette.success.main }} />
-                            <Box sx={{ overflow: 'hidden' }}>
-                                <Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.success.main, display: 'block', fontSize: '10px' }}>
-                                    ZK-PROOF GENERATED
-                                </Typography>
-                                <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', color: alpha(theme.palette.success.main, 0.8), fontSize: '10px', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {proofHash}
-                                </Typography>
-                            </Box>
-                        </Box>
-                    </motion.div>
-                )}
-            </AnimatePresence>
         </Paper>
     );
 }

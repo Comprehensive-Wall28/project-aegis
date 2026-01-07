@@ -142,7 +142,7 @@ export function TopHeader() {
                         sx={{
                             p: 0.5,
                             pr: 1.5,
-                            borderRadius: 3,
+                            borderRadius: 4,
                             '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.05) },
                             gap: 1.5,
                             display: 'flex',
@@ -183,12 +183,12 @@ export function TopHeader() {
                         anchorEl={anchorEl}
                         open={Boolean(anchorEl)}
                         onClose={handleCloseMenu}
-                        sx={{
-                            '& .MuiPaper-root': {
-                                mt: 1.5,
-                                width: 200,
+                        PaperProps={{
+                            sx: {
+                                mt: 2,
+                                width: 240,
                                 p: 1,
-                                borderRadius: 4,
+                                borderRadius: '28px',
                                 bgcolor: alpha(theme.palette.background.paper, 0.8),
                                 backdropFilter: 'blur(16px)',
                                 border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
@@ -207,13 +207,13 @@ export function TopHeader() {
                             </Typography>
                         </Box>
                         <Divider sx={{ my: 1, opacity: 0.5 }} />
-                        <MenuItem onClick={() => handleNavigate('/dashboard/security')} sx={{ borderRadius: 2, gap: 1.5, py: 1 }}>
+                        <MenuItem onClick={() => handleNavigate('/dashboard/security')} sx={{ borderRadius: 3, gap: 1.5, py: 1 }}>
                             <ListItemIcon sx={{ minWidth: 0, color: 'text.secondary' }}>
                                 <SettingsIcon sx={{ fontSize: 18 }} />
                             </ListItemIcon>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>Settings</Typography>
                         </MenuItem>
-                        <MenuItem onClick={handleLogout} sx={{ borderRadius: 2, gap: 1.5, py: 1, color: 'error.main', '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) } }}>
+                        <MenuItem onClick={handleLogout} sx={{ borderRadius: 3, gap: 1.5, py: 1, color: 'error.main', '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) } }}>
                             <ListItemIcon sx={{ minWidth: 0, color: 'inherit' }}>
                                 <LogOutIcon sx={{ fontSize: 18 }} />
                             </ListItemIcon>
