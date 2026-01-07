@@ -102,6 +102,12 @@ export function Navbar() {
             }
         } catch (err: any) {
             console.error(err);
+            // Check for network errors (backend unreachable)
+            if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+                setIsLoginOpen(false);
+                navigate('/backend-down');
+                return;
+            }
             setError(err.response?.data?.message || 'Authentication failed');
         } finally {
             setLoading(false);

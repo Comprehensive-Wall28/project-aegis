@@ -4,6 +4,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { FilesPage } from '@/pages/FilesPage';
 import { GPAPage } from '@/pages/GPAPage';
 import { NotFound } from '@/pages/NotFound';
+import { BackendDownPage } from '@/pages/BackendDown';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -35,6 +36,10 @@ const router = createBrowserRouter([
     {
         path: '/',
         element: <Landing />,
+    },
+    {
+        path: '/backend-down',
+        element: <BackendDownPage />,
     },
     {
         path: '/dashboard',

@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import Course from '../models/Course';
 import User from '../models/User';
-import CryptoJS from 'crypto-js';
 import logger from '../utils/logger';
 
 interface AuthRequest extends Request {
@@ -9,96 +8,8 @@ interface AuthRequest extends Request {
 }
 
 /**
- * Generates a SHA256 hash for a course record.
- */
-const generateCourseHash = (course: {
-    name: string;
-    grade: number;
-    credits: number;
-    semester: string;
-    userId: string;
-}): string => {
-    const data = `${course.userId}:${course.semester}:${course.name}:${course.grade}:${course.credits}`;
-    return CryptoJS.SHA256(data).toString();
-};
-
-/**
- * Academic half-up rounding (standard in most universities)
- */
-const roundHalfUp = (value: number, decimals: number = 2): number => {
-    const multiplier = Math.pow(10, decimals);
-    return Math.round((value + Number.EPSILON) * multiplier) / multiplier;
-};
-
-/**
- * Calculate GPA using Normal 4.0 scale.
- * Formula: Sum(Grade × Credits) / Sum(Credits)
- */
-const calculateNormalGPA = (courses: Array<{ grade: number; credits: number }>): number => {
-    if (courses.length === 0) return 0;
-    const totalPoints = courses.reduce((sum, c) => sum + (c.grade * c.credits), 0);
-    const totalCredits = courses.reduce((sum, c) => sum + c.credits, 0);
-    const gpa = totalCredits > 0 ? totalPoints / totalCredits : 0;
-    return roundHalfUp(gpa, 2);
-};
-
-/**
- * Calculate GPA using German Modified Bavarian Formula.
- * Formula: 1 + 3 × (Nmax - Nd) / (Nmax - Nmin)
- * Where Nmax = 1.0 (best), Nmin = 4.0 (lowest pass), Nd = achieved grade
- */
-const calculateGermanGPA = (
-    courses: Array<{ grade: number; credits: number }>,
-    nMax: number = 1.0,
-    nMin: number = 4.0
-): number => {
-    if (courses.length === 0) return 0;
-
-    // Weight grades by credits first
-    const totalPoints = courses.reduce((sum, c) => sum + (c.grade * c.credits), 0);
-    const totalCredits = courses.reduce((sum, c) => sum + c.credits, 0);
-    const weightedGrade = totalCredits > 0 ? totalPoints / totalCredits : 0;
-
-    // Apply Bavarian formula
-    const gpa = 1 + (3 * (nMax - weightedGrade) / (nMax - nMin));
-    return roundHalfUp(Math.max(1.0, Math.min(4.0, gpa)), 2); // Clamp between 1.0 and 4.0
-};
-
-/**
- * Parse semester string into sortable components.
- */
-const parseSemester = (semester: string): { year: number; seasonOrder: number } => {
-    const parts = semester.split(' ');
-    const season = parts[0]?.toLowerCase() || '';
-    const year = parseInt(parts[1] || '0', 10);
-
-    const seasonMap: Record<string, number> = {
-        winter: 0,
-        spring: 1,
-        summer: 2,
-        fall: 3,
-    };
-
-    return { year, seasonOrder: seasonMap[season] ?? 0 };
-};
-
-/**
- * Sort semesters chronologically (oldest to newest).
- */
-const sortSemestersChronologically = (semesters: string[]): string[] => {
-    return [...semesters].sort((a, b) => {
-        const parsedA = parseSemester(a);
-        const parsedB = parseSemester(b);
-
-        if (parsedA.year !== parsedB.year) {
-            return parsedA.year - parsedB.year;
-        }
-        return parsedA.seasonOrder - parsedB.seasonOrder;
-    });
-};
-
-/**
- * Get all courses for the authenticated user.
+ * Get all encrypted courses for the authenticated user.
+ * Backend returns encrypted data as-is; decryption happens client-side.
  */
 export const getCourses = async (req: AuthRequest, res: Response) => {
     try {
@@ -106,7 +17,7 @@ export const getCourses = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const courses = await Course.find({ userId: req.user.id }).sort({ semester: -1, name: 1 });
+        const courses = await Course.find({ userId: req.user.id }).sort({ createdAt: -1 });
         res.status(200).json(courses);
     } catch (error) {
         logger.error('Error fetching courses:', error);
@@ -115,7 +26,8 @@ export const getCourses = async (req: AuthRequest, res: Response) => {
 };
 
 /**
- * Create a new course.
+ * Create a new encrypted course.
+ * Backend stores encrypted data without any validation of contents.
  */
 export const createCourse = async (req: AuthRequest, res: Response) => {
     try {
@@ -123,96 +35,25 @@ export const createCourse = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const { name, grade, credits, semester } = req.body;
+        const { encryptedData, encapsulatedKey, encryptedSymmetricKey } = req.body;
 
-        if (!name || grade === undefined || !credits || !semester) {
-            return res.status(400).json({ message: 'Missing required fields: name, grade, credits, semester' });
+        if (!encryptedData || !encapsulatedKey || !encryptedSymmetricKey) {
+            return res.status(400).json({
+                message: 'Missing required fields: encryptedData, encapsulatedKey, encryptedSymmetricKey'
+            });
         }
-
-        // Validate grade range
-        if (grade < 0 || grade > 5) {
-            return res.status(400).json({ message: 'Grade must be between 0 and 5' });
-        }
-
-        // Validate credits
-        if (credits <= 0) {
-            return res.status(400).json({ message: 'Credits must be greater than 0' });
-        }
-
-        // Generate integrity hash
-        const recordHash = generateCourseHash({
-            name,
-            grade,
-            credits,
-            semester,
-            userId: req.user.id,
-        });
 
         const course = await Course.create({
             userId: req.user.id,
-            name,
-            grade,
-            credits,
-            semester,
-            recordHash,
+            encryptedData,
+            encapsulatedKey,
+            encryptedSymmetricKey,
         });
 
-        logger.info(`Course created for user ${req.user.id}: ${name} (${semester})`);
+        logger.info(`Encrypted course created for user ${req.user.id}`);
         res.status(201).json(course);
     } catch (error) {
         logger.error('Error creating course:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-
-/**
- * Update an existing course.
- */
-export const updateCourse = async (req: AuthRequest, res: Response) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-
-        const { id } = req.params;
-        const { name, grade, credits, semester } = req.body;
-
-        const course = await Course.findOne({ _id: id, userId: req.user.id });
-        if (!course) {
-            return res.status(404).json({ message: 'Course not found' });
-        }
-
-        // Update fields
-        if (name !== undefined) course.name = name;
-        if (grade !== undefined) {
-            if (grade < 0 || grade > 5) {
-                return res.status(400).json({ message: 'Grade must be between 0 and 5' });
-            }
-            course.grade = grade;
-        }
-        if (credits !== undefined) {
-            if (credits <= 0) {
-                return res.status(400).json({ message: 'Credits must be greater than 0' });
-            }
-            course.credits = credits;
-        }
-        if (semester !== undefined) course.semester = semester;
-
-        // Regenerate hash
-        course.recordHash = generateCourseHash({
-            name: course.name,
-            grade: course.grade,
-            credits: course.credits,
-            semester: course.semester,
-            userId: req.user.id,
-        });
-
-        await course.save();
-
-        logger.info(`Course updated for user ${req.user.id}: ${course.name} (${course.semester})`);
-        res.status(200).json(course);
-    } catch (error) {
-        logger.error('Error updating course:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -233,75 +74,10 @@ export const deleteCourse = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'Course not found' });
         }
 
-        logger.info(`Course deleted for user ${req.user.id}: ${course.name} (${course.semester})`);
+        logger.info(`Course deleted for user ${req.user.id}`);
         res.status(200).json({ message: 'Course deleted successfully' });
     } catch (error) {
         logger.error('Error deleting course:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-
-/**
- * Get calculated GPA for the user.
- */
-export const getCalculatedGPA = async (req: AuthRequest, res: Response) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-
-        // Get user's GPA system preference
-        const user = await User.findById(req.user.id);
-        const gpaSystem = user?.gpaSystem || 'NORMAL';
-
-        // Get all courses
-        const courses = await Course.find({ userId: req.user.id });
-
-        // Calculate GPA based on system
-        let cumulativeGPA: number;
-        if (gpaSystem === 'GERMAN') {
-            cumulativeGPA = calculateGermanGPA(courses);
-        } else {
-            cumulativeGPA = calculateNormalGPA(courses);
-        }
-
-        // Calculate per-semester GPAs
-        const semesters = sortSemestersChronologically([...new Set(courses.map(c => c.semester))]);
-        const semesterGPAs = semesters.map(semester => {
-            const semCourses = courses.filter(c => c.semester === semester);
-            const gpa = gpaSystem === 'GERMAN'
-                ? calculateGermanGPA(semCourses)
-                : calculateNormalGPA(semCourses);
-            return { semester, gpa, courseCount: semCourses.length };
-        });
-
-        // Calculate cumulative GPA progression
-        const cumulativeProgression: Array<{ semester: string; cumulativeGPA: number }> = [];
-        let runningCourses: Array<{ grade: number; credits: number }> = [];
-        for (const semester of semesters) {
-            runningCourses = [
-                ...runningCourses,
-                ...courses.filter(c => c.semester === semester).map(c => ({
-                    grade: c.grade,
-                    credits: c.credits,
-                })),
-            ];
-            const cumGPA = gpaSystem === 'GERMAN'
-                ? calculateGermanGPA(runningCourses)
-                : calculateNormalGPA(runningCourses);
-            cumulativeProgression.push({ semester, cumulativeGPA: cumGPA });
-        }
-
-        res.status(200).json({
-            gpaSystem,
-            cumulativeGPA,
-            totalCourses: courses.length,
-            totalCredits: courses.reduce((sum, c) => sum + c.credits, 0),
-            semesterGPAs,
-            cumulativeProgression,
-        });
-    } catch (error) {
-        logger.error('Error calculating GPA:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -358,3 +134,80 @@ export const getPreferences = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+/**
+ * Get unmigrated (plaintext) courses for client-side encryption migration.
+ * Returns only courses that have the old plaintext format (name, grade, credits, semester).
+ */
+export const getUnmigratedCourses = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        // Find courses that have plaintext fields but no encrypted data
+        const unmigratedCourses = await Course.find({
+            userId: req.user.id,
+            name: { $exists: true, $ne: null },
+            encryptedData: { $exists: false }
+        }).sort({ createdAt: -1 });
+
+        res.status(200).json(unmigratedCourses);
+    } catch (error) {
+        logger.error('Error fetching unmigrated courses:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+/**
+ * Migrate a single course from plaintext to encrypted format.
+ * Client sends encrypted data, backend updates the course and removes plaintext fields.
+ */
+export const migrateCourse = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { id } = req.params;
+        const { encryptedData, encapsulatedKey, encryptedSymmetricKey } = req.body;
+
+        if (!encryptedData || !encapsulatedKey || !encryptedSymmetricKey) {
+            return res.status(400).json({
+                message: 'Missing required fields: encryptedData, encapsulatedKey, encryptedSymmetricKey'
+            });
+        }
+
+        // Find the course and verify ownership
+        const course = await Course.findOne({ _id: id, userId: req.user.id });
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        // Update with encrypted data and remove plaintext fields
+        const updatedCourse = await Course.findByIdAndUpdate(
+            id,
+            {
+                $set: {
+                    encryptedData,
+                    encapsulatedKey,
+                    encryptedSymmetricKey,
+                },
+                $unset: {
+                    name: 1,
+                    grade: 1,
+                    credits: 1,
+                    semester: 1,
+                }
+            },
+            { new: true }
+        );
+
+        logger.info(`Course ${id} migrated to encrypted format for user ${req.user.id}`);
+        res.status(200).json(updatedCourse);
+    } catch (error) {
+        logger.error('Error migrating course:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+

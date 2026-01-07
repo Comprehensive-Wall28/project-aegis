@@ -2,11 +2,11 @@ import { Router } from 'express';
 import {
     getCourses,
     createCourse,
-    updateCourse,
     deleteCourse,
-    getCalculatedGPA,
     updatePreferences,
     getPreferences,
+    getUnmigratedCourses,
+    migrateCourse,
 } from '../controllers/gpaController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -15,17 +15,18 @@ const router = Router();
 // All routes require authentication
 router.use(protect);
 
-// Course CRUD
+// Course CRUD (encrypted data only)
 router.get('/courses', getCourses);
 router.post('/courses', createCourse);
-router.put('/courses/:id', updateCourse);
 router.delete('/courses/:id', deleteCourse);
 
-// GPA Calculation
-router.get('/calculate', getCalculatedGPA);
+// Migration endpoints
+router.get('/courses/unmigrated', getUnmigratedCourses);
+router.put('/courses/:id/migrate', migrateCourse);
 
 // User Preferences
 router.get('/preferences', getPreferences);
 router.put('/preferences', updatePreferences);
 
 export default router;
+

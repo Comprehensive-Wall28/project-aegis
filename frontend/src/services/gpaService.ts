@@ -32,14 +32,13 @@ apiClient.interceptors.response.use(
     }
 );
 
-// Types
+// Types for plaintext course data (after decryption)
 export interface Course {
     _id: string;
     name: string;
     grade: number;
     credits: number;
     semester: string;
-    recordHash: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -49,6 +48,20 @@ export interface CourseInput {
     grade: number;
     credits: number;
     semester: string;
+}
+
+// Types for encrypted course data (from/to backend)
+export interface EncryptedCoursePayload {
+    encryptedData: string;
+    encapsulatedKey: string;
+    encryptedSymmetricKey: string;
+}
+
+export interface EncryptedCourse extends EncryptedCoursePayload {
+    _id: string;
+    userId: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface SemesterGPA {
@@ -75,31 +88,31 @@ export interface Preferences {
     gpaSystem: 'NORMAL' | 'GERMAN';
 }
 
+// Legacy unmigrated course (plaintext from old schema)
+export interface UnmigratedCourse {
+    _id: string;
+    name: string;
+    grade: number;
+    credits: number;
+    semester: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 const gpaService = {
-    // Course CRUD
-    getCourses: async (): Promise<Course[]> => {
-        const response = await apiClient.get<Course[]>('/courses');
+    // Course CRUD - now handles encrypted data
+    getEncryptedCourses: async (): Promise<EncryptedCourse[]> => {
+        const response = await apiClient.get<EncryptedCourse[]>('/courses');
         return response.data;
     },
 
-    createCourse: async (data: CourseInput): Promise<Course> => {
-        const response = await apiClient.post<Course>('/courses', data);
-        return response.data;
-    },
-
-    updateCourse: async (id: string, data: Partial<CourseInput>): Promise<Course> => {
-        const response = await apiClient.put<Course>(`/courses/${id}`, data);
+    createEncryptedCourse: async (data: EncryptedCoursePayload): Promise<EncryptedCourse> => {
+        const response = await apiClient.post<EncryptedCourse>('/courses', data);
         return response.data;
     },
 
     deleteCourse: async (id: string): Promise<void> => {
         await apiClient.delete(`/courses/${id}`);
-    },
-
-    // GPA Calculation
-    getCalculatedGPA: async (): Promise<GPACalculation> => {
-        const response = await apiClient.get<GPACalculation>('/calculate');
-        return response.data;
     },
 
     // Preferences
@@ -112,6 +125,18 @@ const gpaService = {
         const response = await apiClient.put<Preferences>('/preferences', data);
         return response.data;
     },
+
+    // Migration endpoints
+    getUnmigratedCourses: async (): Promise<UnmigratedCourse[]> => {
+        const response = await apiClient.get<UnmigratedCourse[]>('/courses/unmigrated');
+        return response.data;
+    },
+
+    migrateCourse: async (id: string, data: EncryptedCoursePayload): Promise<EncryptedCourse> => {
+        const response = await apiClient.put<EncryptedCourse>(`/courses/${id}/migrate`, data);
+        return response.data;
+    },
 };
 
 export default gpaService;
+

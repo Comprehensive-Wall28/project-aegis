@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-    School as GraduationCapIcon
+    School as GraduationCapIcon,
+    Warning as WarningIcon
 } from '@mui/icons-material';
 import {
     Box,
@@ -14,27 +15,51 @@ import {
 import { useNavigate } from 'react-router-dom';
 import gpaService from '@/services/gpaService';
 import { usePreferenceStore } from '@/stores/preferenceStore';
+import { useSessionStore } from '@/stores/sessionStore';
+import { useCourseEncryption } from '@/hooks/useCourseEncryption';
+import { calculateNormalGPA, calculateGermanGPA } from '@/lib/gpaUtils';
 import { motion } from 'framer-motion';
 
 export function GPASnapshot() {
     const [currentGPA, setCurrentGPA] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
+    const hasFetched = useRef(false); // Prevent duplicate fetches
     const theme = useTheme();
     const navigate = useNavigate();
     const gpaSystem = usePreferenceStore((state) => state.gpaSystem);
+    const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
+    const { decryptCourses } = useCourseEncryption();
 
     useEffect(() => {
-        fetchGPAData();
-    }, []);
+        // Only fetch once when PQC engine becomes operational
+        if (pqcEngineStatus === 'operational' && !hasFetched.current) {
+            hasFetched.current = true;
+            fetchGPAData();
+        }
+    }, [pqcEngineStatus]);
 
     const fetchGPAData = async () => {
         try {
             setIsLoading(true);
-            const data = await gpaService.getCalculatedGPA();
-            setCurrentGPA(data.cumulativeGPA);
+            setHasError(false);
+            // Fetch encrypted courses and decrypt client-side
+            const encryptedCourses = await gpaService.getEncryptedCourses();
+
+            if (encryptedCourses.length > 0) {
+                const decryptedCourses = await decryptCourses(encryptedCourses);
+                // Calculate GPA client-side
+                const gpa = gpaSystem === 'GERMAN'
+                    ? calculateGermanGPA(decryptedCourses)
+                    : calculateNormalGPA(decryptedCourses);
+                setCurrentGPA(gpa);
+            } else {
+                setCurrentGPA(0);
+            }
         } catch (err) {
             console.error('Failed to fetch GPA:', err);
-            setCurrentGPA(0);
+            setHasError(true);
+            setCurrentGPA(null);
         } finally {
             setIsLoading(false);
         }
@@ -48,6 +73,27 @@ export function GPASnapshot() {
             ? ((4.0 - currentGPA) / 3.0) * 100
             : (currentGPA / 4.0) * 100)
         : 0;
+
+    // Show loading while PQC engine initializes
+    if (pqcEngineStatus !== 'operational') {
+        return (
+            <Paper
+                sx={{
+                    p: 3,
+                    height: '100%',
+                    borderRadius: '16px',
+                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                    backdropFilter: 'blur(12px)',
+                    border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}
+            >
+                <CircularProgress size={24} />
+            </Paper>
+        );
+    }
 
     return (
         <Paper
@@ -79,7 +125,7 @@ export function GPASnapshot() {
                             GPA SNAPSHOT
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, fontSize: '0.75rem', opacity: 0.8 }}>
-                            Your Academic Performance
+                            {hasError ? 'Data sync required' : 'Your Academic Performance'}
                         </Typography>
                     </Box>
 
@@ -112,6 +158,13 @@ export function GPASnapshot() {
                 <Box sx={{ position: 'relative', width: 170, height: 100, display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>
                     {isLoading ? (
                         <CircularProgress size={24} thickness={5} />
+                    ) : hasError ? (
+                        <Box sx={{ textAlign: 'center', opacity: 0.7 }}>
+                            <WarningIcon sx={{ fontSize: 32, color: 'warning.main', mb: 0.5 }} />
+                            <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '10px' }}>
+                                Unable to load
+                            </Typography>
+                        </Box>
                     ) : (
                         <>
                             <svg width="170" height="100" viewBox="0 0 180 105">
@@ -150,7 +203,7 @@ export function GPASnapshot() {
                                     color: theme.palette.common.white,
                                     mb: -0.5
                                 }}>
-                                    {currentGPA?.toFixed(2)}
+                                    {currentGPA?.toFixed(2) ?? '—'}
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, opacity: 0.8, fontSize: '0.7rem', letterSpacing: 0.5 }}>
                                     {isGerman ? 'TARGET 1.00' : '/ 4.00'}

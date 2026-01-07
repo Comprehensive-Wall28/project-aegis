@@ -43,6 +43,7 @@ function truncateFileName(name: string, maxLength: number = 32): string {
 export function VaultQuickView() {
     const [files, setFiles] = useState<FileMetadata[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [backendError, setBackendError] = useState(false);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const { downloadAndDecrypt } = useVaultDownload();
@@ -55,10 +56,12 @@ export function VaultQuickView() {
     const fetchFiles = async () => {
         try {
             setIsLoading(true);
+            setBackendError(false);
             const data = await vaultService.getRecentFiles();
             setFiles(data.slice(0, 1)); // Show only the last uploaded file
         } catch (err) {
             console.error('Failed to fetch files:', err);
+            setBackendError(true);
         } finally {
             setIsLoading(false);
         }
@@ -158,6 +161,11 @@ export function VaultQuickView() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2 }}>
                             <CircularProgress size={20} thickness={4} />
                             <Typography variant="body2" color="text.secondary">Syncing vault...</Typography>
+                        </Box>
+                    ) : backendError ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, opacity: 0.7 }}>
+                            <FolderOpenIcon sx={{ color: 'warning.main' }} />
+                            <Typography variant="body2" color="text.secondary">Backend unavailable</Typography>
                         </Box>
                     ) : (
                         <AnimatePresence mode="wait">

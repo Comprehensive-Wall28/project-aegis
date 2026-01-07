@@ -35,6 +35,7 @@ import vaultService, { type FileMetadata } from '@/services/vaultService';
 import { motion, AnimatePresence } from 'framer-motion';
 import UploadZone from '@/components/vault/UploadZone';
 import { useVaultDownload } from '@/hooks/useVaultDownload';
+import { BackendDown } from '@/components/BackendDown';
 
 function formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';
@@ -65,6 +66,7 @@ export function FilesPage() {
     const [showUpload, setShowUpload] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [viewPreset, setViewPreset] = useState<ViewPreset>('standard');
+    const [backendError, setBackendError] = useState(false);
     const { downloadAndDecrypt } = useVaultDownload();
     const theme = useTheme();
 
@@ -75,11 +77,13 @@ export function FilesPage() {
     const fetchFiles = async () => {
         try {
             setIsLoading(true);
+            setBackendError(false);
             const data = await vaultService.getRecentFiles();
             setFiles(data);
             setError(null);
         } catch (err) {
             console.error('Failed to fetch files:', err);
+            setBackendError(true);
             setError('Failed to load files');
         } finally {
             setIsLoading(false);
@@ -195,6 +199,11 @@ export function FilesPage() {
             default: return { name: 'body2', size: 18, mb: 0.5 }; // Standard
         }
     };
+
+    // Show backend error page
+    if (backendError) {
+        return <BackendDown onRetry={fetchFiles} />;
+    }
 
     return (
         <Stack spacing={4} className="text-sharp">

@@ -2,23 +2,28 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ICourse extends Document {
     userId: mongoose.Types.ObjectId;
-    name: string;
-    grade: number;          // Grade value (0-4.0 for Normal, 1.0-5.0 for German)
-    credits: number;
-    semester: string;       // e.g., "Fall 2025"
-    recordHash: string;     // For integrity verification
+    // Encrypted fields - new encrypted format
+    encryptedData?: string;        // AES-GCM encrypted JSON of course data (IV:ciphertext, hex)
+    encapsulatedKey?: string;      // ML-KEM-768 cipher text (hex)
+    encryptedSymmetricKey?: string; // Wrapped AES key (IV + encrypted key, hex)
+    // Legacy plaintext fields - for unmigrated data
+    name?: string;
+    grade?: number;
+    credits?: number;
+    semester?: string;
 }
 
 const CourseSchema: Schema = new Schema({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    name: { type: String, required: true, trim: true },
-    grade: { type: Number, required: true, min: 0 },
-    credits: { type: Number, required: true, min: 0.5 },
-    semester: { type: String, required: true, trim: true },
-    recordHash: { type: String, required: true },
+    // Encrypted fields (new format)
+    encryptedData: { type: String, required: false },
+    encapsulatedKey: { type: String, required: false },
+    encryptedSymmetricKey: { type: String, required: false },
+    // Legacy plaintext fields (for migration)
+    name: { type: String, required: false },
+    grade: { type: Number, required: false },
+    credits: { type: Number, required: false },
+    semester: { type: String, required: false },
 }, { timestamps: true });
-
-// Compound index for efficient queries by user and semester
-CourseSchema.index({ userId: 1, semester: 1 });
 
 export default mongoose.model<ICourse>('Course', CourseSchema);
