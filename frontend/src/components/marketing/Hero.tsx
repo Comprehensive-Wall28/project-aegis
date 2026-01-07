@@ -9,84 +9,18 @@ import {
     Button
 } from '@mui/material';
 import {
-    ArrowForward as ArrowRightIcon,
-    ShieldOutlined as ShieldCheckIcon,
-    LockOutlined as LockIcon,
-    Fingerprint as FingerprintIcon
+    ArrowForward as ArrowRightIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { StatelessIndicator } from "./StatelessIndicator";
-import { useEffect, useState } from "react";
+import { useNavigate } from 'react-router-dom';
+import { Grid } from '@mui/material';
 
-function MerkleIntegrityFeed() {
-    const theme = useTheme();
-    const [hashes, setHashes] = useState<string[]>([]);
 
-    useEffect(() => {
-        const generateHash = () => Math.random().toString(16).substring(2, 10).toUpperCase();
-        setHashes(Array.from({ length: 12 }, generateHash));
-        const interval = setInterval(() => {
-            setHashes(prev => [...prev.slice(1), generateHash()]);
-        }, 2000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const FeedItems = ({ offset = 0 }: { offset?: number }) => (
-        <Box sx={{
-            display: 'flex',
-            gap: 8,
-            px: 4,
-            animation: 'scroll 30s linear infinite',
-            '&:hover': { animationPlayState: 'paused' }
-        }}>
-            {hashes.map((hash, i) => (
-                <Box key={i + offset} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', color: 'text.secondary', fontSize: '10px' }}>HASH:</Typography>
-                    <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', color: 'text.primary', fontSize: '10px' }}>{hash}</Typography>
-                    <Box
-                        component={motion.div}
-                        animate={{ opacity: [0.3, 1, 0.3], scale: [0.9, 1.1, 0.9] }}
-                        transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
-                        sx={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: '50%',
-                            bgcolor: alpha(theme.palette.primary.main, 0.5),
-                            boxShadow: `0 0 8px ${alpha(theme.palette.primary.main, 0.5)}`
-                        }}
-                    />
-                </Box>
-            ))}
-        </Box>
-    );
-
-    return (
-        <Box sx={{
-            width: '100%',
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            py: 1.5,
-            borderY: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
-            bgcolor: alpha('#000', 0.2),
-            display: 'flex',
-            alignItems: 'center',
-            position: 'relative'
-        }}>
-            <FeedItems />
-            <FeedItems offset={12} />
-
-            <style>{`
-                @keyframes scroll {
-                    0% { transform: translateX(0); }
-                    100% { transform: translateX(-100%); }
-                }
-            `}</style>
-        </Box>
-    );
-}
 
 export function Hero() {
     const theme = useTheme();
+    const navigate = useNavigate();
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -243,6 +177,7 @@ export function Hero() {
                                 },
                                 '& .MuiButton-endIcon': { transition: 'transform 0.2s' }
                             }}
+                            onClick={() => navigate('/dashboard')}
                         >
                             Get Started
                         </Button>
@@ -262,12 +197,13 @@ export function Hero() {
                                     bgcolor: alpha(theme.palette.primary.main, 0.05)
                                 }
                             }}
+                            onClick={() => navigate('/pqc-learn')}
                         >
                             Learn about PQC
                         </Button>
                     </Box>
 
-                    {/* Product Preview */}
+                    {/* Aegis Architecture Preview */}
                     <Paper
                         component={motion.div}
                         variants={itemVariants}
@@ -281,69 +217,65 @@ export function Hero() {
                             bgcolor: alpha(theme.palette.background.paper, 0.1),
                             backdropFilter: 'blur(20px)',
                             border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                            position: 'relative'
+                            position: 'relative',
+                            p: { xs: 4, md: 6 }
                         }}
                     >
-                        {/* Fake UI Header */}
                         <Box sx={{
-                            height: 32,
-                            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            px: 2,
-                            gap: 1,
-                            bgcolor: alpha(theme.palette.background.paper, 0.05)
-                        }}>
-                            {[0, 1, 2].map(i => (
-                                <Box key={i} sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: alpha(theme.palette.text.primary, 0.1) }} />
-                            ))}
-                        </Box>
+                            position: 'absolute', top: 0, left: 0, right: 0, height: '100%',
+                            background: `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, transparent 100%)`,
+                            pointerEvents: 'none'
+                        }} />
 
-                        {/* Fake UI Body */}
-                        <Box sx={{
-                            aspectRatio: '16/9',
-                            width: '100%',
-                            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.dark, 0.1)}, ${alpha(theme.palette.background.default, 1)})`,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            position: 'relative'
-                        }}>
-                            <Stack direction="row" spacing={6} sx={{ opacity: 0.1, position: 'absolute' }}>
-                                <ShieldCheckIcon sx={{ fontSize: 100 }} />
-                                <LockIcon sx={{ fontSize: 100 }} />
-                                <FingerprintIcon sx={{ fontSize: 100 }} />
-                            </Stack>
-
-                            <Box sx={{ zIndex: 1, textAlign: 'center' }}>
-                                <Typography variant="overline" sx={{ letterSpacing: '0.3em', fontWeight: 700, color: 'primary.main', mb: 1, display: 'block' }}>
-                                    Encrypted Session Active
+                        <Grid container spacing={6} alignItems="center" sx={{ position: 'relative', zIndex: 1, textAlign: 'left' }}>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Typography variant="h4" gutterBottom fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', md: '2rem' } }}>
+                                    How Aegis Protects You
                                 </Typography>
-                                <Typography variant="h4" sx={{ fontFamily: 'JetBrains Mono', fontWeight: 700, letterSpacing: -1, opacity: 0.9 }}>
-                                    0x7F...3A9C
+                                <Typography variant="body1" color="text.secondary" paragraph>
+                                    We implement a hybrid approach, combining traditional strong encryption (AES-256) for data confidentiality with PQC (ML-KEM) for key establishment.
                                 </Typography>
-                            </Box>
+                                <Stack spacing={2} sx={{ mt: 3 }}>
+                                    {['Client-side Encryption', 'Zero-Knowledge Architecture', 'Quantum-Safe Key Encapsulation'].map((item) => (
+                                        <Box key={item} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
+                                            <Typography variant="body1" fontWeight={500}>{item}</Typography>
+                                        </Box>
+                                    ))}
+                                </Stack>
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Box sx={{
+                                    p: 3,
+                                    bgcolor: 'background.paper',
+                                    borderRadius: 3,
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                    boxShadow: theme.shadows[4]
+                                }}>
+                                    <pre style={{
+                                        fontFamily: 'JetBrains Mono',
+                                        fontSize: '0.85rem',
+                                        color: theme.palette.text.secondary,
+                                        overflowX: 'auto',
+                                        margin: 0
+                                    }}>
+                                        {`// Aegis PQC Implementation
+const pqc = new ML_KEM_768();
 
-                            {/* Scan line effect */}
-                            <Box sx={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
-                                background: `linear-gradient(to bottom, transparent, ${alpha(theme.palette.primary.main, 0.05)}, transparent)`,
-                                animation: 'scan 4s linear infinite',
-                                pointerEvents: 'none'
-                            }} />
-                        </Box>
+// 1. User generates keypair
+const { pk, sk } = pqc.keypair();
 
-                        {/* Merkle Integrity Feed */}
-                        <MerkleIntegrityFeed />
+// 2. Server encapsulates key
+const { ss, ct } = pqc.encap(pk);
+
+// 3. Secure channel established`}
+                                    </pre>
+                                </Box>
+                            </Grid>
+                        </Grid>
                     </Paper>
                 </Box>
             </Container>
-
             <style>{`
                 @keyframes scan {
                     from { transform: translateY(-100%); }

@@ -160,21 +160,38 @@ export const moveFiles = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: 'File IDs are required' });
         }
 
-        // Validate folder exists (or null for root)
-        if (folderId) {
-            const folder = await Folder.findOne({ _id: { $eq: folderId }, ownerId: req.user.id });
-            if (!folder) {
-                return res.status(404).json({ message: 'Target folder not found' });
+        // Validate folderId: if missing/empty treat as root (null), ensuring it's a string
+        let normalizedFolderId: string | null = null;
+        if (folderId && folderId !== '') {
+            if (typeof folderId !== 'string') {
+                return res.status(400).json({ message: 'Invalid folderId format' });
+            }
+            normalizedFolderId = folderId;
+        }
+
+        // Validate folder exists (if not moving to root)
+        if (normalizedFolderId) {
+            // Use strict cast check or try/catch if concerned about CastError, but original code didn't. 
+            // We'll trust normalizedFolderId is a string, and if it's not a valid ObjectId, Mongoose might throw.
+            // We can wrap this specifically to give better error.
+            try {
+                const folder = await Folder.findOne({ _id: { $eq: normalizedFolderId }, ownerId: req.user.id });
+                if (!folder) {
+                    return res.status(404).json({ message: 'Target folder not found' });
+                }
+            } catch (err) {
+                logger.error('Error finding folder (likely invalid ID format):', err);
+                return res.status(400).json({ message: 'Invalid folder ID' });
             }
         }
 
         // Update all files
         const result = await FileMetadata.updateMany(
             { _id: { $in: fileIds }, ownerId: req.user.id },
-            { folderId: folderId || null }
+            { folderId: normalizedFolderId }
         );
 
-        logger.info(`Moved ${result.modifiedCount} files to folder ${folderId || 'root'} for user ${req.user.id}`);
+        logger.info(`Moved ${result.modifiedCount} files to folder ${normalizedFolderId || 'root'} for user ${req.user.id}`);
         res.status(200).json({
             message: `Moved ${result.modifiedCount} file(s)`,
             modifiedCount: result.modifiedCount

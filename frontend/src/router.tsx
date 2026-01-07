@@ -3,6 +3,7 @@ import { Landing } from '@/pages/Landing';
 import { Dashboard } from '@/pages/Dashboard';
 import { FilesPage } from '@/pages/FilesPage';
 import { GPAPage } from '@/pages/GPAPage';
+import { PqcLearn } from '@/pages/PqcLearn';
 import { NotFound } from '@/pages/NotFound';
 import { BackendDownPage } from '@/pages/BackendDown';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
@@ -40,6 +41,10 @@ const router = createBrowserRouter([
     {
         path: '/backend-down',
         element: <BackendDownPage />,
+    },
+    {
+        path: '/pqc-learn',
+        element: <PqcLearn />,
     },
     {
         path: '/dashboard',

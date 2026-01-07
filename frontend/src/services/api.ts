@@ -14,6 +14,16 @@ const apiClient = axios.create({
     xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
+// Attach CSRF token to request header (to bypass Axios issues or if cookie is httpOnly=false)
+apiClient.interceptors.request.use((config) => {
+    // Manually parse XSRF-TOKEN from document.cookie
+    const match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
+    if (match) {
+        config.headers['X-XSRF-TOKEN'] = match[2];
+    }
+    return config;
+});
+
 // Response interceptor to handle 403 CSRF errors or other global error handling
 apiClient.interceptors.response.use(
     (response) => response,

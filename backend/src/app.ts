@@ -50,11 +50,17 @@ import csrf from 'csurf';
 const csrfProtection = csrf({ cookie: true });
 
 // Apply CSRF protection
+
+
 app.use(csrfProtection);
 
 // Expose CSRF token to client via cookie (Axios default behavior)
 app.use((req, res, next) => {
-    res.cookie('XSRF-TOKEN', req.csrfToken());
+    res.cookie('XSRF-TOKEN', req.csrfToken(), {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production', // Secure in production
+        sameSite: 'lax' // Allow top-level navigation usage if needed, but important for Axios
+    });
     next();
 });
 app.use('/api/', apiLimiter);
