@@ -401,17 +401,17 @@ export function FilesPage() {
     return (
         <Stack spacing={4} className="text-sharp">
             {/* Header */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 2 }}>
                 <Box>
-                    <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
-                        <FolderOpenIcon color="primary" sx={{ fontSize: 32 }} />
+                    <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, fontWeight: 800, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+                        <FolderOpenIcon color="primary" sx={{ fontSize: { xs: 24, sm: 32 } }} />
                         <span>Encrypted Files</span>
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5, fontWeight: 500 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5, fontWeight: 500, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                         {files.length} file{files.length !== 1 ? 's' : ''} in your vault
                     </Typography>
                 </Box>
-                <Stack direction="row" spacing={2} alignItems="center">
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
                     <AnimatePresence>
                         {selectedIds.size > 0 && (
                             <Button
@@ -424,7 +424,7 @@ export function FilesPage() {
                                 size="small"
                                 startIcon={<TrashIcon />}
                                 onClick={handleMassDelete}
-                                sx={{ fontWeight: 700, borderRadius: '8px' }}
+                                sx={{ fontWeight: 700, borderRadius: '8px', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                             >
                                 Delete ({selectedIds.size})
                             </Button>
@@ -440,11 +440,13 @@ export function FilesPage() {
                             borderRadius: '8px',
                             borderColor: alpha(theme.palette.warning.main, 0.3),
                             color: theme.palette.warning.main,
-                            height: 36,
+                            height: { xs: 32, sm: 36 },
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                            px: { xs: 1.5, sm: 2 },
                             '&:hover': { borderColor: theme.palette.warning.main, bgcolor: alpha(theme.palette.warning.main, 0.05) }
                         }}
                     >
-                        New Folder
+                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>New </Box>Folder
                     </Button>
                     <Button
                         variant="outlined"
@@ -455,7 +457,9 @@ export function FilesPage() {
                             fontWeight: 700,
                             borderRadius: '8px',
                             borderColor: alpha(theme.palette.primary.main, 0.2),
-                            height: 36,
+                            height: { xs: 32, sm: 36 },
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                            px: { xs: 1.5, sm: 2 },
                             '&:hover': { borderColor: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.05) }
                         }}
                     >
@@ -465,8 +469,8 @@ export function FilesPage() {
             </Box>
 
             {/* View Controls & Search */}
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 3 }}>
-                <Stack direction="row" spacing={3} alignItems="center" sx={{ flex: 1, minWidth: 300 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, flexWrap: 'wrap', alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between', gap: 2 }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ flex: 1, minWidth: { xs: 'auto', md: 300 } }}>
                     <TextField
                         placeholder="Search files..."
                         size="small"
@@ -474,7 +478,7 @@ export function FilesPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         sx={{
                             flex: 1,
-                            maxWidth: 320,
+                            maxWidth: { xs: '100%', md: 320 },
                             '& .MuiOutlinedInput-root': {
                                 borderRadius: '12px',
                                 bgcolor: alpha(theme.palette.background.paper, 0.5),
@@ -493,10 +497,10 @@ export function FilesPage() {
 
                     {/* Resize Control (Preset Dropdown) */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: 0.5, whiteSpace: 'nowrap', display: { xs: 'none', sm: 'block' } }}>
                             VIEW SIZE
                         </Typography>
-                        <FormControl size="small" sx={{ minWidth: 130 }}>
+                        <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 130 }, flex: { xs: 1, sm: 'none' } }}>
                             <Select
                                 value={viewPreset}
                                 onChange={(e) => setViewPreset(e.target.value as ViewPreset)}
@@ -531,9 +535,10 @@ export function FilesPage() {
                             selectedIds.size === files.length ? <CheckSquareIcon color="primary" /> :
                                 selectedIds.size > 0 ? <XSquareIcon /> : <SquareIcon />
                         }
-                        sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '13px' }}
+                        sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '12px', sm: '13px' }, alignSelf: { xs: 'flex-start', md: 'center' } }}
                     >
-                        {selectedIds.size === files.length ? 'Deselect All' : 'Select All'}
+                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{selectedIds.size === files.length ? 'Deselect All' : 'Select All'}</Box>
+                        <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{selectedIds.size === files.length ? 'Deselect' : 'Select'}</Box>
                     </Button>
                 )}
             </Box>

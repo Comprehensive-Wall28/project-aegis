@@ -93,7 +93,7 @@ export function DashboardLayout() {
                         <Box
                             sx={{
                                 flexGrow: 1,
-                                p: { xs: 2, sm: 4, md: 6 },
+                                p: { xs: 1.5, sm: 3, md: 6 },
                                 overflowY: 'auto',
                                 '&::-webkit-scrollbar': { width: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: 3 }

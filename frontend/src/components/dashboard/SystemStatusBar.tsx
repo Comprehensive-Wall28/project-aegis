@@ -61,16 +61,19 @@ export function SystemStatusBar() {
     return (
         <Box
             sx={{
-                height: 40,
+                minHeight: { xs: 'auto', sm: 40 },
                 display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                px: 3,
+                justifyContent: { xs: 'center', sm: 'space-between' },
+                px: { xs: 2, sm: 3 },
+                py: { xs: 1, sm: 0 },
+                gap: { xs: 1, sm: 0 },
                 bgcolor: 'transparent'
             }}
         >
-            {/* Left: System Label */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+            {/* Left: System Label - Hidden on mobile */}
+            <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                 <Typography variant="caption" sx={{ fontSize: '11px', fontWeight: 500 }}>System Health</Typography>
                 <Typography variant="caption" sx={{ opacity: 0.2 }}>•</Typography>
                 <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', fontWeight: 600, color: alpha(theme.palette.text.primary, 0.5), fontSize: '10px' }}>
@@ -83,7 +86,7 @@ export function SystemStatusBar() {
                 component={motion.div}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                sx={{ display: 'flex', alignItems: 'center', gap: 3 }}
+                sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 3 }, flexWrap: 'wrap', justifyContent: 'center' }}
             >
                 {/* PQC Engine Badge */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -123,7 +126,7 @@ export function SystemStatusBar() {
                     </Typography>
                 </Box>
 
-                <Box sx={{ height: 16, width: '1px', bgcolor: alpha(theme.palette.divider, 0.1) }} />
+                <Box sx={{ height: 16, width: '1px', bgcolor: alpha(theme.palette.divider, 0.1), display: { xs: 'none', sm: 'block' } }} />
 
                 {/* Status Indicator */}
                 <Box
@@ -131,13 +134,13 @@ export function SystemStatusBar() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 1,
-                        px: 2.5,
+                        px: { xs: 1.5, sm: 2.5 },
                         py: 0.5,
                         borderRadius: 5,
                         bgcolor: status.bgcolor,
                         color: status.color,
                         border: `1px solid ${alpha(status.color, 0.2)}`,
-                        minWidth: 130,
+                        minWidth: { xs: 'auto', sm: 130 },
                         justifyContent: 'center'
                     }}
                 >

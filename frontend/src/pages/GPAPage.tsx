@@ -331,17 +331,17 @@ export function GPAPage() {
                 animate={{ opacity: 1, y: 0 }}
                 sx={{
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: { xs: 'column', md: 'row' },
+                    alignItems: { xs: 'stretch', md: 'center' },
                     justifyContent: 'space-between',
-                    flexWrap: 'wrap',
                     gap: 2,
                 }}
             >
                 <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <SchoolIcon /> GPA Management
+                    <Typography variant="h4" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+                        <SchoolIcon sx={{ fontSize: { xs: 24, sm: 32 } }} /> GPA Management
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                         Track your academic performance with PQC-encrypted records
                     </Typography>
                 </Box>
@@ -354,6 +354,7 @@ export function GPAPage() {
                         bgcolor: alpha(theme.palette.background.paper, 0.4),
                         backdropFilter: 'blur(12px)',
                         border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                        alignSelf: { xs: 'stretch', md: 'auto' },
                     }}
                 >
                     <ToggleButtonGroup
@@ -362,11 +363,12 @@ export function GPAPage() {
                         onChange={handleGPASystemChange}
                         disabled={isSaving}
                         size="small"
+                        sx={{ width: { xs: '100%', md: 'auto' }, display: 'flex' }}
                     >
-                        <ToggleButton value="NORMAL" sx={{ textTransform: 'none', px: 2 }}>
+                        <ToggleButton value="NORMAL" sx={{ textTransform: 'none', px: { xs: 1, sm: 2 }, flex: { xs: 1, md: 'none' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                             Normal (4.0)
                         </ToggleButton>
-                        <ToggleButton value="GERMAN" sx={{ textTransform: 'none', px: 2 }}>
+                        <ToggleButton value="GERMAN" sx={{ textTransform: 'none', px: { xs: 1, sm: 2 }, flex: { xs: 1, md: 'none' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                             German (Bavarian)
                         </ToggleButton>
                     </ToggleButtonGroup>
@@ -374,21 +376,21 @@ export function GPAPage() {
             </Box>
 
             {/* GPA Summary Cards */}
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, sm: 3 }}>
                 <Grid size={{ xs: 12, md: 4 }}>
                     <Paper
                         component={motion.div}
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         sx={{
-                            p: 3,
+                            p: { xs: 2, sm: 3 },
                             borderRadius: '16px',
                             bgcolor: alpha(theme.palette.background.paper, 0.4),
                             backdropFilter: 'blur(12px)',
                             border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
                         }}
                     >
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                             Cumulative GPA
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
@@ -398,11 +400,12 @@ export function GPAPage() {
                                     fontFamily: 'JetBrains Mono, monospace',
                                     fontWeight: 800,
                                     color: theme.palette.primary.main,
+                                    fontSize: { xs: '2rem', sm: '3rem' },
                                 }}
                             >
                                 {gpaData.cumulativeGPA.toFixed(2)}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                                 / {gpaSystem === 'GERMAN' ? '1.00' : '4.00'}
                             </Typography>
                         </Box>
