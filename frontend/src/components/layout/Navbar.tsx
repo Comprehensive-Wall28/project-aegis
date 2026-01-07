@@ -4,9 +4,6 @@ import {
     Menu as MenuIcon,
     Close as XIcon,
     Palette as PaletteIcon,
-    Lock as LockIcon,
-    Person as PersonIcon,
-    Email as EmailIcon,
     ChevronRight as ChevronRightIcon
 } from '@mui/icons-material';
 import {
@@ -19,44 +16,33 @@ import {
     Container,
     alpha,
     useTheme,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-    CircularProgress,
-    InputAdornment,
-    Link,
     Drawer,
     List,
     ListItem,
     ListItemButton,
     ListItemText,
     Tooltip,
-    Divider,
-    Stack
+    Divider
 } from '@mui/material';
 import { AegisLogo } from '@/components/AegisLogo';
 import authService from '@/services/authService';
 import tokenService from '@/services/tokenService';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
-import { storeSeed, clearStoredSeed } from '@/lib/cryptoUtils';
+import { clearStoredSeed } from '@/lib/cryptoUtils';
+import { AuthDialog } from '@/components/auth/AuthDialog';
 
 export function Navbar() {
     const theme = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, setUser, clearSession, initializeQuantumKeys } = useSessionStore();
+    const { user, setUser, clearSession } = useSessionStore();
     const { theme: currentTheme, toggleTheme } = useThemeStore();
     const [mobileOpen, setMobileOpen] = useState(false);
-    const [isLoginOpen, setIsLoginOpen] = useState(false);
-    const [isRegisterMode, setIsRegisterMode] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [email, setEmail] = useState('');
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+
+    // Auth Dialog State
+    const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
     // Security: Scrub any PQC keys from localStorage (fix for leaked keys)
     useEffect(() => {
@@ -96,63 +82,12 @@ export function Navbar() {
     // Check if we should show login dialog from redirect
     useEffect(() => {
         if (location.state?.showLogin) {
-            setIsLoginOpen(true);
+            setAuthMode('login');
+            setIsAuthOpen(true);
+            // Clear status to prevent popup from reopening on refresh
+            navigate(location.pathname, { replace: true, state: { ...location.state, showLogin: undefined } });
         }
-    }, [location.state]);
-
-    const handleAuth = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-
-        try {
-            if (isRegisterMode) {
-                const response = await authService.register(username, email, password);
-
-                // Initialize persistent PQC keys from seed and store it
-                if (response.pqcSeed) {
-                    storeSeed(response.pqcSeed);
-                    initializeQuantumKeys(response.pqcSeed);
-                }
-
-                setUser({ _id: response._id, email: response.email, username: response.username });
-                setIsLoginOpen(false);
-                resetForm();
-                navigate('/dashboard');
-            } else {
-                const response = await authService.login(email, password);
-
-                // Initialize persistent PQC keys from seed and store it
-                if (response.pqcSeed) {
-                    storeSeed(response.pqcSeed);
-                    initializeQuantumKeys(response.pqcSeed);
-                }
-
-                setUser({ _id: response._id, email: response.email, username: response.username });
-                setIsLoginOpen(false);
-                resetForm();
-                navigate('/dashboard');
-            }
-        } catch (err: any) {
-            console.error(err);
-            // Check for network errors (backend unreachable)
-            if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
-                setIsLoginOpen(false);
-                navigate('/backend-down');
-                return;
-            }
-            setError(err.response?.data?.message || 'Authentication failed');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const resetForm = () => {
-        setEmail('');
-        setUsername('');
-        setPassword('');
-        setError('');
-    };
+    }, [location.state, location.pathname, navigate]);
 
     const handleLogout = async () => {
         await authService.logout();
@@ -160,9 +95,9 @@ export function Navbar() {
         clearSession();
     };
 
-    const toggleMode = () => {
-        setIsRegisterMode(!isRegisterMode);
-        setError('');
+    const openAuth = (mode: 'login' | 'register') => {
+        setAuthMode(mode);
+        setIsAuthOpen(true);
     };
 
     return (
@@ -236,19 +171,7 @@ export function Navbar() {
                                     {item}
                                 </Button>
                             ))}
-                            {!user && (
-                                <Button
-                                    onClick={() => setIsLoginOpen(true)}
-                                    sx={{
-                                        color: 'text.secondary',
-                                        fontWeight: 600,
-                                        fontSize: '0.9rem',
-                                        '&:hover': { color: 'primary.main', bgcolor: 'transparent' }
-                                    }}
-                                >
-                                    Login
-                                </Button>
-                            )}
+
 
                             {/* Theme Toggle */}
                             <Box sx={{ ml: 2, pl: 2, borderLeft: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
@@ -297,21 +220,34 @@ export function Navbar() {
                                     </Button>
                                 </>
                             ) : (
-                                <Button
-                                    variant="contained"
-                                    onClick={() => setIsLoginOpen(true)}
-                                    sx={{
-                                        borderRadius: 2.5,
-                                        px: 3,
-                                        fontWeight: 700,
-                                        boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.3)}`,
-                                        '&:hover': {
-                                            boxShadow: `0 0 30px ${alpha(theme.palette.primary.main, 0.5)}`
-                                        }
-                                    }}
-                                >
-                                    Get Started
-                                </Button>
+                                <>
+                                    <Button
+                                        onClick={() => openAuth('login')}
+                                        sx={{
+                                            color: 'text.primary',
+                                            fontWeight: 700,
+                                            fontSize: '0.9rem',
+                                            '&:hover': { color: 'primary.main', bgcolor: 'transparent' }
+                                        }}
+                                    >
+                                        Login
+                                    </Button>
+                                    <Button
+                                        variant="contained"
+                                        onClick={() => openAuth('register')}
+                                        sx={{
+                                            borderRadius: 2.5,
+                                            px: 3,
+                                            fontWeight: 700,
+                                            boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.3)}`,
+                                            '&:hover': {
+                                                boxShadow: `0 0 30px ${alpha(theme.palette.primary.main, 0.5)}`
+                                            }
+                                        }}
+                                    >
+                                        Get Started
+                                    </Button>
+                                </>
                             )}
                         </Box>
 
@@ -389,7 +325,7 @@ export function Navbar() {
                         variant="contained"
                         fullWidth
                         onClick={() => {
-                            setIsLoginOpen(true);
+                            openAuth('login');
                             setMobileOpen(false);
                         }}
                         sx={{ py: 1.5, fontWeight: 700 }}
@@ -399,93 +335,12 @@ export function Navbar() {
                 )}
             </Drawer>
 
-            {/* Login / Register Dialog */}
-            <Dialog
-                open={isLoginOpen}
-                onClose={() => setIsLoginOpen(false)}
-                PaperProps={{
-                    sx: {
-                        borderRadius: 4,
-                        width: '100%',
-                        maxWidth: 420,
-                        bgcolor: alpha(theme.palette.background.paper, 0.8),
-                        backdropFilter: 'blur(32px)',
-                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                        boxShadow: theme.shadows[24],
-                        backgroundImage: 'none'
-                    }
-                }}
-            >
-                <DialogTitle sx={{ textAlign: 'center', pt: 4, pb: 1, fontWeight: 900, letterSpacing: -0.5 }}>
-                    {isRegisterMode ? 'Create Your Vault' : 'Access Your Vault'}
-                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, mt: 1, px: 2 }}>
-                        {isRegisterMode
-                            ? 'Generate a new PQC identity. Your keys never leave this device.'
-                            : 'Enter your credentials to verify identity via Zero-Knowledge Proof.'}
-                    </Typography>
-                </DialogTitle>
-                <DialogContent sx={{ px: 4, pb: 2 }}>
-                    <Stack spacing={2.5} sx={{ mt: 2 }}>
-                        {isRegisterMode && (
-                            <TextField
-                                fullWidth
-                                label="Username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                InputProps={{
-                                    startAdornment: <InputAdornment position="start"><PersonIcon fontSize="small" /></InputAdornment>,
-                                }}
-                            />
-                        )}
-                        <TextField
-                            fullWidth
-                            label="Email Address"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            InputProps={{
-                                startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>,
-                            }}
-                        />
-                        <TextField
-                            fullWidth
-                            label="Encryption Password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            InputProps={{
-                                startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" /></InputAdornment>,
-                            }}
-                        />
-                        {error && (
-                            <Typography variant="caption" sx={{ color: 'error.main', textAlign: 'center', fontWeight: 600 }}>
-                                {error}
-                            </Typography>
-                        )}
-                    </Stack>
-                </DialogContent>
-                <DialogActions sx={{ flexDirection: 'column', gap: 1.5, px: 4, pb: 4 }}>
-                    <Button
-                        fullWidth
-                        variant="contained"
-                        disabled={loading}
-                        onClick={handleAuth}
-                        sx={{ py: 1.5, fontWeight: 700, borderRadius: 2.5 }}
-                    >
-                        {loading ? <CircularProgress size={24} color="inherit" /> : (isRegisterMode ? 'Generate Keys & Register' : 'Authenticate')}
-                    </Button>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {isRegisterMode ? 'Already have a vault?' : 'Need a secure vault?'}
-                        <Link
-                            component="button"
-                            onClick={toggleMode}
-                            sx={{ ml: 1, fontWeight: 700, textDecoration: 'none', color: 'primary.main' }}
-                        >
-                            {isRegisterMode ? 'Login here' : 'Register here'}
-                        </Link>
-                    </Typography>
-                </DialogActions>
-            </Dialog>
+            {/* Replaced Dialog with AuthDialog */}
+            <AuthDialog
+                open={isAuthOpen}
+                onClose={() => setIsAuthOpen(false)}
+                initialMode={authMode}
+            />
         </>
     );
 }

@@ -65,14 +65,7 @@ function formatFileSize(bytes: number): string {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-function truncateFileName(name: string, maxLength: number = 32): string {
-    if (!name) return 'Unknown File';
-    if (name.length <= maxLength) return name;
-    const ext = name.split('.').pop() || '';
-    const baseName = name.slice(0, name.length - ext.length - 1);
-    const truncatedBase = baseName.slice(0, Math.max(0, maxLength - ext.length - 4)) + '...';
-    return `${truncatedBase}.${ext}`;
-}
+
 
 // Get file icon and color based on extension
 function getFileIconInfo(fileName: string): { icon: React.ElementType; color: string } {
@@ -260,27 +253,27 @@ export function FilesPage() {
     const getGridSize = () => {
         switch (viewPreset) {
             case 'compact': return { xs: 6, sm: 4, md: 3, lg: 2 };
-            case 'comfort': return { xs: 12, sm: 12, md: 6, lg: 4 };
-            case 'detailed': return { xs: 12, sm: 12, md: 12, lg: 6 };
-            default: return { xs: 12, sm: 6, md: 4, lg: 3 }; // Standard
+            case 'comfort': return { xs: 12, sm: 6, md: 4, lg: 3 };
+            case 'detailed': return { xs: 12, sm: 12, md: 6, lg: 4 };
+            default: return { xs: 6, sm: 4, md: 3, lg: 2.4 }; // Standard (5 items per row on large)
         }
     };
 
     const getIconScaling = () => {
         switch (viewPreset) {
-            case 'compact': return { size: 40, padding: 1.5, badge: 14 };
-            case 'comfort': return { size: 72, padding: 2.5, badge: 20 };
-            case 'detailed': return { size: 96, padding: 3.5, badge: 24 };
-            default: return { size: 52, padding: 2, badge: 16 }; // Standard
+            case 'compact': return { size: 48, padding: 1.5, badge: 14 };
+            case 'comfort': return { size: 80, padding: 2.5, badge: 20 };
+            case 'detailed': return { size: 64, padding: 3.5, badge: 24 };
+            default: return { size: 64, padding: 2, badge: 18 }; // Standard
         }
     };
 
     const getTypographyScaling = () => {
         switch (viewPreset) {
-            case 'compact': return { name: 'caption', size: 10, mb: 0.25 };
-            case 'comfort': return { name: 'subtitle1', size: 24, mb: 1 };
-            case 'detailed': return { name: 'h6', size: 36, mb: 1.5 };
-            default: return { name: 'body2', size: 18, mb: 0.5 }; // Standard
+            case 'compact': return { name: 'caption', size: 11, mb: 0.5 };
+            case 'comfort': return { name: 'body1', size: 24, mb: 1 };
+            case 'detailed': return { name: 'h6', size: 30, mb: 1.5 };
+            default: return { name: 'body2', size: 16, mb: 1 }; // Standard
         }
     };
 
@@ -600,7 +593,7 @@ export function FilesPage() {
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>Try a different search term or upload a new file</Typography>
                 </Paper>
             ) : (
-                <Grid container spacing={viewPreset === 'compact' ? 2 : 3} onContextMenu={(e) => handleContextMenu(e, { type: 'empty' })}>
+                <Grid container spacing={2} onContextMenu={(e) => handleContextMenu(e, { type: 'empty' })}>
                     <AnimatePresence mode="popLayout">
                         {/* Folder Cards */}
                         {folders.map((folder) => {
@@ -611,57 +604,63 @@ export function FilesPage() {
                                 <Grid size={getGridSize()} key={`folder-${folder._id}`}>
                                     <motion.div
                                         layout
-                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
                                         transition={{ duration: 0.2 }}
-                                        style={{ height: '100%', width: '100%' }}
+                                        style={{ height: '100%' }}
                                     >
                                         <Paper
                                             variant="glass"
+                                            elevation={0}
                                             onDoubleClick={() => navigateToFolder(folder)}
                                             onContextMenu={(e) => handleContextMenu(e, { type: 'folder', id: folder._id })}
                                             sx={{
-                                                p: viewPreset === 'compact' ? 1.5 : 3,
+                                                p: 2,
                                                 position: 'relative',
                                                 cursor: 'pointer',
-                                                transition: 'all 0.3s ease',
-                                                borderRadius: '16px',
-                                                border: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
-                                                bgcolor: 'transparent',
+                                                borderRadius: '24px', // More rounded as requested
+                                                border: '1px solid transparent',
+                                                bgcolor: 'transparent', // Darker feel
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                height: '100%',
-                                                aspectRatio: '1 / 1',
-                                                overflow: 'hidden',
+                                                aspectRatio: '1/1',
+                                                transition: 'all 0.2s ease-in-out',
                                                 '&:hover': {
-                                                    transform: 'translateY(-4px)',
-                                                    borderColor: alpha(theme.palette.warning.main, 0.5),
-                                                    bgcolor: alpha(theme.palette.warning.main, 0.05),
-                                                    boxShadow: `0 12px 24px ${alpha(theme.palette.common.black, 0.4)}`
+                                                    bgcolor: alpha(theme.palette.background.paper, 0.1),
+                                                    borderColor: alpha(theme.palette.divider, 0.1),
+                                                    transform: 'scale(1.02)',
+                                                    boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.2)}`
                                                 }
                                             }}
                                         >
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 1, width: '100%' }}>
-                                                <Box sx={{ mb: typoScaling.mb }}>
-                                                    <FolderIcon sx={{ fontSize: iconScaling.size, color: theme.palette.warning.main }} />
-                                                </Box>
+                                            <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}>
+                                                <FolderIcon sx={{ fontSize: iconScaling.size, color: '#FFB300' }} />
                                             </Box>
-                                            <Box sx={{ textAlign: 'center', width: '100%', px: 1 }}>
-                                                <Typography
-                                                    variant={typoScaling.name as any}
-                                                    noWrap
-                                                    sx={{ fontWeight: 700, display: 'block', mb: 0.5, px: 0.5 }}
-                                                    title={folder.name}
-                                                >
-                                                    {folder.name}
-                                                </Typography>
-                                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: viewPreset === 'compact' ? '8px' : '10px', opacity: 0.8 }}>
-                                                    Folder
-                                                </Typography>
-                                            </Box>
+
+                                            <Typography
+                                                variant={typoScaling.name as any}
+                                                sx={{
+                                                    fontWeight: 700,
+                                                    color: 'text.primary',
+                                                    width: '100%',
+                                                    textAlign: 'center',
+                                                    px: 1,
+                                                    display: '-webkit-box',
+                                                    WebkitLineClamp: 2,
+                                                    WebkitBoxOrient: 'vertical',
+                                                    overflow: 'hidden',
+                                                    lineHeight: 1.2,
+                                                    wordBreak: 'break-word'
+                                                }}
+                                            >
+                                                {folder.name}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>
+                                                Folder
+                                            </Typography>
                                         </Paper>
                                     </motion.div>
                                 </Grid>
@@ -677,94 +676,112 @@ export function FilesPage() {
                                 <Grid size={getGridSize()} key={file._id}>
                                     <motion.div
                                         layout
-                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
                                         transition={{ duration: 0.2 }}
-                                        style={{ height: '100%', width: '100%' }}
+                                        style={{ height: '100%' }}
                                     >
                                         <Paper
                                             variant="glass"
+                                            elevation={0}
                                             onClick={() => toggleSelect(file._id)}
                                             onContextMenu={(e) => handleContextMenu(e, { type: 'file', id: file._id })}
                                             sx={{
-                                                p: viewPreset === 'compact' ? 1.5 : 3,
+                                                p: 2,
                                                 position: 'relative',
                                                 cursor: 'pointer',
-                                                transition: 'all 0.3s ease',
-                                                borderRadius: '16px',
-                                                border: selectedIds.has(file._id) ? `2px solid ${theme.palette.primary.main}` : `1px solid ${alpha(theme.palette.divider, 0.3)}`,
-                                                bgcolor: selectedIds.has(file._id) ? alpha(theme.palette.primary.main, 0.03) : 'transparent',
+                                                borderRadius: '24px',
+                                                border: selectedIds.has(file._id)
+                                                    ? `2px solid ${theme.palette.primary.main}`
+                                                    : '1px solid transparent',
+                                                bgcolor: selectedIds.has(file._id)
+                                                    ? alpha(theme.palette.primary.main, 0.1)
+                                                    : 'transparent',
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                height: '100%',
-                                                aspectRatio: '1 / 1',
-                                                overflow: 'hidden',
+                                                aspectRatio: '1/1',
+                                                transition: 'all 0.2s ease-in-out',
                                                 '&:hover': {
-                                                    transform: 'translateY(-4px)',
-                                                    borderColor: selectedIds.has(file._id) ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.3),
-                                                    bgcolor: alpha(theme.palette.common.white, 0.02),
-                                                    boxShadow: `0 12px 24px ${alpha(theme.palette.common.black, 0.4)}`
+                                                    bgcolor: selectedIds.has(file._id)
+                                                        ? alpha(theme.palette.primary.main, 0.15)
+                                                        : alpha(theme.palette.background.paper, 0.1),
+                                                    borderColor: selectedIds.has(file._id) ? theme.palette.primary.main : alpha(theme.palette.divider, 0.1),
+                                                    transform: 'scale(1.02)',
+                                                    boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.2)}`
                                                 }
                                             }}
                                         >
-                                            <Box sx={{ position: 'absolute', top: 8, left: 8 }}>
+                                            <Box sx={{ position: 'absolute', top: 12, left: 12, opacity: selectedIds.has(file._id) ? 1 : 0, transition: 'opacity 0.2s' }}>
                                                 <Checkbox
                                                     checked={selectedIds.has(file._id)}
-                                                    onClick={(e) => { e.stopPropagation(); toggleSelect(file._id); }}
                                                     size="small"
-                                                    sx={{ color: alpha(theme.palette.common.white, 0.05), '&.Mui-checked': { color: theme.palette.primary.main } }}
+                                                    sx={{ p: 0, color: theme.palette.primary.main }}
                                                 />
                                             </Box>
 
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 1, width: '100%' }}>
-                                                <Box sx={{ mb: typoScaling.mb }}>
-                                                    {(() => {
-                                                        const { icon: FileTypeIcon, color } = getFileIconInfo(file.originalFileName);
-                                                        return <FileTypeIcon sx={{ fontSize: iconScaling.size, color: color }} />;
-                                                    })()}
-                                                </Box>
+                                            <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}>
+                                                {(() => {
+                                                    const { icon: FileTypeIcon, color } = getFileIconInfo(file.originalFileName);
+                                                    return <FileTypeIcon sx={{ fontSize: iconScaling.size, color: color }} />;
+                                                })()}
                                             </Box>
 
-                                            <Box sx={{ textAlign: 'center', width: '100%', px: 1 }}>
-                                                <Typography
-                                                    variant={typoScaling.name as any}
-                                                    noWrap
-                                                    sx={{ fontWeight: 700, display: 'block', mb: 0.5, px: 0.5 }}
-                                                    title={file.originalFileName}
-                                                >
-                                                    {truncateFileName(file.originalFileName, typoScaling.size)}
-                                                </Typography>
-                                                <Typography variant="caption" noWrap sx={{ color: 'text.secondary', display: 'block', fontSize: viewPreset === 'compact' ? '8px' : '10px', opacity: 0.8 }}>
-                                                    {formatFileSize(file.fileSize)}
-                                                </Typography>
-                                            </Box>
+                                            <Typography
+                                                variant={typoScaling.name as any}
+                                                sx={{
+                                                    fontWeight: 700,
+                                                    color: 'text.primary',
+                                                    width: '100%',
+                                                    textAlign: 'center',
+                                                    px: 1,
+                                                    display: '-webkit-box',
+                                                    WebkitLineClamp: 2,
+                                                    WebkitBoxOrient: 'vertical',
+                                                    overflow: 'hidden',
+                                                    lineHeight: 1.2,
+                                                    wordBreak: 'break-word'
+                                                }}
+                                                title={file.originalFileName}
+                                            >
+                                                {file.originalFileName}
+                                            </Typography>
+
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7, mb: 1 }}>
+                                                {formatFileSize(file.fileSize)}
+                                            </Typography>
 
                                             <Stack
                                                 direction="row"
-                                                spacing={viewPreset === 'compact' ? 0.25 : 1}
+                                                spacing={1}
                                                 justifyContent="center"
                                                 onClick={e => e.stopPropagation()}
-                                                sx={{ mt: viewPreset === 'compact' ? 1 : 2 }}
                                             >
                                                 <IconButton
                                                     size="small"
                                                     onClick={() => handleDownload(file)}
                                                     disabled={downloadingId === file._id}
-                                                    sx={{ color: 'primary.main', p: viewPreset === 'compact' ? 0.4 : 0.8 }}
+                                                    sx={{
+                                                        color: '#29B6F6', // Blue for download
+                                                        p: 0.5,
+                                                        '&:hover': { bgcolor: alpha('#29B6F6', 0.1) }
+                                                    }}
                                                 >
-                                                    {downloadingId === file._id ? <CircularProgress size={iconScaling.badge} /> : <DownloadIcon sx={{ fontSize: iconScaling.badge + 4 }} />}
+                                                    {downloadingId === file._id ? <CircularProgress size={20} /> : <DownloadIcon fontSize="small" />}
                                                 </IconButton>
                                                 <IconButton
                                                     size="small"
-                                                    color="error"
                                                     onClick={() => handleDelete(file._id)}
                                                     disabled={deletingIds.has(file._id)}
-                                                    sx={{ p: viewPreset === 'compact' ? 0.4 : 0.8 }}
+                                                    sx={{
+                                                        color: '#EF5350', // Red for delete
+                                                        p: 0.5,
+                                                        '&:hover': { bgcolor: alpha('#EF5350', 0.1) }
+                                                    }}
                                                 >
-                                                    {deletingIds.has(file._id) ? <CircularProgress size={iconScaling.badge} /> : <TrashIcon sx={{ fontSize: iconScaling.badge + 4 }} />}
+                                                    {deletingIds.has(file._id) ? <CircularProgress size={20} /> : <TrashIcon fontSize="small" />}
                                                 </IconButton>
                                             </Stack>
                                         </Paper>
