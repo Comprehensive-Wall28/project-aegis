@@ -3,6 +3,8 @@ import { Landing } from '@/pages/Landing';
 import { Dashboard } from '@/pages/Dashboard';
 import { FilesPage } from '@/pages/FilesPage';
 import { GPAPage } from '@/pages/GPAPage';
+import { CalendarPage } from '@/pages/CalendarPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import { PqcLearn } from '@/pages/PqcLearn';
 import { NotFound } from '@/pages/NotFound';
 import { BackendDownPage } from '@/pages/BackendDown';
@@ -11,7 +13,8 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme';
 import { useThemeStore } from '@/stores/themeStore';
-import { useMemo } from 'react';
+import { useSessionStore } from '@/stores/sessionStore';
+import { useMemo, useEffect } from 'react';
 
 // Placeholder pages for future implementation
 
@@ -20,15 +23,6 @@ function ZKPVerifier() {
         <div className="glass-card border-white/10 rounded-lg p-8 text-center">
             <h2 className="text-2xl font-bold text-foreground mb-2">ZKP Verifier</h2>
             <p className="text-muted-foreground">Zero-Knowledge Proof verification interface coming soon...</p>
-        </div>
-    );
-}
-
-function SecuritySettings() {
-    return (
-        <div className="glass-card border-white/10 rounded-lg p-8 text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Security Settings</h2>
-            <p className="text-muted-foreground">PQC key management and security preferences coming soon...</p>
         </div>
     );
 }
@@ -71,8 +65,12 @@ const router = createBrowserRouter([
                 element: <ZKPVerifier />,
             },
             {
+                path: 'calendar',
+                element: <CalendarPage />,
+            },
+            {
                 path: 'security',
-                element: <SecuritySettings />,
+                element: <SettingsPage />,
             },
         ],
     },
@@ -89,8 +87,21 @@ export function AppRouter() {
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
+            <AppInitializer />
             <RouterProvider router={router} />
         </ThemeProvider>
     );
+}
+
+// Separate component to handle auth initialization
+
+function AppInitializer() {
+    const checkAuth = useSessionStore((state) => state.checkAuth);
+
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth]);
+
+    return null;
 }
 

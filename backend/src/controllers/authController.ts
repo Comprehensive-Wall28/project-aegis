@@ -3,6 +3,7 @@ import User from '../models/User';
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import logger from '../utils/logger';
+import { logAuditEvent } from '../utils/auditLogger';
 
 const generateToken = (id: string, username: string) => {
     return jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
@@ -38,6 +39,16 @@ export const registerUser = async (req: Request, res: Response) => {
 
         if (user) {
             logger.info(`User registered: ${user._id}`);
+
+            // Log successful registration
+            await logAuditEvent(
+                user._id.toString(),
+                'REGISTER',
+                'SUCCESS',
+                req,
+                { username: user.username, email: user.email }
+            );
+
             res.status(201).json({
                 _id: user._id,
                 username: user.username,
@@ -79,11 +90,21 @@ export const loginUser = async (req: Request, res: Response) => {
 
             logger.info(`User logged in: ${user.email}`);
 
+            // Log successful login
+            await logAuditEvent(
+                user._id.toString(),
+                'LOGIN',
+                'SUCCESS',
+                req,
+                { email: user.email, userAgent: req.headers['user-agent'] }
+            );
+
             res.json({
                 _id: user._id,
                 username: user.username,
                 email: user.email,
                 pqcPublicKey: user.pqcPublicKey,
+                preferences: user.preferences || { sessionTimeout: 60, encryptionLevel: 'STANDARD' },
                 message: 'Login successful',
             });
         } else {
@@ -118,7 +139,8 @@ export const getMe = async (req: AuthRequest, res: Response) => {
             _id: user._id,
             username: user.username,
             email: user.email,
-            pqcPublicKey: user.pqcPublicKey
+            pqcPublicKey: user.pqcPublicKey,
+            preferences: user.preferences || { sessionTimeout: 60, encryptionLevel: 'STANDARD' }
         });
     } catch (error) {
         console.error(error);
@@ -126,8 +148,133 @@ export const getMe = async (req: AuthRequest, res: Response) => {
     }
 };
 
-export const logoutUser = async (_req: Request, res: Response) => {
+export const updateMe = async (req: AuthRequest, res: Response) => {
     try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { username, email, preferences } = req.body;
+        const updateFields: { username?: string; email?: string; preferences?: { sessionTimeout?: number; encryptionLevel?: string } } = {};
+
+        // Validate and sanitize inputs
+        if (username !== undefined) {
+            const sanitizedUsername = String(username).trim();
+            if (sanitizedUsername.length < 3) {
+                return res.status(400).json({ message: 'Username must be at least 3 characters' });
+            }
+            // Check if username is taken by another user
+            const existingUser = await User.findOne({
+                username: sanitizedUsername,
+                _id: { $ne: req.user.id }
+            });
+            if (existingUser) {
+                logger.warn(`Profile update failed: username ${sanitizedUsername} already taken`);
+                return res.status(400).json({ message: 'Username already taken' });
+            }
+            updateFields.username = sanitizedUsername;
+        }
+
+        if (email !== undefined) {
+            const sanitizedEmail = String(email).trim().toLowerCase();
+            // Improved email regex to avoid ReDoS and added length limit
+            if (sanitizedEmail.length > 254) {
+                return res.status(400).json({ message: 'Email too long' });
+            }
+            const emailRegex = /^[^\s@]+@[^@\s.]+(\.[^@\s.]+)+$/;
+            if (!emailRegex.test(sanitizedEmail)) {
+                return res.status(400).json({ message: 'Invalid email format' });
+            }
+            // Check if email is taken by another user
+            const existingUser = await User.findOne({
+                email: sanitizedEmail,
+                _id: { $ne: req.user.id }
+            });
+            if (existingUser) {
+                logger.warn(`Profile update failed: email ${sanitizedEmail} already taken`);
+                return res.status(400).json({ message: 'Email already taken' });
+            }
+            updateFields.email = sanitizedEmail;
+        }
+
+        // Handle preferences updates
+        if (preferences !== undefined && typeof preferences === 'object') {
+            updateFields.preferences = {};
+
+            if (preferences.sessionTimeout !== undefined) {
+                const timeout = Number(preferences.sessionTimeout);
+                if (isNaN(timeout) || timeout < 5 || timeout > 480) {
+                    return res.status(400).json({ message: 'Session timeout must be between 5 and 480 minutes' });
+                }
+                updateFields.preferences.sessionTimeout = timeout;
+            }
+
+            if (preferences.encryptionLevel !== undefined) {
+                const validLevels = ['STANDARD', 'HIGH', 'PARANOID'];
+                const level = String(preferences.encryptionLevel).toUpperCase();
+                if (!validLevels.includes(level)) {
+                    return res.status(400).json({ message: 'Invalid encryption level' });
+                }
+                updateFields.preferences.encryptionLevel = level;
+            }
+
+            // Remove empty preferences object if no valid preferences were provided
+            if (Object.keys(updateFields.preferences).length === 0) {
+                delete updateFields.preferences;
+            }
+        }
+
+        if (Object.keys(updateFields).length === 0) {
+            return res.status(400).json({ message: 'No valid fields to update' });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id,
+            { $set: updateFields },
+            { new: true, runValidators: true }
+        ).select('-passwordHash');
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        logger.info(`Profile updated for user: ${updatedUser._id}`);
+
+        // Log profile update
+        await logAuditEvent(
+            req.user.id,
+            'PROFILE_UPDATE',
+            'SUCCESS',
+            req,
+            { updatedFields: Object.keys(updateFields) }
+        );
+
+        res.json({
+            _id: updatedUser._id,
+            username: updatedUser.username,
+            email: updatedUser.email,
+            pqcPublicKey: updatedUser.pqcPublicKey,
+            preferences: updatedUser.preferences || { sessionTimeout: 60, encryptionLevel: 'STANDARD' }
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const logoutUser = async (req: AuthRequest, res: Response) => {
+    try {
+        // Log logout before clearing cookie
+        if (req.user) {
+            await logAuditEvent(
+                req.user.id,
+                'LOGOUT',
+                'SUCCESS',
+                req,
+                {}
+            );
+        }
+
         res.cookie('token', '', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',

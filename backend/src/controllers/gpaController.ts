@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Course from '../models/Course';
 import User from '../models/User';
 import logger from '../utils/logger';
+import { logAuditEvent } from '../utils/auditLogger';
 
 interface AuthRequest extends Request {
     user?: { id: string; username: string };
@@ -17,7 +18,9 @@ export const getCourses = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const courses = await Course.find({ userId: req.user.id }).sort({ createdAt: -1 });
+        const courses = await Course.find({
+            userId: { $eq: req.user.id }
+        }).sort({ createdAt: -1 });
         res.status(200).json(courses);
     } catch (error) {
         logger.error('Error fetching courses:', error);
@@ -51,6 +54,16 @@ export const createCourse = async (req: AuthRequest, res: Response) => {
         });
 
         logger.info(`Encrypted course created for user ${req.user.id}`);
+
+        // Log course creation
+        await logAuditEvent(
+            req.user.id,
+            'COURSE_CREATE',
+            'SUCCESS',
+            req,
+            { courseId: course._id.toString() }
+        );
+
         res.status(201).json(course);
     } catch (error) {
         logger.error('Error creating course:', error);
@@ -69,12 +82,25 @@ export const deleteCourse = async (req: AuthRequest, res: Response) => {
 
         const { id } = req.params;
 
-        const course = await Course.findOneAndDelete({ _id: id, userId: req.user.id });
+        const course = await Course.findOneAndDelete({
+            _id: { $eq: id },
+            userId: { $eq: req.user.id }
+        });
         if (!course) {
             return res.status(404).json({ message: 'Course not found' });
         }
 
         logger.info(`Course deleted for user ${req.user.id}`);
+
+        // Log course deletion
+        await logAuditEvent(
+            req.user.id,
+            'COURSE_DELETE',
+            'SUCCESS',
+            req,
+            { courseId: id }
+        );
+
         res.status(200).json({ message: 'Course deleted successfully' });
     } catch (error) {
         logger.error('Error deleting course:', error);
@@ -110,6 +136,16 @@ export const updatePreferences = async (req: AuthRequest, res: Response) => {
         }
 
         logger.info(`GPA system preference updated for user ${req.user.id}: ${normalizedGpaSystem}`);
+
+        // Log preferences update
+        await logAuditEvent(
+            req.user.id,
+            'PREFERENCES_UPDATE',
+            'SUCCESS',
+            req,
+            { gpaSystem: normalizedGpaSystem }
+        );
+
         res.status(200).json({ gpaSystem: user.gpaSystem });
     } catch (error) {
         logger.error('Error updating preferences:', error);
@@ -181,14 +217,17 @@ export const migrateCourse = async (req: AuthRequest, res: Response) => {
         }
 
         // Find the course and verify ownership
-        const course = await Course.findOne({ _id: id, userId: req.user.id });
+        const course = await Course.findOne({
+            _id: { $eq: id },
+            userId: { $eq: req.user.id }
+        });
         if (!course) {
             return res.status(404).json({ message: 'Course not found' });
         }
 
         // Update with encrypted data and remove plaintext fields
-        const updatedCourse = await Course.findByIdAndUpdate(
-            id,
+        const updatedCourse = await Course.findOneAndUpdate(
+            { _id: { $eq: id }, userId: { $eq: req.user.id } },
             {
                 $set: {
                     encryptedData,

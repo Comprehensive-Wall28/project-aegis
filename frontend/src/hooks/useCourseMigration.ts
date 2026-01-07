@@ -26,6 +26,7 @@ export const useCourseMigration = () => {
     });
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
     const { encryptCourseData } = useCourseEncryption();
+    const setCryptoStatus = useSessionStore((state) => state.setCryptoStatus);
 
     /**
      * Check if there are unmigrated courses that need encryption.
@@ -59,6 +60,7 @@ export const useCourseMigration = () => {
         let failed = 0;
 
         try {
+            setCryptoStatus('processing');
             // Fetch all unmigrated courses
             const unmigratedCourses = await gpaService.getUnmigratedCourses();
 
@@ -118,8 +120,10 @@ export const useCourseMigration = () => {
                 failed,
                 errors: [`Migration failed: ${error.message}`],
             };
+        } finally {
+            setCryptoStatus('idle');
         }
-    }, [pqcEngineStatus, encryptCourseData]);
+    }, [pqcEngineStatus, encryptCourseData, setCryptoStatus]);
 
     return {
         progress,
