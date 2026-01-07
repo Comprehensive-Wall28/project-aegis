@@ -73,7 +73,9 @@ export function SystemStatusBar() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                 <Typography variant="caption" sx={{ fontSize: '11px', fontWeight: 500 }}>System Health</Typography>
                 <Typography variant="caption" sx={{ opacity: 0.2 }}>•</Typography>
-                <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', fontWeight: 600, color: alpha(theme.palette.text.primary, 0.5), fontSize: '10px' }}>v1.0.0</Typography>
+                <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', fontWeight: 600, color: alpha(theme.palette.text.primary, 0.5), fontSize: '10px' }}>
+                    v{import.meta.env.VITE_APP_VERSION || '0.0.0'}
+                </Typography>
             </Box>
 
             {/* Right: PQC Engine Status */}

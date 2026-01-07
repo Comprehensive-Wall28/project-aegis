@@ -1,7 +1,7 @@
 import { VaultQuickView } from '@/components/dashboard/widgets/VaultQuickView';
 import { GPASnapshot } from '@/components/dashboard/widgets/GPASnapshot';
-import { Activity, Zap, Lock, ArrowUpRight } from 'lucide-react';
-import { Box, Grid, Typography, Paper, useTheme, alpha, IconButton } from '@mui/material';
+import { Zap, Lock, ArrowUpRight } from 'lucide-react';
+import { Box, Grid, Typography, Paper, useTheme, alpha } from '@mui/material';
 import { motion } from 'framer-motion';
 
 export function Dashboard() {
@@ -71,32 +71,99 @@ export function Dashboard() {
                             </Box>
                         </Grid>
 
-                        {/* Live Metrics */}
+                        {/* Quick Actions Panel */}
                         <Grid size={12} sx={{ flex: 1 }}>
                             <Box component={motion.div} variants={itemVariants} sx={{ height: '100%' }}>
-                                <Paper sx={{ ...sharedPaperStyles, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                                        <Typography variant="subtitle2" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-                                            <Activity size={16} /> SYSTEM ACTIVITY
+                                <Paper sx={{ ...sharedPaperStyles, p: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                                    <Box sx={{ px: 0.5 }}>
+                                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', letterSpacing: '0.1em', fontSize: '10px' }}>
+                                            QUICK ACTIONS
                                         </Typography>
-                                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#10b981', boxShadow: '0 0 8px #10b981' }} />
                                     </Box>
 
                                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', p: 1.5, borderRadius: '12px', bgcolor: alpha(theme.palette.common.white, 0.02) }}>
-                                            <Box>
-                                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>Encryptions Today</Typography>
-                                                <Typography variant="h5" sx={{ fontWeight: 600, fontFamily: 'JetBrains Mono' }}>0</Typography>
+                                        {/* Quick Encrypt */}
+                                        <Box
+                                            component={motion.div}
+                                            whileHover={{ x: 4 }}
+                                            sx={{
+                                                p: 2,
+                                                borderRadius: '16px',
+                                                bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                                border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 2,
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.12),
+                                                    borderColor: alpha(theme.palette.primary.main, 0.4),
+                                                    boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.1)}`
+                                                }
+                                            }}
+                                        >
+                                            <Box
+                                                sx={{
+                                                    width: 40,
+                                                    height: 40,
+                                                    borderRadius: '12px',
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: theme.palette.primary.main
+                                                }}
+                                            >
+                                                <Zap size={20} />
                                             </Box>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'JetBrains Mono' }}>OPS</Typography>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>Quick Encrypt</Typography>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '10px' }}>Protect with ML-KEM</Typography>
+                                            </Box>
+                                            <ArrowUpRight size={16} style={{ opacity: 0.3 }} />
                                         </Box>
 
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: '12px', bgcolor: alpha(theme.palette.common.white, 0.02) }}>
-                                            <Box>
-                                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Integrity Monitor</Typography>
-                                                <Typography variant="body2" sx={{ fontWeight: 600, color: '#10b981' }}>Active & Secure</Typography>
+                                        {/* Key Rotation */}
+                                        <Box
+                                            component={motion.div}
+                                            whileHover={{ x: 4 }}
+                                            sx={{
+                                                p: 2,
+                                                borderRadius: '16px',
+                                                bgcolor: alpha('#8b5cf6', 0.08),
+                                                border: `1px solid ${alpha('#8b5cf6', 0.15)}`,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 2,
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                    bgcolor: alpha('#8b5cf6', 0.12),
+                                                    borderColor: alpha('#8b5cf6', 0.4),
+                                                    boxShadow: `0 4px 12px ${alpha('#8b5cf6', 0.1)}`
+                                                }
+                                            }}
+                                        >
+                                            <Box
+                                                sx={{
+                                                    width: 40,
+                                                    height: 40,
+                                                    borderRadius: '12px',
+                                                    bgcolor: alpha('#8b5cf6', 0.1),
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: '#a78bfa'
+                                                }}
+                                            >
+                                                <Lock size={20} />
                                             </Box>
-                                            <Activity size={18} color="#10b981" />
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>Key Rotation</Typography>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '10px' }}>Rotate PQC Keys</Typography>
+                                            </Box>
+                                            <ArrowUpRight size={16} style={{ opacity: 0.3 }} />
                                         </Box>
                                     </Box>
                                 </Paper>
@@ -105,120 +172,6 @@ export function Dashboard() {
                     </Grid>
                 </Grid>
 
-                {/* 3. Action Cards Row */}
-                <Grid size={{ xs: 12, md: 6 }}>
-                    <Box component={motion.div} variants={itemVariants}>
-                        <Paper
-                            sx={{
-                                ...sharedPaperStyles,
-                                p: 0, // Reset padding for custom internal layout
-                                display: 'flex',
-                                alignItems: 'center',
-                                position: 'relative',
-                                cursor: 'pointer',
-                                height: 100,
-                                '&:hover .icon-box': {
-                                    transform: 'scale(1.1) rotate(5deg)',
-                                    bgcolor: alpha(theme.palette.primary.main, 0.2)
-                                },
-                                '&:hover .arrow-icon': {
-                                    transform: 'translate(2px, -2px)',
-                                    opacity: 1
-                                }
-                            }}
-                        >
-                            <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 3, width: '100%' }}>
-                                <Box
-                                    className="icon-box"
-                                    sx={{
-                                        width: 56,
-                                        height: 56,
-                                        borderRadius: '16px',
-                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                                        color: theme.palette.primary.main
-                                    }}
-                                >
-                                    <Zap size={28} />
-                                </Box>
-                                <Box sx={{ flex: 1 }}>
-                                    <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>Quick Encrypt</Typography>
-                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>Drag & drop to protect with ML-KEM</Typography>
-                                </Box>
-                                <IconButton
-                                    className="arrow-icon"
-                                    sx={{
-                                        opacity: 0.5,
-                                        transition: 'all 0.3s ease',
-                                        color: 'text.primary'
-                                    }}
-                                >
-                                    <ArrowUpRight size={24} />
-                                </IconButton>
-                            </Box>
-                        </Paper>
-                    </Box>
-                </Grid>
-
-                <Grid size={{ xs: 12, md: 6 }}>
-                    <Box component={motion.div} variants={itemVariants}>
-                        <Paper
-                            sx={{
-                                ...sharedPaperStyles,
-                                p: 0,
-                                display: 'flex',
-                                alignItems: 'center',
-                                position: 'relative',
-                                cursor: 'pointer',
-                                height: 100,
-                                '&:hover .icon-box': {
-                                    transform: 'scale(1.1) rotate(-5deg)',
-                                    bgcolor: alpha('#a78bfa', 0.2)
-                                },
-                                '&:hover .arrow-icon': {
-                                    transform: 'translate(2px, -2px)',
-                                    opacity: 1
-                                }
-                            }}
-                        >
-                            <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 3, width: '100%' }}>
-                                <Box
-                                    className="icon-box"
-                                    sx={{
-                                        width: 56,
-                                        height: 56,
-                                        borderRadius: '16px',
-                                        bgcolor: alpha('#8b5cf6', 0.1),
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                                        color: '#a78bfa'
-                                    }}
-                                >
-                                    <Lock size={28} />
-                                </Box>
-                                <Box sx={{ flex: 1 }}>
-                                    <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>Key Rotation</Typography>
-                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>Manage your post-quantum keys</Typography>
-                                </Box>
-                                <IconButton
-                                    className="arrow-icon"
-                                    sx={{
-                                        opacity: 0.5,
-                                        transition: 'all 0.3s ease',
-                                        color: 'text.primary'
-                                    }}
-                                >
-                                    <ArrowUpRight size={24} />
-                                </IconButton>
-                            </Box>
-                        </Paper>
-                    </Box>
-                </Grid>
             </Grid>
         </Box>
     );
