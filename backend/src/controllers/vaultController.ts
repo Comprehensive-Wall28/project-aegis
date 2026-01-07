@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import FileMetadata from '../models/FileMetadata';
 import { initiateUpload, appendChunk, finalizeUpload, getFileStream } from '../services/gridfsService';
 import logger from '../utils/logger';
+import { logAuditEvent } from '../utils/auditLogger';
 
 interface AuthRequest extends Request {
     user?: any;
@@ -39,6 +40,20 @@ export const uploadInit = async (req: AuthRequest, res: Response) => {
         });
 
         logger.info(`Vault upload initiated: ${originalFileName} by User ${req.user.id}`);
+
+        // Log file upload initiation
+        await logAuditEvent(
+            req.user.id,
+            'FILE_UPLOAD',
+            'SUCCESS',
+            req,
+            {
+                fileName: originalFileName,
+                fileSize,
+                mimeType,
+                fileId: fileRecord._id.toString()
+            }
+        );
 
         res.status(200).json({
             fileId: fileRecord._id
@@ -208,6 +223,19 @@ export const deleteUserFile = async (req: AuthRequest, res: Response) => {
         await FileMetadata.deleteOne({ _id: fileId });
 
         logger.info(`Vault file deleted: ${fileRecord.fileName} (${fileId}) by User ${req.user.id}`);
+
+        // Log file deletion
+        await logAuditEvent(
+            req.user.id,
+            'FILE_DELETE',
+            'SUCCESS',
+            req,
+            {
+                fileName: fileRecord.originalFileName,
+                fileId: fileId
+            }
+        );
+
         res.status(200).json({ message: 'File deleted successfully' });
 
     } catch (error) {

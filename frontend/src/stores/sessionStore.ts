@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { AuditLog } from '@/services/auditService';
 
 export interface UserPreferences {
     sessionTimeout: number; // minutes
@@ -21,6 +22,8 @@ interface SessionState {
     pqcEngineStatus: 'operational' | 'initializing' | 'error';
     // Ephemeral session keys - stored only in memory
     sessionKey: string | null;
+    // Recent activity for dashboard widget
+    recentActivity: AuditLog[];
 
     // Actions
     setUser: (user: User) => void;
@@ -30,6 +33,8 @@ interface SessionState {
     initializeQuantumKeys: (seed?: Uint8Array) => void;
     checkAuth: () => Promise<void>;
     updateUser: (updates: Partial<Pick<User, 'username' | 'email'>>) => void;
+    setRecentActivity: (logs: AuditLog[]) => void;
+    fetchRecentActivity: () => Promise<void>;
 }
 
 // Module-level flag to prevent concurrent auth checks
@@ -41,6 +46,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     isAuthChecking: true,
     pqcEngineStatus: 'initializing',
     sessionKey: null,
+    recentActivity: [],
 
     setUser: (user) => {
         set({
@@ -60,7 +66,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         user: null,
         isAuthenticated: false,
         sessionKey: null,
-        pqcEngineStatus: 'initializing'
+        pqcEngineStatus: 'initializing',
+        recentActivity: []
     }),
 
     setPqcEngineStatus: (status) => set({ pqcEngineStatus: status }),
@@ -185,6 +192,21 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             });
         } finally {
             authCheckInProgress = false;
+        }
+    },
+
+    setRecentActivity: (logs) => set({ recentActivity: logs }),
+
+    fetchRecentActivity: async () => {
+        const currentState = get();
+        if (!currentState.isAuthenticated) return;
+
+        try {
+            const { default: auditService } = await import('../services/auditService');
+            const logs = await auditService.getRecentActivity();
+            set({ recentActivity: logs });
+        } catch (error) {
+            console.error('Failed to fetch recent activity:', error);
         }
     }
 }));

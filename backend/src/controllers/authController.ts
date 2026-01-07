@@ -3,6 +3,7 @@ import User from '../models/User';
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import logger from '../utils/logger';
+import { logAuditEvent } from '../utils/auditLogger';
 
 const generateToken = (id: string, username: string) => {
     return jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
@@ -38,6 +39,16 @@ export const registerUser = async (req: Request, res: Response) => {
 
         if (user) {
             logger.info(`User registered: ${user._id}`);
+
+            // Log successful registration
+            await logAuditEvent(
+                user._id.toString(),
+                'REGISTER',
+                'SUCCESS',
+                req,
+                { username: user.username, email: user.email }
+            );
+
             res.status(201).json({
                 _id: user._id,
                 username: user.username,
@@ -78,6 +89,15 @@ export const loginUser = async (req: Request, res: Response) => {
             } as any);
 
             logger.info(`User logged in: ${user.email}`);
+
+            // Log successful login
+            await logAuditEvent(
+                user._id.toString(),
+                'LOGIN',
+                'SUCCESS',
+                req,
+                { email: user.email, userAgent: req.headers['user-agent'] }
+            );
 
             res.json({
                 _id: user._id,
@@ -216,6 +236,16 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
         }
 
         logger.info(`Profile updated for user: ${updatedUser._id}`);
+
+        // Log profile update
+        await logAuditEvent(
+            req.user.id,
+            'PROFILE_UPDATE',
+            'SUCCESS',
+            req,
+            { updatedFields: Object.keys(updateFields) }
+        );
+
         res.json({
             _id: updatedUser._id,
             username: updatedUser.username,
@@ -229,8 +259,19 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
     }
 };
 
-export const logoutUser = async (_req: Request, res: Response) => {
+export const logoutUser = async (req: AuthRequest, res: Response) => {
     try {
+        // Log logout before clearing cookie
+        if (req.user) {
+            await logAuditEvent(
+                req.user.id,
+                'LOGOUT',
+                'SUCCESS',
+                req,
+                {}
+            );
+        }
+
         res.cookie('token', '', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Course from '../models/Course';
 import User from '../models/User';
 import logger from '../utils/logger';
+import { logAuditEvent } from '../utils/auditLogger';
 
 interface AuthRequest extends Request {
     user?: { id: string; username: string };
@@ -51,6 +52,16 @@ export const createCourse = async (req: AuthRequest, res: Response) => {
         });
 
         logger.info(`Encrypted course created for user ${req.user.id}`);
+
+        // Log course creation
+        await logAuditEvent(
+            req.user.id,
+            'COURSE_CREATE',
+            'SUCCESS',
+            req,
+            { courseId: course._id.toString() }
+        );
+
         res.status(201).json(course);
     } catch (error) {
         logger.error('Error creating course:', error);
@@ -75,6 +86,16 @@ export const deleteCourse = async (req: AuthRequest, res: Response) => {
         }
 
         logger.info(`Course deleted for user ${req.user.id}`);
+
+        // Log course deletion
+        await logAuditEvent(
+            req.user.id,
+            'COURSE_DELETE',
+            'SUCCESS',
+            req,
+            { courseId: id }
+        );
+
         res.status(200).json({ message: 'Course deleted successfully' });
     } catch (error) {
         logger.error('Error deleting course:', error);
@@ -110,6 +131,16 @@ export const updatePreferences = async (req: AuthRequest, res: Response) => {
         }
 
         logger.info(`GPA system preference updated for user ${req.user.id}: ${normalizedGpaSystem}`);
+
+        // Log preferences update
+        await logAuditEvent(
+            req.user.id,
+            'PREFERENCES_UPDATE',
+            'SUCCESS',
+            req,
+            { gpaSystem: normalizedGpaSystem }
+        );
+
         res.status(200).json({ gpaSystem: user.gpaSystem });
     } catch (error) {
         logger.error('Error updating preferences:', error);
