@@ -4,6 +4,7 @@ import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 import { useSessionStore } from '../stores/sessionStore';
 import axios from 'axios';
 
+
 // Constants
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks (safe for browser memory)
 
@@ -133,6 +134,7 @@ export const useVaultUpload = () => {
             const totalEncryptedSize = file.size + (totalChunks * overheadPerChunk);
 
             // Send Init
+
             const initResponse = await axios.post('/api/vault/upload-init', {
                 fileName: encryptedFileName,
                 originalFileName: file.name, // Original filename for display
@@ -142,7 +144,8 @@ export const useVaultUpload = () => {
                 mimeType: file.type || 'application/octet-stream'
             }, {
                 baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
-                withCredentials: true
+                withCredentials: true,
+                headers: {}
             });
 
             const { fileId } = initResponse.data;

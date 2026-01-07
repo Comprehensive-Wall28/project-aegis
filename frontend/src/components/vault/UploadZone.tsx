@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import { Upload, FileLock, ShieldCheck } from 'lucide-react';
+import { CloudUpload as UploadIcon, Lock as FileLockIcon, GppGood as ShieldCheckIcon } from '@mui/icons-material';
+import { Box, Typography, Paper, LinearProgress, alpha, useTheme } from '@mui/material';
 import { useVaultUpload } from '../../hooks/useVaultUpload';
-import { useSessionStore } from '../../stores/sessionStore';
+
 
 interface UploadZoneProps {
     onUploadComplete?: () => void;
@@ -9,15 +10,11 @@ interface UploadZoneProps {
 
 const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete }) => {
     const { uploadFile, state } = useVaultUpload();
-    const { user, initializeQuantumKeys } = useSessionStore();
-    const [isDragging, setIsDragging] = useState(false);
 
-    // Auto-init keys if missing
-    React.useEffect(() => {
-        if (user && !user.publicKey) {
-            initializeQuantumKeys();
-        }
-    }, [user, initializeQuantumKeys]);
+    const [isDragging, setIsDragging] = useState(false);
+    const theme = useTheme();
+
+
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -48,75 +45,121 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete }) => {
         }
     }, [uploadFile, onUploadComplete]);
 
+    const isActive = state.status !== 'idle' && state.status !== 'completed' && state.status !== 'error';
+
     return (
-        <div className="w-full">
-            <div
+        <Box sx={{ width: '100%' }}>
+            <Paper
+                variant="glass"
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`
-                    relative rounded-2xl border-2 border-dashed p-8 transition-all duration-300
-                    flex flex-col items-center justify-center gap-4 group cursor-pointer
-                    ${isDragging
-                        ? 'border-[oklch(75%_0.15_200)] bg-[oklch(75%_0.15_200)]/10 shadow-[0_0_20px_oklch(75%_0.15_200)]'
-                        : 'border-white/10 hover:border-white/20 hover:bg-white/5'}
-                `}
+                sx={{
+                    position: 'relative',
+                    p: 6,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 2,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    borderStyle: 'dashed',
+                    borderWidth: 2,
+                    borderColor: isDragging ? 'primary.main' : 'divider',
+                    bgcolor: isDragging ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                    boxShadow: isDragging ? `0 0 20px ${alpha(theme.palette.primary.main, 0.3)}` : 'none',
+                    '&:hover': {
+                        borderColor: alpha(theme.palette.text.primary, 0.2),
+                        bgcolor: alpha(theme.palette.text.primary, 0.03),
+                    },
+                }}
             >
                 {/* User Input Trigger */}
                 <input
                     type="file"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        opacity: 0,
+                        cursor: 'pointer',
+                    }}
                     onChange={handleFileSelect}
-                    disabled={state.status !== 'idle' && state.status !== 'completed' && state.status !== 'error'}
+                    disabled={isActive}
                 />
 
                 {/* Icons & Status */}
-                <div className="relative">
+                <Box sx={{ position: 'relative' }}>
                     {state.status === 'completed' ? (
-                        <div className="flex flex-col items-center animate-in zoom-in duration-300 text-emerald-400">
-                            <ShieldCheck className="w-12 h-12" />
-                            <span className="mt-2 font-mono text-sm tracking-widest text-emerald-400">SECURE_VAULT_CONFIRMED</span>
-                        </div>
-                    ) : (state.status === 'error') ? (
-                        <div className="text-red-400 flex flex-col items-center">
-                            <FileLock className="w-12 h-12" />
-                            <span className="mt-2 font-mono text-sm tracking-widest">UPLOAD_FAIL</span>
-                        </div>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'success.main' }}>
+                            <ShieldCheckIcon sx={{ fontSize: 48 }} />
+                            <Typography variant="caption" sx={{ mt: 1, fontFamily: 'JetBrains Mono', letterSpacing: 1.5 }}>
+                                SECURE_VAULT_CONFIRMED
+                            </Typography>
+                        </Box>
+                    ) : state.status === 'error' ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'error.main' }}>
+                            <FileLockIcon sx={{ fontSize: 48 }} />
+                            <Typography variant="caption" sx={{ mt: 1, fontFamily: 'JetBrains Mono', letterSpacing: 1.5 }}>
+                                UPLOAD_FAIL
+                            </Typography>
+                        </Box>
                     ) : (
-                        <div className={`p-4 rounded-full bg-zinc-900 border border-white/5 shadow-2xl transition-transform duration-300 ${isDragging ? 'scale-110' : ''}`}>
-                            <Upload className={`w-8 h-8 ${isDragging ? 'text-[oklch(75%_0.15_200)]' : 'text-zinc-600'}`} />
-                        </div>
+                        <Box
+                            sx={{
+                                p: 2,
+                                borderRadius: '50%',
+                                bgcolor: alpha(theme.palette.background.paper, 0.8),
+                                border: `1px solid ${theme.palette.divider}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'transform 0.3s',
+                                transform: isDragging ? 'scale(1.1)' : 'scale(1)',
+                            }}
+                        >
+                            <UploadIcon sx={{ fontSize: 32, color: isDragging ? 'primary.main' : 'text.secondary' }} />
+                        </Box>
                     )}
-                </div>
+                </Box>
 
                 {/* Text Feedback */}
-                <div className="text-center space-y-1">
-                    <h3 className="text-lg font-medium text-white/80">
+                <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                         {state.status === 'idle' && 'Drop sensitive files here'}
                         {state.status === 'encrypting' && 'Encrypting (AES-GCM/ML-KEM)...'}
                         {state.status === 'uploading' && 'Streaming to Secure Vault...'}
                         {state.status === 'verifying' && 'Verifying Integrity...'}
                         {state.status === 'completed' && 'File Secured'}
                         {state.status === 'error' && 'Failed to Secure File'}
-                    </h3>
-                    <p className="text-xs text-zinc-500 font-mono">
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontFamily: 'JetBrains Mono', mt: 0.5 }}>
                         {state.status === 'idle' && 'End-to-end Encrypted • Quantum-Safe'}
                         {state.status === 'error' && state.error}
-                        {state.status !== 'idle' && state.status !== 'error' && `${state.progress}%`}
-                    </p>
-                </div>
+                        {isActive && `${state.progress}%`}
+                    </Typography>
+                </Box>
 
                 {/* Progress Bar (Visible during active states) */}
-                {state.status !== 'idle' && state.status !== 'completed' && state.status !== 'error' && (
-                    <div className="absolute bottom-0 left-0 w-full h-1 bg-zinc-800 rounded-b-2xl overflow-hidden">
-                        <div
-                            className="h-full bg-[oklch(75%_0.15_200)] transition-all duration-300 shadow-[0_0_10px_oklch(75%_0.15_200)]"
-                            style={{ width: `${state.progress}%` }}
+                {isActive && (
+                    <Box sx={{ position: 'absolute', bottom: 0, left: 0, width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}>
+                        <LinearProgress
+                            variant="determinate"
+                            value={state.progress}
+                            sx={{
+                                height: 4,
+                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                '& .MuiLinearProgress-bar': {
+                                    boxShadow: `0 0 10px ${theme.palette.primary.main}`,
+                                },
+                            }}
                         />
-                    </div>
+                    </Box>
                 )}
-            </div>
-        </div>
+            </Paper>
+        </Box>
     );
 };
 

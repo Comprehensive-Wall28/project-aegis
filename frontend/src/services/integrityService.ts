@@ -1,15 +1,9 @@
-import axios from 'axios';
+import apiClient from './api';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const API_URL = `${BASE_URL.replace(/\/$/, '')}/api/integrity`;
+const PREFIX = '/integrity';
 
-const apiClient = axios.create({
-    baseURL: API_URL,
-    withCredentials: true,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
+
+
 
 export interface MerkleRootResponse {
     merkleRoot: string;
@@ -32,17 +26,17 @@ export interface GPAVerifyResponse {
 
 const integrityService = {
     getMerkleRoot: async (): Promise<MerkleRootResponse> => {
-        const response = await apiClient.get<MerkleRootResponse>('/merkle-root');
+        const response = await apiClient.get<MerkleRootResponse>(`${PREFIX}/merkle-root`);
         return response.data;
     },
 
     getGPALogs: async (): Promise<GPALog[]> => {
-        const response = await apiClient.get<GPALog[]>('/gpa-logs');
+        const response = await apiClient.get<GPALog[]>(`${PREFIX}/gpa-logs`);
         return response.data;
     },
 
     verifyIntegrity: async (): Promise<GPAVerifyResponse> => {
-        const response = await apiClient.get<GPAVerifyResponse>('/verify');
+        const response = await apiClient.get<GPAVerifyResponse>(`${PREFIX}/verify`);
         return response.data;
     },
 

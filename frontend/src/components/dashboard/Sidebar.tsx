@@ -1,29 +1,41 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-    Vault,
-    LineChart,
-    Fingerprint,
-    Settings,
-    LogOut,
-    Menu,
-    X,
-    ChevronLeft,
-    ChevronRight,
-    FolderOpen
-} from 'lucide-react';
+    Shield as VaultIcon,
+    BarChart as LineChartIcon,
+    Fingerprint as FingerprintIcon,
+    Settings as SettingsIcon,
+    Logout as LogOutIcon,
+    Menu as MenuIcon,
+    ChevronLeft as ChevronLeftIcon,
+    ChevronRight as ChevronRightIcon,
+    FolderOpen as FolderOpenIcon
+} from '@mui/icons-material';
+import {
+    Box,
+    Typography,
+    Drawer,
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
+    IconButton,
+    alpha,
+    useTheme,
+    Tooltip
+} from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import { useSessionStore } from '@/stores/sessionStore';
 import { AegisLogo } from '@/components/AegisLogo';
 import authService from '@/services/authService';
 
 const navItems = [
-    { name: 'Vault', href: '/dashboard', icon: Vault },
-    { name: 'Files', href: '/dashboard/files', icon: FolderOpen },
-    { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChart },
-    { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: Fingerprint },
-    { name: 'Security', href: '/dashboard/security', icon: Settings },
+    { name: 'Vault', href: '/dashboard', icon: VaultIcon },
+    { name: 'Files', href: '/dashboard/files', icon: FolderOpenIcon },
+    { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
+    { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
+    { name: 'Security', href: '/dashboard/security', icon: SettingsIcon },
 ];
 
 interface SidebarProps {
@@ -39,6 +51,7 @@ interface SidebarContentProps {
 }
 
 function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarContentProps) {
+    const theme = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
     const { clearSession } = useSessionStore();
@@ -50,163 +63,242 @@ function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarCon
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <Box sx={{ display: 'flex', flexDirection: 'column', h: '100%', height: '100%' }}>
             {/* Logo */}
-            <div className={`flex items-center gap-2 h-14 px-4 border-b border-white/5 ${isCollapsed ? 'justify-center' : ''}`}>
-                <AegisLogo size={28} className="flex-shrink-0" />
+            <Box
+                component={Link}
+                to="/"
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    height: 56,
+                    px: 2,
+                    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    '&:hover': {
+                        '& .MuiTypography-root': { color: 'primary.main' },
+                        '& .logo-hover': { opacity: 0.8 }
+                    }
+                }}
+            >
+                <AegisLogo size={28} disableLink className="logo-hover transition-opacity" />
                 <AnimatePresence>
                     {!isCollapsed && (
-                        <motion.span
+                        <Typography
+                            component={motion.span}
                             initial={{ opacity: 0, width: 0 }}
                             animate={{ opacity: 1, width: 'auto' }}
                             exit={{ opacity: 0, width: 0 }}
-                            className="text-lg font-bold tracking-tight text-foreground overflow-hidden whitespace-nowrap"
+                            variant="h6"
+                            sx={{
+                                fontWeight: 800,
+                                color: 'text.primary',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                transition: 'color 0.2s'
+                            }}
                         >
                             Aegis
-                        </motion.span>
+                        </Typography>
                     )}
                 </AnimatePresence>
-            </div>
+            </Box>
 
             {/* Navigation */}
-            <nav className="flex-1 py-4 px-2 space-y-1">
-                {navItems.map((item) => {
-                    const isActive = location.pathname === item.href;
-                    const Icon = item.icon;
+            <Box sx={{ flex: 1, py: 2, px: 1 }}>
+                <List sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    {navItems.map((item) => {
+                        const isActive = location.pathname === item.href;
+                        const Icon = item.icon;
 
-                    return (
-                        <Link
-                            key={item.name}
-                            to={item.href}
-                            className={`
-                                flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative group
-                                ${isCollapsed ? 'justify-center' : ''}
-                                ${isActive
-                                    ? 'bg-[oklch(25%_0.04_250)] text-primary'
-                                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-                                }
-                            `}
-                            title={isCollapsed ? item.name : undefined}
-                            onClick={() => onClose?.()}
-                        >
-                            {/* Active Indicator Line */}
-                            {isActive && (
-                                <motion.div
-                                    layoutId="active-nav-indicator"
-                                    className="absolute left-0 top-2 bottom-2 w-0.5 bg-primary rounded-full"
-                                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                                />
-                            )}
-                            <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-primary' : ''}`} />
-                            <AnimatePresence>
-                                {!isCollapsed && (
-                                    <motion.span
-                                        initial={{ opacity: 0, width: 0 }}
-                                        animate={{ opacity: 1, width: 'auto' }}
-                                        exit={{ opacity: 0, width: 0 }}
-                                        className="text-sm font-medium overflow-hidden whitespace-nowrap"
+                        return (
+                            <ListItem key={item.name} disablePadding sx={{ display: 'block' }}>
+                                <Tooltip title={isCollapsed ? item.name : ''} placement="right">
+                                    <ListItemButton
+                                        component={Link}
+                                        to={item.href}
+                                        onClick={() => onClose?.()}
+                                        sx={{
+                                            minHeight: 48,
+                                            justifyContent: isCollapsed ? 'center' : 'initial',
+                                            px: 2.5,
+                                            borderRadius: 3,
+                                            bgcolor: isActive ? alpha(theme.palette.primary.main, 0.06) : 'transparent',
+                                            color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
+                                            border: `1px solid ${isActive ? alpha(theme.palette.primary.main, 0.2) : 'transparent'}`,
+                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            '&:hover': {
+                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                borderColor: alpha(theme.palette.primary.main, 0.4),
+                                                color: theme.palette.primary.main
+                                            },
+                                            position: 'relative'
+                                        }}
                                     >
-                                        {item.name}
-                                    </motion.span>
-                                )}
-                            </AnimatePresence>
-                        </Link>
-                    );
-                })}
-            </nav>
+                                        <ListItemIcon
+                                            sx={{
+                                                minWidth: 0,
+                                                mr: isCollapsed ? 0 : 3,
+                                                justifyContent: 'center',
+                                                color: 'inherit'
+                                            }}
+                                        >
+                                            <Icon sx={{ fontSize: 24 }} />
+                                        </ListItemIcon>
+                                        {!isCollapsed && (
+                                            <ListItemText
+                                                primary={item.name}
+                                                primaryTypographyProps={{
+                                                    fontSize: '14px',
+                                                    fontWeight: isActive ? 700 : 500
+                                                }}
+                                            />
+                                        )}
+                                    </ListItemButton>
+                                </Tooltip>
+                            </ListItem>
+                        );
+                    })}
+                </List>
+            </Box>
 
             {/* Bottom Section */}
-            <div className="p-2 border-t border-white/5 space-y-1">
-                {/* Logout */}
-                <Button
-                    variant="ghost"
-                    className={`w-full ${isCollapsed ? 'justify-center px-2' : 'justify-start'} text-muted-foreground hover:text-destructive hover:bg-destructive/10`}
-                    onClick={handleLogout}
-                >
-                    <LogOut className="h-5 w-5 flex-shrink-0" />
-                    <AnimatePresence>
-                        {!isCollapsed && (
-                            <motion.span
-                                initial={{ opacity: 0, width: 0 }}
-                                animate={{ opacity: 1, width: 'auto' }}
-                                exit={{ opacity: 0, width: 0 }}
-                                className="ml-3 overflow-hidden whitespace-nowrap"
-                            >
-                                Logout
-                            </motion.span>
-                        )}
-                    </AnimatePresence>
-                </Button>
-
-                {/* Collapse Toggle - Desktop only */}
-                {!isMobile && (
-                    <div className="hidden lg:block">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full justify-center text-muted-foreground hover:text-foreground"
-                            onClick={onToggle}
+            <Box sx={{ p: 1, borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+                <List disablePadding>
+                    <ListItem disablePadding>
+                        <ListItemButton
+                            onClick={handleLogout}
+                            sx={{
+                                minHeight: 48,
+                                justifyContent: isCollapsed ? 'center' : 'initial',
+                                px: 2.5,
+                                borderRadius: 3,
+                                color: theme.palette.text.secondary,
+                                '&:hover': {
+                                    bgcolor: alpha(theme.palette.error.main, 0.1),
+                                    color: theme.palette.error.main
+                                }
+                            }}
                         >
-                            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-                        </Button>
-                    </div>
-                )}
-            </div>
-        </div>
+                            <ListItemIcon
+                                sx={{
+                                    minWidth: 0,
+                                    mr: isCollapsed ? 0 : 3,
+                                    justifyContent: 'center',
+                                    color: 'inherit'
+                                }}
+                            >
+                                <LogOutIcon sx={{ fontSize: 24 }} />
+                            </ListItemIcon>
+                            {!isCollapsed && (
+                                <ListItemText
+                                    primary="Logout"
+                                    primaryTypographyProps={{
+                                        fontSize: '14px',
+                                        fontWeight: 500
+                                    }}
+                                />
+                            )}
+                        </ListItemButton>
+                    </ListItem>
+
+                    {!isMobile && (
+                        <ListItem disablePadding sx={{ display: { xs: 'none', lg: 'block' }, mt: 0.5 }}>
+                            <ListItemButton
+                                onClick={onToggle}
+                                sx={{
+                                    minHeight: 40,
+                                    justifyContent: 'center',
+                                    px: 2.5,
+                                    borderRadius: 3,
+                                    color: 'text.secondary',
+                                    '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.05) }
+                                }}
+                            >
+                                {isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+                            </ListItemButton>
+                        </ListItem>
+                    )}
+                </List>
+            </Box>
+        </Box>
     );
 }
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const theme = useTheme();
 
     return (
-        <>
+        <Box component="nav">
             {/* Desktop Sidebar */}
-            <motion.aside
-                initial={false}
-                animate={{ width: isCollapsed ? '4rem' : '14rem' }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="hidden lg:flex flex-col fixed left-0 top-0 h-screen z-40 bg-background border-r border-white/5"
+            <Drawer
+                variant="permanent"
+                sx={{
+                    display: { xs: 'none', lg: 'block' },
+                    '& .MuiDrawer-paper': {
+                        width: isCollapsed ? 64 : 224,
+                        boxSizing: 'border-box',
+                        bgcolor: theme.palette.background.default,
+                        borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        transition: theme.transitions.create('width', {
+                            easing: theme.transitions.easing.sharp,
+                            duration: theme.transitions.duration.shorter,
+                        }),
+                        overflowX: 'hidden'
+                    },
+                }}
+                open
             >
                 <SidebarContent isCollapsed={isCollapsed} onToggle={onToggle} />
-            </motion.aside>
+            </Drawer>
 
             {/* Mobile Menu Button */}
-            <button
-                className="lg:hidden fixed top-3 left-3 z-50 p-2.5 rounded-xl bg-background/80 backdrop-blur-sm border border-white/10"
-                onClick={() => setIsMobileOpen(!isMobileOpen)}
+            <IconButton
+                onClick={() => setIsMobileOpen(true)}
+                sx={{
+                    display: { lg: 'none' },
+                    position: 'fixed',
+                    top: 12,
+                    left: 12,
+                    zIndex: theme.zIndex.appBar + 1,
+                    bgcolor: alpha(theme.palette.background.paper, 0.8),
+                    backdropFilter: 'blur(8px)',
+                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                    borderRadius: 3,
+                    p: 1.25
+                }}
             >
-                {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+                <MenuIcon />
+            </IconButton>
 
             {/* Mobile Sidebar */}
-            <AnimatePresence>
-                {isMobileOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-                            onClick={() => setIsMobileOpen(false)}
-                        />
-                        <motion.aside
-                            initial={{ x: '-100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '-100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="lg:hidden fixed left-0 top-0 h-screen w-56 bg-background/95 backdrop-blur-xl border-r border-white/10 z-50"
-                        >
-                            <SidebarContent
-                                isCollapsed={false}
-                                onToggle={() => { }}
-                                isMobile
-                                onClose={() => setIsMobileOpen(false)}
-                            />
-                        </motion.aside>
-                    </>
-                )}
-            </AnimatePresence>
-        </>
+            <Drawer
+                variant="temporary"
+                open={isMobileOpen}
+                onClose={() => setIsMobileOpen(false)}
+                ModalProps={{ keepMounted: true }}
+                sx={{
+                    display: { xs: 'block', lg: 'none' },
+                    '& .MuiDrawer-paper': {
+                        width: 224,
+                        boxSizing: 'border-box',
+                        bgcolor: alpha(theme.palette.background.default, 0.95),
+                        backdropFilter: 'blur(16px)',
+                        borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                    },
+                }}
+            >
+                <SidebarContent
+                    isCollapsed={false}
+                    onToggle={() => { }}
+                    isMobile
+                    onClose={() => setIsMobileOpen(false)}
+                />
+            </Drawer>
+        </Box>
     );
 }

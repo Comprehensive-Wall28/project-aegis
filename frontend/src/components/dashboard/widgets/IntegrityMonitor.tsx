@@ -1,6 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
-import { ShieldCheck, ShieldAlert, Loader2, RefreshCw, Hash, Terminal } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {
+    GppGood as ShieldCheckIcon,
+    Report as ShieldAlertIcon,
+    Refresh as RefreshIcon,
+    Tag as HashIcon,
+    Terminal as TerminalIcon
+} from '@mui/icons-material';
+import {
+    Box,
+    Typography,
+    Button,
+    CircularProgress,
+    Paper,
+    alpha,
+    useTheme,
+    Stack
+} from '@mui/material';
 import integrityService from '@/services/integrityService';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,6 +37,7 @@ export function IntegrityMonitor() {
     const [isLoading, setIsLoading] = useState(true);
     const [proofFeed, setProofFeed] = useState<ReturnType<typeof generateProofEntry>[]>([]);
     const feedRef = useRef<HTMLDivElement>(null);
+    const theme = useTheme();
 
     useEffect(() => {
         fetchMerkleRoot();
@@ -75,27 +91,27 @@ export function IntegrityMonitor() {
         switch (status) {
             case 'verifying':
                 return {
-                    icon: <Loader2 className="h-5 w-5 text-primary animate-spin" />,
+                    icon: <CircularProgress size={16} color="inherit" />,
                     text: 'Scanning...',
-                    color: 'text-primary'
+                    color: 'primary.main'
                 };
             case 'verified':
                 return {
-                    icon: <ShieldCheck className="h-5 w-5 text-[oklch(75%_0.18_210)]" />,
+                    icon: <ShieldCheckIcon sx={{ fontSize: 16 }} />,
                     text: 'Verified',
-                    color: 'text-[oklch(75%_0.18_210)]'
+                    color: 'info.main'
                 };
             case 'tampered':
                 return {
-                    icon: <ShieldAlert className="h-5 w-5 text-destructive" />,
+                    icon: <ShieldAlertIcon sx={{ fontSize: 16 }} />,
                     text: 'Tampered!',
-                    color: 'text-destructive'
+                    color: 'error.main'
                 };
             default:
                 return {
-                    icon: <Hash className="h-5 w-5 text-muted-foreground" />,
+                    icon: <HashIcon sx={{ fontSize: 16 }} />,
                     text: 'Ready',
-                    color: 'text-muted-foreground'
+                    color: 'text.secondary'
                 };
         }
     };
@@ -103,123 +119,251 @@ export function IntegrityMonitor() {
     const statusDisplay = getStatusDisplay();
 
     return (
-        <div className="bento-card h-full p-6 flex flex-col relative overflow-hidden">
+        <Paper
+            variant="glass"
+            sx={{
+                height: '100%',
+                p: 3,
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+                overflow: 'hidden', borderRadius: '16px'
+            }}
+            className="text-sharp"
+        >
             {/* Scanning Overlay */}
             <AnimatePresence>
                 {status === 'verifying' && (
-                    <motion.div
+                    <Box
+                        component={motion.div}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-card/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center"
+                        sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            bgcolor: alpha(theme.palette.background.default, 0.8),
+                            backdropFilter: 'blur(12px)',
+                            zIndex: 10,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
                     >
-                        <div className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent animate-scan-bar" />
-                        <Loader2 className="h-10 w-10 text-primary animate-spin mb-3" />
-                        <p className="text-sm font-medium text-primary">Verifying Merkle Tree</p>
-                        <p className="text-xs text-muted-foreground mt-1">Scanning integrity proofs...</p>
-                    </motion.div>
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                insetX: 0,
+                                height: '2px',
+                                background: `linear-gradient(to right, transparent, ${theme.palette.primary.main}, transparent)`,
+                                animation: 'scan 2s infinite ease-in-out',
+                                boxShadow: `0 0 15px ${theme.palette.primary.main}`
+                            }}
+                        />
+                        <CircularProgress sx={{ mb: 2 }} thickness={5} size={48} />
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: 1 }}>
+                            VERIFYING MERKLE TREE
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, fontWeight: 500 }}>
+                            Scanning integrity proofs...
+                        </Typography>
+                    </Box>
                 )}
             </AnimatePresence>
 
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <div>
-                    <h3 className="text-lg font-semibold flex items-center gap-2 text-foreground">
-                        <ShieldCheck className="h-5 w-5 text-primary" />
-                        Integrity Monitor
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-0.5">Merkle tree verification</p>
-                </div>
-                <motion.div
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box>
+                    <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontWeight: 700 }}>
+                        <ShieldCheckIcon color="primary" sx={{ fontSize: 20 }} />
+                        <span>Integrity Monitor</span>
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                        Merkle tree verification
+                    </Typography>
+                </Box>
+                <Box
+                    component={motion.div}
                     key={status}
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/5 ${statusDisplay.color}`}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: '20px',
+                        bgcolor: alpha(statusDisplay.color === 'primary.main' ? theme.palette.primary.main :
+                            statusDisplay.color === 'info.main' ? theme.palette.info.main :
+                                statusDisplay.color === 'error.main' ? theme.palette.error.main : theme.palette.common.white, 0.05),
+                        color: statusDisplay.color,
+                        border: `1px solid ${alpha(statusDisplay.color === 'primary.main' ? theme.palette.primary.main :
+                            statusDisplay.color === 'info.main' ? theme.palette.info.main :
+                                statusDisplay.color === 'error.main' ? theme.palette.error.main : theme.palette.common.white, 0.15)}`
+                    }}
                 >
                     {statusDisplay.icon}
-                    <span className="text-xs font-medium">{statusDisplay.text}</span>
-                </motion.div>
-            </div>
+                    <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '10px', letterSpacing: 0.5 }}>
+                        {statusDisplay.text.toUpperCase()}
+                    </Typography>
+                </Box>
+            </Box>
 
             {/* Content */}
             {isLoading ? (
-                <div className="flex-1 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                </div>
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CircularProgress size={32} thickness={5} />
+                </Box>
             ) : (
-                <div className="flex-1 flex flex-col min-h-0">
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                     {/* Merkle Root Display */}
                     {merkleRoot && (
-                        <div className="p-3 rounded-xl bg-white/5 border border-white/10 mb-4 flex-shrink-0">
-                            <p className="text-xs text-muted-foreground mb-1">Current Root Hash</p>
-                            <p className="font-mono-tech text-xs text-text-primary break-all leading-relaxed">
-                                {merkleRoot.slice(0, 20)}...{merkleRoot.slice(-12)}
-                            </p>
-                        </div>
+                        <Box
+                            sx={{
+                                p: 2,
+                                borderRadius: '12px',
+                                bgcolor: alpha(theme.palette.common.white, 0.02),
+                                border: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+                                mb: 2,
+                                flexShrink: 0,
+                                transition: 'all 0.3s ease',
+                                '&:hover': { borderColor: alpha(theme.palette.primary.main, 0.3) }
+                            }}
+                        >
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1, fontSize: '10px', fontWeight: 800, letterSpacing: 1 }}>
+                                CURRENT ROOT HASH
+                            </Typography>
+                            <Typography variant="caption" sx={{
+                                fontFamily: 'JetBrains Mono',
+                                color: 'text.primary',
+                                fontWeight: 500,
+                                breakAll: 'true',
+                                lineHeight: 1.5,
+                                fontSize: '11px',
+                                opacity: 0.9
+                            }}>
+                                {merkleRoot.length > 40 ? `${merkleRoot.slice(0, 24)}...${merkleRoot.slice(-16)}` : merkleRoot}
+                            </Typography>
+                        </Box>
                     )}
 
-                    {/* Terminal Feed - Fixed Height with Scrollbar */}
-                    <div className="flex-1 rounded-xl bg-card/50 border border-white/5 overflow-hidden flex flex-col min-h-0">
-                        <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5 bg-white/5 flex-shrink-0">
-                            <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-[10px] font-mono-tech text-muted-foreground uppercase tracking-wider">Integrity Proofs</span>
-                        </div>
-                        <div
+                    {/* Terminal Feed */}
+                    <Box sx={{
+                        flex: 1,
+                        borderRadius: '12px',
+                        bgcolor: alpha(theme.palette.common.black, 0.4),
+                        border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight: 0,
+                        boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5)'
+                    }}>
+                        <Box sx={{
+                            px: 2,
+                            py: 1,
+                            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                            bgcolor: alpha(theme.palette.common.white, 0.03),
+                            flexShrink: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5
+                        }}>
+                            <TerminalIcon sx={{ fontSize: 14, color: 'primary.main' }} />
+                            <Typography variant="caption" sx={{ fontWeight: 800, fontFamily: 'JetBrains Mono', color: 'text.secondary', fontSize: '10px', letterSpacing: 1.5 }}>
+                                INTEGRITY_PROOFS
+                            </Typography>
+                        </Box>
+                        <Box
                             ref={feedRef}
-                            className="h-24 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+                            sx={{
+                                flex: 1,
+                                overflowY: 'auto',
+                                px: 2,
+                                py: 1.5,
+                                '&::-webkit-scrollbar': { width: '4px' },
+                                '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.common.white, 0.1), borderRadius: 2 }
+                            }}
                         >
                             {proofFeed.length === 0 ? (
-                                <div className="h-full flex items-center justify-center text-muted-foreground/50 text-xs">
-                                    Run verification to see proofs
-                                </div>
+                                <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.4, fontWeight: 500 }}>
+                                        Run verification to see sequence
+                                    </Typography>
+                                </Box>
                             ) : (
-                                <div className="space-y-1">
+                                <Stack spacing={1}>
                                     {proofFeed.map((entry, i) => (
-                                        <motion.div
+                                        <Box
                                             key={i}
+                                            component={motion.div}
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
-                                            className="flex items-center gap-2 font-mono-tech text-[10px]"
+                                            sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'JetBrains Mono', fontSize: '10px' }}
                                         >
-                                            <span className="text-text-secondary/50">{entry.timestamp}</span>
-                                            <span className="text-accent-blue/80">[{entry.type}]</span>
-                                            <span className="text-text-primary/90">{entry.hash}</span>
-                                            <span className="text-accent-lime">{entry.status}</span>
-                                        </motion.div>
+                                            <Typography variant="caption" sx={{ fontSize: '10px', color: alpha(theme.palette.text.secondary, 0.5), fontFamily: 'inherit', minWidth: '60px' }}>
+                                                {entry.timestamp}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ fontSize: '10px', color: 'primary.main', fontWeight: 700, fontFamily: 'inherit', minWidth: '95px' }}>
+                                                [{entry.type}]
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.primary', flex: 1, fontFamily: 'inherit', opacity: 0.8 }} noWrap>
+                                                {entry.hash}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ fontSize: '10px', color: 'success.main', fontWeight: 800, fontFamily: 'inherit' }}>
+                                                {entry.status}
+                                            </Typography>
+                                        </Box>
                                     ))}
-                                </div>
+                                </Stack>
                             )}
-                        </div>
-                    </div>
+                        </Box>
+                    </Box>
 
                     {/* Last Verified */}
                     {lastVerified && (
-                        <p className="text-[10px] text-muted-foreground mt-3 text-center flex-shrink-0">
-                            Last verified: {lastVerified.toLocaleTimeString()}
-                        </p>
+                        <Typography variant="caption" sx={{ mt: 2, color: 'text.secondary', display: 'block', textAlign: 'center', fontSize: '10px', fontWeight: 600, letterSpacing: 0.5 }}>
+                            LAST VERIFIED: {lastVerified.toLocaleTimeString()}
+                        </Typography>
                     )}
-                </div>
+                </Box>
             )}
 
             {/* Footer */}
             <Button
-                className="w-full mt-4 flex-shrink-0"
-                variant={status === 'verified' ? 'outline' : 'default'}
+                fullWidth
+                variant={status === 'verified' ? 'outlined' : 'contained'}
                 onClick={handleVerify}
                 disabled={status === 'verifying'}
+                startIcon={status === 'verifying' ? <CircularProgress size={16} color="inherit" /> : <RefreshIcon sx={{ fontSize: 18 }} />}
+                sx={{
+                    mt: 3,
+                    py: 1.2,
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    borderRadius: '10px',
+                    transition: 'all 0.3s ease',
+                    ...(status !== 'verifying' && status !== 'verified' && {
+                        boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.25)}`,
+                        '&:hover': {
+                            boxShadow: `0 0 30px ${alpha(theme.palette.primary.main, 0.4)}`,
+                            transform: 'translateY(-2px)'
+                        }
+                    })
+                }}
             >
-                {status === 'verifying' ? (
-                    <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Scanning...
-                    </>
-                ) : (
-                    <>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Verify Now
-                    </>
-                )}
+                {status === 'verifying' ? 'SCANNING...' : 'VERIFY SYSTEM INTEGRITY'}
             </Button>
-        </div>
+
+            <style>{`
+                @keyframes scan {
+                    0% { transform: translateY(-30px); opacity: 0; }
+                    50% { opacity: 1; }
+                    100% { transform: translateY(30px); opacity: 0; }
+                }
+            `}</style>
+        </Paper>
     );
 }

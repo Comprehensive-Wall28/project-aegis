@@ -4,60 +4,119 @@ import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { SystemStatusBar } from './SystemStatusBar';
 import { motion } from 'framer-motion';
+import { Box, alpha, useTheme, Paper } from '@mui/material';
 
 export function DashboardLayout() {
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const theme = useTheme();
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex overflow-hidden">
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}>
             {/* Animated Background */}
-            <div className="fixed inset-0 -z-10 overflow-hidden">
-                <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full blur-3xl animate-mesh" />
-                <div className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-[oklch(75%_0.18_145)]/5 rounded-full blur-3xl animate-mesh-delayed" />
-            </div>
-
-            {/* Sidebar Wrapper */}
-            <div
-                className="hidden lg:block shrink-0 transition-all duration-200"
-                style={{ width: isSidebarCollapsed ? '4rem' : '14rem' }}
-            >
-                <Sidebar
-                    isCollapsed={isSidebarCollapsed}
-                    onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            <Box sx={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: '-25%',
+                        left: '-25%',
+                        width: '50%',
+                        height: '50%',
+                        bgcolor: alpha(theme.palette.primary.main, 0.05),
+                        borderRadius: '50%',
+                        filter: 'blur(100px)',
+                        animation: 'mesh 20s infinite alternate'
+                    }}
                 />
-            </div>
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        bottom: '-25%',
+                        right: '-25%',
+                        width: '50%',
+                        height: '50%',
+                        bgcolor: alpha(theme.palette.info.main, 0.05),
+                        borderRadius: '50%',
+                        filter: 'blur(100px)',
+                        animation: 'mesh-delayed 25s infinite alternate'
+                    }}
+                />
+            </Box>
 
-            {/* Main Wrapper: Frames the stage */}
-            <div className="flex-1 flex flex-col min-w-0 h-screen relative overflow-hidden">
-                {/* Top Header & Status sitting above the stage */}
-                <div className="z-20">
+            {/* Sidebar */}
+            <Sidebar
+                isCollapsed={isSidebarCollapsed}
+                onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            />
+
+            {/* Main Content Wrapper */}
+            <Box
+                component="main"
+                sx={{
+                    flexGrow: 1,
+                    ml: { lg: isSidebarCollapsed ? '64px' : '224px' },
+                    transition: theme.transitions.create('margin', {
+                        easing: theme.transitions.easing.sharp,
+                        duration: theme.transitions.duration.shorter,
+                    }),
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100vh',
+                    position: 'relative',
+                    zIndex: 1,
+                    minWidth: 0
+                }}
+            >
+                {/* Headers Section */}
+                <Box sx={{ zIndex: 10, flexShrink: 0 }}>
                     <TopHeader />
                     <SystemStatusBar />
-                </div>
+                </Box>
 
-                {/* Inset Content Area (The 'Stage') */}
-                <div className="flex-1 m-3 mt-2 overflow-hidden">
-                    <motion.div
+                {/* Content Area ('The Stage') */}
+                <Box sx={{ flexGrow: 1, m: { xs: 1, sm: 2 }, mt: { xs: 0, sm: 1 }, overflow: 'hidden' }}>
+                    <Paper
+                        variant="glass"
+                        component={motion.div}
                         layout
-                        className="h-full w-full bg-card/40 backdrop-blur-2xl rounded-2xl border border-white/5 shadow-2xl flex flex-col overflow-hidden"
+                        sx={{
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            borderRadius: '16px',
+                            overflow: 'hidden',
+                            bgcolor: alpha(theme.palette.background.paper, 0.2),
+                            backdropFilter: 'blur(32px)',
+                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                            boxShadow: theme.shadows[10]
+                        }}
                     >
-                        {/* Inner Content Area with scroll */}
-                        <main className="flex-1 p-8 overflow-y-auto scrollbar-thin">
-                            <div className="w-full h-full">
+                        <Box
+                            sx={{
+                                flexGrow: 1,
+                                p: { xs: 2, sm: 4, md: 6 },
+                                overflowY: 'auto',
+                                '&::-webkit-scrollbar': { width: '6px' },
+                                '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: 3 }
+                            }}
+                        >
+                            <Box sx={{ maxWidth: 1600, mx: 'auto', width: '100%', height: '100%' }}>
                                 <Outlet />
-                            </div>
-                        </main>
-                    </motion.div>
-                </div>
-            </div>
+                            </Box>
+                        </Box>
+                    </Paper>
+                </Box>
+            </Box>
 
-            {/* Mobile: Reset structure would be handled by responsive classes, 
-                but let's ensure Sidebar and Main Wrapper play nice. */}
             <style>{`
-                @media (max-width: 1023px) {
-                    /* Adjustments for mobile if needed */
+                @keyframes mesh {
+                    0% { transform: translate(0, 0) scale(1); }
+                    100% { transform: translate(10%, 10%) scale(1.1); }
+                }
+                @keyframes mesh-delayed {
+                    0% { transform: translate(0, 0) scale(1.1); }
+                    100% { transform: translate(-10%, -10%) scale(1); }
                 }
             `}</style>
-        </div>
+        </Box>
     );
 }

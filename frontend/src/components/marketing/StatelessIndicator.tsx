@@ -1,18 +1,59 @@
-import { motion } from 'framer-motion';
-import { Radio } from 'lucide-react';
+import { Box, Typography, alpha } from '@mui/material';
 
 export function StatelessIndicator() {
+    const statusColor = '#81ca81'; // Approximating the oklch green
+
     return (
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[oklch(80%_0.2_140)]/10 border border-[oklch(80%_0.2_140)]/20 backdrop-blur-sm">
-            <motion.div
-                animate={{ opacity: [1, 0.5, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
+        <Box
+            sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 1.5,
+                px: 2,
+                py: 0.75,
+                borderRadius: '999px',
+                bgcolor: alpha(statusColor, 0.1),
+                border: `1px solid ${alpha(statusColor, 0.2)}`,
+                backdropFilter: 'blur(4px)',
+            }}
+        >
+            <Box
+                sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    bgcolor: statusColor,
+                    boxShadow: `0 0 12px ${statusColor}`,
+                    position: 'relative',
+                    '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        inset: -4,
+                        borderRadius: '50%',
+                        border: `2px solid ${statusColor}`,
+                        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }}
+            />
+            <Typography
+                variant="caption"
+                sx={{
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    color: statusColor,
+                    textTransform: 'uppercase',
+                    fontSize: '0.7rem'
+                }}
             >
-                <Radio className="w-3 h-3 text-[oklch(80%_0.2_140)]" />
-            </motion.div>
-            <span className="text-xs font-medium text-[oklch(80%_0.2_140)] tracking-wide uppercase">
-                0% Data Retention
-            </span>
-        </div>
+                PQC Engine
+            </Typography>
+
+            <style>{`
+                @keyframes pulse {
+                    0%, 100% { opacity: 0.5; transform: scale(1); }
+                    50% { opacity: 0; transform: scale(1.5); }
+                }
+            `}</style>
+        </Box>
     );
 }

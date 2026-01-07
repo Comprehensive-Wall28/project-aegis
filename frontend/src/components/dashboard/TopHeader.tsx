@@ -1,115 +1,227 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
 import authService from '@/services/authService';
-import { motion, AnimatePresence } from 'framer-motion';
-import { User, LogOut, ChevronDown, Settings, Palette } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+    Person as UserIcon,
+    Logout as LogOutIcon,
+    KeyboardArrowDown as ChevronDownIcon,
+    Settings as SettingsIcon,
+    Palette as PaletteIcon
+} from '@mui/icons-material';
+import {
+    Box,
+    Typography,
+    IconButton,
+    alpha,
+    useTheme,
+    Avatar,
+    Menu,
+    MenuItem,
+    ListItemIcon,
+    Divider,
+    Tooltip
+} from '@mui/material';
 
 export function TopHeader() {
     const navigate = useNavigate();
     const { user, clearSession } = useSessionStore();
-    const { theme, toggleTheme } = useThemeStore();
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    const { theme: currentTheme, toggleTheme } = useThemeStore();
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const theme = useTheme();
+
+    const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleCloseMenu = () => {
+        setAnchorEl(null);
+    };
 
     const handleLogout = async () => {
         await authService.logout();
         clearSession();
         navigate('/');
+        handleCloseMenu();
     };
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsDropdownOpen(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    const handleNavigate = (path: string) => {
+        navigate(path);
+        handleCloseMenu();
+    };
 
     const username = user?.username || user?.email?.split('@')[0] || 'Agent';
 
     return (
-        <header className="h-14 bg-transparent flex items-center justify-between px-6">
+        <Box
+            component="header"
+            sx={{
+                height: 56,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                px: 3,
+                bgcolor: 'transparent'
+            }}
+        >
             {/* Left: Section Title & Welcome Footprint */}
-            <motion.div
+            <Box
+                component={motion.div}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3 }}
-                className="flex flex-col"
+                sx={{ display: 'flex', flexDirection: 'column' }}
             >
-                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground/50 leading-none mb-1">
+                <Typography
+                    variant="caption"
+                    sx={{
+                        textTransform: 'uppercase',
+                        trackingSpacing: '0.2em',
+                        fontWeight: 800,
+                        color: alpha(theme.palette.text.secondary, 0.5),
+                        lineHeight: 1,
+                        mb: 0.5,
+                        fontSize: '9px',
+                        letterSpacing: 2
+                    }}
+                >
                     System Overview
-                </span>
-                <h1 className="text-2xl font-black tracking-tighter text-foreground leading-none">
-                    Dashboard <span className="text-xs font-medium tracking-normal text-muted-foreground/40 ml-2">Welcome, {username}</span>
-                </h1>
-            </motion.div>
+                </Typography>
+                <Typography
+                    variant="h5"
+                    sx={{
+                        fontWeight: 900,
+                        letterSpacing: -1,
+                        color: 'text.primary',
+                        lineHeight: 1,
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: 1.5
+                    }}
+                >
+                    Dashboard
+                    <Typography
+                        component="span"
+                        variant="caption"
+                        sx={{
+                            fontWeight: 500,
+                            letterSpacing: 0,
+                            color: alpha(theme.palette.text.secondary, 0.4),
+                            display: { xs: 'none', sm: 'inline' }
+                        }}
+                    >
+                        Welcome, {username}
+                    </Typography>
+                </Typography>
+            </Box>
 
             {/* Right: Actions & User Profile */}
-            <div className="flex items-center gap-4">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 {/* Theme Toggle */}
-                <button
-                    onClick={toggleTheme}
-                    className="p-2 rounded-full text-muted-foreground hover:text-primary hover:bg-white/5 transition-all"
-                    title={`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)} (Click to switch)`}
-                >
-                    <Palette className="h-5 w-5" />
-                </button>
+                <Tooltip title={`Theme: ${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}`}>
+                    <IconButton
+                        onClick={toggleTheme}
+                        sx={{
+                            color: theme.palette.text.secondary,
+                            '&:hover': {
+                                color: theme.palette.primary.main,
+                                bgcolor: alpha(theme.palette.primary.main, 0.05)
+                            }
+                        }}
+                    >
+                        <PaletteIcon />
+                    </IconButton>
+                </Tooltip>
 
                 {/* User Profile Dropdown */}
-                <div className="relative" ref={dropdownRef}>
-                    <button
-                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
+                <Box>
+                    <IconButton
+                        onClick={handleOpenMenu}
+                        sx={{
+                            p: 0.5,
+                            pr: 1.5,
+                            borderRadius: 4,
+                            '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.05) },
+                            gap: 1.5,
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
                     >
-                        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                            <User className="h-4 w-4 text-primary" />
-                        </div>
-                        <span className="text-sm text-foreground hidden sm:block">{username}</span>
-                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                    </button>
+                        <Avatar
+                            sx={{
+                                width: 32,
+                                height: 32,
+                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                color: theme.palette.primary.main
+                            }}
+                        >
+                            <UserIcon sx={{ fontSize: 18 }} />
+                        </Avatar>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: 'text.primary',
+                                fontWeight: 600,
+                                display: { xs: 'none', md: 'block' }
+                            }}
+                        >
+                            {username}
+                        </Typography>
+                        <ChevronDownIcon
+                            sx={{
+                                fontSize: 18,
+                                color: 'text.secondary',
+                                transform: anchorEl ? 'rotate(180deg)' : 'none',
+                                transition: 'transform 0.2s'
+                            }}
+                        />
+                    </IconButton>
 
-                    <AnimatePresence>
-                        {isDropdownOpen && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                transition={{ duration: 0.15 }}
-                                className="absolute right-0 mt-2 w-48 py-2 bg-popover/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50"
-                            >
-                                <div className="px-4 py-2 border-b border-white/10">
-                                    <p className="text-sm font-medium text-foreground">{username}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-                                </div>
-
-                                <button
-                                    onClick={() => {
-                                        navigate('/dashboard/security');
-                                        setIsDropdownOpen(false);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-                                >
-                                    <Settings className="h-4 w-4" />
-                                    Settings
-                                </button>
-
-                                <button
-                                    onClick={handleLogout}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                >
-                                    <LogOut className="h-4 w-4" />
-                                    Logout
-                                </button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            </div>
-        </header>
+                    <Menu
+                        anchorEl={anchorEl}
+                        open={Boolean(anchorEl)}
+                        onClose={handleCloseMenu}
+                        PaperProps={{
+                            sx: {
+                                mt: 2,
+                                width: 240,
+                                p: 1,
+                                borderRadius: '28px',
+                                bgcolor: alpha(theme.palette.background.paper, 0.8),
+                                backdropFilter: 'blur(16px)',
+                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                boxShadow: theme.shadows[20]
+                            }
+                        }}
+                        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                    >
+                        <Box sx={{ px: 2, py: 1.5 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1 }}>
+                                {username}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mt: 0.5 }}>
+                                {user?.email}
+                            </Typography>
+                        </Box>
+                        <Divider sx={{ my: 1, opacity: 0.5 }} />
+                        <MenuItem onClick={() => handleNavigate('/dashboard/security')} sx={{ borderRadius: 3, gap: 1.5, py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 0, color: 'text.secondary' }}>
+                                <SettingsIcon sx={{ fontSize: 18 }} />
+                            </ListItemIcon>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>Settings</Typography>
+                        </MenuItem>
+                        <MenuItem onClick={handleLogout} sx={{ borderRadius: 3, gap: 1.5, py: 1, color: 'error.main', '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) } }}>
+                            <ListItemIcon sx={{ minWidth: 0, color: 'inherit' }}>
+                                <LogOutIcon sx={{ fontSize: 18 }} />
+                            </ListItemIcon>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>Logout</Typography>
+                        </MenuItem>
+                    </Menu>
+                </Box>
+            </Box>
+        </Box>
     );
 }

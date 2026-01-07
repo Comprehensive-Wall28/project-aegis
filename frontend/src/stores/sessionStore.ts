@@ -11,6 +11,7 @@ interface User {
 interface SessionState {
     user: User | null;
     isAuthenticated: boolean;
+    isAuthChecking: boolean;
     pqcEngineStatus: 'operational' | 'initializing' | 'error';
     // Ephemeral session keys - stored only in memory
     sessionKey: string | null;
@@ -20,23 +21,28 @@ interface SessionState {
     setSessionKey: (key: string) => void;
     clearSession: () => void;
     setPqcEngineStatus: (status: 'operational' | 'initializing' | 'error') => void;
-    initializeQuantumKeys: () => void;
+    initializeQuantumKeys: (seed?: Uint8Array) => void;
+    checkAuth: () => Promise<void>;
 }
 
-// @ts-ignore
-import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
-
-export const useSessionStore = create<SessionState>((set) => ({
+export const useSessionStore = create<SessionState>((set, get) => ({
     user: null,
     isAuthenticated: false,
+    isAuthChecking: true,
     pqcEngineStatus: 'initializing',
     sessionKey: null,
 
-    setUser: (user) => set({
-        user,
-        isAuthenticated: true,
-        pqcEngineStatus: 'operational'
-    }),
+    setUser: (user) => {
+        set({
+            user,
+            isAuthenticated: true,
+        });
+
+        // If keys are provided, we're operational
+        if (user.publicKey && user.privateKey) {
+            set({ pqcEngineStatus: 'operational' });
+        }
+    },
 
     setSessionKey: (key) => set({ sessionKey: key }),
 
@@ -49,36 +55,89 @@ export const useSessionStore = create<SessionState>((set) => ({
 
     setPqcEngineStatus: (status) => set({ pqcEngineStatus: status }),
 
-    initializeQuantumKeys: () => {
-        try {
-            // @ts-ignore
-            const { publicKey, secretKey } = ml_kem768.keygen();
+    initializeQuantumKeys: (seed) => {
+        // Set to initializing state
+        set({ pqcEngineStatus: 'initializing' });
 
-            // Helper to convert to Hex
-            const bytesToHex = (bytes: Uint8Array) =>
-                Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        // Run async initialization without blocking
+        (async () => {
+            try {
+                // Dynamic import to handle WASM loading issues
+                const { ml_kem768 } = await import('@noble/post-quantum/ml-kem.js');
 
-            const pubHex = bytesToHex(publicKey);
-            const privHex = bytesToHex(secretKey);
+                // Generate keys - use seed if provided for persistence
+                const { publicKey, secretKey } = seed ? ml_kem768.keygen(seed) : ml_kem768.keygen();
 
-            set(state => {
-                if (state.user) {
-                    return {
+                // Helper to convert to Hex
+                const bytesToHex = (bytes: Uint8Array) =>
+                    Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                const pubHex = bytesToHex(publicKey);
+                const privHex = bytesToHex(secretKey);
+
+                const currentState = get();
+                if (currentState.user) {
+                    set({
                         user: {
-                            ...state.user,
+                            ...currentState.user,
                             publicKey: pubHex,
-                            privateKey: privHex // Store private key in memory for decryption
+                            privateKey: privHex
                         },
                         pqcEngineStatus: 'operational'
-                    };
+                    });
+                    console.log(`Quantum Keys Initialized for Session ${seed ? '(Persistent)' : '(Ephemeral)'}`);
+                } else {
+                    // If no user, we still set it as operational for the engine itself
+                    set({ pqcEngineStatus: 'operational' });
                 }
-                return {};
+            } catch (e) {
+                console.error("Failed to generate PQC keys:", e);
+                set({ pqcEngineStatus: 'error' });
+            }
+        })();
+    },
+
+    checkAuth: async () => {
+        set({ isAuthChecking: true });
+        try {
+            // Dynamically import authService to avoid circular dependencies if any
+            const { default: authService } = await import('../services/authService');
+            const user = await authService.validateSession();
+
+            if (user) {
+                const currentState = get();
+                // Recover keys from local storage if they exist
+                const { getStoredSeed } = await import('../lib/cryptoUtils');
+                const seed = getStoredSeed();
+
+                set({
+                    user,
+                    isAuthenticated: true,
+                    isAuthChecking: false
+                });
+
+                if (seed) {
+                    currentState.initializeQuantumKeys(seed);
+                } else {
+                    console.warn('User authenticated but no PQC seed found in storage.');
+                    set({ pqcEngineStatus: 'error' });
+                }
+            } else {
+                set({
+                    user: null,
+                    isAuthenticated: false,
+                    isAuthChecking: false,
+                    pqcEngineStatus: 'initializing' // Reset to default
+                });
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            set({
+                user: null,
+                isAuthenticated: false,
+                isAuthChecking: false,
+                pqcEngineStatus: 'error'
             });
-            console.log("Quantum Keys Initialized for Session");
-        } catch (e) {
-            console.error("Failed to generate PQC keys", e);
-            set({ pqcEngineStatus: 'error' });
         }
     }
 }));
-

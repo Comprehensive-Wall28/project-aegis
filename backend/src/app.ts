@@ -7,6 +7,8 @@ import connectDB from './config/database';
 import authRoutes from './routes/authRoutes';
 import vaultRoutes from './routes/vaultRoutes';
 import integrityRoutes from './routes/integrityRoutes';
+import gpaRoutes from './routes/gpaRoutes';
+import folderRoutes from './routes/folderRoutes';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -31,18 +33,68 @@ app.use(cors({
 }));
 
 app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    frameguard: {
+        action: 'deny'
+    },
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'"],
+            imgSrc: ["'self'", "data:"],
+            connectSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: [],
+        }
+    }
 }));
 app.use(express.json());
 app.use(cookieParser());
 
-// Apply Rate Limiting
+// CSRF Protection
+// We need to import csrf from 'csurf' but since we are using CommonJS/ESM mix, we need to be careful.
+// Using require for now to avoid potential ESM issues with the specific library version if needed, 
+// but import should work if esModuleInterop is on.
+import csrf from 'csurf';
+
+let csrfProtection: express.RequestHandler;
+
+if (process.env.NODE_ENV === 'production') {
+    // Disable CSRF in production as requested, mocking the token function
+    csrfProtection = (req, res, next) => {
+        (req as any).csrfToken = () => 'csrf-disabled-in-production';
+        next();
+    };
+} else {
+    csrfProtection = csrf({
+        cookie: {
+            httpOnly: true,
+            secure: false, // Localhost usually isn't https
+            sameSite: 'lax',
+        }
+    });
+}
+
+app.use(csrfProtection);
+
+// Expose CSRF token to client via cookie (Axios default behavior)
+app.use((req, res, next) => {
+    res.cookie('XSRF-TOKEN', req.csrfToken(), {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production', // Secure in production
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    });
+    next();
+});
 app.use('/api/', apiLimiter);
 app.use('/api/auth', authLimiter); // Stricter limit for auth
 
 app.use('/api/auth', authRoutes);
 app.use('/api/vault', vaultRoutes);
 app.use('/api/integrity', integrityRoutes);
+app.use('/api/gpa', gpaRoutes);
+app.use('/api/folders', folderRoutes);
 
 app.use(errorHandler);
 

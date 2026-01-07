@@ -1,115 +1,178 @@
-import { motion } from 'framer-motion';
 import { VaultQuickView } from '@/components/dashboard/widgets/VaultQuickView';
-import { IntegrityMonitor } from '@/components/dashboard/widgets/IntegrityMonitor';
 import { GPASnapshot } from '@/components/dashboard/widgets/GPASnapshot';
-import { Activity, Zap, Lock } from 'lucide-react';
+import { Zap, Lock, ArrowUpRight } from 'lucide-react';
+import { Box, Grid, Typography, Paper, useTheme, alpha } from '@mui/material';
+import { motion } from 'framer-motion';
 
 export function Dashboard() {
+    const theme = useTheme();
 
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.08
+                staggerChildren: 0.1
             }
         }
     };
 
     const itemVariants = {
-        hidden: { opacity: 0, y: 20, scale: 0.98 },
+        hidden: { opacity: 0, y: 20 },
         visible: {
             opacity: 1,
             y: 0,
-            scale: 1,
             transition: {
-                duration: 0.4,
-                ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number]
+                duration: 0.5,
+                ease: [0.22, 1, 0.36, 1] as [number, number, number, number] // Custom easeOutQuint for smoother feeling
             }
         }
     };
 
+    const sharedPaperStyles = {
+        p: 3,
+        height: '100%',
+        borderRadius: '16px', // Consistent thin rounded corners
+        bgcolor: alpha(theme.palette.background.paper, 0.4), // Glass-like base
+        backdropFilter: 'blur(12px)',
+        border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+        boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
+        overflow: 'hidden',
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease',
+        '&:hover': {
+            borderColor: alpha(theme.palette.common.white, 0.1),
+            boxShadow: '0 8px 32px -2px rgba(0, 0, 0, 0.3)',
+        }
+    };
+
     return (
-        <motion.div
-            variants={containerVariants}
+        <Box
+            component={motion.div}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
+            variants={containerVariants}
+            sx={{ maxWidth: 1600, mx: 'auto', p: { xs: 2, md: 3 } }}
         >
-            {/* Vault Quick-View: 3/4 Width */}
-            <motion.div
-                variants={itemVariants}
-                className="lg:col-span-3 lg:row-span-2"
-            >
-                <VaultQuickView />
-            </motion.div>
+            <Grid container spacing={3}>
+                {/* 1. Vault Quick-View: Main Feature (Top Left) - Spans 8 cols */}
+                <Grid size={{ xs: 12, lg: 8 }} sx={{ minHeight: { lg: 400 } }}>
+                    <Box component={motion.div} variants={itemVariants} sx={{ height: '100%' }}>
+                        <VaultQuickView />
+                    </Box>
+                </Grid>
 
-            {/* GPA Snapshot - Top Right */}
-            <motion.div
-                variants={itemVariants}
-                className="lg:col-span-1"
-            >
-                <GPASnapshot />
-            </motion.div>
+                {/* 2. GPA Snapshot & Live Metrics (Right Col) - Spans 4 cols */}
+                <Grid size={{ xs: 12, lg: 4 }}>
+                    <Grid container spacing={3} direction="column" sx={{ height: '100%' }}>
+                        {/* GPA Snapshot */}
+                        <Grid size={12} sx={{ flex: 1 }}>
+                            <Box component={motion.div} variants={itemVariants} sx={{ height: '100%' }}>
+                                <GPASnapshot />
+                            </Box>
+                        </Grid>
 
-            {/* System Metrics - Under GPA */}
-            <motion.div
-                variants={itemVariants}
-                className="bento-card p-6 flex flex-col h-full bg-zinc-900/40"
-            >
-                <h3 className="text-[10px] uppercase tracking-widest font-bold text-primary/60 mb-4 flex items-center gap-2">
-                    <Activity className="h-3 w-3 text-primary" />
-                    Live Metrics
-                </h3>
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-muted-foreground/60 font-medium">Encryption Ops</span>
-                        <span className="font-mono-tech text-foreground/80">0</span>
-                    </div>
-                    <div className="h-px bg-white/5" />
-                    <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-muted-foreground/60 font-medium">Integrity Checks</span>
-                        <span className="font-mono-tech text-primary/80">Standby</span>
-                    </div>
-                </div>
-            </motion.div>
+                        {/* Quick Actions Panel */}
+                        <Grid size={12} sx={{ flex: 1 }}>
+                            <Box component={motion.div} variants={itemVariants} sx={{ height: '100%' }}>
+                                <Paper sx={{ ...sharedPaperStyles, p: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                                    <Box sx={{ px: 0.5 }}>
+                                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', letterSpacing: '0.1em', fontSize: '10px' }}>
+                                            QUICK ACTIONS
+                                        </Typography>
+                                    </Box>
 
-            {/* Bottom Section: Wide Integrity Monitor */}
-            <motion.div
-                variants={itemVariants}
-                className="lg:col-span-4"
-            >
-                <IntegrityMonitor />
-            </motion.div>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                        {/* Quick Encrypt */}
+                                        <Box
+                                            component={motion.div}
+                                            whileHover={{ x: 4 }}
+                                            sx={{
+                                                p: 2,
+                                                borderRadius: '16px',
+                                                bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                                border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 2,
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.12),
+                                                    borderColor: alpha(theme.palette.primary.main, 0.4),
+                                                    boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.1)}`
+                                                }
+                                            }}
+                                        >
+                                            <Box
+                                                sx={{
+                                                    width: 40,
+                                                    height: 40,
+                                                    borderRadius: '12px',
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: theme.palette.primary.main
+                                                }}
+                                            >
+                                                <Zap size={20} />
+                                            </Box>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>Quick Encrypt</Typography>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '10px' }}>Protect with ML-KEM</Typography>
+                                            </Box>
+                                            <ArrowUpRight size={16} style={{ opacity: 0.3 }} />
+                                        </Box>
 
-            {/* Action Buttons */}
-            <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-5">
-                <motion.div
-                    variants={itemVariants}
-                    className="bento-card p-6 flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all group bg-zinc-900/40"
-                >
-                    <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                        <Zap className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                        <span className="text-xs font-bold text-foreground block">Quick Encrypt</span>
-                        <span className="text-[10px] text-muted-foreground/60">Upload & protect with ML-KEM</span>
-                    </div>
-                </motion.div>
+                                        {/* Key Rotation */}
+                                        <Box
+                                            component={motion.div}
+                                            whileHover={{ x: 4 }}
+                                            sx={{
+                                                p: 2,
+                                                borderRadius: '16px',
+                                                bgcolor: alpha('#8b5cf6', 0.08),
+                                                border: `1px solid ${alpha('#8b5cf6', 0.15)}`,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 2,
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                    bgcolor: alpha('#8b5cf6', 0.12),
+                                                    borderColor: alpha('#8b5cf6', 0.4),
+                                                    boxShadow: `0 4px 12px ${alpha('#8b5cf6', 0.1)}`
+                                                }
+                                            }}
+                                        >
+                                            <Box
+                                                sx={{
+                                                    width: 40,
+                                                    height: 40,
+                                                    borderRadius: '12px',
+                                                    bgcolor: alpha('#8b5cf6', 0.1),
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: '#a78bfa'
+                                                }}
+                                            >
+                                                <Lock size={20} />
+                                            </Box>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>Key Rotation</Typography>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '10px' }}>Rotate PQC Keys</Typography>
+                                            </Box>
+                                            <ArrowUpRight size={16} style={{ opacity: 0.3 }} />
+                                        </Box>
+                                    </Box>
+                                </Paper>
+                            </Box>
+                        </Grid>
+                    </Grid>
+                </Grid>
 
-                <motion.div
-                    variants={itemVariants}
-                    className="bento-card p-6 flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all group bg-zinc-900/40"
-                >
-                    <div className="p-3 rounded-lg bg-violet-500/10 group-hover:bg-violet-500/20 transition-colors">
-                        <Lock className="h-5 w-5 text-violet-400" />
-                    </div>
-                    <div>
-                        <span className="text-xs font-bold text-foreground block">Key Rotation</span>
-                        <span className="text-[10px] text-muted-foreground/60">Rotate PQC keys regularly</span>
-                    </div>
-                </motion.div>
-            </div>
-        </motion.div>
+            </Grid>
+        </Box>
     );
 }

@@ -1,55 +1,26 @@
-import { Button } from "@/components/ui/button";
-import { ArrowRight, ShieldCheck, Lock, Fingerprint } from "lucide-react";
-import { motion } from "framer-motion";
+import {
+    Box,
+    Typography,
+    Container,
+    alpha,
+    useTheme,
+    Paper,
+    Stack,
+    Button
+} from '@mui/material';
+import {
+    ArrowForward as ArrowRightIcon
+} from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import { StatelessIndicator } from "./StatelessIndicator";
-import { useEffect, useState } from "react";
+import { useNavigate } from 'react-router-dom';
+import { Grid } from '@mui/material';
 
-function MerkleIntegrityFeed() {
-    const [hashes, setHashes] = useState<string[]>([]);
 
-    useEffect(() => {
-        const generateHash = () => Math.random().toString(16).substring(2, 10).toUpperCase();
-        setHashes(Array.from({ length: 12 }, generateHash));
-        const interval = setInterval(() => {
-            setHashes(prev => [...prev.slice(1), generateHash()]);
-        }, 2000);
-        return () => clearInterval(interval);
-    }, []);
-
-    return (
-        <div className="w-full overflow-hidden whitespace-nowrap py-4 border-y border-white/5 bg-black/20 flex items-center">
-            <div className="flex animate-scroll hover:pause gap-8 px-4">
-                {hashes.map((hash, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-zinc-500">HASH:</span>
-                        <span className="text-[10px] font-mono text-zinc-400">{hash}</span>
-                        <motion.div
-                            animate={{ opacity: [0.3, 1, 0.3], scale: [0.9, 1.1, 0.9] }}
-                            transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
-                            className="w-1.5 h-1.5 rounded-full bg-blue-500/50 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
-                        />
-                    </div>
-                ))}
-            </div>
-            {/* Duplicate for seamless scrolling */}
-            <div className="flex animate-scroll hover:pause gap-8 px-4">
-                {hashes.map((hash, i) => (
-                    <div key={i + 12} className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-zinc-500">HASH:</span>
-                        <span className="text-[10px] font-mono text-zinc-400">{hash}</span>
-                        <motion.div
-                            animate={{ opacity: [0.3, 1, 0.3], scale: [0.9, 1.1, 0.9] }}
-                            transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
-                            className="w-1.5 h-1.5 rounded-full bg-blue-500/50 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
-                        />
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
 
 export function Hero() {
+    const theme = useTheme();
+    const navigate = useNavigate();
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -61,96 +32,268 @@ export function Hero() {
         },
     };
 
-    const itemVariants = {
+    const itemVariants: any = {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
-    } as any;
+    };
 
     return (
-        <section className="relative overflow-hidden pt-32 pb-16 md:pt-48 md:pb-32">
-            {/* Base Background */}
-            <div className="absolute inset-0 bg-zinc-950 -z-20" />
+        <Box component="section" sx={{
+            position: 'relative',
+            overflow: 'hidden',
+            pt: { xs: 16, md: 24 },
+            pb: { xs: 8, md: 16 },
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center'
+        }}>
+            {/* Mesh Gradient Background */}
+            <Box sx={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 0,
+                overflow: 'hidden',
+                pointerEvents: 'none'
+            }}>
+                <Box sx={{
+                    position: 'absolute',
+                    top: '-15%',
+                    left: '-15%',
+                    width: '50%',
+                    height: '50%',
+                    bgcolor: alpha(theme.palette.primary.dark, 0.4),
+                    borderRadius: '50%',
+                    filter: 'blur(140px)',
+                    animation: 'mesh 20s ease-in-out infinite'
+                }} />
+                <Box sx={{
+                    position: 'absolute',
+                    top: '15%',
+                    right: '-10%',
+                    width: '45%',
+                    height: '45%',
+                    bgcolor: alpha(theme.palette.info.dark, 0.3),
+                    borderRadius: '50%',
+                    filter: 'blur(120px)',
+                    animation: 'mesh-delayed 25s ease-in-out infinite'
+                }} />
+                <Box sx={{
+                    position: 'absolute',
+                    bottom: '5%',
+                    left: '15%',
+                    width: '55%',
+                    height: '55%',
+                    bgcolor: alpha(theme.palette.primary.dark, 0.35),
+                    borderRadius: '50%',
+                    filter: 'blur(160px)',
+                    animation: 'mesh-slow 30s ease-in-out infinite'
+                }} />
+            </Box>
 
-            {/* Mesh Gradient Background - Slow Moving */}
-            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-15%] left-[-15%] w-[50%] h-[50%] bg-indigo-900/40 rounded-full blur-[140px] animate-mesh" />
-                <div className="absolute top-[15%] right-[-10%] w-[45%] h-[45%] bg-teal-900/30 rounded-full blur-[120px] animate-mesh-delayed" />
-                <div className="absolute bottom-[5%] left-[15%] w-[55%] h-[55%] bg-indigo-950/35 rounded-full blur-[160px] animate-mesh-slow" />
-            </div>
-
-
-            <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="container px-4 md:px-6 mx-auto relative z-10 flex flex-col items-center text-center"
-            >
-                <motion.div variants={itemVariants} className="mb-8">
-                    <StatelessIndicator />
-                </motion.div>
-
-                <motion.h1
-                    variants={itemVariants}
-                    className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6 max-w-4xl"
+            <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 10 }}>
+                <Box
+                    component={motion.div}
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center'
+                    }}
                 >
-                    Quantum-Safe Productivity for the
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[oklch(70%_0.2_250)] to-[oklch(85%_0.15_190)]"> Post-Quantum Era</span>
-                </motion.h1>
+                    <motion.div variants={itemVariants}>
+                        <Box sx={{ mb: 4 }}>
+                            <StatelessIndicator />
+                        </Box>
+                    </motion.div>
 
-                <motion.p
-                    variants={itemVariants}
-                    className="text-lg md:text-xl text-zinc-400 max-w-2xl mb-10 leading-relaxed"
-                >
-                    Experience the world's first stateless productivity suite powered by ML-KEM encryption.
-                    Your data never leaves your browser unencrypted.
-                </motion.p>
+                    <Typography
+                        component={motion.h1}
+                        variants={itemVariants}
+                        variant="h1"
+                        sx={{
+                            fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4.5rem', lg: '5rem' },
+                            fontWeight: 900,
+                            letterSpacing: '-0.02em',
+                            color: 'text.primary',
+                            mb: 3,
+                            maxWidth: 900,
+                            lineHeight: 1.1
+                        }}
+                    >
+                        Quantum-Safe Productivity for the {' '}
+                        <Box component="span" sx={{
+                            background: `linear-gradient(90deg, ${theme.palette.primary.light}, ${theme.palette.info.light})`,
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            Post-Quantum Era
+                        </Box>
+                    </Typography>
 
-                <motion.div
-                    variants={itemVariants}
-                    className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
-                >
-                    <Button size="lg" variant="glow" className="group relative overflow-hidden">
-                        Secure Your Vault
-                        <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
-                    </Button>
-                    <Button size="lg" variant="outline" className="border-white/10 hover:border-indigo-500/50 hover:bg-white/5 transition-colors">
-                        Learn about PQC
-                    </Button>
-                </motion.div>
+                    <Typography
+                        component={motion.p}
+                        variants={itemVariants}
+                        sx={{
+                            fontSize: { xs: '1.1rem', md: '1.25rem' },
+                            color: 'text.secondary',
+                            maxWidth: 700,
+                            mb: 6,
+                            lineHeight: 1.6,
+                            fontWeight: 500
+                        }}
+                    >
+                        Experience stateless productivity suite powered by ML-KEM encryption.
+                        Your data never leaves your browser unencrypted.
+                    </Typography>
 
-                {/* Product Preview / Visual Abstract */}
-                <motion.div
-                    variants={itemVariants}
-                    className="mt-20 w-full max-w-5xl rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-2 shadow-2xl relative overflow-hidden"
-                >
-                    {/* Fake UI Header */}
-                    <div className="h-8 border-b border-white/10 flex items-center px-4 gap-2 bg-white/5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-                    </div>
-                    {/* Fake UI Body Placeholder */}
-                    <div className="aspect-[16/9] w-full bg-gradient-to-br from-indigo-950/20 to-zinc-950 flex items-center justify-center relative">
-                        <div className="absolute inset-0 flex items-center justify-center gap-12 opacity-30">
-                            <ShieldCheck className="w-24 h-24 text-indigo-500/40" />
-                            <Lock className="w-24 h-24 text-indigo-500/40" />
-                            <Fingerprint className="w-24 h-24 text-indigo-500/40" />
-                        </div>
-                        <div className="z-10 text-center">
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-indigo-400/80 mb-3 font-medium">Encrypted Session Active</p>
-                            <p className="text-3xl font-mono text-white/90 tracking-tighter">0x7F...3A9C</p>
-                        </div>
+                    <Box
+                        component={motion.div}
+                        variants={itemVariants}
+                        sx={{
+                            display: 'flex',
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            gap: 2,
+                            width: { xs: '100%', sm: 'auto' }
+                        }}
+                    >
+                        <Button
+                            variant="contained"
+                            size="large"
+                            endIcon={<ArrowRightIcon />}
+                            sx={{
+                                px: 4,
+                                py: 1.5,
+                                fontSize: '1rem',
+                                fontWeight: 700,
+                                borderRadius: 3,
+                                boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.4)}`,
+                                '&:hover': {
+                                    boxShadow: `0 0 30px ${alpha(theme.palette.primary.main, 0.6)}`,
+                                    '& .MuiButton-endIcon': { transform: 'translateX(4px)' }
+                                },
+                                '& .MuiButton-endIcon': { transition: 'transform 0.2s' }
+                            }}
+                            onClick={() => navigate('/dashboard')}
+                        >
+                            Get Started
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            size="large"
+                            sx={{
+                                px: 4,
+                                py: 1.5,
+                                fontSize: '1rem',
+                                fontWeight: 700,
+                                borderRadius: 3,
+                                borderColor: alpha(theme.palette.divider, 0.1),
+                                bgcolor: alpha(theme.palette.background.paper, 0.05),
+                                '&:hover': {
+                                    borderColor: theme.palette.primary.main,
+                                    bgcolor: alpha(theme.palette.primary.main, 0.05)
+                                }
+                            }}
+                            onClick={() => navigate('/pqc-learn')}
+                        >
+                            Learn about PQC
+                        </Button>
+                    </Box>
 
-                        {/* Scan line effect */}
-                        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-indigo-500/10 to-transparent animate-scan pointer-events-none" />
-                    </div>
+                    {/* Aegis Architecture Preview */}
+                    <Paper
+                        component={motion.div}
+                        variants={itemVariants}
+                        elevation={24}
+                        sx={{
+                            mt: 10,
+                            width: '100%',
+                            maxWidth: 1000,
+                            borderRadius: { xs: 2, md: 4 },
+                            overflow: 'hidden',
+                            bgcolor: alpha(theme.palette.background.paper, 0.1),
+                            backdropFilter: 'blur(20px)',
+                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                            position: 'relative',
+                            p: { xs: 4, md: 6 }
+                        }}
+                    >
+                        <Box sx={{
+                            position: 'absolute', top: 0, left: 0, right: 0, height: '100%',
+                            background: `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, transparent 100%)`,
+                            pointerEvents: 'none'
+                        }} />
 
-                    {/* Merkle Integrity Feed */}
-                    <MerkleIntegrityFeed />
-                </motion.div>
+                        <Grid container spacing={6} alignItems="center" sx={{ position: 'relative', zIndex: 1, textAlign: 'left' }}>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Typography variant="h4" gutterBottom fontWeight="bold" sx={{ fontSize: { xs: '1.5rem', md: '2rem' } }}>
+                                    How Aegis Protects You
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" paragraph>
+                                    We implement a hybrid approach, combining traditional strong encryption (AES-256) for data confidentiality with PQC (ML-KEM) for key establishment.
+                                </Typography>
+                                <Stack spacing={2} sx={{ mt: 3 }}>
+                                    {['Client-side Encryption', 'Zero-Knowledge Architecture', 'Quantum-Safe Key Encapsulation'].map((item) => (
+                                        <Box key={item} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
+                                            <Typography variant="body1" fontWeight={500}>{item}</Typography>
+                                        </Box>
+                                    ))}
+                                </Stack>
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Box sx={{
+                                    p: 3,
+                                    bgcolor: 'background.paper',
+                                    borderRadius: 3,
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                    boxShadow: theme.shadows[4]
+                                }}>
+                                    <pre style={{
+                                        fontFamily: 'JetBrains Mono',
+                                        fontSize: '0.85rem',
+                                        color: theme.palette.text.secondary,
+                                        overflowX: 'auto',
+                                        margin: 0
+                                    }}>
+                                        {`// Aegis PQC Implementation
+const pqc = new ML_KEM_768();
 
-            </motion.div>
-        </section>
+// 1. User generates keypair
+const { pk, sk } = pqc.keypair();
+
+// 2. Server encapsulates key
+const { ss, ct } = pqc.encap(pk);
+
+// 3. Secure channel established`}
+                                    </pre>
+                                </Box>
+                            </Grid>
+                        </Grid>
+                    </Paper>
+                </Box>
+            </Container>
+            <style>{`
+                @keyframes scan {
+                    from { transform: translateY(-100%); }
+                    to { transform: translateY(100%); }
+                }
+                @keyframes mesh {
+                    0%, 100% { transform: translate(0, 0); }
+                    50% { transform: translate(5%, 5%); }
+                }
+                @keyframes mesh-delayed {
+                    0%, 100% { transform: translate(0, 0); }
+                    50% { transform: translate(-5%, 5%); }
+                }
+                @keyframes mesh-slow {
+                    0%, 100% { transform: translate(0, 0); }
+                    50% { transform: translate(5%, -5%); }
+                }
+            `}</style>
+        </Box>
     );
 }
-

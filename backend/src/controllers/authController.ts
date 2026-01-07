@@ -6,7 +6,7 @@ import logger from '../utils/logger';
 
 const generateToken = (id: string, username: string) => {
     return jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
-        expiresIn: '30d',
+        expiresIn: '1d', // Short-lived for security with localStorage
     });
 };
 
@@ -42,6 +42,7 @@ export const registerUser = async (req: Request, res: Response) => {
                 _id: user._id,
                 username: user.username,
                 email: user.email,
+                pqcPublicKey: user.pqcPublicKey,
                 message: 'User registered successfully'
             });
         } else {
@@ -67,13 +68,14 @@ export const loginUser = async (req: Request, res: Response) => {
         if (user && (await argon2.verify(user.passwordHash, argon2Hash))) {
             const token = generateToken(user._id.toString(), user.username);
 
-            // HTTP-only cookie
+            // HTTP-only cookie (kept for same-origin scenarios)
             res.cookie('token', token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Use 'none' for cross-site in prod
-                maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-            });
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Must be 'none' for cross-site cookie
+                maxAge: 24 * 60 * 60 * 1000, // 1 day
+                partitioned: process.env.NODE_ENV === 'production',
+            } as any);
 
             logger.info(`User logged in: ${user.email}`);
 
@@ -81,7 +83,8 @@ export const loginUser = async (req: Request, res: Response) => {
                 _id: user._id,
                 username: user.username,
                 email: user.email,
-                message: 'Login successful'
+                pqcPublicKey: user.pqcPublicKey,
+                message: 'Login successful',
             });
         } else {
             logger.warn(`Failed login attempt for email: ${email}`);
@@ -105,7 +108,7 @@ export const getMe = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const user = await User.findById(req.user.id).select('-passwordHash -pqcPublicKey');
+        const user = await User.findById(req.user.id).select('-passwordHash');
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -114,7 +117,8 @@ export const getMe = async (req: AuthRequest, res: Response) => {
         res.json({
             _id: user._id,
             username: user.username,
-            email: user.email
+            email: user.email,
+            pqcPublicKey: user.pqcPublicKey
         });
     } catch (error) {
         console.error(error);
@@ -126,11 +130,18 @@ export const logoutUser = async (_req: Request, res: Response) => {
     try {
         res.cookie('token', '', {
             httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             expires: new Date(0),
-        });
+            partitioned: process.env.NODE_ENV === 'production',
+        } as any);
         res.json({ message: 'Logged out successfully' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
+};
+
+export const getCsrfToken = (req: Request, res: Response) => {
+    res.json({ csrfToken: req.csrfToken() });
 };

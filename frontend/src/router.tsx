@@ -2,19 +2,18 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Landing } from '@/pages/Landing';
 import { Dashboard } from '@/pages/Dashboard';
 import { FilesPage } from '@/pages/FilesPage';
+import { GPAPage } from '@/pages/GPAPage';
+import { PqcLearn } from '@/pages/PqcLearn';
 import { NotFound } from '@/pages/NotFound';
+import { BackendDownPage } from '@/pages/BackendDown';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { getTheme } from './theme';
+import { useThemeStore } from '@/stores/themeStore';
+import { useMemo } from 'react';
 
 // Placeholder pages for future implementation
-function GPATracker() {
-    return (
-        <div className="glass-card border-white/10 rounded-lg p-8 text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-2">GPA Tracker</h2>
-            <p className="text-muted-foreground">Full GPA history and analytics coming soon...</p>
-        </div>
-    );
-}
 
 function ZKPVerifier() {
     return (
@@ -40,6 +39,14 @@ const router = createBrowserRouter([
         element: <Landing />,
     },
     {
+        path: '/backend-down',
+        element: <BackendDownPage />,
+    },
+    {
+        path: '/pqc-learn',
+        element: <PqcLearn />,
+    },
+    {
         path: '/dashboard',
         element: (
             <ProtectedRoute>
@@ -57,7 +64,7 @@ const router = createBrowserRouter([
             },
             {
                 path: 'gpa',
-                element: <GPATracker />,
+                element: <GPAPage />,
             },
             {
                 path: 'zkp',
@@ -76,6 +83,14 @@ const router = createBrowserRouter([
 ]);
 
 export function AppRouter() {
-    return <RouterProvider router={router} />;
+    const themeMode = useThemeStore((state) => state.theme);
+    const theme = useMemo(() => getTheme(themeMode), [themeMode]);
+
+    return (
+        <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <RouterProvider router={router} />
+        </ThemeProvider>
+    );
 }
 
