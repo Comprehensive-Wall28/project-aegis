@@ -10,7 +10,7 @@ declare module '@mui/material/Paper' {
 const FONT_PRIMARY = 'Outfit, sans-serif';
 const FONT_SECONDARY = 'Inter, sans-serif';
 
-export type ThemeMode = 'default' | 'catppuccin' | 'amoled';
+export type ThemeMode = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'light';
 
 export const getTheme = (mode: ThemeMode) => {
 
@@ -52,6 +52,24 @@ export const getTheme = (mode: ThemeMode) => {
             },
             divider: 'rgba(205, 214, 244, 0.1)',
         },
+        purple: {
+            background: {
+                default: '#0d0015', // Deep Purple/Black
+                paper: '#1a0a2e',   // Dark Purple
+            },
+            primary: {
+                main: '#a855f7',    // Purple 500
+                contrastText: '#0d0015',
+            },
+            secondary: {
+                main: '#7c3aed',    // Violet 600
+            },
+            text: {
+                primary: '#faf5ff', // Purple 50
+                secondary: '#c4b5fd', // Violet 300
+            },
+            divider: 'rgba(168, 85, 247, 0.15)',
+        },
         amoled: {
             background: {
                 default: '#000000',
@@ -70,13 +88,31 @@ export const getTheme = (mode: ThemeMode) => {
             },
             divider: 'rgba(255, 255, 255, 0.2)',
         },
+        light: {
+            background: {
+                default: '#f8fafc', // Slate 50
+                paper: '#ffffff',   // White
+            },
+            primary: {
+                main: '#0284c7',    // Sky 600
+                contrastText: '#ffffff',
+            },
+            secondary: {
+                main: '#e2e8f0',    // Slate 200
+            },
+            text: {
+                primary: '#0f172a', // Slate 900
+                secondary: '#475569', // Slate 600
+            },
+            divider: 'rgba(15, 23, 42, 0.1)',
+        },
     };
 
     const selectedPalette = palettes[mode];
 
     return createTheme({
         palette: {
-            mode: 'dark', // All Aegis themes are dark-centric
+            mode: mode === 'light' ? 'light' : 'dark',
             ...selectedPalette,
         },
         typography: {

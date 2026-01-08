@@ -11,13 +11,14 @@ import {
     Snackbar,
     Alert,
     CircularProgress,
-    Chip,
     Button,
 } from '@mui/material';
 import {
     School as SchoolIcon,
-    TrendingUp as TrendingUpIcon,
     Warning as WarningIcon,
+    TrendingUp as TrendingUpIcon,
+    AccessTime as AccessTimeIcon,
+    MenuBook as MenuBookIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -364,38 +365,57 @@ export function GPAPage() {
 
                     {/* GPA Summary Cards */}
                     <Grid container spacing={{ xs: 2, sm: 3 }}>
-                        <Grid size={{ xs: 12, md: 4 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                             <Paper
                                 component={motion.div}
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0 }}
                                 sx={{
                                     p: { xs: 2, sm: 3 },
                                     borderRadius: '16px',
                                     bgcolor: alpha(theme.palette.background.paper, 0.4),
                                     backdropFilter: 'blur(12px)',
-                                    border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                                    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                                    height: '100%',
+                                    minHeight: 140,
+                                    position: 'relative',
+                                    overflow: 'hidden',
                                 }}
                             >
-                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -20,
+                                        right: -20,
+                                        width: 100,
+                                        height: 100,
+                                        borderRadius: '50%',
+                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <TrendingUpIcon sx={{ fontSize: 40, color: alpha(theme.palette.primary.main, 0.3) }} />
+                                </Box>
+                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     Cumulative GPA
                                 </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                                    <Typography
-                                        variant="h3"
-                                        sx={{
-                                            fontFamily: 'JetBrains Mono, monospace',
-                                            fontWeight: 700,
-                                            color: theme.palette.primary.main,
-                                            fontSize: { xs: '2rem', sm: '3rem' },
-                                        }}
-                                    >
-                                        {gpaData.cumulativeGPA.toFixed(2)}
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                                        / {gpaSystem === 'GERMAN' ? '1.0' : '4.0'}
-                                    </Typography>
-                                </Box>
+                                <Typography
+                                    variant="h3"
+                                    sx={{
+                                        fontFamily: 'Inter, sans-serif',
+                                        fontWeight: 700,
+                                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
+                                        backgroundClip: 'text',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                        fontSize: { xs: '2.5rem', sm: '3rem' },
+                                    }}
+                                >
+                                    {gpaData.cumulativeGPA.toFixed(2)}
+                                </Typography>
                             </Paper>
                         </Grid>
 
@@ -410,25 +430,46 @@ export function GPAPage() {
                                     borderRadius: '16px',
                                     bgcolor: alpha(theme.palette.background.paper, 0.4),
                                     backdropFilter: 'blur(12px)',
-                                    border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                                    border: `1px solid ${alpha('#9c27b0', 0.2)}`,
+                                    height: '100%',
+                                    minHeight: 140,
+                                    position: 'relative',
+                                    overflow: 'hidden',
                                 }}
                             >
-                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                                    Total Credits
-                                </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                    <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
-                                        {gpaData.totalCredits}
-                                    </Typography>
-                                    <Chip
-                                        icon={<TrendingUpIcon sx={{ fontSize: '1rem !important' }} />}
-                                        label="Enrolled"
-                                        size="small"
-                                        color="info"
-                                        variant="outlined"
-                                        sx={{ borderRadius: '6px' }}
-                                    />
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -20,
+                                        right: -20,
+                                        width: 100,
+                                        height: 100,
+                                        borderRadius: '50%',
+                                        bgcolor: alpha('#9c27b0', 0.1),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <AccessTimeIcon sx={{ fontSize: 40, color: alpha('#9c27b0', 0.3) }} />
                                 </Box>
+                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    Total Credit Hours
+                                </Typography>
+                                <Typography
+                                    variant="h3"
+                                    sx={{
+                                        fontFamily: 'Inter, sans-serif',
+                                        fontWeight: 700,
+                                        fontSize: { xs: '2.5rem', sm: '3rem' },
+                                        background: `linear-gradient(135deg, #9c27b0, #ce93d8)`,
+                                        backgroundClip: 'text',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                    }}
+                                >
+                                    {gpaData.totalCredits}
+                                </Typography>
                             </Paper>
                         </Grid>
 
@@ -443,34 +484,72 @@ export function GPAPage() {
                                     borderRadius: '16px',
                                     bgcolor: alpha(theme.palette.background.paper, 0.4),
                                     backdropFilter: 'blur(12px)',
-                                    border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                                    border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                                    height: '100%',
+                                    minHeight: 140,
+                                    position: 'relative',
+                                    overflow: 'hidden',
                                 }}
                             >
-                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -20,
+                                        right: -20,
+                                        width: 100,
+                                        height: 100,
+                                        borderRadius: '50%',
+                                        bgcolor: alpha(theme.palette.success.main, 0.1),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <MenuBookIcon sx={{ fontSize: 40, color: alpha(theme.palette.success.main, 0.3) }} />
+                                </Box>
+                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     Total Courses
                                 </Typography>
-                                <Typography variant="h4" sx={{ fontWeight: 700, fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
+                                <Typography
+                                    variant="h3"
+                                    sx={{
+                                        fontFamily: 'Inter, sans-serif',
+                                        fontWeight: 700,
+                                        fontSize: { xs: '2.5rem', sm: '3rem' },
+                                        background: `linear-gradient(135deg, ${theme.palette.success.main}, ${theme.palette.success.light})`,
+                                        backgroundClip: 'text',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                    }}
+                                >
                                     {gpaData.totalCourses}
                                 </Typography>
                             </Paper>
                         </Grid>
 
-                        {/* Charts and Data Management */}
-                        <Grid size={{ xs: 12, lg: 8 }}>
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                <SemesterGPAChart data={gpaData.semesterGPAs} />
-                                <CumulativeGPAChart data={gpaData.cumulativeProgression} />
-                                <CourseList
-                                    courses={courses}
-                                    onDelete={handleDeleteCourse}
-                                    isLoading={isSaving}
-                                />
-                            </Box>
+                        {/* Cumulative Chart - Full Width */}
+                        <Grid size={{ xs: 12 }}>
+                            <CumulativeGPAChart data={gpaData.cumulativeProgression} />
                         </Grid>
 
-                        <Grid size={{ xs: 12, lg: 4 }}>
+                        {/* Semester GPA Chart - Below Cumulative */}
+                        <Grid size={{ xs: 12 }}>
+                            <SemesterGPAChart data={gpaData.semesterGPAs} />
+                        </Grid>
+
+                        {/* Add Course Form - Below Cumulative */}
+                        <Grid size={{ xs: 12 }}>
                             <CourseForm
                                 onSubmit={handleAddCourse}
+                                isLoading={isSaving}
+                            />
+                        </Grid>
+
+                        {/* Course List - Full Width */}
+                        <Grid size={{ xs: 12 }}>
+                            <CourseList
+                                courses={courses}
+                                onDelete={handleDeleteCourse}
                                 isLoading={isSaving}
                             />
                         </Grid>

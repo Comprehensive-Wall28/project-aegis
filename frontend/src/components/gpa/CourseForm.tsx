@@ -125,7 +125,7 @@ export function CourseForm({ onSubmit, isLoading = false }: CourseFormProps) {
 
             <Box component="form" onSubmit={handleSubmit}>
                 <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid size={{ xs: 12 }}>
                         <TextField
                             fullWidth
                             label="Course Name"
@@ -138,7 +138,7 @@ export function CourseForm({ onSubmit, isLoading = false }: CourseFormProps) {
                         />
                     </Grid>
 
-                    <Grid size={{ xs: 6, md: 2 }}>
+                    <Grid size={{ xs: 6 }}>
                         <TextField
                             fullWidth
                             label="Grade"
@@ -151,7 +151,7 @@ export function CourseForm({ onSubmit, isLoading = false }: CourseFormProps) {
                         />
                     </Grid>
 
-                    <Grid size={{ xs: 6, md: 2 }}>
+                    <Grid size={{ xs: 6 }}>
                         <TextField
                             fullWidth
                             label="Credits"
@@ -164,7 +164,7 @@ export function CourseForm({ onSubmit, isLoading = false }: CourseFormProps) {
                         />
                     </Grid>
 
-                    <Grid size={{ xs: 12, md: 2 }}>
+                    <Grid size={{ xs: 12 }}>
                         <FormControl fullWidth size="small">
                             <InputLabel>Semester</InputLabel>
                             <Select

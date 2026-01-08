@@ -87,7 +87,7 @@ export function CumulativeGPAChart({ data }: CumulativeGPAChartProps) {
                         {
                             dataKey: 'gpa',
                             label: 'Cumulative GPA',
-                            color: theme.palette.success.main,
+                            color: '#9c27b0',
                             curve: 'linear',
                             showMark: true,
                             valueFormatter: (value) => value?.toFixed(2) || '0.00',
@@ -104,7 +104,7 @@ export function CumulativeGPAChart({ data }: CumulativeGPAChartProps) {
                             stroke: alpha(theme.palette.common.white, 0.2),
                         },
                         '& .MuiAreaElement-root': {
-                            fill: alpha(theme.palette.success.main, 0.1),
+                            fill: alpha('#9c27b0', 0.1),
                         },
                     }}
                 />
