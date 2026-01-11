@@ -16,6 +16,8 @@ router.get('/csrf-token', csrfProtection, csrfTokenCookie, getCsrfToken);
 // Protected routes WITH CSRF protection
 router.get('/me', protect, csrfProtection, getMe);
 router.put('/me', protect, csrfProtection, updateMe);
-router.post('/logout', csrfProtection, logoutUser);
+
+// Logout - no CSRF (cookie might be stale, and logout is low-risk)
+router.post('/logout', logoutUser);
 
 export default router;

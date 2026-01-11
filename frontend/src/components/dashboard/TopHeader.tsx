@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
 import authService from '@/services/authService';
+import { clearStoredSeed } from '@/lib/cryptoUtils';
 import { motion } from 'framer-motion';
 import {
     Person as UserIcon,
@@ -42,6 +43,7 @@ export function TopHeader() {
 
     const handleLogout = async () => {
         await authService.logout();
+        clearStoredSeed();
         clearSession();
         navigate('/');
         handleCloseMenu();

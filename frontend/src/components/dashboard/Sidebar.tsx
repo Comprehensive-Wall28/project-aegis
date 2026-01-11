@@ -30,6 +30,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSessionStore } from '@/stores/sessionStore';
 import { AegisLogo } from '@/components/AegisLogo';
 import authService from '@/services/authService';
+import { clearStoredSeed } from '@/lib/cryptoUtils';
 
 const navItems = [
     { name: 'Vault', href: '/dashboard', icon: VaultIcon },
@@ -60,6 +61,7 @@ function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarCon
 
     const handleLogout = async () => {
         await authService.logout();
+        clearStoredSeed();
         clearSession();
         navigate('/');
     };
