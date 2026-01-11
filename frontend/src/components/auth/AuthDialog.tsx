@@ -58,6 +58,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     const [show2FA, setShow2FA] = useState(false);
     const [authOptions, setAuthOptions] = useState<any>(null);
 
@@ -81,6 +82,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
         setUsername('');
         setPassword('');
         setError('');
+        setSuccess('');
     };
 
     const handleAuth = async (e: React.FormEvent) => {
@@ -90,14 +92,13 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
 
         try {
             if (isRegisterMode) {
-                const response = await authService.register(username, email, password);
-                if (response.pqcSeed) {
-                    storeSeed(response.pqcSeed);
-                    initializeQuantumKeys(response.pqcSeed);
-                }
-                setUser({ _id: response._id, email: response.email, username: response.username });
-                onClose();
-                navigate('/dashboard');
+                await authService.register(username, email, password);
+
+                // Instead of logging in, show success and switch to login
+                setSuccess('Vault created successfully! Please login to continue.');
+                setIsRegisterMode(false);
+                setPassword(''); // Clear password for security
+                // Keep email and username for convenience if they match login fields
             } else {
                 const response = await authService.login(email, password);
 
@@ -134,6 +135,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
     const toggleMode = () => {
         setIsRegisterMode(!isRegisterMode);
         setError('');
+        setSuccess('');
     };
 
     const handleComplete2FA = async (options = authOptions) => {
@@ -407,6 +409,30 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                                         <Typography variant="caption" sx={{ color: 'error.main', display: 'block', textAlign: 'center', fontWeight: 600 }}>
                                                             {error}
                                                         </Typography>
+                                                    </motion.div>
+                                                )}
+                                                {success && (
+                                                    <motion.div
+                                                        key="success-message"
+                                                        initial={{ opacity: 0, y: -10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: -10 }}
+                                                        transition={{ duration: 0.2 }}
+                                                    >
+                                                        <Box
+                                                            sx={{
+                                                                py: 1,
+                                                                px: 2,
+                                                                borderRadius: 2,
+                                                                bgcolor: alpha(theme.palette.success.main, 0.1),
+                                                                border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                                                                textAlign: 'center'
+                                                            }}
+                                                        >
+                                                            <Typography variant="caption" sx={{ color: 'success.main', display: 'block', fontWeight: 700 }}>
+                                                                {success}
+                                                            </Typography>
+                                                        </Box>
                                                     </motion.div>
                                                 )}
                                             </AnimatePresence>
