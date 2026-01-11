@@ -21,7 +21,8 @@ export type AuditAction =
 export type AuditStatus = 'SUCCESS' | 'FAILURE';
 
 export interface IAuditLog extends Document {
-    userId: mongoose.Types.ObjectId;
+    userId?: mongoose.Types.ObjectId;
+    identifier?: string; // For failed logins (email hash)
     action: AuditAction;
     status: AuditStatus;
     ipAddress: string;
@@ -34,7 +35,12 @@ const AuditLogSchema: Schema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
+        required: false, // Optional for failed login attempts
+        index: true
+    },
+    identifier: {
+        type: String,
+        required: false, // Used for failed logins (hashed email)
         index: true
     },
     action: {

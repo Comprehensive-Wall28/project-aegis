@@ -87,7 +87,7 @@ export async function logAuditEvent(
 
 /**
  * Logs a failed authentication attempt.
- * Since we may not have a userId for failed logins, this uses email/username as identifier.
+ * Since we may not have a userId for failed logins, this uses a hashed email as identifier.
  */
 export async function logFailedAuth(
     identifier: string,
@@ -99,15 +99,30 @@ export async function logFailedAuth(
         const timestamp = new Date();
         const ipAddress = getClientIp(req);
 
-        // For failed auth, we use a placeholder userId or create a hash of the identifier
+        // Create a hash of the identifier for privacy (don't store raw email)
         const identifierHash = crypto.createHash('sha256').update(identifier).digest('hex').slice(0, 24);
 
-        logger.warn(`Auth failure: ${action} attempt for ${identifier} from ${ipAddress}`);
+        // Compute integrity hash
+        const recordHash = crypto.createHash('sha256').update(JSON.stringify({
+            identifier: identifierHash,
+            action,
+            status: 'FAILURE',
+            timestamp: timestamp.toISOString(),
+            metadata
+        })).digest('hex');
 
-        // Note: We don't store failed attempts in AuditLog since they require a valid userId
-        // Instead, this is logged via the winston logger for security monitoring
-        // The metadata can still be useful for the warning log
-        logger.warn(`Auth metadata: ${JSON.stringify({ ...metadata, identifier, action })}`);
+        // Store failed attempt in AuditLog
+        await AuditLog.create({
+            identifier: identifierHash,
+            action,
+            status: 'FAILURE',
+            ipAddress,
+            metadata: { ...metadata, attemptedIdentifier: identifier.substring(0, 3) + '***' },
+            recordHash,
+            timestamp
+        });
+
+        logger.warn(`Auth failure: ${action} attempt for ${identifier} from ${ipAddress}`);
     } catch (error) {
         logger.error(`Failed to log auth failure: ${error}`);
     }

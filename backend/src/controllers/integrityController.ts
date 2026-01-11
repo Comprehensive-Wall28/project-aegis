@@ -4,26 +4,35 @@ import MerkleRegistry from '../models/MerkleRegistry';
 import { calculateMerkleRoot, generateMerkleProof } from '../utils/merkle.utils';
 import logger from '../utils/logger';
 
+interface AuthRequest extends Request {
+    user?: { id: string; username: string };
+}
+
 /**
  * Updates or creates a GPA record and recalculates the Merkle Root for the user.
  */
-export const updateGPA = async (req: Request, res: Response) => {
+export const updateGPA = async (req: AuthRequest, res: Response) => {
     try {
-        const { userId, semester, gpa, recordHash } = req.body;
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
 
-        if (!userId || !semester || gpa === undefined || !recordHash) {
+        const { semester, gpa, recordHash } = req.body;
+        const userId = req.user.id;
+
+        if (!semester || gpa === undefined || !recordHash) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
         // 1. Update or create GPALog
         await GPALog.findOneAndUpdate(
-            { userId, semester },
+            { userId: { $eq: userId }, semester: { $eq: semester } },
             { gpa, recordHash },
             { upsert: true, new: true }
         );
 
         // 2. Fetch all GPA logs for the user to rebuild the Merkle Tree
-        const allLogs = await GPALog.find({ userId }).sort({ semester: 1 });
+        const allLogs = await GPALog.find({ userId: { $eq: userId } }).sort({ semester: 1 });
         const hashes = allLogs.map(log => log.recordHash);
 
         // 3. Recalculate Merkle Root
@@ -31,7 +40,7 @@ export const updateGPA = async (req: Request, res: Response) => {
 
         // 4. Update MerkleRegistry
         await MerkleRegistry.findOneAndUpdate(
-            { userId },
+            { userId: { $eq: userId } },
             { merkleRoot: newRoot },
             { upsert: true, new: true }
         );
@@ -52,16 +61,21 @@ export const updateGPA = async (req: Request, res: Response) => {
 /**
  * Returns the Merkle Path (proof) for a specific GPA record.
  */
-export const verifyGPA = async (req: Request, res: Response) => {
+export const verifyGPA = async (req: AuthRequest, res: Response) => {
     try {
-        const { userId, semester } = req.query;
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
 
-        if (!userId || !semester) {
-            return res.status(400).json({ message: 'Missing userId or semester' });
+        const { semester } = req.query;
+        const userId = req.user.id;
+
+        if (!semester) {
+            return res.status(400).json({ message: 'Missing semester' });
         }
 
         // 1. Fetch all GPA logs for the user to rebuild the tree
-        const allLogs = await GPALog.find({ userId }).sort({ semester: 1 });
+        const allLogs = await GPALog.find({ userId: { $eq: userId } }).sort({ semester: 1 });
         const hashes = allLogs.map(log => log.recordHash);
 
         // 2. Find the specific record
@@ -74,7 +88,7 @@ export const verifyGPA = async (req: Request, res: Response) => {
         const proof = generateMerkleProof(hashes, targetLog.recordHash);
 
         // 4. Fetch current root from registry
-        const registry = await MerkleRegistry.findOne({ userId });
+        const registry = await MerkleRegistry.findOne({ userId: { $eq: userId } });
 
         res.status(200).json({
             semester: targetLog.semester,
@@ -90,9 +104,7 @@ export const verifyGPA = async (req: Request, res: Response) => {
     }
 };
 
-interface AuthRequest extends Request {
-    user?: { id: string; username: string };
-}
+
 
 /**
  * Returns the current Merkle Root for the authenticated user.

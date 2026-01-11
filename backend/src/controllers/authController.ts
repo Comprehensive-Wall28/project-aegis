@@ -3,7 +3,7 @@ import User from '../models/User';
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import logger from '../utils/logger';
-import { logAuditEvent } from '../utils/auditLogger';
+import { logAuditEvent, logFailedAuth } from '../utils/auditLogger';
 
 const generateToken = (id: string, username: string) => {
     return jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
@@ -109,6 +109,15 @@ export const loginUser = async (req: Request, res: Response) => {
             });
         } else {
             logger.warn(`Failed login attempt for email: ${email}`);
+
+            // Log failed login attempt for security forensics
+            await logFailedAuth(
+                email,
+                'LOGIN_FAILED',
+                req,
+                { userAgent: req.headers['user-agent'] }
+            );
+
             // Generic error
             res.status(401).json({ message: 'Invalid credentials' });
         }

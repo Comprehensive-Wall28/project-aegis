@@ -14,7 +14,7 @@ const GPALogSchema: Schema = new Schema({
     recordHash: { type: String, required: true },
 }, { timestamps: true });
 
-// Ensure a user can't have duplicate semester logs easily if we want, 
-// GPALogSchema.index({ userId: 1, semester: 1 }, { unique: true });
+// Compound index for efficient queries and ensuring unique semester per user
+GPALogSchema.index({ userId: 1, semester: 1 }, { unique: true });
 
 export default mongoose.model<IGPALog>('GPALog', GPALogSchema);
