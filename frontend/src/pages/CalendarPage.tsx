@@ -152,6 +152,11 @@ export function CalendarPage() {
     };
 
     const renderEventContent = (eventInfo: any) => {
+        const { event } = eventInfo;
+        const startTime = event.start
+            ? new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+            : '';
+
         return (
             <Box
                 sx={{
@@ -171,8 +176,8 @@ export function CalendarPage() {
                             width: 8,
                             height: 8,
                             borderRadius: '50%',
-                            bgcolor: eventInfo.event.backgroundColor,
-                            boxShadow: `0 0 10px ${eventInfo.event.backgroundColor}`,
+                            bgcolor: event.backgroundColor,
+                            boxShadow: `0 0 10px ${event.backgroundColor}`,
                             flexShrink: 0
                         }}
                     />
@@ -188,10 +193,10 @@ export function CalendarPage() {
                             letterSpacing: '0.2px',
                         }}
                     >
-                        {eventInfo.event.title}
+                        {event.title}
                     </Typography>
                 </Stack>
-                {!eventInfo.event.allDay && (
+                {!event.allDay && startTime && (
                     <Typography
                         variant="caption"
                         sx={{
@@ -202,7 +207,7 @@ export function CalendarPage() {
                             fontFamily: 'JetBrains Mono, monospace'
                         }}
                     >
-                        {eventInfo.timeText}
+                        {startTime}
                     </Typography>
                 )}
             </Box>
