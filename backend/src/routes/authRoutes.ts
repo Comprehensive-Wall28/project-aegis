@@ -1,5 +1,16 @@
 import express from 'express';
-import { registerUser, loginUser, getMe, updateMe, logoutUser, getCsrfToken } from '../controllers/authController';
+import {
+    registerUser,
+    loginUser,
+    getMe,
+    updateMe,
+    logoutUser,
+    getCsrfToken,
+    getRegistrationOptions,
+    verifyRegistration,
+    getAuthenticationOptions,
+    verifyAuthentication,
+} from '../controllers/authController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection, csrfTokenCookie } from '../middleware/csrfMiddleware';
 
@@ -19,5 +30,11 @@ router.put('/me', protect, csrfProtection, updateMe);
 
 // Logout - no CSRF (cookie might be stale, and logout is low-risk)
 router.post('/logout', logoutUser);
+
+// WebAuthn routes
+router.post('/webauthn/register-options', protect, csrfProtection, getRegistrationOptions);
+router.post('/webauthn/register-verify', protect, csrfProtection, verifyRegistration);
+router.post('/webauthn/login-options', getAuthenticationOptions);
+router.post('/webauthn/login-verify', verifyAuthentication);
 
 export default router;

@@ -5,13 +5,22 @@ export interface IUserPreferences {
     encryptionLevel: 'STANDARD' | 'HIGH' | 'PARANOID';
 }
 
+export interface IWebAuthnCredential {
+    credentialID: string;
+    publicKey: string;
+    counter: number;
+    transports?: string[];
+}
+
 export interface IUser extends Document {
     username: string;
     email: string;
     pqcPublicKey: string;
-    passwordHash: string;
+    passwordHash?: string;
     gpaSystem: 'NORMAL' | 'GERMAN';
     preferences: IUserPreferences;
+    webauthnCredentials: IWebAuthnCredential[];
+    currentChallenge?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -22,14 +31,26 @@ const UserSchema: Schema = new Schema({
 
     pqcPublicKey: { type: String, required: true },
 
-    passwordHash: { type: String, required: true },
+    passwordHash: {
+        type: String,
+        required: true
+    },
 
     gpaSystem: { type: String, enum: ['NORMAL', 'GERMAN'], default: 'NORMAL' },
 
     preferences: {
         sessionTimeout: { type: Number, default: 60, min: 5, max: 480 },
         encryptionLevel: { type: String, enum: ['STANDARD', 'HIGH', 'PARANOID'], default: 'STANDARD' }
-    }
+    },
+
+    webauthnCredentials: [{
+        credentialID: { type: String, required: true },
+        publicKey: { type: String, required: true },
+        counter: { type: Number, required: true, default: 0 },
+        transports: [{ type: String }]
+    }],
+
+    currentChallenge: { type: String }
 
 }, { timestamps: true });
 

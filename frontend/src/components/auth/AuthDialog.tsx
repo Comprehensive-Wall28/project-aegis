@@ -18,12 +18,25 @@ import {
     Lock as LockIcon,
     Person as PersonIcon,
     Email as EmailIcon,
+    Fingerprint as FingerprintIcon,
 } from '@mui/icons-material';
+import { startAuthentication } from '@simplewebauthn/browser';
 import { motion, AnimatePresence } from 'framer-motion';
 import authService from '@/services/authService';
 import { useSessionStore } from '@/stores/sessionStore';
-import { storeSeed } from '@/lib/cryptoUtils';
+import { storeSeed, derivePQCSeed } from '@/lib/cryptoUtils';
 import { useNavigate } from 'react-router-dom';
+import apiClient from '@/services/api';
+
+interface AuthResponse {
+    _id: string;
+    email: string;
+    username: string;
+    pqcSeed?: string;
+    status?: string;
+    options?: any;
+    message?: string;
+}
 
 interface AuthDialogProps {
     open: boolean;
@@ -45,6 +58,8 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [show2FA, setShow2FA] = useState(false);
+    const [authOptions, setAuthOptions] = useState<any>(null);
 
     // Track open count to force fresh state on each open
     const [openCount, setOpenCount] = useState(0);
@@ -85,6 +100,16 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                 navigate('/dashboard');
             } else {
                 const response = await authService.login(email, password);
+
+                if (response.status === '2FA_REQUIRED') {
+                    setAuthOptions(response.options);
+                    setShow2FA(true);
+                    setLoading(false);
+                    // Automatically trigger passkey auth after a short delay for UX
+                    setTimeout(() => handleComplete2FA(response.options), 500);
+                    return;
+                }
+
                 if (response.pqcSeed) {
                     storeSeed(response.pqcSeed);
                     initializeQuantumKeys(response.pqcSeed);
@@ -109,6 +134,38 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
     const toggleMode = () => {
         setIsRegisterMode(!isRegisterMode);
         setError('');
+    };
+
+    const handleComplete2FA = async (options = authOptions) => {
+        if (!options) return;
+        setLoading(true);
+        setError('');
+
+        try {
+            const credential = await startAuthentication({ optionsJSON: options });
+
+            const finalResponse = await apiClient.post<AuthResponse>('/auth/webauthn/login-verify', {
+                email,
+                body: credential
+            });
+
+            const data = finalResponse.data;
+            const pqcSeed = await derivePQCSeed(password);
+
+            if (data._id) {
+                storeSeed(pqcSeed);
+                initializeQuantumKeys(pqcSeed);
+                setUser({ _id: data._id, email: data.email, username: data.username });
+                onClose();
+                navigate('/dashboard');
+            }
+        } catch (err: any) {
+            console.error(err);
+            setError(err.response?.data?.message || 'Passkey 2FA failed');
+            setShow2FA(false); // Go back to login form on failure
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Animation variants
@@ -265,96 +322,127 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
 
                                 {/* Form */}
                                 <Stack component="form" onSubmit={handleAuth} sx={{ gap: 2.5 }}>
-                                    <AnimatePresence initial={false} mode="sync" key={`form-animations-${openCount}`}>
-                                        {isRegisterMode && (
-                                            <motion.div
-                                                key="username-field"
-                                                variants={fieldVariants}
-                                                initial="hidden"
-                                                animate="visible"
-                                                exit="exit"
+                                    {show2FA ? (
+                                        <Box sx={{ textAlign: 'center', py: 2 }}>
+                                            <FingerprintIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2, opacity: 0.8 }} />
+                                            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                                                Two-Factor Authentication
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+                                                Please use your registered passkey to complete the login.
+                                            </Typography>
+                                            <Button
+                                                fullWidth
+                                                variant="contained"
+                                                onClick={() => handleComplete2FA()}
+                                                disabled={loading}
+                                                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <FingerprintIcon />}
+                                                sx={{ py: 1.5, borderRadius: 2.5 }}
                                             >
-                                                <TextField
-                                                    fullWidth
-                                                    label="Username"
-                                                    value={username}
-                                                    onChange={(e) => setUsername(e.target.value)}
-                                                    InputProps={{
-                                                        startAdornment: <InputAdornment position="start"><PersonIcon fontSize="small" /></InputAdornment>,
-                                                    }}
-                                                />
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-
-                                    <TextField
-                                        fullWidth
-                                        label="Email Address"
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        InputProps={{
-                                            startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>,
-                                        }}
-                                    />
-
-                                    <TextField
-                                        fullWidth
-                                        label="Encryption Password"
-                                        type="password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        InputProps={{
-                                            startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" /></InputAdornment>,
-                                        }}
-                                    />
-
-                                    <AnimatePresence mode="wait">
-                                        {error && (
-                                            <motion.div
-                                                key="error-message"
-                                                initial={{ opacity: 0, y: -10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -10 }}
-                                                transition={{ duration: 0.2 }}
+                                                {loading ? 'Verifying...' : 'Tap Passkey'}
+                                            </Button>
+                                            <Button
+                                                variant="text"
+                                                onClick={() => setShow2FA(false)}
+                                                sx={{ mt: 2, color: 'text.secondary' }}
                                             >
-                                                <Typography variant="caption" sx={{ color: 'error.main', display: 'block', textAlign: 'center', fontWeight: 600 }}>
-                                                    {error}
-                                                </Typography>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                                Cancel
+                                            </Button>
+                                        </Box>
+                                    ) : (
+                                        <>
+                                            <AnimatePresence initial={false} mode="sync" key={`form-animations-${openCount}`}>
+                                                {isRegisterMode && (
+                                                    <motion.div
+                                                        key="username-field"
+                                                        variants={fieldVariants}
+                                                        initial="hidden"
+                                                        animate="visible"
+                                                        exit="exit"
+                                                    >
+                                                        <TextField
+                                                            fullWidth
+                                                            label="Username"
+                                                            value={username}
+                                                            onChange={(e) => setUsername(e.target.value)}
+                                                            InputProps={{
+                                                                startAdornment: <InputAdornment position="start"><PersonIcon fontSize="small" /></InputAdornment>,
+                                                            }}
+                                                        />
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
 
-                                    <Button
-                                        fullWidth
-                                        variant="contained"
-                                        disabled={loading}
-                                        type="submit"
-                                        sx={{
-                                            py: 1.5,
-                                            fontWeight: 700,
-                                            borderRadius: 2.5,
-                                            mt: 1,
-                                            boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
-                                            '&:hover': {
-                                                boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.5)}`
-                                            }
-                                        }}
-                                    >
-                                        {loading ? <CircularProgress size={24} color="inherit" /> : (isRegisterMode ? 'Generate Keys & Register' : 'Authenticate')}
-                                    </Button>
+                                            <TextField
+                                                fullWidth
+                                                label="Email Address"
+                                                type="email"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                InputProps={{
+                                                    startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>,
+                                                }}
+                                            />
 
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center', display: 'block' }}>
-                                        {isRegisterMode ? 'Already have a vault?' : 'Need a secure vault?'}
-                                        <Link
-                                            component="button"
-                                            type="button"
-                                            onClick={toggleMode}
-                                            sx={{ ml: 1, fontWeight: 700, textDecoration: 'none', color: 'primary.main' }}
-                                        >
-                                            {isRegisterMode ? 'Login here' : 'Register here'}
-                                        </Link>
-                                    </Typography>
+                                            <TextField
+                                                fullWidth
+                                                label="Encryption Password"
+                                                type="password"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                InputProps={{
+                                                    startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" /></InputAdornment>,
+                                                }}
+                                            />
+
+                                            <AnimatePresence mode="wait">
+                                                {error && (
+                                                    <motion.div
+                                                        key="error-message"
+                                                        initial={{ opacity: 0, y: -10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: -10 }}
+                                                        transition={{ duration: 0.2 }}
+                                                    >
+                                                        <Typography variant="caption" sx={{ color: 'error.main', display: 'block', textAlign: 'center', fontWeight: 600 }}>
+                                                            {error}
+                                                        </Typography>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+
+                                            <Button
+                                                fullWidth
+                                                variant="contained"
+                                                disabled={loading}
+                                                type="submit"
+                                                sx={{
+                                                    py: 1.5,
+                                                    fontWeight: 700,
+                                                    borderRadius: 2.5,
+                                                    mt: 1,
+                                                    boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
+                                                    '&:hover': {
+                                                        boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.5)}`
+                                                    }
+                                                }}
+                                            >
+                                                {loading ? <CircularProgress size={24} color="inherit" /> : (isRegisterMode ? 'Generate Keys & Register' : 'Authenticate')}
+                                            </Button>
+
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center', display: 'block' }}>
+                                                {isRegisterMode ? 'Already have a vault?' : 'Need a secure vault?'}
+                                                <Link
+                                                    component="button"
+                                                    type="button"
+                                                    onClick={toggleMode}
+                                                    sx={{ ml: 1, fontWeight: 700, textDecoration: 'none', color: 'primary.main' }}
+                                                >
+                                                    {isRegisterMode ? 'Login here' : 'Register here'}
+                                                </Link>
+                                            </Typography>
+                                        </>
+                                    )}
                                 </Stack>
                             </Box>
                         </MotionPaper>

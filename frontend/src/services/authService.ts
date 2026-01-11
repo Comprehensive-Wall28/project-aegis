@@ -1,6 +1,10 @@
 import apiClient from './api';
 import { derivePQCSeed, getPQCDiscoveryKey } from '../lib/cryptoUtils';
 import type { UserPreferences } from '../stores/sessionStore';
+import {
+    startRegistration,
+    startAuthentication,
+} from '@simplewebauthn/browser';
 
 
 
@@ -23,9 +27,11 @@ export interface AuthResponse {
     email: string;
     username: string;
     message: string;
-    token?: string; // Token returned for cross-origin localStorage auth
-    pqcSeed?: Uint8Array; // Derived locally
+    token?: string;
+    pqcSeed?: Uint8Array;
     preferences?: UserPreferences;
+    status?: string;
+    options?: any;
 }
 
 // Web Crypto API helper to simulate Argon2 client-side hashing (using SHA-256 for demo)
@@ -47,12 +53,10 @@ const authService = {
         const pqcSeed = await derivePQCSeed(passwordRaw);
 
         // 3. Send to backend
-        const response = await apiClient.post<AuthResponse>('/auth/login', {
+        const response = await apiClient.post<any>('/auth/login', {
             email,
             argon2Hash,
         });
-
-
 
         return {
             ...response.data,
@@ -109,7 +113,52 @@ const authService = {
         const response = await apiClient.put<{ _id: string; email: string; username: string; preferences?: UserPreferences }>('/auth/me', data);
         return response.data;
     },
+
+    registerPasskey: async (): Promise<boolean> => {
+        try {
+            // 1. Get options from backend
+            const optionsResponse = await apiClient.post('/auth/webauthn/register-options');
+            const options = optionsResponse.data;
+
+            // 2. Start registration in browser
+            const credential = await startRegistration({ optionsJSON: options });
+
+            // 3. Verify with backend
+            const verifyResponse = await apiClient.post('/auth/webauthn/register-verify', credential);
+            return verifyResponse.data.verified;
+        } catch (error) {
+            console.error('Passkey registration failed:', error);
+            throw error;
+        }
+    },
+
+    loginWithPasskey: async (email: string, passwordRaw: string): Promise<AuthResponse> => {
+        try {
+            // 1. Get options from backend
+            const optionsResponse = await apiClient.post('/auth/webauthn/login-options', { email });
+            const options = optionsResponse.data;
+
+            // 2. Start authentication in browser
+            const credential = await startAuthentication({ optionsJSON: options });
+
+            // 3. Verify with backend
+            const verifyResponse = await apiClient.post<AuthResponse>('/auth/webauthn/login-verify', {
+                email,
+                body: credential
+            });
+
+            // 4. Derive PQC Seed (still needed for vault encryption)
+            const pqcSeed = await derivePQCSeed(passwordRaw);
+
+            return {
+                ...verifyResponse.data,
+                pqcSeed
+            };
+        } catch (error) {
+            console.error('Passkey login failed:', error);
+            throw error;
+        }
+    },
 };
 
 export default authService;
-

@@ -26,6 +26,8 @@ import {
     Shield as ShieldIcon,
     ExpandMore as ExpandMoreIcon,
     ExpandLess as ExpandLessIcon,
+    Fingerprint as FingerprintIcon,
+    Add as AddIcon,
 } from '@mui/icons-material';
 import { useSessionStore, type UserPreferences } from '@/stores/sessionStore';
 import authService from '@/services/authService';
@@ -59,6 +61,8 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
     const [encryptionLevel, setEncryptionLevel] = useState<'STANDARD' | 'HIGH' | 'PARANOID'>('STANDARD');
     const [hasPreferencesChanges, setHasPreferencesChanges] = useState(false);
     const [isPreferencesLoading, setIsPreferencesLoading] = useState(false);
+
+    const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 
     // Copy state
     const [copied, setCopied] = useState(false);
@@ -110,6 +114,21 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
             await navigator.clipboard.writeText(user.publicKey);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
+    const handleAddPasskey = async () => {
+        setIsPasskeyLoading(true);
+        try {
+            const success = await authService.registerPasskey();
+            if (success) {
+                onNotification('success', 'Passkey registered successfully! It will now be used as 2FA for your next login.');
+            }
+        } catch (error: any) {
+            console.error(error);
+            onNotification('error', error.response?.data?.message || 'Failed to register passkey.');
+        } finally {
+            setIsPasskeyLoading(false);
         }
     };
 
@@ -299,6 +318,77 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                         </Button>
                     </Box>
                 </Collapse>
+            </Paper>
+
+            {/* Passkeys & Global Security */}
+            <Paper sx={sharedPaperStyles}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: '0.1em', fontSize: '10px', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FingerprintIcon sx={{ fontSize: 14 }} />
+                    PASSKEYS & BIOMETRICS
+                </Typography>
+
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+                    Passkeys provide a secure, passwordless way to sign in. You can use your phone's biometrics, Windows Hello, or a security key like a Yubikey.
+                </Typography>
+
+                {user?.webauthnCredentials && user.webauthnCredentials.length > 0 && (
+                    <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: '0.05em', mb: 1 }}>
+                            REGISTERED PASSKEYS ({user.webauthnCredentials.length})
+                        </Typography>
+                        {user.webauthnCredentials.map((cred, index) => (
+                            <Box
+                                key={cred.credentialID}
+                                sx={{
+                                    p: 2,
+                                    borderRadius: '12px',
+                                    bgcolor: alpha(theme.palette.common.white, 0.03),
+                                    border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 2
+                                }}
+                            >
+                                <Box sx={{
+                                    width: 32, height: 32, borderRadius: '8px',
+                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: theme.palette.primary.main
+                                }}>
+                                    <FingerprintIcon sx={{ fontSize: 18 }} />
+                                </Box>
+                                <Box sx={{ flex: 1 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                        Passkey {index + 1}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
+                                        {cred.credentialID.slice(0, 16)}...
+                                    </Typography>
+                                </Box>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', bgcolor: alpha(theme.palette.common.white, 0.05), px: 1, py: 0.5, borderRadius: '4px' }}>
+                                    Counter: {cred.counter}
+                                </Typography>
+                            </Box>
+                        ))}
+                    </Box>
+                )}
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Button
+                        variant="outlined"
+                        onClick={handleAddPasskey}
+                        disabled={isPasskeyLoading}
+                        startIcon={isPasskeyLoading ? <CircularProgress size={16} /> : <AddIcon />}
+                        sx={{
+                            borderRadius: '12px', textTransform: 'none', fontWeight: 600, py: 1.5,
+                            borderColor: alpha(theme.palette.primary.main, 0.3),
+                            color: theme.palette.primary.main,
+                            '&:hover': { borderColor: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.05) }
+                        }}
+                    >
+                        Register New Passkey
+                    </Button>
+                </Box>
             </Paper>
         </Box>
     );

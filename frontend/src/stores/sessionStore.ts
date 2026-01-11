@@ -13,6 +13,12 @@ interface User {
     publicKey?: string; // Hex encoded ML-KEM-768 public key
     privateKey?: string; // Hex encoded ML-KEM-768 private key (stored only in memory, never sent to server)
     preferences?: UserPreferences;
+    hasPassword?: boolean;
+    webauthnCredentials?: Array<{
+        credentialID: string;
+        counter: number;
+        transports?: string[];
+    }>;
 }
 
 export type CryptoStatus = 'idle' | 'encrypting' | 'decrypting' | 'processing' | 'done';
