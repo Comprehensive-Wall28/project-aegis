@@ -2,7 +2,7 @@ import { useState } from 'react';
 // @ts-ignore - Module likely exists but types are missing in environment
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 import { useSessionStore } from '../stores/sessionStore';
-import axios from 'axios';
+import apiClient from '../services/api';
 
 
 // Constants
@@ -55,8 +55,6 @@ export const useVaultUpload = () => {
         // NOTE: standard AES-GCM requires 96-bit IV.
         // We use the first 32 bytes of sharedSecret? No, sharedSecret is the key.
         // We import sharedSecret as an AES-KW (Key Wrap) key or AES-GCM key?
-        // Prompt says: "Use the sharedSecret to encrypt the random AES key."
-        // We'll use AES-GCM with a random IV.
 
         const wrappingKey = await window.crypto.subtle.importKey(
             'raw',
@@ -136,17 +134,13 @@ export const useVaultUpload = () => {
 
             // Send Init
 
-            const initResponse = await axios.post('/api/vault/upload-init', {
+            const initResponse = await apiClient.post('/vault/upload-init', {
                 fileName: encryptedFileName,
                 originalFileName: file.name, // Original filename for display
                 fileSize: totalEncryptedSize, // Send total ENCRYPTED size
                 encryptedSymmetricKey: encryptedSymmetricKey,
                 encapsulatedKey: bytesToHex(encapsulatedKey),
                 mimeType: file.type || 'application/octet-stream'
-            }, {
-                baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
-                withCredentials: true,
-                headers: {}
             });
 
             const { fileId } = initResponse.data;
@@ -176,9 +170,7 @@ export const useVaultUpload = () => {
                 const contentRange = `bytes ${rangeStart}-${rangeEnd}/${totalEncryptedSize}`;
 
                 // Upload Chunk
-                await axios.put(`/api/vault/upload-chunk?fileId=${fileId}`, encryptedChunk, {
-                    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
-                    withCredentials: true,
+                await apiClient.put(`/vault/upload-chunk?fileId=${fileId}`, encryptedChunk, {
                     headers: {
                         'Content-Type': 'application/octet-stream',
                         'Content-Range': contentRange
