@@ -54,41 +54,8 @@ app.use(helmet({
 app.use(express.json());
 app.use(cookieParser());
 
-// CSRF Protection
-// We need to import csrf from 'csurf' but since we are using CommonJS/ESM mix, we need to be careful.
-// Using require for now to avoid potential ESM issues with the specific library version if needed, 
-// but import should work if esModuleInterop is on.
-import csrf from 'csurf';
-
-let csrfProtection: express.RequestHandler;
-
-if (process.env.NODE_ENV === 'production') {
-    // Disable CSRF in production as requested, mocking the token function
-    csrfProtection = (req, res, next) => {
-        (req as any).csrfToken = () => 'csrf-disabled-in-production';
-        next();
-    };
-} else {
-    csrfProtection = csrf({
-        cookie: {
-            httpOnly: true,
-            secure: false, // Localhost usually isn't https
-            sameSite: 'lax',
-        }
-    });
-}
-
-app.use(csrfProtection);
-
-// Expose CSRF token to client via cookie (Axios default behavior)
-app.use((req, res, next) => {
-    res.cookie('XSRF-TOKEN', req.csrfToken(), {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production', // Secure in production
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-    });
-    next();
-});
+// CSRF Protection is applied per-route via middleware/csrfMiddleware.ts
+// Login/register are excluded to prevent race conditions on fresh page loads.
 app.use('/api/', apiLimiter);
 app.use('/api/auth', authLimiter); // Stricter limit for auth
 
