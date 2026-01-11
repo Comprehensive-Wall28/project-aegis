@@ -10,7 +10,7 @@ interface AuthRequest extends Request {
 
 export const uploadInit = async (req: AuthRequest, res: Response) => {
     try {
-        const { fileName, originalFileName, fileSize, encryptedSymmetricKey, encapsulatedKey, mimeType } = req.body;
+        const { fileName, originalFileName, fileSize, encryptedSymmetricKey, encapsulatedKey, mimeType, folderId } = req.body;
 
         if (!fileName || !originalFileName || !fileSize || !encryptedSymmetricKey || !encapsulatedKey || !mimeType) {
             return res.status(400).json({ message: 'Missing file metadata' });
@@ -29,6 +29,7 @@ export const uploadInit = async (req: AuthRequest, res: Response) => {
 
         const fileRecord = await FileMetadata.create({
             ownerId: req.user.id,
+            folderId: folderId || null,
             fileName, // Encrypted filename
             originalFileName, // Original filename for display
             fileSize,

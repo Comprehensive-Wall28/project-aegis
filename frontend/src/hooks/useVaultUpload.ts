@@ -97,7 +97,7 @@ export const useVaultUpload = () => {
         return result.buffer;
     };
 
-    const uploadFile = async (file: File) => {
+    const uploadFile = async (file: File, folderId?: string | null) => {
         if (!user || !user.publicKey) {
             setState({ ...state, status: 'error', error: 'User public key not found. Session invalid?' });
             return;
@@ -140,7 +140,8 @@ export const useVaultUpload = () => {
                 fileSize: totalEncryptedSize, // Send total ENCRYPTED size
                 encryptedSymmetricKey: encryptedSymmetricKey,
                 encapsulatedKey: bytesToHex(encapsulatedKey),
-                mimeType: file.type || 'application/octet-stream'
+                mimeType: file.type || 'application/octet-stream',
+                folderId // Pass target folder
             });
 
             const { fileId } = initResponse.data;

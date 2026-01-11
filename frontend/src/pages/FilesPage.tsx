@@ -47,12 +47,14 @@ import {
     DialogContent,
     DialogActions,
     Breadcrumbs,
-    Link
+    Link,
+    LinearProgress
 } from '@mui/material';
 import vaultService, { type FileMetadata } from '@/services/vaultService';
 import folderService, { type Folder } from '@/services/folderService';
 import { motion, AnimatePresence } from 'framer-motion';
 import UploadZone from '@/components/vault/UploadZone';
+import { useVaultUpload } from '@/hooks/useVaultUpload';
 import { useVaultDownload } from '@/hooks/useVaultDownload';
 import { BackendDown } from '@/components/BackendDown';
 import { ContextMenu, useContextMenu, CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/ContextMenu';
@@ -135,6 +137,9 @@ export function FilesPage() {
     const [renameFolderDialog, setRenameFolderDialog] = useState<{ open: boolean; folder: Folder | null }>({ open: false, folder: null });
     const [moveToFolderDialog, setMoveToFolderDialog] = useState(false);
     const [filesToMove, setFilesToMove] = useState<string[]>([]);
+    const [dragOverId, setDragOverId] = useState<string | null>(null);
+    const [isExternalDragging, setIsExternalDragging] = useState(false);
+    const { uploadFile, state: uploadState } = useVaultUpload();
     const { downloadAndDecrypt } = useVaultDownload();
     const { contextMenu, handleContextMenu, closeContextMenu } = useContextMenu();
     const theme = useTheme();
@@ -323,10 +328,11 @@ export function FilesPage() {
         setSelectedIds(new Set());
     };
 
-    const handleMoveToFolder = async (targetFolderId: string | null) => {
-        if (filesToMove.length === 0) return;
+    const handleMoveToFolder = async (targetFolderId: string | null, idsToOverride?: string[]) => {
+        const ids = idsToOverride || filesToMove;
+        if (ids.length === 0) return;
         try {
-            await folderService.moveFiles(filesToMove, targetFolderId);
+            await folderService.moveFiles(ids, targetFolderId);
             setFilesToMove([]);
             setSelectedIds(new Set());
             setMoveToFolderDialog(false);
@@ -399,7 +405,67 @@ export function FilesPage() {
     }
 
     return (
-        <Stack spacing={4} className="text-sharp">
+        <Stack
+            spacing={4}
+            className="text-sharp"
+            onDragEnter={(e) => {
+                if (e.dataTransfer.types.includes('Files')) {
+                    e.preventDefault();
+                    setIsExternalDragging(true);
+                }
+            }}
+            onDragOver={(e) => {
+                if (e.dataTransfer.types.includes('Files')) {
+                    e.preventDefault();
+                    setIsExternalDragging(true);
+                }
+            }}
+            sx={{ position: 'relative', minHeight: '80vh' }}
+        >
+            {/* External Drag Overlay */}
+            <AnimatePresence>
+                {isExternalDragging && (
+                    <Box
+                        component={motion.div}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onDragLeave={() => setIsExternalDragging(false)}
+                        onDrop={async (e) => {
+                            e.preventDefault();
+                            setIsExternalDragging(false);
+                            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                for (const file of Array.from(e.dataTransfer.files)) {
+                                    await uploadFile(file, currentFolderId);
+                                }
+                                fetchData();
+                            }
+                        }}
+                        sx={{
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: 9999,
+                            bgcolor: alpha(theme.palette.primary.main, 0.15),
+                            backdropFilter: 'blur(8px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            pointerEvents: 'auto',
+                            border: `4px dashed ${theme.palette.primary.main}`,
+                            m: 2,
+                            borderRadius: '24px'
+                        }}
+                    >
+                        <Box sx={{ textAlign: 'center', color: 'primary.main', pointerEvents: 'none' }}>
+                            <UploadIcon sx={{ fontSize: 80, mb: 2 }} />
+                            <Typography variant="h4" sx={{ fontWeight: 800 }}>Drop to Secure Files</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600, opacity: 0.8 }}>
+                                Uploading to: {currentFolderId ? folders.find(f => f._id === currentFolderId)?.name : 'Root (Home)'}
+                            </Typography>
+                        </Box>
+                    </Box>
+                )}
+            </AnimatePresence>
             {/* Header */}
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 2 }}>
                 <Box>
@@ -546,10 +612,13 @@ export function FilesPage() {
             {/* Upload Section */}
             <Collapse in={showUpload}>
                 <Paper variant="glass" sx={{ p: 4, borderRadius: '16px' }}>
-                    <UploadZone onUploadComplete={() => {
-                        fetchData();
-                        setShowUpload(false);
-                    }} />
+                    <UploadZone
+                        folderId={currentFolderId}
+                        onUploadComplete={() => {
+                            fetchData();
+                            setShowUpload(false);
+                        }}
+                    />
                 </Paper>
             </Collapse>
 
@@ -560,7 +629,33 @@ export function FilesPage() {
                         component="button"
                         underline="hover"
                         onClick={() => navigateToFolder(null)}
-                        sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 600, color: 'text.secondary' }}
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            setDragOverId('root');
+                        }}
+                        onDragLeave={() => setDragOverId(null)}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            setDragOverId(null);
+                            const droppedFileId = e.dataTransfer.getData('fileId');
+                            if (droppedFileId) {
+                                const idsToMove = selectedIds.has(droppedFileId)
+                                    ? Array.from(selectedIds)
+                                    : [droppedFileId];
+                                handleMoveToFolder(null, idsToMove);
+                            }
+                        }}
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            fontWeight: 600,
+                            color: 'text.secondary',
+                            p: 0.5,
+                            borderRadius: '4px',
+                            bgcolor: dragOverId === 'root' ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                            border: dragOverId === 'root' ? `1px solid ${theme.palette.primary.main}` : '1px solid transparent'
+                        }}
                     >
                         <HomeIcon fontSize="small" />
                         Home
@@ -574,13 +669,90 @@ export function FilesPage() {
                                 setFolderPath(folderPath.slice(0, index + 1));
                                 setCurrentFolderId(folder._id);
                             }}
-                            sx={{ fontWeight: 600, color: index === folderPath.length - 1 ? 'text.primary' : 'text.secondary' }}
+                            onDragOver={(e) => {
+                                // Don't allow dropping on the current folder (last in path)
+                                if (index < folderPath.length - 1) {
+                                    e.preventDefault();
+                                    setDragOverId(folder._id);
+                                }
+                            }}
+                            onDragLeave={() => setDragOverId(null)}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                setDragOverId(null);
+                                const droppedFileId = e.dataTransfer.getData('fileId');
+                                if (droppedFileId) {
+                                    const idsToMove = selectedIds.has(droppedFileId)
+                                        ? Array.from(selectedIds)
+                                        : [droppedFileId];
+                                    handleMoveToFolder(folder._id, idsToMove);
+                                }
+                            }}
+                            sx={{
+                                fontWeight: 600,
+                                color: index === folderPath.length - 1 ? 'text.primary' : 'text.secondary',
+                                p: 0.5,
+                                borderRadius: '4px',
+                                bgcolor: dragOverId === folder._id ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                border: dragOverId === folder._id ? `1px solid ${theme.palette.primary.main}` : '1px solid transparent'
+                            }}
                         >
                             {folder.name}
                         </Link>
                     ))}
                 </Breadcrumbs>
             )}
+
+            {/* Upload Progress Bar */}
+            <AnimatePresence>
+                {(uploadState.status !== 'idle' && uploadState.status !== 'completed' && uploadState.status !== 'error') && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+                        exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        style={{ overflow: 'hidden' }}
+                    >
+                        <Paper
+                            variant="glass"
+                            sx={{
+                                p: 2,
+                                borderRadius: '16px',
+                                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                                bgcolor: alpha(theme.palette.primary.main, 0.05),
+                            }}
+                        >
+                            <Stack spacing={1.5}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <Stack direction="row" spacing={1.5} alignItems="center">
+                                        <CircularProgress size={16} thickness={5} />
+                                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                                            {uploadState.status === 'encrypting' && 'Encrypting (AES-GCM/ML-KEM)...'}
+                                            {uploadState.status === 'uploading' && 'Streaming to Secure Vault...'}
+                                            {uploadState.status === 'verifying' && 'Verifying Integrity...'}
+                                        </Typography>
+                                    </Stack>
+                                    <Typography variant="caption" sx={{ fontWeight: 800, fontFamily: 'JetBrains Mono', color: 'primary.main' }}>
+                                        {uploadState.progress}%
+                                    </Typography>
+                                </Box>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={uploadState.progress}
+                                    sx={{
+                                        height: 6,
+                                        borderRadius: '3px',
+                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                        '& .MuiLinearProgress-bar': {
+                                            borderRadius: '3px',
+                                            boxShadow: `0 0 10px ${theme.palette.primary.main}`,
+                                        },
+                                    }}
+                                />
+                            </Stack>
+                        </Paper>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Files Grid */}
             {isLoading ? (
@@ -633,15 +805,36 @@ export function FilesPage() {
                                         <Paper
                                             variant="glass"
                                             elevation={0}
-                                            onDoubleClick={() => navigateToFolder(folder)}
+                                            onClick={() => navigateToFolder(folder)}
                                             onContextMenu={(e) => handleContextMenu(e, { type: 'folder', id: folder._id })}
+                                            onDragOver={(e) => {
+                                                e.preventDefault();
+                                                setDragOverId(folder._id);
+                                            }}
+                                            onDragLeave={() => setDragOverId(null)}
+                                            onDrop={(e) => {
+                                                e.preventDefault();
+                                                setDragOverId(null);
+                                                const droppedFileId = e.dataTransfer.getData('fileId');
+                                                if (droppedFileId) {
+                                                    const idsToMove = selectedIds.has(droppedFileId)
+                                                        ? Array.from(selectedIds)
+                                                        : [droppedFileId];
+                                                    setFilesToMove(idsToMove);
+                                                    handleMoveToFolder(folder._id, idsToMove);
+                                                }
+                                            }}
                                             sx={{
                                                 p: 2,
                                                 position: 'relative',
                                                 cursor: 'pointer',
-                                                borderRadius: '24px', // More rounded as requested
-                                                border: '1px solid transparent',
-                                                bgcolor: 'transparent', // Darker feel
+                                                borderRadius: '24px',
+                                                border: dragOverId === folder._id
+                                                    ? `2px solid ${theme.palette.primary.main}`
+                                                    : '1px solid transparent',
+                                                bgcolor: dragOverId === folder._id
+                                                    ? alpha(theme.palette.primary.main, 0.1)
+                                                    : 'transparent',
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 alignItems: 'center',
@@ -705,12 +898,19 @@ export function FilesPage() {
                                         <Paper
                                             variant="glass"
                                             elevation={0}
+                                            draggable
+                                            onDragStart={(e) => {
+                                                e.dataTransfer.setData('fileId', file._id);
+                                                // If multiple are selected, we still drag the one we started with, 
+                                                // but the drop handler will check if it's part of the selection.
+                                            }}
                                             onClick={() => toggleSelect(file._id)}
                                             onContextMenu={(e) => handleContextMenu(e, { type: 'file', id: file._id })}
                                             sx={{
                                                 p: 2,
                                                 position: 'relative',
-                                                cursor: 'pointer',
+                                                cursor: 'grab',
+                                                '&:active': { cursor: 'grabbing' },
                                                 borderRadius: '24px',
                                                 border: selectedIds.has(file._id)
                                                     ? `2px solid ${theme.palette.primary.main}`
