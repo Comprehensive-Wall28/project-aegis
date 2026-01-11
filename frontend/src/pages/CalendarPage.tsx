@@ -8,6 +8,7 @@ import {
     CircularProgress,
     Snackbar,
     Alert,
+    Stack,
 } from '@mui/material';
 import { CalendarMonth as CalendarIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -52,6 +53,16 @@ export function CalendarPage() {
     const handleDateClick = (arg: any) => {
         setSelectedEvent({ start: arg.dateStr, end: arg.dateStr });
         setDialogOpen(true);
+    };
+
+    const handleSelect = (info: any) => {
+        setSelectedEvent({
+            start: info.startStr,
+            end: info.endStr,
+            allDay: info.allDay,
+        });
+        setDialogOpen(true);
+        // info.view.calendar.unselect(); // Optional: clears selection
     };
 
     const handleEventClick = (info: any) => {
@@ -140,6 +151,64 @@ export function CalendarPage() {
         }
     };
 
+    const renderEventContent = (eventInfo: any) => {
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    width: '100%',
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    position: 'relative',
+                    zIndex: 2,
+                }}
+            >
+                <Stack direction="row" spacing={0.8} alignItems="center">
+                    <Box
+                        sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: eventInfo.event.backgroundColor,
+                            boxShadow: `0 0 10px ${eventInfo.event.backgroundColor}`,
+                            flexShrink: 0
+                        }}
+                    />
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            fontWeight: 700,
+                            color: 'inherit',
+                            fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: 'block',
+                            letterSpacing: '0.2px',
+                        }}
+                    >
+                        {eventInfo.event.title}
+                    </Typography>
+                </Stack>
+                {!eventInfo.event.allDay && (
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            opacity: 0.7,
+                            fontSize: '0.65rem',
+                            ml: 2,
+                            fontWeight: 500,
+                            fontFamily: 'JetBrains Mono, monospace'
+                        }}
+                    >
+                        {eventInfo.timeText}
+                    </Typography>
+                )}
+            </Box>
+        );
+    };
+
     const calendarEvents = useMemo(() => {
         return events.map(e => ({
             id: e._id,
@@ -190,7 +259,7 @@ export function CalendarPage() {
             <Paper
                 elevation={0}
                 sx={{
-                    p: { xs: 1, sm: 2 },
+                    p: { xs: 0.5, sm: 1.5 },
                     borderRadius: '24px',
                     bgcolor: alpha(theme.palette.background.paper, 0.6),
                     // backdropFilter removed for performance
@@ -202,10 +271,6 @@ export function CalendarPage() {
                     '& .fc': {
                         '--fc-border-color': alpha(theme.palette.divider, 0.1),
                         '--fc-today-bg-color': alpha(theme.palette.primary.main, 0.15),
-                        '--fc-button-bg-color': alpha(theme.palette.primary.main, 0.8),
-                        '--fc-button-border-color': 'transparent',
-                        '--fc-button-hover-bg-color': theme.palette.primary.main,
-                        '--fc-button-active-bg-color': theme.palette.primary.dark,
                         '--fc-event-border-color': 'transparent',
                         '--fc-list-event-hover-bg-color': alpha(theme.palette.primary.main, 0.1),
                         '--fc-page-bg-color': 'transparent',
@@ -228,22 +293,29 @@ export function CalendarPage() {
                         }
                     },
                     '& .fc-theme-standard td, & .fc-theme-standard th': {
-                        borderColor: alpha(theme.palette.divider, 0.1),
+                        borderColor: `${alpha(theme.palette.common.white, 0.08)} !important`,
                         background: 'transparent !important',
                     },
                     '& .fc-scrollgrid': {
-                        border: 'none !important',
+                        border: `1px solid ${alpha(theme.palette.common.white, 0.08)} !important`,
                         background: 'transparent !important',
+                        borderRadius: '16px',
+                        overflow: 'hidden',
+                    },
+                    '& .fc-daygrid-day': {
+                        cursor: 'pointer',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        '&:hover': {
+                            bgcolor: `${alpha(theme.palette.primary.main, 0.04)} !important`,
+                        }
                     },
                     '& .fc-view-harness': {
                         background: 'transparent !important',
-                        height: { xs: '400px !important', sm: 'auto !important' }
-                    },
-                    '& .fc-scrollgrid-sync-table': {
-                        background: 'transparent !important',
+                        height: { xs: '450px !important', sm: 'auto !important' }
                     },
                     '& .fc-col-header-cell': {
-                        bgcolor: alpha(theme.palette.background.paper, 0.5),
+                        bgcolor: `${alpha(theme.palette.background.paper, 0.4)} !important`,
+                        borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.08)} !important`,
                     },
                     '& .fc-col-header-cell-cushion': {
                         py: { xs: 1, sm: 1.5 },
@@ -261,35 +333,71 @@ export function CalendarPage() {
                         fontFamily: 'JetBrains Mono, monospace',
                     },
                     '& .fc-daygrid-day.fc-day-today': {
-                        bgcolor: `${alpha(theme.palette.primary.main, 0.15)} !important`,
+                        bgcolor: `${theme.palette.primary.main} !important`,
                         position: 'relative',
+                        border: 'none !important',
+                        boxShadow: 'none !important',
+                        zIndex: 2,
                         '&::after': {
-                            content: '""',
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: '4px',
-                            background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-                            borderRadius: '24px 24px 0 0',
+                            display: 'none',
                         },
                         '& .fc-daygrid-day-number': {
-                            color: `${theme.palette.primary.main} !important`,
+                            color: `${theme.palette.common.white} !important`,
                             fontWeight: 800,
+                            textShadow: 'none',
+                            position: 'relative',
+                            zIndex: 2,
+                        }
+                    },
+                    '& .fc-daygrid-day.fc-day-other': {
+                        opacity: 0.4,
+                        '&:hover': {
+                            opacity: 0.8
                         }
                     },
                     '& .fc-daygrid-event': {
                         borderRadius: '6px',
-                        px: { xs: 0.5, sm: 1.2 },
-                        py: { xs: 0.2, sm: 0.6 },
+                        px: { xs: 0.5, sm: 1 },
+                        py: { xs: 0.2, sm: 0.4 },
                         fontSize: { xs: '0.65rem', sm: '0.8rem' },
                         fontWeight: 600,
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         border: 'none !important',
-                        transition: 'transform 0.2s ease',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        mx: '2px !important',
+                        mb: '2px !important',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        bgcolor: 'transparent !important', // We use after for background
+                        '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            inset: 0,
+                            bgcolor: 'currentColor',
+                            opacity: 0.12,
+                            zIndex: 1,
+                        },
+                        '&::after': {
+                            content: '""',
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)',
+                            backdropFilter: 'blur(4px)',
+                            zIndex: 0,
+                        },
                         '&:hover': {
-                            transform: 'translateY(-2px) scale(1.02)',
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
+                            '&::before': {
+                                opacity: 0.2,
+                            }
                         }
+                    },
+                    '& .fc-event-main': {
+                        padding: 0,
+                        color: theme.palette.text.primary,
+                    },
+                    '& .fc-daygrid-event-dot': {
+                        display: 'none', // Hide default dots
                     },
                     '& .fc-toolbar-title': {
                         fontSize: { xs: '1.1rem !important', sm: '1.3rem !important', md: '1.5rem !important' },
@@ -303,14 +411,58 @@ export function CalendarPage() {
                         color: theme.palette.text.secondary,
                     },
                     '& .fc-button': {
-                        borderRadius: '10px',
-                        fontWeight: 600,
+                        borderRadius: '12px !important',
+                        fontWeight: 700,
                         textTransform: 'capitalize',
-                        px: { xs: 1, sm: 2 },
-                        py: { xs: 0.5, sm: 1 },
-                        fontSize: { xs: '0.7rem', sm: '0.875rem' },
-                        '&:focus': {
-                            boxShadow: 'none !important',
+                        px: { xs: 1.5, sm: 2.5 },
+                        py: { xs: 0.8, sm: 1.2 },
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        bgcolor: `${alpha(theme.palette.background.paper, 0.3)} !important`,
+                        backdropFilter: 'blur(12px)',
+                        border: `1px solid ${alpha(theme.palette.common.white, 0.08)} !important`,
+                        color: `${theme.palette.text.primary} !important`,
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: 'none',
+                        '&:hover': {
+                            bgcolor: `${alpha(theme.palette.primary.main, 0.1)} !important`,
+                            borderColor: `${alpha(theme.palette.primary.main, 0.3)} !important`,
+                            transform: 'translateY(-1px)',
+                        },
+                        '&:active, &:focus, &.fc-button-active': {
+                            bgcolor: `${alpha(theme.palette.primary.main, 0.15)} !important`,
+                            borderColor: `${theme.palette.primary.main} !important`,
+                            color: `${theme.palette.primary.main} !important`,
+                            boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.25)} !important`,
+                            zIndex: 5,
+                        },
+                        '&:disabled': {
+                            opacity: 0.5,
+                            cursor: 'not-allowed',
+                            '&:hover': {
+                                transform: 'none',
+                                bgcolor: `${alpha(theme.palette.background.paper, 0.3)} !important`,
+                            }
+                        }
+                    },
+                    '& .fc-button-group': {
+                        gap: '4px',
+                        '& .fc-button': {
+                            margin: '0 !important',
+                        },
+                        '& > .fc-button:not(:last-child)': {
+                            borderTopRightRadius: '12px !important',
+                            borderBottomRightRadius: '12px !important',
+                        },
+                        '& > .fc-button:not(:first-child)': {
+                            borderTopLeftRadius: '12px !important',
+                            borderBottomLeftRadius: '12px !important',
+                        }
+                    },
+                    '& .fc-today-button': {
+                        ml: { xs: 0, sm: 2 },
+                        border: `1px solid ${alpha(theme.palette.secondary.main, 0.3)} !important`,
+                        '&:hover': {
+                            borderColor: `${theme.palette.secondary.main} !important`,
                         }
                     },
                     '& .fc-scroller': {
@@ -337,9 +489,12 @@ export function CalendarPage() {
                     dayMaxEvents={true}
                     events={calendarEvents}
                     dateClick={handleDateClick}
+                    select={handleSelect}
                     eventClick={handleEventClick}
                     eventDrop={handleEventDrop}
                     eventResize={handleEventDrop}
+                    eventDisplay="block"
+                    eventContent={renderEventContent}
                     height="auto"
                 />
             </Paper>

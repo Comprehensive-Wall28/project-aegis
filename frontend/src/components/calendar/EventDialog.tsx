@@ -43,13 +43,28 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
     const [isAllDay, setIsAllDay] = useState(false);
     const [color, setColor] = useState(AEGIS_COLORS[0].value);
 
+    const formatDateForInput = (dateInput: string | Date | undefined) => {
+        if (!dateInput) return '';
+        const d = new Date(dateInput);
+        if (isNaN(d.getTime())) return '';
+
+        // Format to YYYY-MM-DDTHH:mm in local time
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
     useEffect(() => {
         if (event) {
             setTitle(event.title || '');
             setDescription(event.description || '');
             setLocation(event.location || '');
-            setStartDate(event.start ? new Date(event.start).toISOString().slice(0, 16) : '');
-            setEndDate(event.end ? new Date(event.end).toISOString().slice(0, 16) : '');
+            setStartDate(formatDateForInput(event.start));
+            setEndDate(formatDateForInput(event.end));
             setIsAllDay(event.allDay || false);
             setColor(event.color || AEGIS_COLORS[0].value);
         } else {
@@ -57,8 +72,8 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
             setTitle('');
             setDescription('');
             setLocation('');
-            setStartDate(new Date().toISOString().slice(0, 16));
-            setEndDate(new Date(Date.now() + 3600000).toISOString().slice(0, 16));
+            setStartDate(formatDateForInput(new Date()));
+            setEndDate(formatDateForInput(new Date(Date.now() + 3600000)));
             setIsAllDay(false);
             setColor(AEGIS_COLORS[0].value);
         }
