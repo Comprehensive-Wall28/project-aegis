@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import FileMetadata from '../models/FileMetadata';
-import { initiateUpload, appendChunk, finalizeUpload, getFileStream } from '../services/gridfsService';
+import { initiateUpload, appendChunk, finalizeUpload, getFileStream, deleteFile } from '../services/googleDriveService';
 import logger from '../utils/logger';
 import { logAuditEvent } from '../utils/auditLogger';
 
@@ -20,8 +20,8 @@ export const uploadInit = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        // Initiate GridFS upload session
-        const uploadStreamId = initiateUpload(originalFileName, {
+        // Initiate Google Drive resumable upload session
+        const uploadStreamId = await initiateUpload(originalFileName, fileSize, {
             ownerId: req.user.id,
             encryptedSymmetricKey,
             encapsulatedKey
@@ -116,7 +116,7 @@ export const uploadChunk = async (req: AuthRequest, res: Response) => {
             await fileRecord.save();
         }
 
-        // Append chunk to GridFS upload session
+        // Append chunk to Google Drive upload session
         const { complete, receivedSize } = await appendChunk(
             fileRecord.uploadStreamId,
             chunkBuffer,
@@ -127,24 +127,17 @@ export const uploadChunk = async (req: AuthRequest, res: Response) => {
 
         if (complete) {
             // Finalize the upload
-            const gridfsFileId = await finalizeUpload(
-                fileRecord.uploadStreamId,
-                fileRecord.fileName,
-                {
-                    ownerId: fileRecord.ownerId,
-                    mimeType: fileRecord.mimeType
-                }
-            );
+            const googleDriveFileId = await finalizeUpload(fileRecord.uploadStreamId);
 
-            fileRecord.gridfsFileId = gridfsFileId as any;
+            fileRecord.googleDriveFileId = googleDriveFileId;
             fileRecord.status = 'completed';
             fileRecord.uploadStreamId = undefined; // Clear session
             await fileRecord.save();
 
-            logger.info(`Vault upload completed: ${fileId} -> GridFS ${gridfsFileId}`);
-            res.status(200).json({ message: 'Upload successful', gridfsFileId: gridfsFileId.toString() });
+            logger.info(`Vault upload completed: ${fileId} -> Google Drive ${googleDriveFileId}`);
+            res.status(200).json({ message: 'Upload successful', googleDriveFileId });
         } else {
-            // Send 308 Resume Incomplete (following Google Drive convention for compatibility)
+            // Send 308 Resume Incomplete (following Google Drive convention)
             res.status(308).set('Range', `bytes=0-${receivedSize - 1}`).send();
         }
 
@@ -166,15 +159,15 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
             ownerId: { $eq: req.user.id }
         });
 
-        if (!fileRecord || !fileRecord.gridfsFileId) {
+        if (!fileRecord || !fileRecord.googleDriveFileId) {
             return res.status(404).json({ message: 'File not found or not ready' });
         }
 
-        const stream = getFileStream(fileRecord.gridfsFileId);
+        const stream = await getFileStream(fileRecord.googleDriveFileId);
 
         // Handle stream errors
         stream.on('error', (err) => {
-            logger.error(`GridFS stream error: ${err}`);
+            logger.error(`Google Drive stream error: ${err}`);
             if (!res.headersSent) {
                 res.status(500).json({ message: 'Download failed' });
             }
@@ -225,10 +218,9 @@ export const deleteUserFile = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'File not found' });
         }
 
-        // Delete from GridFS if file was uploaded
-        if (fileRecord.gridfsFileId) {
-            const { deleteFile } = await import('../services/gridfsService');
-            await deleteFile(fileRecord.gridfsFileId);
+        // Delete from Google Drive if file was uploaded
+        if (fileRecord.googleDriveFileId) {
+            await deleteFile(fileRecord.googleDriveFileId);
         }
 
         // Delete metadata record

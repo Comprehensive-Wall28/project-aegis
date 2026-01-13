@@ -3,8 +3,8 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IFileMetadata extends Document {
     ownerId: mongoose.Types.ObjectId;
     folderId?: mongoose.Types.ObjectId; // null = root level
-    gridfsFileId?: mongoose.Types.ObjectId; // GridFS file reference, populated after upload success
-    uploadStreamId?: string; // Temporary stream ID during upload progress
+    googleDriveFileId?: string; // Google Drive file reference, populated after upload success
+    uploadStreamId?: string; // Temporary session ID during upload progress
     fileName: string; // Encrypted filename
     originalFileName: string; // Original filename for display and download
     fileSize: number;
@@ -17,8 +17,8 @@ export interface IFileMetadata extends Document {
 const FileMetadataSchema: Schema = new Schema({
     ownerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     folderId: { type: Schema.Types.ObjectId, ref: 'Folder', default: null },
-    gridfsFileId: { type: Schema.Types.ObjectId }, // GridFS file reference
-    uploadStreamId: { type: String }, // Temporary stream ID during upload
+    googleDriveFileId: { type: String }, // Google Drive file reference
+    uploadStreamId: { type: String }, // Temporary session ID during upload
     fileName: { type: String, required: true },
     originalFileName: { type: String, required: true }, // Original filename
     fileSize: { type: Number, required: true },
