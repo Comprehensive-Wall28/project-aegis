@@ -20,7 +20,11 @@ export type AuditAction =
     | 'PASSKEY_REGISTER'
     | 'PASSKEY_LOGIN'
     | 'PASSWORD_REMOVE'
-    | 'PASSWORD_UPDATE';
+    | 'PASSWORD_UPDATE'
+    | 'TASK_CREATE'
+    | 'TASK_UPDATE'
+    | 'TASK_DELETE'
+    | 'TASK_REORDER';
 
 export type AuditStatus = 'SUCCESS' | 'FAILURE';
 
@@ -56,7 +60,8 @@ const AuditLogSchema: Schema = new Schema({
             'KEY_ROTATION', 'PROFILE_UPDATE', 'PREFERENCES_UPDATE',
             'COURSE_CREATE', 'COURSE_DELETE',
             'CALENDAR_EVENT_CREATE', 'CALENDAR_EVENT_UPDATE', 'CALENDAR_EVENT_DELETE',
-            'PASSKEY_REGISTER', 'PASSKEY_LOGIN', 'PASSWORD_REMOVE', 'PASSWORD_UPDATE'
+            'PASSKEY_REGISTER', 'PASSKEY_LOGIN', 'PASSWORD_REMOVE', 'PASSWORD_UPDATE',
+            'TASK_CREATE', 'TASK_UPDATE', 'TASK_DELETE', 'TASK_REORDER'
         ]
     },
     status: {

@@ -1,0 +1,149 @@
+import { create } from 'zustand';
+import taskService from '../services/taskService';
+import type { CreateTaskInput, UpdateTaskInput, ReorderUpdate, EncryptedTask } from '../services/taskService';
+
+export interface DecryptedTask {
+    _id: string;
+    title: string;
+    description: string;
+    notes: string;
+    dueDate?: string;
+    priority: 'high' | 'medium' | 'low';
+    status: 'todo' | 'in_progress' | 'done';
+    order: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface TaskState {
+    tasks: DecryptedTask[];
+    isLoading: boolean;
+    error: string | null;
+
+    fetchTasks: (
+        filters?: { status?: string; priority?: string },
+        decryptFn?: (tasks: EncryptedTask[]) => Promise<DecryptedTask[]>
+    ) => Promise<void>;
+
+    addTask: (
+        task: CreateTaskInput,
+        decryptFn: (task: EncryptedTask) => Promise<DecryptedTask>
+    ) => Promise<void>;
+
+    updateTask: (
+        id: string,
+        updates: UpdateTaskInput,
+        decryptFn: (task: EncryptedTask) => Promise<DecryptedTask>
+    ) => Promise<void>;
+
+    deleteTask: (id: string) => Promise<void>;
+
+    reorderTasks: (updates: ReorderUpdate[]) => Promise<void>;
+
+    // Local state updates for optimistic UI
+    updateTaskLocal: (id: string, updates: Partial<DecryptedTask>) => void;
+    setTasksLocal: (tasks: DecryptedTask[]) => void;
+}
+
+export const useTaskStore = create<TaskState>((set, get) => ({
+    tasks: [],
+    isLoading: false,
+    error: null,
+
+    fetchTasks: async (filters, decryptFn) => {
+        set({ isLoading: true, error: null });
+        try {
+            const encryptedTasks = await taskService.getTasks(filters);
+            if (decryptFn) {
+                const decryptedTasks = await decryptFn(encryptedTasks);
+                set({ tasks: decryptedTasks, isLoading: false });
+            } else {
+                set({ tasks: encryptedTasks as unknown as DecryptedTask[], isLoading: false });
+            }
+        } catch (error: any) {
+            set({ error: error.message || 'Failed to fetch tasks', isLoading: false });
+        }
+    },
+
+    addTask: async (task, decryptFn) => {
+        set({ isLoading: true, error: null });
+        try {
+            const newEncryptedTask = await taskService.createTask(task);
+            const decryptedTask = await decryptFn(newEncryptedTask);
+            set(state => ({
+                tasks: [...state.tasks, decryptedTask],
+                isLoading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.message || 'Failed to add task', isLoading: false });
+            throw error;
+        }
+    },
+
+    updateTask: async (id, updates, decryptFn) => {
+        set({ isLoading: true, error: null });
+        try {
+            const updatedEncryptedTask = await taskService.updateTask(id, updates);
+            const decryptedTask = await decryptFn(updatedEncryptedTask);
+            set(state => ({
+                tasks: state.tasks.map(t => t._id === id ? decryptedTask : t),
+                isLoading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.message || 'Failed to update task', isLoading: false });
+            throw error;
+        }
+    },
+
+    deleteTask: async (id) => {
+        set({ isLoading: true, error: null });
+        try {
+            await taskService.deleteTask(id);
+            set(state => ({
+                tasks: state.tasks.filter(t => t._id !== id),
+                isLoading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.message || 'Failed to delete task', isLoading: false });
+            throw error;
+        }
+    },
+
+    reorderTasks: async (updates) => {
+        // Optimistically update local state
+        const originalTasks = get().tasks;
+
+        set(state => {
+            const newTasks = state.tasks.map(task => {
+                const update = updates.find(u => u.id === task._id);
+                if (update) {
+                    return {
+                        ...task,
+                        order: update.order,
+                        status: update.status || task.status
+                    };
+                }
+                return task;
+            });
+            return { tasks: newTasks };
+        });
+
+        try {
+            await taskService.reorderTasks(updates);
+        } catch (error: any) {
+            // Rollback on error
+            set({ tasks: originalTasks, error: error.message || 'Failed to reorder tasks' });
+            throw error;
+        }
+    },
+
+    updateTaskLocal: (id, updates) => {
+        set(state => ({
+            tasks: state.tasks.map(t => t._id === id ? { ...t, ...updates } : t)
+        }));
+    },
+
+    setTasksLocal: (tasks) => {
+        set({ tasks });
+    }
+}));
