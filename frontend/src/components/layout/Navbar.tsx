@@ -140,12 +140,16 @@ export function Navbar() {
                         </Box>
 
                         {/* Navigation Links - Desktop */}
-                        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center', transform: 'translateY(-1px)' }}>
-                            {['Features', 'Security'].map((item) => (
+                        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.5, alignItems: 'center', transform: 'translateY(-1px)' }}>
+                            {[
+                                { label: 'Features', href: '#features' },
+                                { label: 'How it works', href: '#how-it-works' },
+                                { label: 'Security', href: '#security' }
+                            ].map((item) => (
                                 <Button
-                                    key={item}
+                                    key={item.label}
                                     component="a"
-                                    href={`#${item.toLowerCase()}`}
+                                    href={item.href}
                                     sx={{
                                         color: 'text.secondary',
                                         fontWeight: 600,
@@ -153,7 +157,7 @@ export function Navbar() {
                                         '&:hover': { color: 'primary.main', bgcolor: 'transparent' }
                                     }}
                                 >
-                                    {item}
+                                    {item.label}
                                 </Button>
                             ))}
 
@@ -269,15 +273,19 @@ export function Navbar() {
                     <IconButton onClick={() => setMobileOpen(false)}><XIcon /></IconButton>
                 </Box>
                 <List sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {['Features', 'Security'].map((item) => (
-                        <ListItem key={item} disablePadding>
+                    {[
+                        { label: 'Features', href: '#features' },
+                        { label: 'How it works', href: '#how-it-works' },
+                        { label: 'Security', href: '#security' }
+                    ].map((item) => (
+                        <ListItem key={item.label} disablePadding>
                             <ListItemButton
                                 component="a"
-                                href={`#${item.toLowerCase()}`}
+                                href={item.href}
                                 onClick={() => setMobileOpen(false)}
                                 sx={{ borderRadius: 2 }}
                             >
-                                <ListItemText primary={item} primaryTypographyProps={{ fontWeight: 600 }} />
+                                <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 600 }} />
                             </ListItemButton>
                         </ListItem>
                     ))}
