@@ -4,6 +4,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { FilesPage } from '@/pages/FilesPage';
 import { GPAPage } from '@/pages/GPAPage';
 import { CalendarPage } from '@/pages/CalendarPage';
+import { TasksPage } from '@/pages/TasksPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { PqcLearn } from '@/pages/PqcLearn';
 import { NotFound } from '@/pages/NotFound';
@@ -67,6 +68,10 @@ const router = createBrowserRouter([
             {
                 path: 'calendar',
                 element: <CalendarPage />,
+            },
+            {
+                path: 'tasks',
+                element: <TasksPage />,
             },
             {
                 path: 'security',

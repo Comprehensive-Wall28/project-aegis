@@ -282,7 +282,7 @@ const { ss, ct } = pqc.encap(pk);
 
                 <Box sx={{ textAlign: 'center', mt: 12 }}>
                     <Typography variant="h2" gutterBottom fontWeight={800}>
-                        Ready to secure your future?
+                        Ready to get started?
                     </Typography>
                     <Button
                         variant="contained"

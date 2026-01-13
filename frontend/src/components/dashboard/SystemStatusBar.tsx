@@ -113,7 +113,7 @@ export function SystemStatusBar() {
                             sx={{
                                 fontSize: 18,
                                 color: isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.primary.main),
-                                animation: isBusy ? 'spin-slow 8s linear infinite' : 'none',
+                                animation: 'none',
                                 filter: (isBusy || isFinished) ? `drop-shadow(0 0 4px ${alpha(isFinished ? theme.palette.success.main : '#c084fc', 0.5)})` : 'none',
                                 transition: 'all 0.3s ease'
                             }}
