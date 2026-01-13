@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import FileMetadata from '../models/FileMetadata';
 import { initiateUpload, appendChunk, finalizeUpload, getFileStream } from '../services/gridfsService';
 import logger from '../utils/logger';
+import { logAuditEvent } from '../utils/auditLogger';
 
 interface AuthRequest extends Request {
     user?: any;
@@ -9,7 +10,7 @@ interface AuthRequest extends Request {
 
 export const uploadInit = async (req: AuthRequest, res: Response) => {
     try {
-        const { fileName, originalFileName, fileSize, encryptedSymmetricKey, encapsulatedKey, mimeType } = req.body;
+        const { fileName, originalFileName, fileSize, encryptedSymmetricKey, encapsulatedKey, mimeType, folderId } = req.body;
 
         if (!fileName || !originalFileName || !fileSize || !encryptedSymmetricKey || !encapsulatedKey || !mimeType) {
             return res.status(400).json({ message: 'Missing file metadata' });
@@ -28,6 +29,7 @@ export const uploadInit = async (req: AuthRequest, res: Response) => {
 
         const fileRecord = await FileMetadata.create({
             ownerId: req.user.id,
+            folderId: folderId || null,
             fileName, // Encrypted filename
             originalFileName, // Original filename for display
             fileSize,
@@ -39,6 +41,20 @@ export const uploadInit = async (req: AuthRequest, res: Response) => {
         });
 
         logger.info(`Vault upload initiated: ${originalFileName} by User ${req.user.id}`);
+
+        // Log file upload initiation
+        await logAuditEvent(
+            req.user.id,
+            'FILE_UPLOAD',
+            'SUCCESS',
+            req,
+            {
+                fileName: originalFileName,
+                fileSize,
+                mimeType,
+                fileId: fileRecord._id.toString()
+            }
+        );
 
         res.status(200).json({
             fileId: fileRecord._id
@@ -63,7 +79,10 @@ export const uploadChunk = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: 'Missing fileId or Content-Range' });
         }
 
-        const fileRecord = await FileMetadata.findOne({ _id: fileId, ownerId: req.user.id });
+        const fileRecord = await FileMetadata.findOne({
+            _id: { $eq: fileId },
+            ownerId: { $eq: req.user.id }
+        });
         if (!fileRecord || !fileRecord.uploadStreamId) {
             return res.status(404).json({ message: 'File not found or session invalid' });
         }
@@ -142,7 +161,10 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
         }
 
         const fileId = req.params.id;
-        const fileRecord = await FileMetadata.findOne({ _id: fileId, ownerId: req.user.id });
+        const fileRecord = await FileMetadata.findOne({
+            _id: { $eq: fileId },
+            ownerId: { $eq: req.user.id }
+        });
 
         if (!fileRecord || !fileRecord.gridfsFileId) {
             return res.status(404).json({ message: 'File not found or not ready' });
@@ -177,7 +199,9 @@ export const getUserFiles = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        const files = await FileMetadata.find({ ownerId: req.user.id }).sort({ createdAt: -1 });
+        const files = await FileMetadata.find({
+            ownerId: { $eq: req.user.id }
+        }).sort({ createdAt: -1 });
         res.json(files);
     } catch (error) {
         logger.error(`Get Files Error: ${error}`);
@@ -192,7 +216,10 @@ export const deleteUserFile = async (req: AuthRequest, res: Response) => {
         }
 
         const fileId = req.params.id;
-        const fileRecord = await FileMetadata.findOne({ _id: fileId, ownerId: req.user.id });
+        const fileRecord = await FileMetadata.findOne({
+            _id: { $eq: fileId },
+            ownerId: { $eq: req.user.id }
+        });
 
         if (!fileRecord) {
             return res.status(404).json({ message: 'File not found' });
@@ -205,9 +232,22 @@ export const deleteUserFile = async (req: AuthRequest, res: Response) => {
         }
 
         // Delete metadata record
-        await FileMetadata.deleteOne({ _id: fileId });
+        await FileMetadata.deleteOne({ _id: { $eq: fileId } });
 
         logger.info(`Vault file deleted: ${fileRecord.fileName} (${fileId}) by User ${req.user.id}`);
+
+        // Log file deletion
+        await logAuditEvent(
+            req.user.id,
+            'FILE_DELETE',
+            'SUCCESS',
+            req,
+            {
+                fileName: fileRecord.originalFileName,
+                fileId: fileId
+            }
+        );
+
         res.status(200).json({ message: 'File deleted successfully' });
 
     } catch (error) {

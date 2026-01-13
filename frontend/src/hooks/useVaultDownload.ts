@@ -17,7 +17,7 @@ export const useVaultDownload = () => {
         error: null,
     });
 
-    const { user } = useSessionStore();
+    const { user, setCryptoStatus } = useSessionStore();
 
     // Helper: Convert Hex to Uint8Array
     const hexToBytes = (hex: string): Uint8Array => {
@@ -112,6 +112,7 @@ export const useVaultDownload = () => {
         }
 
         try {
+            setCryptoStatus('decrypting');
             setState({ status: 'downloading', progress: 0, error: null });
 
             // 1. Download encrypted file
@@ -140,6 +141,8 @@ export const useVaultDownload = () => {
             console.error('Download/Decrypt failed:', err);
             setState({ status: 'error', progress: 0, error: err.message || 'Decryption failed' });
             return null;
+        } finally {
+            setCryptoStatus('idle');
         }
     };
 

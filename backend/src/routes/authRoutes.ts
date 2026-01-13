@@ -1,13 +1,40 @@
 import express from 'express';
-import { registerUser, loginUser, getMe, logoutUser, getCsrfToken } from '../controllers/authController';
+import {
+    registerUser,
+    loginUser,
+    getMe,
+    updateMe,
+    logoutUser,
+    getCsrfToken,
+    getRegistrationOptions,
+    verifyRegistration,
+    getAuthenticationOptions,
+    verifyAuthentication,
+} from '../controllers/authController';
 import { protect } from '../middleware/authMiddleware';
+import { csrfProtection, csrfTokenCookie } from '../middleware/csrfMiddleware';
 
 const router = express.Router();
 
+// Public routes - NO CSRF protection (prevents race condition on fresh page loads)
+// These are protected by rate limiting instead
 router.post('/register', registerUser);
 router.post('/login', loginUser);
-router.get('/me', protect, getMe);
+
+// CSRF token endpoint - applies CSRF to set the cookie, then returns the token
+router.get('/csrf-token', csrfProtection, csrfTokenCookie, getCsrfToken);
+
+// Protected routes WITH CSRF protection
+router.get('/me', protect, csrfProtection, getMe);
+router.put('/me', protect, csrfProtection, updateMe);
+
+// Logout - no CSRF (cookie might be stale, and logout is low-risk)
 router.post('/logout', logoutUser);
-router.get('/csrf-token', getCsrfToken);
+
+// WebAuthn routes
+router.post('/webauthn/register-options', protect, csrfProtection, getRegistrationOptions);
+router.post('/webauthn/register-verify', protect, csrfProtection, verifyRegistration);
+router.post('/webauthn/login-options', getAuthenticationOptions);
+router.post('/webauthn/login-verify', verifyAuthentication);
 
 export default router;

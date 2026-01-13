@@ -3,22 +3,26 @@ import { useSessionStore } from '../stores/sessionStore';
 // @ts-ignore - Module likely exists but types are missing in environment
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 
-export interface CourseData {
-    name: string;
-    grade: number;
-    credits: number;
-    semester: string;
+export interface CalendarEventData {
+    title: string;
+    description: string;
+    location: string;
 }
 
-export interface EncryptedCoursePayload {
+export interface EncryptedCalendarPayload {
     encryptedData: string;      // IV:ciphertext (hex)
     encapsulatedKey: string;    // ML-KEM-768 cipher text (hex)
     encryptedSymmetricKey: string; // Wrapped AES key (IV + encrypted key, hex)
 }
 
-export interface EncryptedCourse extends EncryptedCoursePayload {
+export interface EncryptedCalendarEvent extends EncryptedCalendarPayload {
     _id: string;
     userId: string;
+    startDate: string;
+    endDate: string;
+    isAllDay: boolean;
+    color: string;
+    recordHash: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -39,27 +43,18 @@ const bytesToHex = (bytes: Uint8Array): string => {
         .join('');
 };
 
-export const useCourseEncryption = () => {
+export const useCalendarEncryption = () => {
     const { user, setCryptoStatus } = useSessionStore();
 
-    /**
-     * Generate a new AES-256-GCM key for encrypting course data.
-     */
-    const generateAESKey = async (): Promise<CryptoKey> => {
+    const generateAESKey = useCallback(async (): Promise<CryptoKey> => {
         return window.crypto.subtle.generateKey(
-            {
-                name: 'AES-GCM',
-                length: 256,
-            },
+            { name: 'AES-GCM', length: 256 },
             true,
             ['encrypt', 'decrypt']
         );
-    };
+    }, []);
 
-    /**
-     * Encrypt an AES key using the shared secret from ML-KEM encapsulation.
-     */
-    const encryptAESKey = async (aesKey: CryptoKey, sharedSecret: Uint8Array): Promise<string> => {
+    const encryptAESKey = useCallback(async (aesKey: CryptoKey, sharedSecret: Uint8Array): Promise<string> => {
         const wrappingKey = await window.crypto.subtle.importKey(
             'raw',
             sharedSecret.buffer.slice(sharedSecret.byteOffset, sharedSecret.byteOffset + sharedSecret.byteLength) as ArrayBuffer,
@@ -77,21 +72,15 @@ export const useCourseEncryption = () => {
             rawKey
         );
 
-        // Format: IV (12 bytes) + EncryptedKey
         const result = new Uint8Array(iv.length + encryptedKeyBuffer.byteLength);
         result.set(iv);
         result.set(new Uint8Array(encryptedKeyBuffer), iv.length);
 
         return bytesToHex(result);
-    };
+    }, []);
 
-    /**
-     * Decrypt an AES key using the shared secret.
-     */
-    const decryptAESKey = async (encryptedSymmetricKey: string, sharedSecret: Uint8Array): Promise<CryptoKey> => {
+    const decryptAESKey = useCallback(async (encryptedSymmetricKey: string, sharedSecret: Uint8Array): Promise<CryptoKey> => {
         const encryptedKeyBytes = hexToBytes(encryptedSymmetricKey);
-
-        // First 12 bytes are IV, rest is encrypted key + auth tag
         const iv = encryptedKeyBytes.slice(0, 12);
         const encryptedKey = encryptedKeyBytes.slice(12);
 
@@ -116,40 +105,30 @@ export const useCourseEncryption = () => {
             false,
             ['decrypt']
         );
-    };
+    }, []);
 
-    /**
-     * Encrypt course data and return the encrypted payload.
-     */
-    const encryptCourseData = useCallback(async (course: CourseData): Promise<EncryptedCoursePayload> => {
+    const encryptEventData = useCallback(async (data: CalendarEventData): Promise<EncryptedCalendarPayload> => {
         if (!user || !user.publicKey) {
             throw new Error('User public key not found. PQC Engine must be operational.');
         }
 
         try {
             setCryptoStatus('encrypting');
-            // 1. Generate AES-256 Key
             const aesKey = await generateAESKey();
-
-            // 2. Encapsulate Key (PQC ML-KEM-768)
             const pubKeyBytes = hexToBytes(user.publicKey);
             const { cipherText: encapsulatedKey, sharedSecret } = ml_kem768.encapsulate(pubKeyBytes);
-
-            // 3. Wrap AES Key with shared secret
             const encryptedSymmetricKey = await encryptAESKey(aesKey, sharedSecret);
 
-            // 4. Encrypt course data as JSON
-            const courseJson = JSON.stringify(course);
-            const courseBytes = new TextEncoder().encode(courseJson);
+            const dataJson = JSON.stringify(data);
+            const dataBytes = new TextEncoder().encode(dataJson);
             const iv = window.crypto.getRandomValues(new Uint8Array(12));
 
             const encryptedBuffer = await window.crypto.subtle.encrypt(
                 { name: 'AES-GCM', iv },
                 aesKey,
-                courseBytes
+                dataBytes
             );
 
-            // Format: IV:Ciphertext (both hex)
             const encryptedData = bytesToHex(iv) + ':' + bytesToHex(new Uint8Array(encryptedBuffer));
 
             return {
@@ -160,26 +139,20 @@ export const useCourseEncryption = () => {
         } finally {
             setCryptoStatus('idle');
         }
-    }, [user, setCryptoStatus, generateAESKey, encryptAESKey]);
+    }, [user, generateAESKey, encryptAESKey, setCryptoStatus]);
 
-    /**
-     * Decrypt an encrypted course and return the plaintext course data.
-     */
-    const decryptCourseData = useCallback(async (encryptedCourse: EncryptedCourse): Promise<CourseData & { _id: string; createdAt: string; updatedAt: string }> => {
+    const decryptEventData = useCallback(async (encryptedEvent: EncryptedCalendarEvent): Promise<CalendarEventData & { _id: string; startDate: string; endDate: string; isAllDay: boolean; color: string; createdAt: string; updatedAt: string }> => {
         if (!user || !user.privateKey) {
             throw new Error('User private key not found. PQC Engine must be operational.');
         }
 
-        // 1. Decapsulate to get shared secret
         const privKeyBytes = hexToBytes(user.privateKey);
-        const encapsulatedKeyBytes = hexToBytes(encryptedCourse.encapsulatedKey);
+        const encapsulatedKeyBytes = hexToBytes(encryptedEvent.encapsulatedKey);
         const sharedSecret = ml_kem768.decapsulate(encapsulatedKeyBytes, privKeyBytes);
 
-        // 2. Decrypt AES key
-        const aesKey = await decryptAESKey(encryptedCourse.encryptedSymmetricKey, sharedSecret);
+        const aesKey = await decryptAESKey(encryptedEvent.encryptedSymmetricKey, sharedSecret);
 
-        // 3. Decrypt course data
-        const [ivHex, ciphertextHex] = encryptedCourse.encryptedData.split(':');
+        const [ivHex, ciphertextHex] = encryptedEvent.encryptedData.split(':');
         const iv = hexToBytes(ivHex);
         const ciphertext = hexToBytes(ciphertextHex);
 
@@ -189,46 +162,49 @@ export const useCourseEncryption = () => {
             ciphertext.buffer.slice(ciphertext.byteOffset, ciphertext.byteOffset + ciphertext.byteLength) as ArrayBuffer
         );
 
-        const courseJson = new TextDecoder().decode(decryptedBuffer);
-        const courseData: CourseData = JSON.parse(courseJson);
+        const dataJson = new TextDecoder().decode(decryptedBuffer);
+        const eventData: CalendarEventData = JSON.parse(dataJson);
 
         return {
-            ...courseData,
-            _id: encryptedCourse._id,
-            createdAt: encryptedCourse.createdAt,
-            updatedAt: encryptedCourse.updatedAt,
+            ...eventData,
+            _id: encryptedEvent._id,
+            startDate: encryptedEvent.startDate,
+            endDate: encryptedEvent.endDate,
+            isAllDay: encryptedEvent.isAllDay,
+            color: encryptedEvent.color,
+            createdAt: encryptedEvent.createdAt,
+            updatedAt: encryptedEvent.updatedAt,
         };
     }, [user, decryptAESKey]);
 
-    /**
-     * Decrypt multiple courses in parallel.
-     */
-    const decryptCourses = useCallback(async (encryptedCourses: EncryptedCourse[]): Promise<(CourseData & { _id: string })[]> => {
+    const decryptEvents = useCallback(async (encryptedEvents: EncryptedCalendarEvent[]) => {
         try {
             setCryptoStatus('decrypting');
-            const decryptedResults = await Promise.allSettled(
-                encryptedCourses.map(course => decryptCourseData(course))
+            const results = await Promise.allSettled(
+                encryptedEvents.map(event => decryptEventData(event))
             );
 
-            const successfulDecryptions = decryptedResults
-                .filter((result): result is PromiseFulfilledResult<CourseData & { _id: string; createdAt: string; updatedAt: string }> =>
-                    result.status === 'fulfilled'
-                )
-                .map(result => result.value);
-
-            if (successfulDecryptions.length < encryptedCourses.length) {
-                console.warn(`${encryptedCourses.length - successfulDecryptions.length} courses failed to decrypt.`);
-            }
-
-            return successfulDecryptions;
+            return results
+                .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+                .map(r => r.value);
         } finally {
             setCryptoStatus('idle');
         }
-    }, [decryptCourseData, setCryptoStatus]);
+    }, [decryptEventData, setCryptoStatus]);
+
+    const generateRecordHash = useCallback(async (data: CalendarEventData, startDate: string, endDate: string): Promise<string> => {
+        const content = `${data.title}|${data.description}|${data.location}|${startDate}|${endDate}`;
+        const msgUint8 = new TextEncoder().encode(content);
+        const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgUint8);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }, []);
 
     return {
-        encryptCourseData,
-        decryptCourseData,
-        decryptCourses,
+        encryptEventData,
+        decryptEventData,
+        decryptEvents,
+        generateRecordHash,
     };
 };

@@ -9,7 +9,8 @@ import {
     Menu as MenuIcon,
     ChevronLeft as ChevronLeftIcon,
     ChevronRight as ChevronRightIcon,
-    FolderOpen as FolderOpenIcon
+    FolderOpen as FolderOpenIcon,
+    CalendarMonth as CalendarIcon
 } from '@mui/icons-material';
 import {
     Box,
@@ -29,11 +30,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSessionStore } from '@/stores/sessionStore';
 import { AegisLogo } from '@/components/AegisLogo';
 import authService from '@/services/authService';
+import { clearStoredSeed } from '@/lib/cryptoUtils';
 
 const navItems = [
     { name: 'Vault', href: '/dashboard', icon: VaultIcon },
     { name: 'Files', href: '/dashboard/files', icon: FolderOpenIcon },
     { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
+    { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
     { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
     { name: 'Security', href: '/dashboard/security', icon: SettingsIcon },
 ];
@@ -58,6 +61,7 @@ function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarCon
 
     const handleLogout = async () => {
         await authService.logout();
+        clearStoredSeed();
         clearSession();
         navigate('/');
     };

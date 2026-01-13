@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
 import authService from '@/services/authService';
+import { clearStoredSeed } from '@/lib/cryptoUtils';
 import { motion } from 'framer-motion';
 import {
     Person as UserIcon,
@@ -42,6 +43,7 @@ export function TopHeader() {
 
     const handleLogout = async () => {
         await authService.logout();
+        clearStoredSeed();
         clearSession();
         navigate('/');
         handleCloseMenu();
@@ -58,11 +60,12 @@ export function TopHeader() {
         <Box
             component="header"
             sx={{
-                height: 56,
+                height: { xs: 48, sm: 56 },
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                px: 3,
+                pl: { xs: 8, sm: 8, lg: 3 }, // Account for hamburger menu on mobile/tablet
+                pr: { xs: 2, sm: 3 },
                 bgcolor: 'transparent'
             }}
         >
@@ -72,7 +75,7 @@ export function TopHeader() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3 }}
-                sx={{ display: 'flex', flexDirection: 'column' }}
+                sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}
             >
                 <Typography
                     variant="caption"
@@ -83,8 +86,9 @@ export function TopHeader() {
                         color: alpha(theme.palette.text.secondary, 0.5),
                         lineHeight: 1,
                         mb: 0.5,
-                        fontSize: '9px',
-                        letterSpacing: 2
+                        fontSize: { xs: '8px', sm: '9px' },
+                        letterSpacing: 2,
+                        display: { xs: 'none', sm: 'block' }
                     }}
                 >
                     System Overview
@@ -98,7 +102,8 @@ export function TopHeader() {
                         lineHeight: 1,
                         display: 'flex',
                         alignItems: 'baseline',
-                        gap: 1.5
+                        gap: 1.5,
+                        fontSize: { xs: '1.25rem', sm: '1.5rem' }
                     }}
                 >
                     Dashboard
@@ -109,7 +114,7 @@ export function TopHeader() {
                             fontWeight: 500,
                             letterSpacing: 0,
                             color: alpha(theme.palette.text.secondary, 0.4),
-                            display: { xs: 'none', sm: 'inline' }
+                            display: { xs: 'none', md: 'inline' }
                         }}
                     >
                         Welcome, {username}
@@ -118,7 +123,7 @@ export function TopHeader() {
             </Box>
 
             {/* Right: Actions & User Profile */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
                 {/* Theme Toggle */}
                 <Tooltip title={`Theme: ${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}`}>
                     <IconButton

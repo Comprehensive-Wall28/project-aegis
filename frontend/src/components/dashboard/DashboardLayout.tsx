@@ -1,14 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { SystemStatusBar } from './SystemStatusBar';
 import { motion } from 'framer-motion';
 import { Box, alpha, useTheme, Paper } from '@mui/material';
+import { refreshCsrfToken } from '@/services/api';
 
 export function DashboardLayout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const theme = useTheme();
+
+    // Fetch CSRF token when dashboard loads
+    useEffect(() => {
+        refreshCsrfToken();
+    }, []);
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}>
@@ -93,7 +99,7 @@ export function DashboardLayout() {
                         <Box
                             sx={{
                                 flexGrow: 1,
-                                p: { xs: 2, sm: 4, md: 6 },
+                                p: { xs: 1.5, sm: 3, md: 6 },
                                 overflowY: 'auto',
                                 '&::-webkit-scrollbar': { width: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: 3 }

@@ -70,12 +70,13 @@ const parseSemester = (semester: string): { year: number; seasonOrder: number } 
     const season = parts[0]?.toLowerCase() || '';
     const year = parseInt(parts[1] || '0', 10);
 
-    // Season order: Winter (0) -> Spring (1) -> Summer (2) -> Fall (3)
+    // Season order within the same year: Spring (0) -> Summer (1) -> Fall (2) -> Winter (3)
+    // This ensures Winter 23 < Spring 24 < Winter 24 < Spring 25
     const seasonMap: Record<string, number> = {
-        winter: 0,
-        spring: 1,
-        summer: 2,
-        fall: 3,
+        spring: 0,
+        summer: 1,
+        fall: 2,
+        winter: 3,
     };
 
     return { year, seasonOrder: seasonMap[season] ?? 0 };

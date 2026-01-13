@@ -6,9 +6,10 @@ import { useVaultUpload } from '../../hooks/useVaultUpload';
 
 interface UploadZoneProps {
     onUploadComplete?: () => void;
+    folderId?: string | null;
 }
 
-const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete }) => {
+const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId }) => {
     const { uploadFile, state } = useVaultUpload();
 
     const [isDragging, setIsDragging] = useState(false);
@@ -32,7 +33,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete }) => {
 
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const file = e.dataTransfer.files[0];
-            await uploadFile(file);
+            await uploadFile(file, folderId);
             if (onUploadComplete) onUploadComplete();
         }
     }, [uploadFile, onUploadComplete]);
@@ -40,7 +41,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete }) => {
     const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
-            await uploadFile(file);
+            await uploadFile(file, folderId);
             if (onUploadComplete) onUploadComplete();
         }
     }, [uploadFile, onUploadComplete]);

@@ -11,13 +11,14 @@ import {
     Snackbar,
     Alert,
     CircularProgress,
-    Chip,
     Button,
 } from '@mui/material';
 import {
     School as SchoolIcon,
-    TrendingUp as TrendingUpIcon,
     Warning as WarningIcon,
+    TrendingUp as TrendingUpIcon,
+    AccessTime as AccessTimeIcon,
+    MenuBook as MenuBookIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -239,288 +240,338 @@ export function GPAPage() {
         return <BackendDown onRetry={fetchData} />;
     }
 
-    if (isLoading) {
-        return (
-            <Box
-                sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    minHeight: 400,
-                }}
-            >
-                <CircularProgress />
-            </Box>
-        );
-    }
-
-    if (pqcEngineStatus !== 'operational') {
-        return (
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    minHeight: 400,
-                    gap: 2,
-                }}
-            >
-                <CircularProgress />
-                <Typography color="text.secondary">
-                    Initializing PQC Engine...
-                </Typography>
-            </Box>
-        );
-    }
-
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Migration Banner */}
-            {unmigratedCount > 0 && (
-                <Paper
-                    sx={{
-                        p: 2,
-                        borderRadius: '12px',
-                        bgcolor: alpha(theme.palette.warning.main, 0.1),
-                        border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: 2,
-                    }}
-                >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <WarningIcon sx={{ color: 'warning.main' }} />
-                        <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {unmigratedCount} course(s) need encryption
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                                Migrate your old courses to the new PQC-encrypted format
-                            </Typography>
-                        </Box>
-                    </Box>
-                    <Button
-                        variant="contained"
-                        color="warning"
-                        size="small"
-                        onClick={handleMigration}
-                        disabled={isMigrating}
-                        sx={{ borderRadius: '8px', fontWeight: 600 }}
-                    >
-                        {isMigrating ? (
-                            <>
-                                <CircularProgress size={16} sx={{ mr: 1 }} color="inherit" />
-                                Migrating ({migrationProgress.migrated}/{migrationProgress.total})
-                            </>
-                        ) : (
-                            'Migrate Now'
-                        )}
-                    </Button>
-                </Paper>
-            )}
-
-            {/* Header */}
+            {/* Header - Rendered immediately for LCP */}
             <Box
                 component={motion.div}
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 sx={{
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: { xs: 'column', md: 'row' },
+                    alignItems: { xs: 'stretch', md: 'center' },
                     justifyContent: 'space-between',
-                    flexWrap: 'wrap',
                     gap: 2,
                 }}
             >
                 <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <SchoolIcon /> GPA Management
+                    <Typography variant="h4" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+                        <SchoolIcon sx={{ fontSize: { xs: 24, sm: 32 } }} /> GPA Management
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                         Track your academic performance with PQC-encrypted records
                     </Typography>
                 </Box>
 
                 {/* GPA System Toggle */}
-                <Paper
-                    sx={{
-                        p: 1,
-                        borderRadius: '12px',
-                        bgcolor: alpha(theme.palette.background.paper, 0.4),
-                        backdropFilter: 'blur(12px)',
-                        border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
-                    }}
-                >
-                    <ToggleButtonGroup
-                        value={gpaSystem}
-                        exclusive
-                        onChange={handleGPASystemChange}
-                        disabled={isSaving}
-                        size="small"
-                    >
-                        <ToggleButton value="NORMAL" sx={{ textTransform: 'none', px: 2 }}>
-                            Normal (4.0)
-                        </ToggleButton>
-                        <ToggleButton value="GERMAN" sx={{ textTransform: 'none', px: 2 }}>
-                            German (Bavarian)
-                        </ToggleButton>
-                    </ToggleButtonGroup>
-                </Paper>
-            </Box>
-
-            {/* GPA Summary Cards */}
-            <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 4 }}>
+                {pqcEngineStatus === 'operational' && !isLoading && (
                     <Paper
-                        component={motion.div}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
                         sx={{
-                            p: 3,
-                            borderRadius: '16px',
+                            p: 1,
+                            borderRadius: '12px',
                             bgcolor: alpha(theme.palette.background.paper, 0.4),
                             backdropFilter: 'blur(12px)',
                             border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                            alignSelf: { xs: 'stretch', md: 'auto' },
                         }}
                     >
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                            Cumulative GPA
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                            <Typography
-                                variant="h3"
-                                sx={{
-                                    fontFamily: 'JetBrains Mono, monospace',
-                                    fontWeight: 800,
-                                    color: theme.palette.primary.main,
-                                }}
-                            >
-                                {gpaData.cumulativeGPA.toFixed(2)}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                / {gpaSystem === 'GERMAN' ? '1.00' : '4.00'}
-                            </Typography>
-                        </Box>
-                    </Paper>
-                </Grid>
-
-                <Grid size={{ xs: 6, md: 4 }}>
-                    <Paper
-                        component={motion.div}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.1 }}
-                        sx={{
-                            p: 3,
-                            borderRadius: '16px',
-                            bgcolor: alpha(theme.palette.background.paper, 0.4),
-                            backdropFilter: 'blur(12px)',
-                            border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
-                        }}
-                    >
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                            Total Courses
-                        </Typography>
-                        <Typography
-                            variant="h3"
-                            sx={{
-                                fontFamily: 'JetBrains Mono, monospace',
-                                fontWeight: 800,
-                            }}
+                        <ToggleButtonGroup
+                            value={gpaSystem}
+                            exclusive
+                            onChange={handleGPASystemChange}
+                            disabled={isSaving}
+                            size="small"
+                            sx={{ width: { xs: '100%', md: 'auto' }, display: 'flex' }}
                         >
-                            {gpaData.totalCourses}
-                        </Typography>
+                            <ToggleButton value="NORMAL" sx={{ textTransform: 'none', px: { xs: 1, sm: 2 }, flex: { xs: 1, md: 'none' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                                Normal (4.0)
+                            </ToggleButton>
+                            <ToggleButton value="GERMAN" sx={{ textTransform: 'none', px: { xs: 1, sm: 2 }, flex: { xs: 1, md: 'none' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                                German (Bavarian)
+                            </ToggleButton>
+                        </ToggleButtonGroup>
                     </Paper>
-                </Grid>
-
-                <Grid size={{ xs: 6, md: 4 }}>
-                    <Paper
-                        component={motion.div}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2 }}
-                        sx={{
-                            p: 3,
-                            borderRadius: '16px',
-                            bgcolor: alpha(theme.palette.background.paper, 0.4),
-                            backdropFilter: 'blur(12px)',
-                            border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
-                        }}
-                    >
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                            Total Credits
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                            <Typography
-                                variant="h3"
-                                sx={{
-                                    fontFamily: 'JetBrains Mono, monospace',
-                                    fontWeight: 800,
-                                }}
-                            >
-                                {gpaData.totalCredits}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                hrs
-                            </Typography>
-                        </Box>
-                    </Paper>
-                </Grid>
-            </Grid>
-
-            {/* Charts */}
-            <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                    <SemesterGPAChart data={gpaData.semesterGPAs} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                    <CumulativeGPAChart data={gpaData.cumulativeProgression} />
-                </Grid>
-            </Grid>
-
-            {/* Course Management */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
-                <TrendingUpIcon color="primary" />
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                    Course Management
-                </Typography>
-                {pqcEngineStatus !== 'operational' && (
-                    <Chip
-                        label="PQC Engine Required"
-                        color="warning"
-                        size="small"
-                    />
                 )}
             </Box>
 
-            <CourseForm onSubmit={handleAddCourse} isLoading={isSaving} />
-
-            <CourseList
-                courses={courses}
-                onDelete={handleDeleteCourse}
-                isLoading={isSaving}
-            />
-
-            {/* Snackbar for notifications */}
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={4000}
-                onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert
-                    onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                    severity={snackbar.severity}
-                    sx={{ width: '100%' }}
+            {/* Content Area */}
+            {isLoading || pqcEngineStatus !== 'operational' ? (
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: 500,
+                        gap: 2,
+                        bgcolor: alpha(theme.palette.background.paper, 0.1),
+                        borderRadius: '16px',
+                        border: `1px dashed ${alpha(theme.palette.divider, 0.1)}`,
+                    }}
                 >
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
+                    <CircularProgress thickness={5} size={40} />
+                    <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 500 }}>
+                        {pqcEngineStatus !== 'operational' ? 'Initializing PQC Engine...' : 'Decrypting secure records...'}
+                    </Typography>
+                </Box>
+            ) : (
+                <>
+                    {/* Migration Banner */}
+                    {unmigratedCount > 0 && (
+                        <Paper
+                            sx={{
+                                p: 2,
+                                borderRadius: '12px',
+                                bgcolor: alpha(theme.palette.warning.main, 0.1),
+                                border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: 2,
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <WarningIcon sx={{ color: 'warning.main' }} />
+                                <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                        {unmigratedCount} course(s) need encryption
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Migrate your old courses to the new PQC-encrypted format
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            <Button
+                                variant="contained"
+                                color="warning"
+                                size="small"
+                                onClick={handleMigration}
+                                disabled={isMigrating}
+                                sx={{ borderRadius: '8px', fontWeight: 600 }}
+                            >
+                                {isMigrating ? (
+                                    <>
+                                        <CircularProgress size={16} sx={{ mr: 1 }} color="inherit" />
+                                        Migrating ({migrationProgress.migrated}/{migrationProgress.total})
+                                    </>
+                                ) : (
+                                    'Migrate Now'
+                                )}
+                            </Button>
+                        </Paper>
+                    )}
+
+                    {/* GPA Summary Cards */}
+                    <Grid container spacing={{ xs: 2, sm: 3 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                            <Paper
+                                component={motion.div}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0 }}
+                                sx={{
+                                    p: { xs: 2, sm: 3 },
+                                    borderRadius: '16px',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                                    backdropFilter: 'blur(12px)',
+                                    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                                    height: '100%',
+                                    minHeight: 140,
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -20,
+                                        right: -20,
+                                        width: 100,
+                                        height: 100,
+                                        borderRadius: '50%',
+                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <TrendingUpIcon sx={{ fontSize: 40, color: alpha(theme.palette.primary.main, 0.3) }} />
+                                </Box>
+                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    Cumulative GPA
+                                </Typography>
+                                <Typography
+                                    variant="h3"
+                                    sx={{
+                                        fontFamily: 'Inter, sans-serif',
+                                        fontWeight: 700,
+                                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
+                                        backgroundClip: 'text',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                        fontSize: { xs: '2.5rem', sm: '3rem' },
+                                    }}
+                                >
+                                    {gpaData.cumulativeGPA.toFixed(2)}
+                                </Typography>
+                            </Paper>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                            <Paper
+                                component={motion.div}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.1 }}
+                                sx={{
+                                    p: { xs: 2, sm: 3 },
+                                    borderRadius: '16px',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                                    backdropFilter: 'blur(12px)',
+                                    border: `1px solid ${alpha('#9c27b0', 0.2)}`,
+                                    height: '100%',
+                                    minHeight: 140,
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -20,
+                                        right: -20,
+                                        width: 100,
+                                        height: 100,
+                                        borderRadius: '50%',
+                                        bgcolor: alpha('#9c27b0', 0.1),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <AccessTimeIcon sx={{ fontSize: 40, color: alpha('#9c27b0', 0.3) }} />
+                                </Box>
+                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    Total Credit Hours
+                                </Typography>
+                                <Typography
+                                    variant="h3"
+                                    sx={{
+                                        fontFamily: 'Inter, sans-serif',
+                                        fontWeight: 700,
+                                        fontSize: { xs: '2.5rem', sm: '3rem' },
+                                        background: `linear-gradient(135deg, #9c27b0, #ce93d8)`,
+                                        backgroundClip: 'text',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                    }}
+                                >
+                                    {gpaData.totalCredits}
+                                </Typography>
+                            </Paper>
+                        </Grid>
+
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                            <Paper
+                                component={motion.div}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.2 }}
+                                sx={{
+                                    p: { xs: 2, sm: 3 },
+                                    borderRadius: '16px',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                                    backdropFilter: 'blur(12px)',
+                                    border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                                    height: '100%',
+                                    minHeight: 140,
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -20,
+                                        right: -20,
+                                        width: 100,
+                                        height: 100,
+                                        borderRadius: '50%',
+                                        bgcolor: alpha(theme.palette.success.main, 0.1),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <MenuBookIcon sx={{ fontSize: 40, color: alpha(theme.palette.success.main, 0.3) }} />
+                                </Box>
+                                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    Total Courses
+                                </Typography>
+                                <Typography
+                                    variant="h3"
+                                    sx={{
+                                        fontFamily: 'Inter, sans-serif',
+                                        fontWeight: 700,
+                                        fontSize: { xs: '2.5rem', sm: '3rem' },
+                                        background: `linear-gradient(135deg, ${theme.palette.success.main}, ${theme.palette.success.light})`,
+                                        backgroundClip: 'text',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                    }}
+                                >
+                                    {gpaData.totalCourses}
+                                </Typography>
+                            </Paper>
+                        </Grid>
+
+                        {/* Cumulative Chart - Full Width */}
+                        <Grid size={{ xs: 12 }}>
+                            <CumulativeGPAChart data={gpaData.cumulativeProgression} />
+                        </Grid>
+
+                        {/* Semester GPA Chart - Below Cumulative */}
+                        <Grid size={{ xs: 12 }}>
+                            <SemesterGPAChart data={gpaData.semesterGPAs} />
+                        </Grid>
+
+                        {/* Add Course Form - Below Cumulative */}
+                        <Grid size={{ xs: 12 }}>
+                            <CourseForm
+                                onSubmit={handleAddCourse}
+                                isLoading={isSaving}
+                            />
+                        </Grid>
+
+                        {/* Course List - Full Width */}
+                        <Grid size={{ xs: 12 }}>
+                            <CourseList
+                                courses={courses}
+                                onDelete={handleDeleteCourse}
+                                isLoading={isSaving}
+                            />
+                        </Grid>
+                    </Grid>
+
+                    <Snackbar
+                        open={snackbar.open}
+                        autoHideDuration={6000}
+                        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    >
+                        <Alert
+                            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+                            severity={snackbar.severity}
+                            variant="filled"
+                            sx={{ width: '100%', borderRadius: '12px' }}
+                        >
+                            {snackbar.message}
+                        </Alert>
+                    </Snackbar>
+                </>
+            )}
         </Box>
     );
 }

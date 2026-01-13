@@ -9,11 +9,13 @@ import {
     migrateCourse,
 } from '../controllers/gpaController';
 import { protect } from '../middleware/authMiddleware';
+import { csrfProtection } from '../middleware/csrfMiddleware';
 
 const router = Router();
 
-// All routes require authentication
+// All routes require authentication and CSRF protection
 router.use(protect);
+router.use(csrfProtection);
 
 // Course CRUD (encrypted data only)
 router.get('/courses', getCourses);
@@ -29,4 +31,3 @@ router.get('/preferences', getPreferences);
 router.put('/preferences', updatePreferences);
 
 export default router;
-

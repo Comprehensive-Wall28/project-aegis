@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Readable, Writable } from 'stream';
+import { Readable, Writable, PassThrough } from 'stream';
 import logger from '../utils/logger';
 
 // Use mongoose's internal mongodb types to avoid version mismatches
@@ -7,13 +7,17 @@ const { GridFSBucket, ObjectId } = mongoose.mongo;
 
 let bucket: any | null = null;
 
-// In-memory store for active upload streams
-const activeStreams: Map<string, {
-    stream: Writable;
-    chunks: Buffer[];
+// In-memory store for active upload streams with proper streaming pipeline
+interface UploadSession {
+    passthrough: PassThrough;
+    uploadStream: Writable;
     totalSize: number;
     receivedSize: number;
-}> = new Map();
+    finishedPromise: Promise<any>;
+    error: Error | null;
+}
+
+const activeStreams: Map<string, UploadSession> = new Map();
 
 /**
  * Initialize GridFS bucket. Must be called after MongoDB connection is established.
@@ -41,24 +45,64 @@ export const getBucket = (): any => {
 };
 
 /**
- * Initiate a new upload session. Returns a unique stream ID for tracking.
+ * Initiate a new upload session with true streaming.
+ * Creates a PassThrough stream piped directly to GridFS for immediate chunk processing.
+ * @param fileName - The file name to store
+ * @param metadata - Optional metadata to attach
+ * @returns A unique stream ID for tracking
  */
 export const initiateUpload = (fileName: string, metadata?: Record<string, any>): string => {
     const streamId = new ObjectId().toString();
+    const gridBucket = getBucket();
 
-    activeStreams.set(streamId, {
-        stream: null as any, // Will be created on finalize
-        chunks: [],
-        totalSize: 0,
-        receivedSize: 0
+    // Create PassThrough stream for backpressure handling
+    const passthrough = new PassThrough({
+        highWaterMark: 256 * 1024 // 256KB buffer for optimal backpressure
     });
 
-    logger.info(`GridFS upload initiated: streamId=${streamId}, fileName=${fileName}`);
+    // Create GridFS upload stream and pipe immediately
+    const uploadStream = gridBucket.openUploadStream(fileName, {
+        metadata: metadata
+    });
+
+    // Set up the streaming pipeline
+    passthrough.pipe(uploadStream);
+
+    // Create a promise that resolves when upload completes
+    const finishedPromise = new Promise<any>((resolve, reject) => {
+        uploadStream.on('finish', () => {
+            resolve(uploadStream.id);
+        });
+        uploadStream.on('error', (err: Error) => {
+            logger.error(`GridFS upload stream error: ${err}`);
+            reject(err);
+        });
+    });
+
+    const session: UploadSession = {
+        passthrough,
+        uploadStream,
+        totalSize: 0,
+        receivedSize: 0,
+        finishedPromise,
+        error: null
+    };
+
+    // Handle passthrough errors
+    passthrough.on('error', (err: Error) => {
+        session.error = err;
+        logger.error(`GridFS passthrough error: ${err}`);
+    });
+
+    activeStreams.set(streamId, session);
+
+    logger.info(`GridFS upload initiated with streaming: streamId=${streamId}, fileName=${fileName}`);
     return streamId;
 };
 
 /**
- * Append a chunk to an active upload session.
+ * Append a chunk to an active upload session with backpressure support.
+ * Chunks are written directly to the stream pipeline, not buffered in memory.
  * @param streamId - The upload session ID
  * @param chunk - The chunk data as Buffer
  * @param rangeStart - Start byte position
@@ -78,12 +122,25 @@ export const appendChunk = async (
         throw new Error(`Upload session not found: ${streamId}`);
     }
 
-    // Store the chunk
-    session.chunks.push(chunk);
+    if (session.error) {
+        throw session.error;
+    }
+
     session.totalSize = totalSize;
     session.receivedSize += chunk.length;
 
-    logger.info(`GridFS chunk appended: streamId=${streamId}, chunkSize=${chunk.length}, received=${session.receivedSize}/${totalSize}`);
+    // Write chunk with backpressure handling
+    // If the internal buffer is full, wait for drain event before proceeding
+    const canContinue = session.passthrough.write(chunk);
+
+    if (!canContinue) {
+        // Backpressure: wait for the stream to drain before accepting more data
+        await new Promise<void>((resolve) => {
+            session.passthrough.once('drain', resolve);
+        });
+    }
+
+    logger.info(`GridFS chunk streamed: streamId=${streamId}, chunkSize=${chunk.length}, received=${session.receivedSize}/${totalSize}`);
 
     // Check if upload is complete
     const complete = session.receivedSize >= totalSize;
@@ -92,10 +149,11 @@ export const appendChunk = async (
 };
 
 /**
- * Finalize an upload session and write all chunks to GridFS.
+ * Finalize an upload session.
+ * Ends the stream and waits for GridFS to finish writing.
  * @param streamId - The upload session ID
- * @param fileName - The file name to store
- * @param metadata - Optional metadata to attach
+ * @param fileName - The file name (unused, kept for API compatibility)
+ * @param metadata - Optional metadata (unused, set during initiate)
  * @returns The GridFS file ID
  */
 export const finalizeUpload = async (
@@ -109,40 +167,23 @@ export const finalizeUpload = async (
         throw new Error(`Upload session not found: ${streamId}`);
     }
 
-    const gridBucket = getBucket();
+    if (session.error) {
+        activeStreams.delete(streamId);
+        throw session.error;
+    }
 
-    // Concatenate all chunks
-    const fileBuffer = Buffer.concat(session.chunks);
+    // Signal end of data
+    session.passthrough.end();
 
-    // Create a readable stream from the buffer
-    const readableStream = new Readable();
-    readableStream.push(fileBuffer);
-    readableStream.push(null);
+    // Wait for GridFS upload to complete
+    const fileId = await session.finishedPromise;
 
-    // Upload to GridFS
-    return new Promise((resolve, reject) => {
-        const uploadStream = gridBucket.openUploadStream(fileName, {
-            metadata: metadata
-        });
+    logger.info(`GridFS upload finalized: streamId=${streamId}, fileId=${fileId}`);
 
-        readableStream.pipe(uploadStream);
+    // Cleanup
+    activeStreams.delete(streamId);
 
-        uploadStream.on('finish', () => {
-            const fileId = uploadStream.id as any;
-            logger.info(`GridFS upload finalized: streamId=${streamId}, fileId=${fileId}`);
-
-            // Cleanup
-            activeStreams.delete(streamId);
-
-            resolve(fileId);
-        });
-
-        uploadStream.on('error', (err: Error) => {
-            logger.error(`GridFS upload error: ${err}`);
-            activeStreams.delete(streamId);
-            reject(err);
-        });
-    });
+    return fileId;
 };
 
 /**
@@ -177,7 +218,10 @@ export const deleteFile = async (fileId: any): Promise<void> => {
  * @param streamId - The upload session ID
  */
 export const cancelUpload = (streamId: string): void => {
-    if (activeStreams.has(streamId)) {
+    const session = activeStreams.get(streamId);
+    if (session) {
+        // Destroy the streams to prevent memory leaks
+        session.passthrough.destroy();
         activeStreams.delete(streamId);
         logger.info(`GridFS upload cancelled: streamId=${streamId}`);
     }

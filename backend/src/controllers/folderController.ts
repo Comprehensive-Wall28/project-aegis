@@ -36,7 +36,8 @@ export const getFolders = async (req: AuthRequest, res: Response) => {
             parentId = candidate;
         }
 
-        const query = { ownerId: req.user.id, parentId };
+        const query = { ownerId: { $eq: req.user.id }, parentId: { $eq: parentId } };
+
 
         const folders = await Folder.find(query).sort({ name: 1 });
         res.status(200).json(folders);
@@ -92,7 +93,7 @@ export const renameFolder = async (req: AuthRequest, res: Response) => {
         }
 
         const folder = await Folder.findOneAndUpdate(
-            { _id: id, ownerId: req.user.id },
+            { _id: { $eq: id }, ownerId: { $eq: req.user.id } },
             { name: name.trim() },
             { new: true }
         );
@@ -121,18 +122,27 @@ export const deleteFolder = async (req: AuthRequest, res: Response) => {
         const { id } = req.params;
 
         // Check if folder has any files
-        const filesCount = await FileMetadata.countDocuments({ folderId: id, ownerId: req.user.id });
+        const filesCount = await FileMetadata.countDocuments({
+            folderId: { $eq: id },
+            ownerId: { $eq: req.user.id }
+        });
         if (filesCount > 0) {
             return res.status(400).json({ message: 'Cannot delete folder with files. Move or delete files first.' });
         }
 
         // Check if folder has any subfolders
-        const subfoldersCount = await Folder.countDocuments({ parentId: id, ownerId: req.user.id });
+        const subfoldersCount = await Folder.countDocuments({
+            parentId: { $eq: id },
+            ownerId: { $eq: req.user.id }
+        });
         if (subfoldersCount > 0) {
             return res.status(400).json({ message: 'Cannot delete folder with subfolders. Delete subfolders first.' });
         }
 
-        const folder = await Folder.findOneAndDelete({ _id: id, ownerId: req.user.id });
+        const folder = await Folder.findOneAndDelete({
+            _id: { $eq: id },
+            ownerId: { $eq: req.user.id }
+        });
         if (!folder) {
             return res.status(404).json({ message: 'Folder not found' });
         }
@@ -175,7 +185,10 @@ export const moveFiles = async (req: AuthRequest, res: Response) => {
             // We'll trust normalizedFolderId is a string, and if it's not a valid ObjectId, Mongoose might throw.
             // We can wrap this specifically to give better error.
             try {
-                const folder = await Folder.findOne({ _id: { $eq: normalizedFolderId }, ownerId: req.user.id });
+                const folder = await Folder.findOne({
+                    _id: { $eq: normalizedFolderId },
+                    ownerId: { $eq: req.user.id }
+                });
                 if (!folder) {
                     return res.status(404).json({ message: 'Target folder not found' });
                 }
@@ -187,7 +200,7 @@ export const moveFiles = async (req: AuthRequest, res: Response) => {
 
         // Update all files
         const result = await FileMetadata.updateMany(
-            { _id: { $in: fileIds }, ownerId: req.user.id },
+            { _id: { $in: fileIds }, ownerId: { $eq: req.user.id } },
             { folderId: normalizedFolderId }
         );
 

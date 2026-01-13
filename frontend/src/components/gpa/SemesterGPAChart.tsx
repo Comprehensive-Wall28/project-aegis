@@ -104,24 +104,8 @@ export function SemesterGPAChart({ data }: SemesterGPAChartProps) {
                         '& .MuiChartsAxis-tick': {
                             stroke: alpha(theme.palette.common.white, 0.1),
                         },
-                        '& .MuiBarElement-root': {
-                            fill: 'url(#bar-gradient)',
-                            filter: 'drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.1))',
-                            transition: 'all 0.3s ease',
-                            borderRadius: '4px 4px 0 0', // Added for rounded bars
-                            '&:hover': {
-                                filter: 'brightness(1.1) drop-shadow(0px 4px 12px rgba(0, 0, 0, 0.2))',
-                            }
-                        },
                     }}
-                >
-                    <defs>
-                        <linearGradient id="bar-gradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={theme.palette.primary.main} stopOpacity={1} />
-                            <stop offset="100%" stopColor={theme.palette.primary.main} stopOpacity={0.6} />
-                        </linearGradient>
-                    </defs>
-                </BarChart>
+                />
             </Box>
         </Paper>
     );

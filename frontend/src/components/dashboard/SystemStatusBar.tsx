@@ -15,10 +15,26 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { motion } from 'framer-motion';
 
 export function SystemStatusBar() {
-    const { pqcEngineStatus } = useSessionStore();
+    const pqcEngineStatus = useSessionStore(state => state.pqcEngineStatus);
+    const cryptoStatus = useSessionStore(state => state.cryptoStatus);
+
     const theme = useTheme();
 
     const getStatusConfig = () => {
+        // Higher priority for cryptographic operations
+        if (cryptoStatus !== 'idle') {
+            const isDone = cryptoStatus === 'done';
+            const busyColor = isDone ? theme.palette.success.main : '#c084fc';
+            return {
+                icon: isDone ? <CheckCircleIcon sx={{ fontSize: 14 }} /> : <CircularProgress size={12} sx={{ color: busyColor }} />,
+                text: isDone ? 'Done!' : cryptoStatus.charAt(0).toUpperCase() + cryptoStatus.slice(1) + '...',
+                color: busyColor,
+                bgcolor: alpha(busyColor, 0.15),
+                dotColor: busyColor,
+                glow: isDone
+            };
+        }
+
         switch (pqcEngineStatus) {
             case 'operational':
                 return {
@@ -57,20 +73,25 @@ export function SystemStatusBar() {
 
     const status = getStatusConfig();
     const isOperational = pqcEngineStatus === 'operational';
+    const isBusy = cryptoStatus !== 'idle' && cryptoStatus !== 'done';
+    const isFinished = cryptoStatus === 'done';
 
     return (
         <Box
             sx={{
-                height: 40,
+                minHeight: { xs: 'auto', sm: 40 },
                 display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                px: 3,
+                justifyContent: { xs: 'center', sm: 'space-between' },
+                px: { xs: 2, sm: 3 },
+                py: { xs: 1, sm: 0 },
+                gap: { xs: 1, sm: 0 },
                 bgcolor: 'transparent'
             }}
         >
-            {/* Left: System Label */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+            {/* Left: System Label - Hidden on mobile */}
+            <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                 <Typography variant="caption" sx={{ fontSize: '11px', fontWeight: 500 }}>System Health</Typography>
                 <Typography variant="caption" sx={{ opacity: 0.2 }}>•</Typography>
                 <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', fontWeight: 600, color: alpha(theme.palette.text.primary, 0.5), fontSize: '10px' }}>
@@ -83,13 +104,21 @@ export function SystemStatusBar() {
                 component={motion.div}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                sx={{ display: 'flex', alignItems: 'center', gap: 3 }}
+                sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 3 }, flexWrap: 'wrap', justifyContent: 'center' }}
             >
                 {/* PQC Engine Badge */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Box sx={{ position: 'relative', display: 'flex' }}>
-                        <ShieldIcon color="primary" sx={{ fontSize: 18 }} />
-                        {isOperational && (
+                        <ShieldIcon
+                            sx={{
+                                fontSize: 18,
+                                color: isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.primary.main),
+                                animation: isBusy ? 'spin-slow 8s linear infinite' : 'none',
+                                filter: (isBusy || isFinished) ? `drop-shadow(0 0 4px ${alpha(isFinished ? theme.palette.success.main : '#c084fc', 0.5)})` : 'none',
+                                transition: 'all 0.3s ease'
+                            }}
+                        />
+                        {(isOperational || isBusy || isFinished) && (
                             <Box
                                 sx={{
                                     position: 'absolute',
@@ -98,9 +127,10 @@ export function SystemStatusBar() {
                                     height: 6,
                                     width: 6,
                                     borderRadius: '50%',
-                                    bgcolor: theme.palette.info.main,
-                                    boxShadow: `0 0 10px ${theme.palette.info.main}`,
-                                    animation: 'pulse 2s infinite'
+                                    bgcolor: isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.info.main),
+                                    boxShadow: `0 0 10px ${isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.info.main)}`,
+                                    animation: isBusy ? 'pulse 0.5s infinite' : 'pulse 2s infinite',
+                                    transition: 'all 0.3s ease'
                                 }}
                             />
                         )}
@@ -123,7 +153,7 @@ export function SystemStatusBar() {
                     </Typography>
                 </Box>
 
-                <Box sx={{ height: 16, width: '1px', bgcolor: alpha(theme.palette.divider, 0.1) }} />
+                <Box sx={{ height: 16, width: '1px', bgcolor: alpha(theme.palette.divider, 0.1), display: { xs: 'none', sm: 'block' } }} />
 
                 {/* Status Indicator */}
                 <Box
@@ -131,21 +161,23 @@ export function SystemStatusBar() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 1,
-                        px: 2.5,
+                        px: { xs: 1.5, sm: 2.5 },
                         py: 0.5,
                         borderRadius: 5,
                         bgcolor: status.bgcolor,
                         color: status.color,
                         border: `1px solid ${alpha(status.color, 0.2)}`,
-                        minWidth: 130,
-                        justifyContent: 'center'
+                        minWidth: { xs: 'auto', sm: 130 },
+                        justifyContent: 'center',
+                        boxShadow: (status as any).glow ? `0 0 15px ${alpha(status.color, 0.15)}` : 'none',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}
                 >
                     {status.icon}
                     <Typography variant="caption" sx={{ fontWeight: 700, color: 'inherit', fontSize: '10px' }}>
                         {status.text}
                     </Typography>
-                    {isOperational && (
+                    {(isOperational || isBusy) && (
                         <Box sx={{ position: 'relative', display: 'flex' }}>
                             <Box sx={{ height: 6, width: 6, borderRadius: '50%', bgcolor: status.dotColor }} />
                             <Box
@@ -156,7 +188,7 @@ export function SystemStatusBar() {
                                     width: 6,
                                     borderRadius: '50%',
                                     bgcolor: status.dotColor,
-                                    animation: 'pulse 2s infinite'
+                                    animation: isBusy ? 'pulse 0.5s infinite' : 'pulse 2s infinite'
                                 }}
                             />
                         </Box>
@@ -168,6 +200,10 @@ export function SystemStatusBar() {
                 @keyframes pulse {
                     0% { transform: scale(1); opacity: 1; }
                     100% { transform: scale(2.5); opacity: 0; }
+                }
+                @keyframes spin-slow {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
                 }
             `}</style>
         </Box>
