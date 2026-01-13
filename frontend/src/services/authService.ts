@@ -159,6 +159,19 @@ const authService = {
             throw error;
         }
     },
+
+    removePasskey: async (credentialID: string): Promise<{ message: string; remainingCredentials: number }> => {
+        try {
+            const response = await apiClient.delete<{ message: string; remainingCredentials: number }>(
+                '/auth/webauthn/passkey',
+                { data: { credentialID } }
+            );
+            return response.data;
+        } catch (error) {
+            console.error('Failed to remove passkey:', error);
+            throw error;
+        }
+    },
 };
 
 export default authService;

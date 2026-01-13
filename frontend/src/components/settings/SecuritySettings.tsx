@@ -28,6 +28,7 @@ import {
     ExpandLess as ExpandLessIcon,
     Fingerprint as FingerprintIcon,
     Add as AddIcon,
+    Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useSessionStore, type UserPreferences } from '@/stores/sessionStore';
 import authService from '@/services/authService';
@@ -63,6 +64,7 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
     const [isPreferencesLoading, setIsPreferencesLoading] = useState(false);
 
     const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
+    const [removingPasskeyId, setRemovingPasskeyId] = useState<string | null>(null);
 
     // Copy state
     const [copied, setCopied] = useState(false);
@@ -122,6 +124,11 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
         try {
             const success = await authService.registerPasskey();
             if (success) {
+                // Refresh user data to update credentials list
+                const updatedUser = await authService.validateSession();
+                if (updatedUser) {
+                    updateUser(updatedUser as any);
+                }
                 onNotification('success', 'Passkey registered successfully! It will now be used as 2FA for your next login.');
             }
         } catch (error: any) {
@@ -129,6 +136,28 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
             onNotification('error', error.response?.data?.message || 'Failed to register passkey.');
         } finally {
             setIsPasskeyLoading(false);
+        }
+    };
+
+    const handleRemovePasskey = async (credentialID: string) => {
+        if (!confirm('Are you sure you want to remove this passkey? You will no longer be able to use it for 2FA.')) {
+            return;
+        }
+
+        setRemovingPasskeyId(credentialID);
+        try {
+            await authService.removePasskey(credentialID);
+            // Refresh user data to update credentials list
+            const updatedUser = await authService.validateSession();
+            if (updatedUser) {
+                updateUser(updatedUser as any);
+            }
+            onNotification('success', 'Passkey removed successfully.');
+        } catch (error: any) {
+            console.error(error);
+            onNotification('error', error.response?.data?.message || 'Failed to remove passkey.');
+        } finally {
+            setRemovingPasskeyId(null);
         }
     };
 
@@ -368,6 +397,27 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                                 <Typography variant="caption" sx={{ color: 'text.secondary', bgcolor: alpha(theme.palette.common.white, 0.05), px: 1, py: 0.5, borderRadius: '4px' }}>
                                     Counter: {cred.counter}
                                 </Typography>
+                                <Tooltip title="Remove Passkey">
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => handleRemovePasskey(cred.credentialID)}
+                                        disabled={removingPasskeyId === cred.credentialID}
+                                        sx={{
+                                            color: theme.palette.error.main,
+                                            opacity: 0.7,
+                                            '&:hover': {
+                                                opacity: 1,
+                                                bgcolor: alpha(theme.palette.error.main, 0.1)
+                                            }
+                                        }}
+                                    >
+                                        {removingPasskeyId === cred.credentialID ? (
+                                            <CircularProgress size={16} color="error" />
+                                        ) : (
+                                            <DeleteIcon fontSize="small" />
+                                        )}
+                                    </IconButton>
+                                </Tooltip>
                             </Box>
                         ))}
                     </Box>

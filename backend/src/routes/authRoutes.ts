@@ -10,6 +10,7 @@ import {
     verifyRegistration,
     getAuthenticationOptions,
     verifyAuthentication,
+    removePasskey,
 } from '../controllers/authController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection, csrfTokenCookie } from '../middleware/csrfMiddleware';
@@ -36,5 +37,6 @@ router.post('/webauthn/register-options', protect, csrfProtection, getRegistrati
 router.post('/webauthn/register-verify', protect, csrfProtection, verifyRegistration);
 router.post('/webauthn/login-options', getAuthenticationOptions);
 router.post('/webauthn/login-verify', verifyAuthentication);
+router.delete('/webauthn/passkey', protect, csrfProtection, removePasskey);
 
 export default router;
