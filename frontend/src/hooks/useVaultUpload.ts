@@ -6,7 +6,10 @@ import apiClient from '../services/api';
 
 
 // Constants
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks (safe for browser memory)
+// Google Drive resumable uploads require 256KB-aligned chunks
+// Encryption adds 28 bytes (12 IV + 16 tag), so raw chunk = 5MB - 28 = 5242852
+// This makes encrypted chunk exactly 5MB (5242880 bytes), which is 256KB aligned
+const CHUNK_SIZE = 5 * 1024 * 1024 - 28; // ~5MB raw, exactly 5MB after encryption
 
 interface VaultUploadState {
     status: 'idle' | 'encrypting' | 'uploading' | 'verifying' | 'completed' | 'error';
@@ -170,12 +173,13 @@ export const useVaultUpload = () => {
 
                 const contentRange = `bytes ${rangeStart}-${rangeEnd}/${totalEncryptedSize}`;
 
-                // Upload Chunk
+                // Upload Chunk (308 = Resume Incomplete, continue uploading)
                 await apiClient.put(`/vault/upload-chunk?fileId=${fileId}`, encryptedChunk, {
                     headers: {
                         'Content-Type': 'application/octet-stream',
                         'Content-Range': contentRange
-                    }
+                    },
+                    validateStatus: (status) => status === 200 || status === 308
                 });
 
                 uploadedBytes = end;

@@ -178,7 +178,16 @@ export const appendChunk = async (
     }
 
     // 308 means upload incomplete, continue
+    // Parse Range header to get actual bytes received by Google
     if (response.status === 308) {
+        const rangeHeader = response.headers.get('range');
+        if (rangeHeader) {
+            // Range header format: "bytes=0-12345"
+            const match = rangeHeader.match(/bytes=0-(\d+)/);
+            if (match) {
+                session.receivedSize = parseInt(match[1], 10) + 1;
+            }
+        }
         return { complete: false, receivedSize: session.receivedSize };
     }
 
