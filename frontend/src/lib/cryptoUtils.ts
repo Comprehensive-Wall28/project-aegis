@@ -38,18 +38,18 @@ export async function getPQCDiscoveryKey(password: string): Promise<string> {
 const SEED_STORAGE_KEY = 'aegis_pqc_seed';
 
 /**
- * Store seed in sessionStorage (survives refresh, not tab close)
+ * Store seed in localStorage (survives browser restart)
  */
 export function storeSeed(seed: Uint8Array): void {
     const hex = bytesToHex(seed);
-    sessionStorage.setItem(SEED_STORAGE_KEY, hex);
+    localStorage.setItem(SEED_STORAGE_KEY, hex);
 }
 
 /**
- * Retrieve seed from sessionStorage
+ * Retrieve seed from localStorage
  */
 export function getStoredSeed(): Uint8Array | null {
-    const hex = sessionStorage.getItem(SEED_STORAGE_KEY);
+    const hex = localStorage.getItem(SEED_STORAGE_KEY);
     if (!hex) return null;
 
     const bytes = new Uint8Array(hex.length / 2);
@@ -60,10 +60,10 @@ export function getStoredSeed(): Uint8Array | null {
 }
 
 /**
- * Clear seed from sessionStorage
+ * Clear seed from localStorage
  */
 export function clearStoredSeed(): void {
-    sessionStorage.removeItem(SEED_STORAGE_KEY);
+    localStorage.removeItem(SEED_STORAGE_KEY);
 }
 
 /**

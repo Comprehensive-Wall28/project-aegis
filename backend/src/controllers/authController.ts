@@ -17,7 +17,7 @@ import { logAuditEvent, logFailedAuth } from '../utils/auditLogger';
 
 const generateToken = (id: string, username: string) => {
     return jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
-        expiresIn: '1d', // Short-lived for security with localStorage
+        expiresIn: '365d', // Long-lived for persistence
     });
 };
 
@@ -129,7 +129,7 @@ export const loginUser = async (req: Request, res: Response) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            maxAge: 24 * 60 * 60 * 1000,
+            maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
             partitioned: process.env.NODE_ENV === 'production',
         } as any);
 
@@ -487,7 +487,7 @@ export const verifyAuthentication = async (req: Request, res: Response) => {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                maxAge: 24 * 60 * 60 * 1000,
+                maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
                 partitioned: process.env.NODE_ENV === 'production',
             } as any);
 
