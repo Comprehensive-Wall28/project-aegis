@@ -47,13 +47,13 @@ import {
     DialogContent,
     DialogActions,
     Breadcrumbs,
-    Link,
-    LinearProgress
+    Link
 } from '@mui/material';
 import vaultService, { type FileMetadata } from '@/services/vaultService';
 import folderService, { type Folder } from '@/services/folderService';
 import { motion, AnimatePresence } from 'framer-motion';
 import UploadZone from '@/components/vault/UploadZone';
+import UploadManager from '@/components/vault/UploadManager';
 import { useVaultUpload } from '@/hooks/useVaultUpload';
 import { useVaultDownload } from '@/hooks/useVaultDownload';
 import { BackendDown } from '@/components/BackendDown';
@@ -142,7 +142,7 @@ export function FilesPage() {
     const [isExternalDragging, setIsExternalDragging] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewInitialId, setPreviewInitialId] = useState<string | null>(null);
-    const { uploadFile, state: uploadState } = useVaultUpload();
+    const { uploadFiles, activeUploads, globalState: uploadState, clearCompleted } = useVaultUpload();
     const { downloadAndDecrypt } = useVaultDownload();
     const { contextMenu, handleContextMenu, closeContextMenu } = useContextMenu();
     const theme = useTheme();
@@ -462,9 +462,7 @@ export function FilesPage() {
                             e.preventDefault();
                             setIsExternalDragging(false);
                             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                                for (const file of Array.from(e.dataTransfer.files)) {
-                                    await uploadFile(file, currentFolderId);
-                                }
+                                uploadFiles(Array.from(e.dataTransfer.files), currentFolderId);
                                 fetchData();
                             }
                         }}
@@ -730,56 +728,12 @@ export function FilesPage() {
                 </Breadcrumbs>
             )}
 
-            {/* Upload Progress Bar */}
-            <AnimatePresence>
-                {(uploadState.status !== 'idle' && uploadState.status !== 'completed' && uploadState.status !== 'error') && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                        animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
-                        exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                        style={{ overflow: 'hidden' }}
-                    >
-                        <Paper
-                            variant="glass"
-                            sx={{
-                                p: 2,
-                                borderRadius: '16px',
-                                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                                bgcolor: alpha(theme.palette.primary.main, 0.05),
-                            }}
-                        >
-                            <Stack spacing={1.5}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <Stack direction="row" spacing={1.5} alignItems="center">
-                                        <CircularProgress size={16} thickness={5} />
-                                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                                            {uploadState.status === 'encrypting' && 'Encrypting (AES-GCM/ML-KEM)...'}
-                                            {uploadState.status === 'uploading' && 'Streaming to Secure Vault...'}
-                                            {uploadState.status === 'verifying' && 'Verifying Integrity...'}
-                                        </Typography>
-                                    </Stack>
-                                    <Typography variant="caption" sx={{ fontWeight: 800, fontFamily: 'JetBrains Mono', color: 'primary.main' }}>
-                                        {uploadState.progress}%
-                                    </Typography>
-                                </Box>
-                                <LinearProgress
-                                    variant="determinate"
-                                    value={uploadState.progress}
-                                    sx={{
-                                        height: 6,
-                                        borderRadius: '3px',
-                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                        '& .MuiLinearProgress-bar': {
-                                            borderRadius: '3px',
-                                            boxShadow: `0 0 10px ${theme.palette.primary.main}`,
-                                        },
-                                    }}
-                                />
-                            </Stack>
-                        </Paper>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Upload Manager Widget (floating) */}
+            <UploadManager
+                uploads={activeUploads}
+                globalProgress={uploadState.progress}
+                onClearCompleted={clearCompleted}
+            />
 
             {/* Files Grid */}
             {isLoading ? (
