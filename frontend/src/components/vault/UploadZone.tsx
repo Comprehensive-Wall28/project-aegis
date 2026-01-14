@@ -7,10 +7,12 @@ import { useVaultUpload } from '../../hooks/useVaultUpload';
 interface UploadZoneProps {
     onUploadComplete?: () => void;
     folderId?: string | null;
+    sx?: any;
 }
 
-const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId }) => {
+const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx }) => {
     const { uploadFiles, globalState, activeUploads } = useVaultUpload();
+
 
     const [isDragging, setIsDragging] = useState(false);
     const theme = useTheme();
@@ -52,7 +54,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId }) =
     const activeCount = activeUploads.filter(u => u.status === 'encrypting' || u.status === 'uploading' || u.status === 'pending').length;
 
     return (
-        <Box sx={{ width: '100%' }}>
+        <Box sx={{ width: '100%', height: '100%', ...sx }}>
             <Paper
                 variant="translucent"
                 onDragOver={handleDragOver}
@@ -61,6 +63,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId }) =
                 sx={{
                     position: 'relative',
                     p: 6,
+                    height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',

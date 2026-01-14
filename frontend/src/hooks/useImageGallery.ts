@@ -4,17 +4,10 @@ import { useSessionStore } from '../stores/sessionStore';
 import { type FileMetadata } from '../services/vaultService';
 
 // Cache window size - how many images to keep in memory around current index
-const CACHE_WINDOW = 2;
-
-interface ImageGalleryState {
-    currentBlobUrl: string | null;
-    isLoading: boolean;
-    error: string | null;
-}
+const CACHE_WINDOW = 3;
 
 interface CacheEntry {
     blobUrl: string;
-    loading: boolean;
     error: string | null;
 }
 
@@ -32,29 +25,30 @@ export const useImageGallery = (
 ) => {
     const { vaultCtrKey, setCryptoStatus } = useSessionStore();
 
-    // Cache: fileId -> { blobUrl, loading, error }
+    // Cache: fileId -> { blobUrl, error }
     const cacheRef = useRef<Record<string, CacheEntry>>({});
 
-    // Track in-flight requests to prevent duplicates
+    // Track in-flight requests
     const pendingRef = useRef<Set<string>>(new Set());
 
+    // Track the expected file ID to prevent stale updates
+    const expectedFileIdRef = useRef<string | null>(null);
+
     // State for current image
-    const [state, setState] = useState<ImageGalleryState>({
-        currentBlobUrl: null,
-        isLoading: false,
-        error: null,
-    });
+    const [currentBlobUrl, setCurrentBlobUrl] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     // Helper: Load a single image and cache it
-    const loadImage = useCallback(async (
+    const loadImageIntoCache = useCallback(async (
         file: FileMetadata,
         isHighPriority: boolean = false
-    ): Promise<string | null> => {
+    ): Promise<CacheEntry | null> => {
         const fileId = file._id;
 
-        // Return cached URL if available
+        // Return cached entry if available
         if (cacheRef.current[fileId]?.blobUrl) {
-            return cacheRef.current[fileId].blobUrl;
+            return cacheRef.current[fileId];
         }
 
         // Skip if already loading
@@ -68,27 +62,23 @@ export const useImageGallery = (
 
         // Mark as pending
         pendingRef.current.add(fileId);
-        cacheRef.current[fileId] = { blobUrl: '', loading: true, error: null };
 
         if (isHighPriority) {
             setCryptoStatus('decrypting');
         }
 
         try {
-            const blob = await fetchAndDecryptFile(
-                file,
-                { vaultCtrKey }
-            );
-
+            const blob = await fetchAndDecryptFile(file, { vaultCtrKey });
             const blobUrl = URL.createObjectURL(blob);
-            cacheRef.current[fileId] = { blobUrl, loading: false, error: null };
-
-            return blobUrl;
+            const entry: CacheEntry = { blobUrl, error: null };
+            cacheRef.current[fileId] = entry;
+            return entry;
         } catch (err: any) {
             const errorMsg = err.message || 'Failed to decrypt image';
-            cacheRef.current[fileId] = { blobUrl: '', loading: false, error: errorMsg };
+            const entry: CacheEntry = { blobUrl: '', error: errorMsg };
+            cacheRef.current[fileId] = entry;
             console.error(`Failed to load image ${fileId}:`, err);
-            return null;
+            return entry;
         } finally {
             pendingRef.current.delete(fileId);
             if (isHighPriority) {
@@ -101,14 +91,12 @@ export const useImageGallery = (
     const cleanupOutsideWindow = useCallback((centerIndex: number) => {
         const validFileIds = new Set<string>();
 
-        // Build set of file IDs that should be kept (within ±CACHE_WINDOW)
         for (let i = centerIndex - CACHE_WINDOW; i <= centerIndex + CACHE_WINDOW; i++) {
             if (i >= 0 && i < files.length) {
                 validFileIds.add(files[i]._id);
             }
         }
 
-        // Revoke and remove URLs outside the window
         Object.keys(cacheRef.current).forEach(fileId => {
             if (!validFileIds.has(fileId)) {
                 const entry = cacheRef.current[fileId];
@@ -120,103 +108,110 @@ export const useImageGallery = (
         });
     }, [files]);
 
-    // Main effect: Load current image and preload adjacent (chained to avoid blocking HTTP connections)
+    // Single unified effect for loading and state management
     useEffect(() => {
         if (!isOpen || files.length === 0 || currentIndex < 0 || currentIndex >= files.length) {
-            setState({ currentBlobUrl: null, isLoading: false, error: null });
+            expectedFileIdRef.current = null;
+            setCurrentBlobUrl(null);
+            setIsLoading(false);
+            setError(null);
             return;
         }
 
-        let isCancelled = false;
         const currentFile = files[currentIndex];
         const currentFileId = currentFile._id;
 
-        // Check if current image is already cached
+        // Set expected file ID for this effect run
+        expectedFileIdRef.current = currentFileId;
+
+        // Check if already cached
         const cached = cacheRef.current[currentFileId];
         if (cached?.blobUrl) {
-            setState({
-                currentBlobUrl: cached.blobUrl,
-                isLoading: false,
-                error: null,
-            });
-            // Preload adjacent images in background (chained)
-            preloadAdjacentChained();
+            setCurrentBlobUrl(cached.blobUrl);
+            setIsLoading(false);
+            setError(null);
+            // Preload adjacent
+            preloadAdjacent();
+            cleanupOutsideWindow(currentIndex);
             return;
         }
 
-        // Check if there's an error cached
         if (cached?.error) {
-            setState({
-                currentBlobUrl: null,
-                isLoading: false,
-                error: cached.error,
-            });
+            setCurrentBlobUrl(null);
+            setIsLoading(false);
+            setError(cached.error);
             return;
         }
 
-        // Load current image (high priority)
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        // Need to load - show loading state
+        setCurrentBlobUrl(null);
+        setIsLoading(true);
+        setError(null);
 
-        loadImage(currentFile, true).then(blobUrl => {
-            if (isCancelled) return;
-
-            if (blobUrl) {
-                setState({
-                    currentBlobUrl: blobUrl,
-                    isLoading: false,
-                    error: null,
-                });
-                // Preload adjacent after current loads (chained)
-                preloadAdjacentChained();
-            } else {
-                // Check if still loading (pending) - if so, don't show error yet
-                if (pendingRef.current.has(currentFileId)) {
-                    // Still loading, keep the loading state
-                    return;
-                }
-
-                const cachedEntry = cacheRef.current[currentFileId];
-                // Only show error if there's an actual error cached
-                if (cachedEntry?.error) {
-                    setState({
-                        currentBlobUrl: null,
-                        isLoading: false,
-                        error: cachedEntry.error,
-                    });
-                }
-                // Otherwise keep loading state - the image might be loaded by another effect run
+        // Load the image
+        loadImageIntoCache(currentFile, true).then((entry) => {
+            // CRITICAL: Only update state if this is still the expected file
+            if (expectedFileIdRef.current !== currentFileId) {
+                return;
             }
+
+            if (entry?.blobUrl) {
+                setCurrentBlobUrl(entry.blobUrl);
+                setIsLoading(false);
+                setError(null);
+            } else if (entry?.error) {
+                setCurrentBlobUrl(null);
+                setIsLoading(false);
+                setError(entry.error);
+            }
+            // Note: if entry is null, it means it's already pending.
+            // The loading state is already true, and the polling effect 
+            // below will handle the resolution.
+
+            preloadAdjacent();
         });
 
-        // Cleanup images outside the cache window
         cleanupOutsideWindow(currentIndex);
 
-        // Preload adjacent images sequentially: Next -> Previous
-        // This chains the promises to avoid blocking concurrent HTTP connections
-        async function preloadAdjacentChained() {
-            if (isCancelled) return;
+        // Preload adjacent images
+        async function preloadAdjacent() {
+            if (expectedFileIdRef.current !== currentFileId) return;
 
-            // Load next image first (more likely to be needed)
             if (currentIndex < files.length - 1) {
-                const nextFile = files[currentIndex + 1];
-                await loadImage(nextFile, false);
+                await loadImageIntoCache(files[currentIndex + 1], false);
             }
-
-            if (isCancelled) return;
-
-            // Then load previous image
             if (currentIndex > 0) {
-                const prevFile = files[currentIndex - 1];
-                await loadImage(prevFile, false);
+                await loadImageIntoCache(files[currentIndex - 1], false);
             }
         }
 
-        return () => {
-            isCancelled = true;
-        };
-    }, [isOpen, files, currentIndex, loadImage, cleanupOutsideWindow]);
+    }, [isOpen, files, currentIndex, loadImageIntoCache, cleanupOutsideWindow]);
 
-    // Cleanup all Object URLs when gallery closes or unmounts
+    // Poll for pending loads to complete (handles the case where we're waiting for a load started by another index)
+    useEffect(() => {
+        if (!isOpen || !isLoading) return;
+
+        const currentFileId = files[currentIndex]?._id;
+        if (!currentFileId) return;
+
+        // If the file is currently pending, set up a polling interval to check when it completes
+        const intervalId = setInterval(() => {
+            const cached = cacheRef.current[currentFileId];
+            if (cached?.blobUrl && expectedFileIdRef.current === currentFileId) {
+                setCurrentBlobUrl(cached.blobUrl);
+                setIsLoading(false);
+                setError(null);
+            } else if (cached?.error && expectedFileIdRef.current === currentFileId) {
+                setCurrentBlobUrl(null);
+                setIsLoading(false);
+                setError(cached.error);
+            }
+        }, 100);
+
+        return () => clearInterval(intervalId);
+    }, [isOpen, isLoading, files, currentIndex]);
+
+    // Cleanup when unmounting
     useEffect(() => {
         return () => {
             Object.values(cacheRef.current).forEach(entry => {
@@ -239,13 +234,16 @@ export const useImageGallery = (
             });
             cacheRef.current = {};
             pendingRef.current.clear();
-            setState({ currentBlobUrl: null, isLoading: false, error: null });
+            expectedFileIdRef.current = null;
+            setCurrentBlobUrl(null);
+            setIsLoading(false);
+            setError(null);
         }
     }, [isOpen]);
 
     return {
-        currentBlobUrl: state.currentBlobUrl,
-        isLoading: state.isLoading,
-        error: state.error,
+        currentBlobUrl,
+        isLoading,
+        error,
     };
 };

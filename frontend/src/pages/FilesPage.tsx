@@ -255,11 +255,15 @@ export function FilesPage() {
         else setSelectedIds(new Set(files.map(f => f._id)));
     };
 
-    const filteredFiles = files.filter(f =>
-        f.originalFileName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Natural sort helper for proper numeric ordering (1, 2, 10 instead of 1, 10, 2)
+    const naturalSort = (a: FileMetadata, b: FileMetadata) =>
+        a.originalFileName.localeCompare(b.originalFileName, undefined, { numeric: true, sensitivity: 'base' });
 
-    // Filter for image files only (for the gallery)
+    const filteredFiles = files
+        .filter(f => f.originalFileName.toLowerCase().includes(searchQuery.toLowerCase()))
+        .sort(naturalSort);
+
+    // Filter for image files only (for the gallery) - already sorted from filteredFiles
     const imageFiles = filteredFiles.filter(f => f.mimeType?.startsWith('image/'));
 
 
@@ -919,6 +923,7 @@ export function FilesPage() {
 
             {/* Image Preview Overlay */}
             <ImagePreviewOverlay
+                key={previewOpen ? `preview-${previewInitialId}` : 'preview-closed'}
                 isOpen={previewOpen}
                 onClose={() => setPreviewOpen(false)}
                 files={imageFiles}
@@ -981,7 +986,7 @@ const FolderGridItem = memo(({
                             : '1px solid transparent',
                         bgcolor: dragOverId === folder._id
                             ? alpha(theme.palette.primary.main, 0.1)
-                            : 'transparent',
+                            : alpha('#000', 0.2),
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
@@ -1081,7 +1086,7 @@ const FileGridItem = memo(({
                             : '1px solid transparent',
                         bgcolor: isSelected
                             ? alpha(theme.palette.primary.main, 0.1)
-                            : 'transparent',
+                            : alpha('#000', 0.2),
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',

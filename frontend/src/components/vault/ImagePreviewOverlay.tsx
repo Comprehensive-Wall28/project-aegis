@@ -36,13 +36,10 @@ export const ImagePreviewOverlay = ({
     const theme = useTheme();
     const { downloadAndDecrypt } = useVaultDownload();
 
-    // Find initial index from initialFileId
-    const getInitialIndex = useCallback(() => {
+    const [currentIndex, setCurrentIndex] = useState(() => {
         const index = files.findIndex(f => f._id === initialFileId);
         return index >= 0 ? index : 0;
-    }, [files, initialFileId]);
-
-    const [currentIndex, setCurrentIndex] = useState(getInitialIndex);
+    });
     const [isDownloading, setIsDownloading] = useState(false);
 
     // Touch handling state
@@ -56,13 +53,6 @@ export const ImagePreviewOverlay = ({
         currentIndex,
         isOpen
     );
-
-    // Reset index when initialFileId changes or dialog opens
-    useEffect(() => {
-        if (isOpen) {
-            setCurrentIndex(getInitialIndex());
-        }
-    }, [isOpen, getInitialIndex]);
 
     // Current file info
     const currentFile = files[currentIndex];
@@ -256,9 +246,9 @@ export const ImagePreviewOverlay = ({
                     justifyContent: 'center',
                     width: '100%',
                     height: '100%',
-                    p: { xs: 2, sm: 4, md: 8 },
-                    pt: { xs: 10, sm: 12 },
-                    pb: { xs: 4, sm: 6 },
+                    px: { xs: 1, sm: 2, md: 4 },
+                    pt: { xs: 6, sm: 6 },
+                    pb: { xs: 1, sm: 1 },
                     userSelect: 'none',
                 }}
                 onTouchStart={onTouchStart}
