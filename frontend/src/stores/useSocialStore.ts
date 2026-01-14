@@ -35,7 +35,9 @@ interface SocialState {
 
     // Actions
     fetchRooms: () => Promise<void>;
+
     selectRoom: (roomId: string) => Promise<void>;
+    refreshCurrentRoom: () => Promise<void>;
     selectCollection: (collectionId: string) => void;
     createRoom: (name: string, description: string, icon?: string) => Promise<Room>;
     joinRoom: (inviteCode: string, roomKey: CryptoKey) => Promise<void>;
@@ -270,6 +272,40 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         } catch (error) {
             console.error('Failed to select room:', error);
             set({ isLoadingContent: false });
+        }
+    },
+
+    refreshCurrentRoom: async () => {
+        const state = get();
+        if (!state.currentRoom) return;
+
+        try {
+            const content: RoomContent = await socialService.getRoomContent(state.currentRoom._id);
+            const sessionUser = useSessionStore.getState().user;
+
+            // Note: We don't re-decrypt the room key here as we preserve existing keys
+            // But we can decrypt any new room keys if somehow missing
+            if (content.room.encryptedRoomKey && sessionUser?.privateKey && !state.roomKeys.has(state.currentRoom._id)) {
+                try {
+                    const roomKey = await decryptRoomKeyWithPQC(
+                        content.room.encryptedRoomKey,
+                        sessionUser.privateKey
+                    );
+                    state.roomKeys.set(state.currentRoom._id, roomKey);
+                } catch (err) {
+                    console.error('Failed to decrypt room key during refresh:', err);
+                }
+            }
+
+            // Silent update of content
+            set({
+                // currentRoom: content.room, // Keep existing room obj to prevent full re-render flickering
+                collections: content.collections,
+                links: content.links,
+                // Do NOT reset currentCollectionId or loading state
+            });
+        } catch (error) {
+            console.error('Failed to refresh room:', error);
         }
     },
 

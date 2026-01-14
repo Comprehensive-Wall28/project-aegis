@@ -219,8 +219,10 @@ export function SocialPage() {
     const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
 
     // Actions
+
     const fetchRooms = useSocialStore((state) => state.fetchRooms);
     const selectRoom = useSocialStore((state) => state.selectRoom);
+    const refreshCurrentRoom = useSocialStore((state) => state.refreshCurrentRoom);
     const selectCollection = useSocialStore((state) => state.selectCollection);
     const createRoom = useSocialStore((state) => state.createRoom);
     const postLink = useSocialStore((state) => state.postLink);
@@ -264,6 +266,17 @@ export function SocialPage() {
             selectRoom(roomId);
         }
     }, [roomId, pqcEngineStatus, selectRoom]);
+
+    // Auto-refresh content every 5 seconds
+    useEffect(() => {
+        if (!currentRoom) return;
+
+        const interval = setInterval(() => {
+            refreshCurrentRoom();
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [currentRoom, refreshCurrentRoom]);
 
     // Decrypt room names when rooms change
     useEffect(() => {
