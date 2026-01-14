@@ -18,6 +18,9 @@ import {
     Divider,
     Menu,
     MenuItem,
+    useMediaQuery,
+    Drawer,
+    Fab,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -28,6 +31,8 @@ import {
     FilterList as FilterListIcon,
     Search as SearchIcon,
     Close as CloseIcon,
+    Menu as MenuIcon,
+    Share as ShareIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSocialStore } from '@/stores/useSocialStore';
@@ -210,6 +215,93 @@ function CreateCollectionDialog({
     );
 }
 
+// Post Link Dialog
+function PostLinkDialog({
+    open,
+    onClose,
+    onSubmit,
+    isLoading,
+}: {
+    open: boolean;
+    onClose: () => void;
+    onSubmit: (url: string) => void;
+    isLoading: boolean;
+}) {
+    const [url, setUrl] = useState('');
+
+    const handleSubmit = () => {
+        if (url.trim()) {
+            onSubmit(url.trim());
+            setUrl('');
+        }
+    };
+
+    if (!open) return null;
+
+    return (
+        <Box
+            sx={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 1300,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(4px)',
+            }}
+            onClick={onClose}
+        >
+            <Paper
+                variant="solid"
+                sx={{
+                    p: 3,
+                    width: '100%',
+                    maxWidth: 400,
+                    borderRadius: '20px',
+                    m: 2,
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                    Post a Link
+                </Typography>
+
+                <TextField
+                    fullWidth
+                    label="URL"
+                    placeholder="https://example.com"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    sx={{ mb: 3 }}
+                    autoFocus
+                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <LinkIcon color="action" />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <Button onClick={onClose} disabled={isLoading}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleSubmit}
+                        disabled={!url.trim() || isLoading}
+                    >
+                        {isLoading ? <CircularProgress size={20} /> : 'Post'}
+                    </Button>
+                </Box>
+            </Paper>
+        </Box>
+    );
+}
+
 export function SocialPage() {
     const theme = useTheme();
     const { roomId } = useParams<{ roomId?: string }>();
@@ -244,6 +336,7 @@ export function SocialPage() {
     // Local state
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [showCollectionDialog, setShowCollectionDialog] = useState(false);
+    const [showPostLinkDialog, setShowPostLinkDialog] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
     const [isCreatingCollection, setIsCreatingCollection] = useState(false);
     const [newLinkUrl, setNewLinkUrl] = useState('');
@@ -261,6 +354,10 @@ export function SocialPage() {
         message: '',
         severity: 'success',
     });
+
+    // Mobile Responsive State
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
     // Fetch rooms on mount
     useEffect(() => {
@@ -346,13 +443,15 @@ export function SocialPage() {
         }
     };
 
-    const handlePostLink = async () => {
-        if (!newLinkUrl.trim()) return;
+    const handlePostLink = async (url?: string) => {
+        const linkToPost = url || newLinkUrl;
+        if (!linkToPost.trim()) return;
 
         try {
             setIsPostingLink(true);
-            await postLink(newLinkUrl.trim());
+            await postLink(linkToPost.trim());
             setNewLinkUrl('');
+            setShowPostLinkDialog(false);
             showSnackbar('Link shared successfully', 'success');
         } catch (error: any) {
             const message = error.response?.data?.message || error.message || 'Failed to post link';
@@ -460,40 +559,23 @@ export function SocialPage() {
         return name.substring(0, 2).toUpperCase();
     };
 
-    // Loading state
-    if (pqcEngineStatus !== 'operational') {
-        return (
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minHeight: 400,
-                    gap: 2,
-                }}
-            >
-                <CircularProgress />
-                <Typography color="text.secondary">Initializing PQC Engine...</Typography>
-            </Box>
-        );
-    }
-
-    return (
-        <Box sx={{ display: 'flex', height: '100%', gap: 2, overflow: 'hidden' }}>
+    const SidebarContent = (
+        <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
             {/* Left Sidebar - Room Icons */}
             <Paper
                 variant="glass"
                 sx={{
                     width: 72,
                     flexShrink: 0,
-                    borderRadius: '16px',
+                    borderRadius: isMobile ? 0 : '16px',
                     p: 1.5,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: 1.5,
                     overflowY: 'auto',
+                    height: '100%',
+                    borderRight: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : 'none',
                 }}
             >
                 {rooms.map((room) => (
@@ -521,7 +603,10 @@ export function SocialPage() {
                                         : alpha(theme.palette.primary.main, 0.3),
                                 }
                             }}
-                            onClick={() => selectRoom(room._id)}
+                            onClick={() => {
+                                selectRoom(room._id);
+                                if (isMobile) setMobileDrawerOpen(false);
+                            }}
                         >
                             {getRoomInitials(room)}
                         </Avatar>
@@ -533,7 +618,9 @@ export function SocialPage() {
                 {/* Create Room Button */}
                 <Tooltip title="Create Room" placement="right">
                     <IconButton
-                        onClick={() => setShowCreateDialog(true)}
+                        onClick={() => {
+                            setShowCreateDialog(true);
+                        }}
                         sx={{
                             width: 48,
                             height: 48,
@@ -556,12 +643,14 @@ export function SocialPage() {
                     sx={{
                         width: 180,
                         flexShrink: 0,
-                        borderRadius: '16px',
+                        borderRadius: isMobile ? 0 : '16px',
                         p: 2,
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 1,
                         overflowY: 'auto',
+                        height: '100%',
+                        ml: isMobile ? 0 : 2,
                     }}
                 >
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -588,7 +677,10 @@ export function SocialPage() {
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -10 }}
-                                onClick={() => selectCollection(collection._id)}
+                                onClick={() => {
+                                    selectCollection(collection._id);
+                                    if (isMobile) setMobileDrawerOpen(false);
+                                }}
                                 onDragOver={(e) => {
                                     e.preventDefault();
                                     setDropTargetId(collection._id);
@@ -647,6 +739,48 @@ export function SocialPage() {
                     </AnimatePresence>
                 </Paper>
             )}
+        </Box>
+    );
+
+    // Loading state
+    if (pqcEngineStatus !== 'operational') {
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: 400,
+                    gap: 2,
+                }}
+            >
+                <CircularProgress />
+                <Typography color="text.secondary">Initializing PQC Engine...</Typography>
+            </Box>
+        );
+    }
+
+    return (
+        <Box sx={{ display: 'flex', height: '100%', gap: isMobile ? 0 : 2, overflow: 'hidden', position: 'relative' }}>
+            {/* Desktop Sidebars */}
+            {!isMobile && SidebarContent}
+
+            {/* Mobile Drawer */}
+            <Drawer
+                anchor="left"
+                open={mobileDrawerOpen}
+                onClose={() => setMobileDrawerOpen(false)}
+                PaperProps={{
+                    sx: {
+                        bgcolor: 'background.default',
+                        backgroundImage: 'none',
+                        width: 'auto',
+                    }
+                }}
+            >
+                {SidebarContent}
+            </Drawer>
 
             {/* Main Content */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0, overflow: 'hidden' }}>
@@ -657,7 +791,7 @@ export function SocialPage() {
                             variant="glass"
                             sx={{
                                 p: 2,
-                                borderRadius: '16px',
+                                borderRadius: isMobile ? '12px' : '16px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
@@ -665,7 +799,12 @@ export function SocialPage() {
                             }}
                         >
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <GroupIcon sx={{ color: 'primary.main' }} />
+                                {isMobile && (
+                                    <IconButton onClick={() => setMobileDrawerOpen(true)} edge="start" sx={{ mr: -1 }}>
+                                        <MenuIcon />
+                                    </IconButton>
+                                )}
+                                {!isMobile && <GroupIcon sx={{ color: 'primary.main' }} />}
                                 <Box>
                                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
                                         {decryptedNames.get(currentRoom._id) || 'Loading...'}
@@ -683,7 +822,7 @@ export function SocialPage() {
                                         <Box
                                             component={motion.div}
                                             initial={{ width: 0, opacity: 0 }}
-                                            animate={{ width: 300, opacity: 1 }}
+                                            animate={{ width: 200, opacity: 1 }}
                                             exit={{ width: 0, opacity: 0 }}
                                             transition={{ duration: 0.2 }}
                                             key="search-input"
@@ -750,6 +889,15 @@ export function SocialPage() {
                                     </IconButton>
                                 </Tooltip>
 
+                                {/* Mobile Invite Button */}
+                                {isMobile && (
+                                    <Tooltip title="Copy Invite Link">
+                                        <IconButton onClick={handleCopyInvite} color="primary">
+                                            <ShareIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+
                                 <Menu
                                     anchorEl={filterAnchorEl}
                                     open={Boolean(filterAnchorEl)}
@@ -776,46 +924,50 @@ export function SocialPage() {
                                     ))}
                                 </Menu>
 
-                                {/* Link Input */}
-                                <TextField
-                                    placeholder="Paste a link to share..."
-                                    value={newLinkUrl}
-                                    onChange={(e) => setNewLinkUrl(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handlePostLink()}
-                                    size="small"
-                                    InputProps={{
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <LinkIcon color="action" sx={{ fontSize: 18 }} />
-                                            </InputAdornment>
-                                        ),
-                                    }}
-                                    sx={{
-                                        flex: 1,
-                                        maxWidth: 400,
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '10px',
-                                        },
-                                    }}
-                                />
+                                {/* Desktop Link Input */}
+                                {!isMobile && (
+                                    <>
+                                        <TextField
+                                            placeholder="Paste a link to share..."
+                                            value={newLinkUrl}
+                                            onChange={(e) => setNewLinkUrl(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handlePostLink()}
+                                            size="small"
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <LinkIcon color="action" sx={{ fontSize: 18 }} />
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                            sx={{
+                                                flex: 1,
+                                                maxWidth: 400,
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: '10px',
+                                                },
+                                            }}
+                                        />
 
-                                <Button
-                                    variant="contained"
-                                    onClick={handlePostLink}
-                                    disabled={!newLinkUrl.trim() || isPostingLink}
-                                    sx={{ borderRadius: '10px', flexShrink: 0 }}
-                                >
-                                    {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
-                                </Button>
+                                        <Button
+                                            variant="contained"
+                                            onClick={() => handlePostLink()}
+                                            disabled={!newLinkUrl.trim() || isPostingLink}
+                                            sx={{ borderRadius: '10px', flexShrink: 0 }}
+                                        >
+                                            {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
+                                        </Button>
 
-                                <Button
-                                    variant="outlined"
-                                    startIcon={<CopyIcon />}
-                                    onClick={handleCopyInvite}
-                                    sx={{ borderRadius: '10px', flexShrink: 0 }}
-                                >
-                                    Invite
-                                </Button>
+                                        <Button
+                                            variant="outlined"
+                                            startIcon={<CopyIcon />}
+                                            onClick={handleCopyInvite}
+                                            sx={{ borderRadius: '10px', flexShrink: 0 }}
+                                        >
+                                            Invite
+                                        </Button>
+                                    </>
+                                )}
                             </Box>
                         </Paper>
 
@@ -940,6 +1092,31 @@ export function SocialPage() {
                 onSubmit={handleCreateCollection}
                 isLoading={isCreatingCollection}
             />
+
+            {/* Post Link Dialog */}
+            <PostLinkDialog
+                open={showPostLinkDialog}
+                onClose={() => setShowPostLinkDialog(false)}
+                onSubmit={handlePostLink}
+                isLoading={isPostingLink}
+            />
+
+            {/* Mobile FAB */}
+            {isMobile && currentRoom && (
+                <Fab
+                    color="primary"
+                    aria-label="add link"
+                    onClick={() => setShowPostLinkDialog(true)}
+                    sx={{
+                        position: 'fixed',
+                        bottom: 24,
+                        right: 24,
+                        zIndex: 100,
+                    }}
+                >
+                    <AddIcon />
+                </Fab>
+            )}
 
             {/* Snackbar */}
             <Snackbar

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon } from '@mui/icons-material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LinkPost } from '@/services/socialService';
 
@@ -230,7 +230,7 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                                         '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
                                     }}
                                 >
-                                    <DeleteIcon sx={{ transform: 'rotate(45deg)' }} /> {/* Using DeleteIcon as X for now, or just import Close */}
+                                    <CloseIcon />
                                 </IconButton>
                             </Box>
 
