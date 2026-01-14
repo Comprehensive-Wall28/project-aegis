@@ -25,7 +25,11 @@ export type AuditAction =
     | 'TASK_CREATE'
     | 'TASK_UPDATE'
     | 'TASK_DELETE'
-    | 'TASK_REORDER';
+    | 'TASK_REORDER'
+    | 'ROOM_CREATE'
+    | 'ROOM_INVITE_CREATE'
+    | 'ROOM_JOIN'
+    | 'LINK_POST';
 
 export type AuditStatus = 'SUCCESS' | 'FAILURE';
 
@@ -62,7 +66,8 @@ const AuditLogSchema: Schema = new Schema({
             'COURSE_CREATE', 'COURSE_DELETE',
             'CALENDAR_EVENT_CREATE', 'CALENDAR_EVENT_UPDATE', 'CALENDAR_EVENT_DELETE',
             'PASSKEY_REGISTER', 'PASSKEY_LOGIN', 'PASSKEY_REMOVE', 'PASSWORD_REMOVE', 'PASSWORD_UPDATE',
-            'TASK_CREATE', 'TASK_UPDATE', 'TASK_DELETE', 'TASK_REORDER'
+            'TASK_CREATE', 'TASK_UPDATE', 'TASK_DELETE', 'TASK_REORDER',
+            'ROOM_CREATE', 'ROOM_INVITE_CREATE', 'ROOM_JOIN', 'LINK_POST'
         ]
     },
     status: {

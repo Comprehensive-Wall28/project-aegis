@@ -6,6 +6,8 @@ import { GPAPage } from '@/pages/GPAPage';
 import { CalendarPage } from '@/pages/CalendarPage';
 import { TasksPage } from '@/pages/TasksPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { SocialPage } from '@/pages/SocialPage';
+import { InviteLanding } from '@/pages/InviteLanding';
 import { PqcLearn } from '@/pages/PqcLearn';
 import { NotFound } from '@/pages/NotFound';
 import { BackendDownPage } from '@/pages/BackendDown';
@@ -42,6 +44,10 @@ const router = createBrowserRouter([
         element: <PqcLearn />,
     },
     {
+        path: '/invite/:code',
+        element: <InviteLanding />,
+    },
+    {
         path: '/dashboard',
         element: (
             <ProtectedRoute>
@@ -76,6 +82,14 @@ const router = createBrowserRouter([
             {
                 path: 'security',
                 element: <SettingsPage />,
+            },
+            {
+                path: 'social',
+                element: <SocialPage />,
+            },
+            {
+                path: 'social/:roomId',
+                element: <SocialPage />,
             },
         ],
     },

@@ -11,7 +11,8 @@ import {
     ChevronRight as ChevronRightIcon,
     FolderOpen as FolderOpenIcon,
     CalendarMonth as CalendarIcon,
-    CheckCircle as TasksIcon
+    CheckCircle as TasksIcon,
+    Group as SocialIcon
 } from '@mui/icons-material';
 import {
     Box,
@@ -39,6 +40,7 @@ const navItems = [
     { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
     { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
     { name: 'Tasks', href: '/dashboard/tasks', icon: TasksIcon },
+    { name: 'Social', href: '/dashboard/social', icon: SocialIcon },
     { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
     { name: 'Security', href: '/dashboard/security', icon: SettingsIcon },
 ];

@@ -1,0 +1,27 @@
+import { Router } from 'express';
+import {
+    createRoom,
+    getUserRooms,
+    createInvite,
+    getInviteInfo,
+    joinRoom,
+    postLink,
+    getRoomContent
+} from '../controllers/socialController';
+import { protect } from '../middleware/authMiddleware';
+import { csrfProtection } from '../middleware/csrfMiddleware';
+
+const router = Router();
+
+// Public endpoint - no auth required
+router.get('/invite/:inviteCode', getInviteInfo);
+
+// Protected routes - require auth and CSRF
+router.get('/rooms', protect, csrfProtection, getUserRooms);
+router.post('/rooms', protect, csrfProtection, createRoom);
+router.post('/rooms/:roomId/invite', protect, csrfProtection, createInvite);
+router.post('/rooms/join', protect, csrfProtection, joinRoom);
+router.post('/rooms/:roomId/links', protect, csrfProtection, postLink);
+router.get('/rooms/:roomId', protect, csrfProtection, getRoomContent);
+
+export default router;
