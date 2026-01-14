@@ -1,20 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-    Box,
-    Paper,
-    Typography,
-    Button,
-    CircularProgress,
-    alpha,
-    useTheme,
-    Alert,
-} from '@mui/material';
-import {
-    Group as GroupIcon,
-    Lock as LockIcon,
-    CheckCircle as CheckIcon,
-} from '@mui/icons-material';
+import { AegisLogo } from '@/components/AegisLogo';
+import { Users, Lock, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import socialService from '@/services/socialService';
 import { useSocialStore, importRoomKeyFromBase64 } from '@/stores/useSocialStore';
@@ -40,10 +27,10 @@ const decryptWithKey = async (key: CryptoKey, encryptedData: string): Promise<st
 };
 
 export function InviteLanding() {
-    const theme = useTheme();
     const navigate = useNavigate();
     const { code } = useParams<{ code: string }>();
 
+    const isAuthChecking = useSessionStore((state) => state.isAuthChecking);
     const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
 
@@ -99,6 +86,9 @@ export function InviteLanding() {
     const handleJoin = async () => {
         if (!code || !roomKey) return;
 
+        // Wait for auth check to complete
+        if (isAuthChecking) return;
+
         // If not authenticated, redirect to login with pending invite
         if (!isAuthenticated || pqcEngineStatus !== 'operational') {
             // Store pending invite in session storage for after login
@@ -124,140 +114,96 @@ export function InviteLanding() {
     };
 
     return (
-        <Box
-            sx={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${alpha(
-                    theme.palette.primary.main,
-                    0.05
-                )} 100%)`,
-                p: 3,
-            }}
-        >
-            <Paper
-                component={motion.div}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                variant="glass"
-                sx={{
-                    p: 5,
-                    borderRadius: '24px',
-                    textAlign: 'center',
-                    maxWidth: 440,
-                    width: '100%',
-                }}
-            >
-                {isLoading ? (
-                    <Box sx={{ py: 4 }}>
-                        <CircularProgress size={48} />
-                        <Typography color="text.secondary" sx={{ mt: 2 }}>
-                            Decrypting invite...
-                        </Typography>
-                    </Box>
-                ) : error ? (
-                    <Box sx={{ py: 2 }}>
-                        <Alert severity="error" sx={{ mb: 3, borderRadius: '12px' }}>
-                            {error}
-                        </Alert>
-                        <Button variant="contained" onClick={() => navigate('/')}>
-                            Go Home
-                        </Button>
-                    </Box>
-                ) : roomInfo ? (
-                    <>
-                        {/* Icon */}
-                        <Box
-                            component={motion.div}
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: 'spring', delay: 0.2 }}
-                            sx={{
-                                width: 80,
-                                height: 80,
-                                borderRadius: '50%',
-                                bgcolor: alpha(theme.palette.primary.main, 0.15),
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                mx: 'auto',
-                                mb: 3,
-                            }}
-                        >
-                            <GroupIcon sx={{ fontSize: 40, color: 'primary.main' }} />
-                        </Box>
+        <div className="min-h-screen bg-black flex items-center justify-center">
+            <div className="text-center px-6 max-w-lg w-full">
+                {/* Logo */}
+                <div className="flex justify-center mb-8">
+                    <AegisLogo size={100} />
+                </div>
 
-                        {/* Title */}
-                        <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
-                            You're Invited!
-                        </Typography>
+                {isLoading ? (
+                    <div className="flex flex-col items-center">
+                        <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                        <p className="text-muted-foreground">Decrypting invite...</p>
+                    </div>
+                ) : error ? (
+                    <div className="flex flex-col items-center">
+                        <AlertCircle className="w-16 h-16 text-destructive mb-4" />
+                        <h2 className="text-2xl font-bold text-foreground mb-2">Invite Error</h2>
+                        <p className="text-muted-foreground mb-6">{error}</p>
+                        <button
+                            onClick={() => navigate('/')}
+                            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-foreground font-medium hover:bg-white/10 transition-all hover:scale-105"
+                        >
+                            Return Home
+                        </button>
+                    </div>
+                ) : roomInfo ? (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex flex-col items-center"
+                    >
+                        {/* Invite Heading */}
+                        <div className="mb-6">
+                            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+                                <Users className="w-4 h-4" />
+                                Secure Invitation
+                            </span>
+                            <h2 className="text-2xl font-semibold text-muted-foreground">
+                                You've been invited to join
+                            </h2>
+                        </div>
 
                         {/* Room Name */}
-                        <Typography
-                            variant="h4"
-                            sx={{
-                                fontWeight: 700,
-                                color: 'primary.main',
-                                mb: 1,
-                            }}
-                        >
+                        <h1 className="text-5xl font-bold text-foreground mb-4 tracking-tight">
                             {roomInfo.name}
-                        </Typography>
+                        </h1>
 
                         {/* Description */}
                         {roomInfo.description && (
-                            <Typography color="text.secondary" sx={{ mb: 3 }}>
+                            <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto">
                                 {roomInfo.description}
-                            </Typography>
+                            </p>
                         )}
 
-                        {/* Security badge */}
-                        <Box
-                            sx={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 1,
-                                px: 2,
-                                py: 1,
-                                borderRadius: '12px',
-                                bgcolor: alpha(theme.palette.success.main, 0.1),
-                                mb: 4,
-                            }}
-                        >
-                            <LockIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>
-                                End-to-End Encrypted
-                            </Typography>
-                        </Box>
+                        {/* End-to-End Encrypted Badge */}
+                        <div className="flex items-center gap-2 text-emerald-500 mb-8 bg-emerald-500/10 px-4 py-2 rounded-lg border border-emerald-500/20">
+                            <Lock className="w-4 h-4" />
+                            <span className="text-sm font-semibold">End-to-End Encrypted Group</span>
+                        </div>
 
-                        {/* Join Button */}
-                        <Button
-                            variant="contained"
-                            size="large"
-                            fullWidth
-                            onClick={handleJoin}
-                            disabled={isJoining}
-                            startIcon={isJoining ? <CircularProgress size={20} /> : <CheckIcon />}
-                            sx={{
-                                borderRadius: '14px',
-                                py: 1.5,
-                                fontWeight: 600,
-                                fontSize: '1rem',
-                            }}
-                        >
-                            {isJoining ? 'Joining...' : isAuthenticated ? 'Join Room' : 'Login to Join'}
-                        </Button>
+                        {/* Action Wrapper */}
+                        <div className="w-full max-w-xs space-y-4">
+                            <button
+                                onClick={handleJoin}
+                                disabled={isJoining}
+                                className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-primary text-primary-foreground font-bold text-lg hover:bg-primary/90 transition-all hover:scale-105 disabled:opacity-50 disabled:pointer-events-none"
+                            >
+                                {isJoining ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Joining...
+                                    </>
+                                ) : (
+                                    <>
+                                        {isAuthChecking ? 'Checking session...' : (isAuthenticated ? 'Join Room' : 'Login to Join')}
+                                        <ArrowRight className="w-5 h-5" />
+                                    </>
+                                )}
+                            </button>
 
-                        {!isAuthenticated && (
-                            <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                                You'll be redirected to login first
-                            </Typography>
-                        )}
-                    </>
+                            {!isAuthenticated && (
+                                <p className="text-xs text-muted-foreground">
+                                    You will be redirected to login securely
+                                </p>
+                            )}
+                        </div>
+                    </motion.div>
                 ) : null}
-            </Paper>
-        </Box>
+            </div>
+        </div>
     );
 }
+
+export default InviteLanding;

@@ -105,7 +105,7 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
             fullWidth
             maxWidth="sm"
             PaperProps={{
-                variant: 'glass',
+                variant: 'solid',
                 sx: {
                     borderRadius: '24px',
                     boxShadow: theme.shadows[20],

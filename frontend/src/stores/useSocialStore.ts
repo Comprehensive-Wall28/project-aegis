@@ -40,9 +40,13 @@ interface SocialState {
     createRoom: (name: string, description: string, icon?: string) => Promise<Room>;
     joinRoom: (inviteCode: string, roomKey: CryptoKey) => Promise<void>;
     postLink: (url: string) => Promise<LinkPost>;
+    deleteLink: (linkId: string) => Promise<void>;
+    createCollection: (name: string) => Promise<Collection>;
+    moveLink: (linkId: string, collectionId: string) => Promise<void>;
     createInvite: (roomId: string) => Promise<string>;
     setPendingInvite: (invite: SocialState['pendingInvite']) => void;
     decryptRoomMetadata: (room: Room) => Promise<{ name: string; description: string }>;
+    decryptCollectionMetadata: (collection: Collection) => Promise<{ name: string }>;
     clearSocial: () => void;
 }
 
@@ -72,7 +76,7 @@ const generateRoomKey = async (): Promise<CryptoKey> => {
 };
 
 // Encrypt data with AES-GCM key
-const encryptWithAES = async (key: CryptoKey, data: string): Promise<string> => {
+export const encryptWithAES = async (key: CryptoKey, data: string): Promise<string> => {
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
     const encoder = new TextEncoder();
     const encrypted = await window.crypto.subtle.encrypt(
@@ -90,7 +94,7 @@ const encryptWithAES = async (key: CryptoKey, data: string): Promise<string> => 
 };
 
 // Decrypt data with AES-GCM key
-const decryptWithAES = async (key: CryptoKey, encryptedData: string): Promise<string> => {
+export const decryptWithAES = async (key: CryptoKey, encryptedData: string): Promise<string> => {
     try {
         const combined = Uint8Array.from(atob(encryptedData), (c) => c.charCodeAt(0));
         const iv = combined.slice(0, 12);
@@ -345,6 +349,43 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         return linkPost;
     },
 
+    deleteLink: async (linkId: string) => {
+        await socialService.deleteLink(linkId);
+        const state = get();
+        set({ links: state.links.filter(l => l._id !== linkId) });
+    },
+
+    createCollection: async (name: string) => {
+        const state = get();
+        if (!state.currentRoom) throw new Error('No room selected');
+
+        const roomKey = state.roomKeys.get(state.currentRoom._id);
+        if (!roomKey) throw new Error('Room key not available');
+
+        // Encrypt collection name
+        const encryptedName = await encryptWithAES(roomKey, name);
+
+        const collection = await socialService.createCollection(
+            state.currentRoom._id,
+            encryptedName
+        );
+
+        set({ collections: [...state.collections, collection] });
+        return collection;
+    },
+
+    moveLink: async (linkId: string, collectionId: string) => {
+        await socialService.moveLink(linkId, collectionId);
+        const state = get();
+
+        // If the moved link is in the current view, update its collectionId or remove if filtered
+        set({
+            links: state.links.map(l =>
+                l._id === linkId ? { ...l, collectionId: collectionId } : l
+            )
+        });
+    },
+
     createInvite: async (roomId: string) => {
         const state = get();
         const roomKey = state.roomKeys.get(roomId);
@@ -382,6 +423,21 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         const description = await decryptWithAES(roomKey, room.description);
 
         return { name, description };
+    },
+
+    decryptCollectionMetadata: async (collection: Collection) => {
+        const state = get();
+        if (!collection.name) return { name: collection.type === 'links' ? 'Links' : 'Collection' };
+
+        const roomKey = state.roomKeys.get(collection.roomId);
+        if (!roomKey) return { name: 'Encrypted Collection' };
+
+        try {
+            const name = await decryptWithAES(roomKey, collection.name);
+            return { name };
+        } catch {
+            return { name: 'Decryption Failed' };
+        }
     },
 
     clearSocial: () => {

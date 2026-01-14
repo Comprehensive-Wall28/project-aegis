@@ -4,6 +4,7 @@ declare module '@mui/material/Paper' {
     interface PaperPropsVariantOverrides {
         glass: true;
         translucent: true;
+        solid: true;
     }
 }
 
@@ -179,10 +180,20 @@ export const getTheme = (mode: ThemeMode) => {
                     {
                         props: { variant: 'glass' as any },
                         style: {
-                            background: alpha(selectedPalette.background.paper, 0.3), // Darker glass effect
+                            background: alpha(selectedPalette.background.paper, 0.3),
                             backdropFilter: 'blur(12px)',
                             WebkitBackdropFilter: 'blur(12px)',
-                            border: `1px solid ${alpha(selectedPalette.primary.main || '#ffffff', 0.1)}`,
+                            border: `1px solid ${alpha(selectedPalette.primary.main, 0.1)}`,
+                        },
+                    },
+                    {
+                        props: { variant: 'solid' as any },
+                        style: {
+                            background: selectedPalette.background.paper,
+                            backgroundImage: 'none',
+                            backdropFilter: 'none',
+                            WebkitBackdropFilter: 'none',
+                            border: `1px solid ${selectedPalette.divider}`,
                         },
                     },
                     {

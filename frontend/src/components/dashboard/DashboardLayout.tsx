@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { SystemStatusBar } from './SystemStatusBar';
 import { motion } from 'framer-motion';
-import { Box, alpha, useTheme, Paper } from '@mui/material';
+import { Box, alpha, useTheme, Paper, Snackbar, Alert } from '@mui/material';
 import { refreshCsrfToken } from '@/services/api';
 import UploadManager from '@/components/vault/UploadManager';
 import { useVaultUpload } from '@/hooks/useVaultUpload';
+import { useSocialStore, importRoomKeyFromBase64 } from '@/stores/useSocialStore';
 
 export function DashboardLayout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -18,6 +19,40 @@ export function DashboardLayout() {
     useEffect(() => {
         refreshCsrfToken();
     }, []);
+
+    const navigate = useNavigate();
+    const joinRoom = useSocialStore((state) => state.joinRoom);
+    const [joinMessage, setJoinMessage] = useState<string | null>(null);
+
+    // Handle pending invite after login
+    useEffect(() => {
+        const checkPendingInvite = async () => {
+            const pendingInvite = sessionStorage.getItem('pendingInvite');
+            if (!pendingInvite) return;
+
+            try {
+                const { inviteCode, keyBase64 } = JSON.parse(pendingInvite);
+                if (inviteCode && keyBase64) {
+                    const key = await importRoomKeyFromBase64(keyBase64);
+                    await joinRoom(inviteCode, key);
+                    setJoinMessage('Successfully joined room from invite');
+
+                    // Clear pending invite
+                    sessionStorage.removeItem('pendingInvite');
+
+                    // Navigate to social page after a brief delay
+                    setTimeout(() => {
+                        navigate(`/dashboard/social`);
+                    }, 1000);
+                }
+            } catch (err) {
+                console.error('Failed to process pending invite:', err);
+                sessionStorage.removeItem('pendingInvite');
+            }
+        };
+
+        checkPendingInvite();
+    }, [joinRoom, navigate]);
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}>
@@ -117,6 +152,17 @@ export function DashboardLayout() {
                     100% { transform: translate(-10%, -10%) scale(1); }
                 }
             `}</style>
+
+            <Snackbar
+                open={!!joinMessage}
+                autoHideDuration={4000}
+                onClose={() => setJoinMessage(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+                <Alert severity="success" variant="filled" onClose={() => setJoinMessage(null)}>
+                    {joinMessage}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

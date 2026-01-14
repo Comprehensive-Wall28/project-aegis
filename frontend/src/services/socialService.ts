@@ -130,6 +130,35 @@ const socialService = {
         );
         return response.data;
     },
+
+    /**
+     * Delete a link post
+     */
+    deleteLink: async (linkId: string): Promise<void> => {
+        await apiClient.delete(`/social/links/${linkId}`);
+    },
+
+    /**
+     * Create a new collection in a room
+     */
+    createCollection: async (
+        roomId: string,
+        name: string,
+        type: 'links' | 'discussion' = 'links'
+    ): Promise<Collection> => {
+        const response = await apiClient.post<Collection>(
+            `/social/rooms/${roomId}/collections`,
+            { name, type }
+        );
+        return response.data;
+    },
+
+    /**
+     * Move a link to a different collection
+     */
+    moveLink: async (linkId: string, collectionId: string): Promise<void> => {
+        await apiClient.patch(`/social/links/${linkId}/move`, { collectionId });
+    },
 };
 
 export default socialService;

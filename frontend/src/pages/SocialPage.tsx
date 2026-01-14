@@ -74,7 +74,7 @@ function CreateRoomDialog({
             onClick={onClose}
         >
             <Paper
-                variant="glass"
+                variant="solid"
                 sx={{
                     p: 3,
                     width: '100%',
@@ -123,6 +123,88 @@ function CreateRoomDialog({
     );
 }
 
+// Create Collection Dialog
+function CreateCollectionDialog({
+    open,
+    onClose,
+    onSubmit,
+    isLoading,
+}: {
+    open: boolean;
+    onClose: () => void;
+    onSubmit: (name: string) => void;
+    isLoading: boolean;
+}) {
+    const [name, setName] = useState('');
+
+    const handleSubmit = () => {
+        if (name.trim()) {
+            onSubmit(name.trim());
+            setName('');
+        }
+    };
+
+    useEffect(() => {
+        if (!open) setName('');
+    }, [open]);
+
+    if (!open) return null;
+
+    return (
+        <Box
+            sx={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 1300,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(4px)',
+            }}
+            onClick={onClose}
+        >
+            <Paper
+                variant="solid"
+                sx={{
+                    p: 3,
+                    width: '100%',
+                    maxWidth: 400,
+                    borderRadius: '20px',
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                    New Collection
+                </Typography>
+
+                <TextField
+                    fullWidth
+                    label="Collection Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    sx={{ mb: 3 }}
+                    autoFocus
+                    onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                />
+
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <Button onClick={onClose} disabled={isLoading}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleSubmit}
+                        disabled={!name.trim() || isLoading}
+                    >
+                        {isLoading ? <CircularProgress size={20} /> : 'Create'}
+                    </Button>
+                </Box>
+            </Paper>
+        </Box>
+    );
+}
+
 export function SocialPage() {
     const theme = useTheme();
     const { roomId } = useParams<{ roomId?: string }>();
@@ -142,15 +224,27 @@ export function SocialPage() {
     const selectCollection = useSocialStore((state) => state.selectCollection);
     const createRoom = useSocialStore((state) => state.createRoom);
     const postLink = useSocialStore((state) => state.postLink);
+    const deleteLink = useSocialStore((state) => state.deleteLink);
+    const createCollection = useSocialStore((state) => state.createCollection);
+    const moveLink = useSocialStore((state) => state.moveLink);
     const createInvite = useSocialStore((state) => state.createInvite);
     const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
+    const decryptCollectionMetadata = useSocialStore((state) => state.decryptCollectionMetadata);
+
+    // Get current user ID for delete permissions
+    const currentUserId = useSessionStore((state) => state.user?._id);
 
     // Local state
     const [showCreateDialog, setShowCreateDialog] = useState(false);
+    const [showCollectionDialog, setShowCollectionDialog] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
+    const [isCreatingCollection, setIsCreatingCollection] = useState(false);
     const [newLinkUrl, setNewLinkUrl] = useState('');
     const [isPostingLink, setIsPostingLink] = useState(false);
+    const [draggedLinkId, setDraggedLinkId] = useState<string | null>(null);
+    const [dropTargetId, setDropTargetId] = useState<string | null>(null);
     const [decryptedNames, setDecryptedNames] = useState<Map<string, string>>(new Map());
+    const [decryptedCollections, setDecryptedCollections] = useState<Map<string, string>>(new Map());
     const [snackbar, setSnackbar] = useState<SnackbarState>({
         open: false,
         message: '',
@@ -191,6 +285,26 @@ export function SocialPage() {
         }
     }, [rooms, decryptRoomMetadata]);
 
+    // Decrypt collection names when they change
+    useEffect(() => {
+        const decryptNames = async () => {
+            const newDecrypted = new Map<string, string>();
+            for (const col of collections) {
+                try {
+                    const { name } = await decryptCollectionMetadata(col);
+                    newDecrypted.set(col._id, name);
+                } catch {
+                    newDecrypted.set(col._id, 'Encrypted Collection');
+                }
+            }
+            setDecryptedCollections(newDecrypted);
+        };
+
+        if (collections.length > 0) {
+            decryptNames();
+        }
+    }, [collections, decryptCollectionMetadata]);
+
     const showSnackbar = (message: string, severity: SnackbarState['severity']) => {
         setSnackbar({ open: true, message, severity });
     };
@@ -223,6 +337,38 @@ export function SocialPage() {
         } finally {
             setIsPostingLink(false);
         }
+    };
+
+    const handleCreateCollection = async (name: string) => {
+        if (!name.trim() || isCreatingCollection) return;
+
+        setIsCreatingCollection(true);
+        try {
+            await createCollection(name.trim());
+            setShowCollectionDialog(false);
+            showSnackbar('Collection created successfully', 'success');
+        } catch (error: any) {
+            showSnackbar(error.message || 'Failed to create collection', 'error');
+        } finally {
+            setIsCreatingCollection(false);
+        }
+    };
+
+    const handleDrop = async (collectionId: string) => {
+        if (!draggedLinkId) return;
+
+        const linkToMove = links.find(l => l._id === draggedLinkId);
+        if (linkToMove && linkToMove.collectionId !== collectionId) {
+            try {
+                await moveLink(draggedLinkId, collectionId);
+                showSnackbar('Link moved successfully', 'success');
+            } catch (error: any) {
+                showSnackbar(error.message || 'Failed to move link', 'error');
+            }
+        }
+
+        setDraggedLinkId(null);
+        setDropTargetId(null);
     };
 
     const handleCopyInvite = async () => {
@@ -287,8 +433,6 @@ export function SocialPage() {
                     <Tooltip key={room._id} title={decryptedNames.get(room._id) || 'Room'} placement="right">
                         <Avatar
                             component={motion.div}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
                             sx={{
                                 width: 48,
                                 height: 48,
@@ -304,6 +448,11 @@ export function SocialPage() {
                                 fontWeight: 600,
                                 fontSize: '1rem',
                                 transition: 'all 0.2s ease',
+                                '&:hover': {
+                                    bgcolor: currentRoom?._id === room._id
+                                        ? 'primary.main'
+                                        : alpha(theme.palette.primary.main, 0.3),
+                                }
                             }}
                             onClick={() => selectRoom(room._id)}
                         >
@@ -338,18 +487,31 @@ export function SocialPage() {
                 <Paper
                     variant="glass"
                     sx={{
-                        width: 200,
+                        width: 180,
                         flexShrink: 0,
                         borderRadius: '16px',
                         p: 2,
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 1,
+                        overflowY: 'auto',
                     }}
                 >
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                        Collections
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                            Collections
+                        </Typography>
+                        <IconButton
+                            size="small"
+                            onClick={() => setShowCollectionDialog(true)}
+                            sx={{
+                                color: 'text.secondary',
+                                '&:hover': { color: 'primary.main' }
+                            }}
+                        >
+                            <AddIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                    </Box>
 
                     <AnimatePresence mode="wait">
                         {collections.map((collection) => (
@@ -359,8 +521,16 @@ export function SocialPage() {
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -10 }}
-                                whileHover={{ x: 4 }}
                                 onClick={() => selectCollection(collection._id)}
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    setDropTargetId(collection._id);
+                                }}
+                                onDragLeave={() => setDropTargetId(null)}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    handleDrop(collection._id);
+                                }}
                                 sx={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -368,10 +538,17 @@ export function SocialPage() {
                                     p: 1.5,
                                     borderRadius: '10px',
                                     cursor: 'pointer',
+                                    position: 'relative',
+                                    transition: 'all 0.2s ease',
                                     bgcolor:
                                         currentCollectionId === collection._id
                                             ? alpha(theme.palette.primary.main, 0.15)
-                                            : 'transparent',
+                                            : dropTargetId === collection._id
+                                                ? alpha(theme.palette.primary.main, 0.25)
+                                                : 'transparent',
+                                    border: dropTargetId === collection._id
+                                        ? `1px dashed ${theme.palette.primary.main}`
+                                        : '1px solid transparent',
                                     '&:hover': {
                                         bgcolor: alpha(theme.palette.primary.main, 0.1),
                                     },
@@ -396,7 +573,7 @@ export function SocialPage() {
                                                 : 'text.primary',
                                     }}
                                 >
-                                    {collection.type === 'links' ? 'Links' : collection.name || 'Collection'}
+                                    {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
                                 </Typography>
                             </Box>
                         ))}
@@ -432,57 +609,48 @@ export function SocialPage() {
                                 </Box>
                             </Box>
 
-                            <Button
-                                variant="outlined"
-                                startIcon={<CopyIcon />}
-                                onClick={handleCopyInvite}
-                                sx={{ borderRadius: '10px' }}
-                            >
-                                Invite
-                            </Button>
-                        </Paper>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}>
+                                {/* Link Input */}
+                                <TextField
+                                    placeholder="Paste a link to share..."
+                                    value={newLinkUrl}
+                                    onChange={(e) => setNewLinkUrl(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handlePostLink()}
+                                    size="small"
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <LinkIcon color="action" sx={{ fontSize: 18 }} />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                    sx={{
+                                        flex: 1,
+                                        maxWidth: 400,
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: '10px',
+                                        },
+                                    }}
+                                />
 
-                        {/* Post Link Input */}
-                        <Paper
-                            variant="glass"
-                            sx={{
-                                p: 2,
-                                borderRadius: '16px',
-                                flexShrink: 0,
-                            }}
-                        >
-                            <TextField
-                                fullWidth
-                                placeholder="Paste a link to share..."
-                                value={newLinkUrl}
-                                onChange={(e) => setNewLinkUrl(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handlePostLink()}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <LinkIcon color="action" />
-                                        </InputAdornment>
-                                    ),
-                                    endAdornment: (
-                                        <InputAdornment position="end">
-                                            <Button
-                                                variant="contained"
-                                                size="small"
-                                                onClick={handlePostLink}
-                                                disabled={!newLinkUrl.trim() || isPostingLink}
-                                                sx={{ borderRadius: '8px' }}
-                                            >
-                                                {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
-                                            </Button>
-                                        </InputAdornment>
-                                    ),
-                                }}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: '12px',
-                                    },
-                                }}
-                            />
+                                <Button
+                                    variant="contained"
+                                    onClick={handlePostLink}
+                                    disabled={!newLinkUrl.trim() || isPostingLink}
+                                    sx={{ borderRadius: '10px', flexShrink: 0 }}
+                                >
+                                    {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
+                                </Button>
+
+                                <Button
+                                    variant="outlined"
+                                    startIcon={<CopyIcon />}
+                                    onClick={handleCopyInvite}
+                                    sx={{ borderRadius: '10px', flexShrink: 0 }}
+                                >
+                                    Invite
+                                </Button>
+                            </Box>
                         </Paper>
 
                         {/* Links Grid */}
@@ -516,16 +684,16 @@ export function SocialPage() {
                                             gap: 2,
                                         }}
                                     >
-                                        {getFilteredLinks().map((link, index) => (
-                                            <motion.div
+                                        {getFilteredLinks().map((link) => (
+                                            <LinkCard
                                                 key={link._id}
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, scale: 0.9 }}
-                                                transition={{ delay: index * 0.05 }}
-                                            >
-                                                <LinkCard link={link} />
-                                            </motion.div>
+                                                link={link}
+                                                onDelete={() => deleteLink(link._id)}
+                                                onDragStart={(id) => setDraggedLinkId(id)}
+                                                canDelete={
+                                                    currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
+                                                }
+                                            />
                                         ))}
                                     </Box>
                                 </AnimatePresence>
@@ -599,6 +767,14 @@ export function SocialPage() {
                 isLoading={isCreating}
             />
 
+            {/* Create Collection Dialog */}
+            <CreateCollectionDialog
+                open={showCollectionDialog}
+                onClose={() => setShowCollectionDialog(false)}
+                onSubmit={handleCreateCollection}
+                isLoading={isCreatingCollection}
+            />
+
             {/* Snackbar */}
             <Snackbar
                 open={snackbar.open}
@@ -615,6 +791,6 @@ export function SocialPage() {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
-        </Box>
+        </Box >
     );
 }

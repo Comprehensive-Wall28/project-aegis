@@ -1,150 +1,162 @@
+import { useState } from 'react';
 import { Box, Paper, Typography, IconButton, alpha, useTheme } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon } from '@mui/icons-material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import type { LinkPost } from '@/services/socialService';
 
 interface LinkCardProps {
     link: LinkPost;
     onCommentsClick?: (link: LinkPost) => void;
+    onDelete?: (linkId: string) => void;
+    onDragStart?: (linkId: string) => void;
+    canDelete?: boolean;
 }
 
-// Extract domain from URL
-const extractDomain = (url: string): string => {
-    try {
-        const urlObj = new URL(url);
-        return urlObj.hostname.replace('www.', '');
-    } catch {
-        return url;
-    }
-};
 
-export function LinkCard({ link, onCommentsClick }: LinkCardProps) {
+
+export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDelete }: LinkCardProps) {
     const theme = useTheme();
     const { previewData, url } = link;
-    const domain = extractDomain(url);
+
     const username = typeof link.userId === 'object' ? link.userId.username : 'Unknown';
 
+    const [isDragging, setIsDragging] = useState(false);
+
     return (
-        <Paper
-            component={motion.div}
-            variant="glass"
-            whileHover={{
-                scale: 1.02,
-                transition: { duration: 0.2 },
+        <div
+            draggable
+            onDragStart={(e: React.DragEvent) => {
+                setIsDragging(true);
+                onDragStart?.(link._id);
+                e.dataTransfer.setData('text/plain', link._id);
+                e.dataTransfer.effectAllowed = 'move';
             }}
-            sx={{
-                overflow: 'hidden',
-                borderRadius: '16px',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                    borderColor: alpha(theme.palette.primary.main, 0.4),
-                    boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.15)}`,
-                },
+            onDragEnd={() => setIsDragging(false)}
+            style={{
+                height: 280,
+                cursor: 'grab',
+                opacity: isDragging ? 0.5 : 1,
+                transition: 'opacity 0.2s ease'
             }}
-            onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
         >
-            {/* Preview Image Banner */}
-            {previewData.image && (
-                <Box
+            <motion.div
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                style={{ height: '100%' }}
+            >
+                <Paper
+                    variant="glass"
                     sx={{
-                        width: '100%',
-                        height: 180,
-                        backgroundImage: `url(${previewData.image})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        position: 'relative',
+                        overflow: 'hidden',
+                        borderRadius: '16px',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                            borderColor: alpha(theme.palette.primary.main, 0.3),
+                            bgcolor: alpha(theme.palette.primary.main, 0.02),
+                        },
                     }}
+                    onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
                 >
-                    {/* Gradient overlay for text readability */}
+                    {/* Preview Image Banner - Always show with fixed height */}
                     <Box
                         sx={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            height: '60%',
-                            background: `linear-gradient(to top, ${alpha(
-                                theme.palette.background.default,
-                                0.9
-                            )}, transparent)`,
-                        }}
-                    />
-                </Box>
-            )}
-
-            {/* Content */}
-            <Box sx={{ p: 2 }}>
-                {/* Title */}
-                <Typography
-                    variant="subtitle1"
-                    sx={{
-                        fontWeight: 600,
-                        lineHeight: 1.3,
-                        mb: 1,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                    }}
-                >
-                    {previewData.title || url}
-                </Typography>
-
-                {/* Domain badge */}
-                <Box
-                    sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: '8px',
-                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                        mb: 1.5,
-                    }}
-                >
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            color: theme.palette.primary.main,
-                            fontWeight: 500,
+                            width: '100%',
+                            height: 140,
+                            flexShrink: 0,
+                            backgroundImage: previewData.image ? `url(${previewData.image})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            bgcolor: previewData.image ? 'transparent' : alpha(theme.palette.primary.main, 0.08),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                         }}
                     >
-                        {domain}
-                    </Typography>
-                </Box>
+                        {!previewData.image && (
+                            <Typography variant="h4" sx={{ opacity: 0.3 }}>🔗</Typography>
+                        )}
+                    </Box>
 
-                {/* Footer: Posted by + Comments */}
-                <Box
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        mt: 1,
-                    }}
-                >
-                    <Typography variant="caption" color="text.secondary">
-                        Posted by {username}
-                    </Typography>
+                    {/* Content */}
+                    <Box sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                        {/* Title */}
+                        <Typography
+                            variant="subtitle1"
+                            sx={{
+                                fontWeight: 600,
+                                lineHeight: 1.3,
+                                mb: 1,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                            }}
+                        >
+                            {previewData.title || url}
+                        </Typography>
 
-                    <IconButton
-                        size="small"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onCommentsClick?.(link);
-                        }}
-                        sx={{
-                            color: 'text.secondary',
-                            '&:hover': {
-                                color: 'primary.main',
-                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                            },
-                        }}
-                    >
-                        <CommentsIcon fontSize="small" />
-                    </IconButton>
-                </Box>
-            </Box>
-        </Paper>
+
+
+                        {/* Footer: Posted by + Comments */}
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                mt: 'auto',
+                            }}
+                        >
+                            <Typography variant="caption" color="text.secondary">
+                                Posted by {username}
+                            </Typography>
+
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onCommentsClick?.(link);
+                                    }}
+                                    sx={{
+                                        color: 'text.secondary',
+                                        '&:hover': {
+                                            color: 'primary.main',
+                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                        },
+                                    }}
+                                >
+                                    <CommentsIcon fontSize="small" />
+                                </IconButton>
+
+                                {canDelete && (
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDelete?.(link._id);
+                                        }}
+                                        sx={{
+                                            color: 'text.secondary',
+                                            '&:hover': {
+                                                color: 'error.main',
+                                                bgcolor: alpha(theme.palette.error.main, 0.1),
+                                            },
+                                        }}
+                                    >
+                                        <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                )}
+                            </Box>
+                        </Box>
+                    </Box>
+                </Paper>
+            </motion.div>
+        </div>
     );
 }
+

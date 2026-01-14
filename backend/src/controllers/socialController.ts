@@ -387,3 +387,163 @@ export const getRoomContent = async (req: AuthRequest, res: Response, next: Next
         next(error);
     }
 };
+
+// Delete a link post.
+// Only the post creator or room owner can delete.
+export const deleteLink = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { linkId } = req.params;
+
+        if (!userId) {
+            res.status(401).json({ message: 'Unauthorized' });
+            return;
+        }
+
+        // Find the link post
+        const linkPost = await LinkPost.findById(linkId);
+        if (!linkPost) {
+            res.status(404).json({ message: 'Link not found' });
+            return;
+        }
+
+        // Find the collection to get the room
+        const collection = await Collection.findById(linkPost.collectionId);
+        if (!collection) {
+            res.status(404).json({ message: 'Collection not found' });
+            return;
+        }
+
+        // Find the room to check permissions
+        const room = await Room.findById(collection.roomId);
+        if (!room) {
+            res.status(404).json({ message: 'Room not found' });
+            return;
+        }
+
+        // Check if user is the post creator or room owner
+        const isPostCreator = linkPost.userId.toString() === userId;
+        const isRoomOwner = room.members.some(
+            m => m.userId.toString() === userId && m.role === 'owner'
+        );
+
+        if (!isPostCreator && !isRoomOwner) {
+            res.status(403).json({ message: 'You can only delete your own posts' });
+            return;
+        }
+
+        await LinkPost.findByIdAndDelete(linkId);
+
+        await logAuditEvent(userId, 'FILE_DELETE', 'SUCCESS', req, {
+            action: 'delete_link_post',
+            linkId,
+            roomId: room._id.toString()
+        });
+
+        res.status(200).json({ message: 'Link deleted successfully' });
+    } catch (error) {
+        logger.error('Error deleting link:', error);
+        next(error);
+    }
+};
+
+// Create a new collection in a room.
+// Requires room membership.
+export const createCollection = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { roomId } = req.params;
+        const { name, type = 'links' } = req.body;
+
+        if (!userId) {
+            res.status(401).json({ message: 'Unauthorized' });
+            return;
+        }
+
+        if (!name) {
+            res.status(400).json({ message: 'Collection name is required' });
+            return;
+        }
+
+        // Find room and verify membership
+        const room = await Room.findById(roomId);
+        if (!room) {
+            res.status(404).json({ message: 'Room not found' });
+            return;
+        }
+
+        const isMember = room.members.some(m => m.userId.toString() === userId);
+        if (!isMember) {
+            res.status(403).json({ message: 'Not a member of this room' });
+            return;
+        }
+
+        // Create collection
+        const collection = await Collection.create({
+            roomId,
+            name, // Already encrypted by frontend
+            type
+        });
+
+        res.status(201).json(collection);
+    } catch (error) {
+        logger.error('Error creating collection:', error);
+        next(error);
+    }
+};
+
+// Move a link to a different collection.
+// Requires room membership.
+export const moveLink = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { linkId } = req.params;
+        const { collectionId } = req.body;
+
+        if (!userId) {
+            res.status(401).json({ message: 'Unauthorized' });
+            return;
+        }
+
+        if (!collectionId) {
+            res.status(400).json({ message: 'Target collection ID is required' });
+            return;
+        }
+
+        // Find the link
+        const linkPost = await LinkPost.findById(linkId);
+        if (!linkPost) {
+            res.status(404).json({ message: 'Link not found' });
+            return;
+        }
+
+        // Find target collection
+        const targetCollection = await Collection.findById(collectionId);
+        if (!targetCollection) {
+            res.status(404).json({ message: 'Target collection not found' });
+            return;
+        }
+
+        // Find the room to verify membership
+        const room = await Room.findById(targetCollection.roomId);
+        if (!room) {
+            res.status(404).json({ message: 'Room not found' });
+            return;
+        }
+
+        const isMember = room.members.some(m => m.userId.toString() === userId);
+        if (!isMember) {
+            res.status(403).json({ message: 'Not a member of this room' });
+            return;
+        }
+
+        // Update the link's collection
+        linkPost.collectionId = targetCollection._id as mongoose.Types.ObjectId;
+        await linkPost.save();
+
+        res.status(200).json({ message: 'Link moved successfully', linkPost });
+    } catch (error) {
+        logger.error('Error moving link:', error);
+        next(error);
+    }
+};
