@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Box, Paper, Typography, IconButton, alpha, useTheme } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon } from '@mui/icons-material';
-import { motion } from 'framer-motion';
+import { Box, Paper, Typography, IconButton, alpha, useTheme, Button } from '@mui/material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { LinkPost } from '@/services/socialService';
 
 interface LinkCardProps {
@@ -21,30 +21,29 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
     const username = typeof link.userId === 'object' ? link.userId.username : 'Unknown';
 
     const [isDragging, setIsDragging] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
+
+    // Close preview
+    const closePreview = () => setShowPreview(false);
 
     return (
-        <div
-            draggable
-            onDragStart={(e: React.DragEvent) => {
-                setIsDragging(true);
-                onDragStart?.(link._id);
-                e.dataTransfer.setData('text/plain', link._id);
-                e.dataTransfer.effectAllowed = 'move';
-            }}
-            onDragEnd={() => setIsDragging(false)}
-            style={{
-                height: 280,
-                cursor: 'grab',
-                opacity: isDragging ? 0.5 : 1,
-                transition: 'opacity 0.2s ease'
-            }}
-        >
-            <motion.div
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                style={{ height: '100%' }}
+        <>
+            <div
+                draggable
+                onDragStart={(e: React.DragEvent) => {
+                    setIsDragging(true);
+                    onDragStart?.(link._id);
+                    e.dataTransfer.setData('text/plain', link._id);
+                    e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragEnd={() => setIsDragging(false)}
+                style={{
+                    height: 280,
+                    cursor: 'grab',
+                    opacity: isDragging ? 0.5 : 1,
+                    transition: 'opacity 0.2s ease',
+                    position: 'relative', // Ensure relative positioning for containment
+                }}
             >
                 <Paper
                     variant="glass"
@@ -55,14 +54,15 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                         display: 'flex',
                         flexDirection: 'column',
                         transition: 'all 0.2s ease',
+                        border: '1px solid transparent',
                         '&:hover': {
-                            borderColor: alpha(theme.palette.primary.main, 0.3),
-                            bgcolor: alpha(theme.palette.primary.main, 0.02),
+                            borderColor: alpha(theme.palette.primary.main, 0.4),
+                            bgcolor: alpha(theme.palette.primary.main, 0.05),
                         },
                     }}
                     onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
                 >
-                    {/* Preview Image Banner - Always show with fixed height */}
+                    {/* Preview Image Banner */}
                     <Box
                         sx={{
                             width: '100%',
@@ -84,7 +84,6 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
 
                     {/* Content */}
                     <Box sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                        {/* Title */}
                         <Typography
                             variant="subtitle1"
                             sx={{
@@ -100,9 +99,6 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                             {previewData.title || url}
                         </Typography>
 
-
-
-                        {/* Footer: Posted by + Comments */}
                         <Box
                             sx={{
                                 display: 'flex',
@@ -112,7 +108,7 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                             }}
                         >
                             <Typography variant="caption" color="text.secondary">
-                                Posted by {username}
+                                {username}
                             </Typography>
 
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -120,15 +116,20 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                                     size="small"
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        setShowPreview(true);
+                                    }}
+                                    sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                                >
+                                    <OpenInFullIcon fontSize="small" />
+                                </IconButton>
+
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
                                         onCommentsClick?.(link);
                                     }}
-                                    sx={{
-                                        color: 'text.secondary',
-                                        '&:hover': {
-                                            color: 'primary.main',
-                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                        },
-                                    }}
+                                    sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
                                 >
                                     <CommentsIcon fontSize="small" />
                                 </IconButton>
@@ -140,13 +141,7 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                                             e.stopPropagation();
                                             onDelete?.(link._id);
                                         }}
-                                        sx={{
-                                            color: 'text.secondary',
-                                            '&:hover': {
-                                                color: 'error.main',
-                                                bgcolor: alpha(theme.palette.error.main, 0.1),
-                                            },
-                                        }}
+                                        sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
                                     >
                                         <DeleteIcon fontSize="small" />
                                     </IconButton>
@@ -155,8 +150,125 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                         </Box>
                     </Box>
                 </Paper>
-            </motion.div>
-        </div>
+            </div>
+
+            {/* Full Screen Preview Overlay */}
+            <AnimatePresence>
+                {showPreview && (
+                    <Box
+                        component={motion.div}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={closePreview}
+                        sx={{
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: 9999,
+                            bgcolor: 'rgba(0,0,0,0.8)',
+                            backdropFilter: 'blur(8px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: 4,
+                        }}
+                    >
+                        <Paper
+                            variant="glass"
+                            component={motion.div}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                                width: '100%',
+                                maxWidth: 800,
+                                maxHeight: '90vh',
+                                overflow: 'hidden',
+                                borderRadius: '24px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                bgcolor: alpha(theme.palette.background.paper, 0.6), // solid backing
+                                boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+                            }}
+                        >
+                            {/* Large Image Header */}
+                            <Box
+                                sx={{
+                                    width: '100%',
+                                    height: 400,
+                                    bgcolor: '#000',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    position: 'relative',
+                                }}
+                            >
+                                {previewData.image ? (
+                                    <img
+                                        src={previewData.image}
+                                        alt={previewData.title}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'contain',
+                                        }}
+                                    />
+                                ) : (
+                                    <Typography variant="h1">🔗</Typography>
+                                )}
+
+                                {/* Close Button */}
+                                <IconButton
+                                    onClick={closePreview}
+                                    sx={{
+                                        position: 'absolute',
+                                        top: 16,
+                                        right: 16,
+                                        bgcolor: 'rgba(0,0,0,0.5)',
+                                        color: '#fff',
+                                        '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                                    }}
+                                >
+                                    <DeleteIcon sx={{ transform: 'rotate(45deg)' }} /> {/* Using DeleteIcon as X for now, or just import Close */}
+                                </IconButton>
+                            </Box>
+
+                            {/* Details Content */}
+                            <Box sx={{ p: 4, overflowY: 'auto' }}>
+                                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+                                    {previewData.title || 'Untitled Link'}
+                                </Typography>
+
+                                <Typography variant="body1" color="text.secondary" sx={{ mb: 3, whiteSpace: 'pre-wrap' }}>
+                                    {previewData.description || 'No description available for this link.'}
+                                </Typography>
+
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 'auto' }}>
+                                    <Button
+                                        variant="contained"
+                                        size="large"
+                                        startIcon={<Typography component="span">🔗</Typography>}
+                                        onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                                    >
+                                        Visit Website
+                                    </Button>
+
+                                    <Box sx={{ ml: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                        <Typography variant="caption" color="text.secondary">
+                                            Shared by
+                                        </Typography>
+                                        <Typography variant="subtitle2">
+                                            {username}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            </Box>
+                        </Paper>
+                    </Box>
+                )}
+            </AnimatePresence>
+        </>
     );
 }
 

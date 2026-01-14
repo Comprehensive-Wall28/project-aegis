@@ -16,6 +16,8 @@ import {
     Tooltip,
     InputAdornment,
     Divider,
+    Menu,
+    MenuItem,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -23,6 +25,9 @@ import {
     ContentCopy as CopyIcon,
     Group as GroupIcon,
     Folder as CollectionIcon,
+    FilterList as FilterListIcon,
+    Search as SearchIcon,
+    Close as CloseIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSocialStore } from '@/stores/useSocialStore';
@@ -247,6 +252,10 @@ export function SocialPage() {
     const [dropTargetId, setDropTargetId] = useState<string | null>(null);
     const [decryptedNames, setDecryptedNames] = useState<Map<string, string>>(new Map());
     const [decryptedCollections, setDecryptedCollections] = useState<Map<string, string>>(new Map());
+    const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
+    const [selectedUploader, setSelectedUploader] = useState<string | null>(null);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const [snackbar, setSnackbar] = useState<SnackbarState>({
         open: false,
         message: '',
@@ -346,7 +355,8 @@ export function SocialPage() {
             setNewLinkUrl('');
             showSnackbar('Link shared successfully', 'success');
         } catch (error: any) {
-            showSnackbar(error.message || 'Failed to post link', 'error');
+            const message = error.response?.data?.message || error.message || 'Failed to post link';
+            showSnackbar(message, 'error');
         } finally {
             setIsPostingLink(false);
         }
@@ -396,10 +406,54 @@ export function SocialPage() {
         }
     };
 
+    const getUniqueUploaders = useCallback(() => {
+        const uploaders = new Map<string, string>(); // id -> username
+        links.forEach(link => {
+            if (typeof link.userId === 'object') {
+                uploaders.set(link.userId._id, link.userId.username);
+            }
+        });
+        return Array.from(uploaders.entries()).map(([id, username]) => ({ id, username }));
+    }, [links]);
+
     const getFilteredLinks = useCallback(() => {
-        if (!currentCollectionId) return links;
-        return links.filter((link) => link.collectionId === currentCollectionId);
-    }, [links, currentCollectionId]);
+        let filtered = links;
+
+        if (currentCollectionId) {
+            filtered = filtered.filter((l) => l.collectionId === currentCollectionId);
+        }
+
+        if (selectedUploader) {
+            filtered = filtered.filter((l) =>
+                typeof l.userId === 'object' && l.userId._id === selectedUploader
+            );
+        }
+
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter((l) => {
+                const title = (l.previewData?.title || '').toLowerCase();
+                const url = l.url.toLowerCase();
+                const username = typeof l.userId === 'object' ? l.userId.username.toLowerCase() : '';
+                return title.includes(query) || url.includes(query) || username.includes(query);
+            });
+        }
+
+        return filtered;
+    }, [links, currentCollectionId, selectedUploader, searchQuery]);
+
+    const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
+        setFilterAnchorEl(event.currentTarget);
+    };
+
+    const handleFilterClose = () => {
+        setFilterAnchorEl(null);
+    };
+
+    const handleSelectUploader = (uploaderId: string | null) => {
+        setSelectedUploader(uploaderId);
+        handleFilterClose();
+    };
 
     const getRoomInitials = (room: Room): string => {
         const name = decryptedNames.get(room._id) || '??';
@@ -623,6 +677,105 @@ export function SocialPage() {
                             </Box>
 
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}>
+                                {/* Search Bar */}
+                                <AnimatePresence mode="wait">
+                                    {isSearchOpen ? (
+                                        <Box
+                                            component={motion.div}
+                                            initial={{ width: 0, opacity: 0 }}
+                                            animate={{ width: 300, opacity: 1 }}
+                                            exit={{ width: 0, opacity: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            key="search-input"
+                                            sx={{ overflow: 'hidden' }}
+                                        >
+                                            <TextField
+                                                autoFocus
+                                                placeholder="Search links..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                size="small"
+                                                fullWidth
+                                                InputProps={{
+                                                    startAdornment: (
+                                                        <InputAdornment position="start">
+                                                            <SearchIcon fontSize="small" color="action" />
+                                                        </InputAdornment>
+                                                    ),
+                                                    endAdornment: (
+                                                        <InputAdornment position="end">
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => {
+                                                                    setSearchQuery('');
+                                                                    setIsSearchOpen(false);
+                                                                }}
+                                                            >
+                                                                <CloseIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </InputAdornment>
+                                                    ),
+                                                }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '20px',
+                                                        bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                                    }
+                                                }}
+                                            />
+                                        </Box>
+                                    ) : (
+                                        <Tooltip title="Search" key="search-icon">
+                                            <IconButton onClick={() => setIsSearchOpen(true)}>
+                                                <SearchIcon />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* Filter Button */}
+                                <Tooltip title="Filter by Uploader">
+                                    <IconButton
+                                        onClick={handleFilterClick}
+                                        sx={{
+                                            color: selectedUploader ? 'primary.main' : 'text.secondary',
+                                            bgcolor: selectedUploader ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                            '&:hover': {
+                                                color: 'primary.main',
+                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                            }
+                                        }}
+                                    >
+                                        <FilterListIcon />
+                                    </IconButton>
+                                </Tooltip>
+
+                                <Menu
+                                    anchorEl={filterAnchorEl}
+                                    open={Boolean(filterAnchorEl)}
+                                    onClose={handleFilterClose}
+                                    PaperProps={{
+                                        variant: 'glass',
+                                        sx: { minWidth: 200, mt: 1 }
+                                    }}
+                                >
+                                    <MenuItem
+                                        onClick={() => handleSelectUploader(null)}
+                                        selected={selectedUploader === null}
+                                    >
+                                        All Uploaders
+                                    </MenuItem>
+                                    {getUniqueUploaders().map((uploader) => (
+                                        <MenuItem
+                                            key={uploader.id}
+                                            onClick={() => handleSelectUploader(uploader.id)}
+                                            selected={selectedUploader === uploader.id}
+                                        >
+                                            {uploader.username}
+                                        </MenuItem>
+                                    ))}
+                                </Menu>
+
                                 {/* Link Input */}
                                 <TextField
                                     placeholder="Paste a link to share..."
