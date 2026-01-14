@@ -96,8 +96,8 @@ export function Navbar() {
                     width: 'calc(100% - 32px)',
                     maxWidth: 1400,
                     borderRadius: 4,
-                    bgcolor: alpha(theme.palette.background.paper, 0.5),
-                    backdropFilter: 'blur(16px)',
+                    bgcolor: alpha(theme.palette.background.paper, 0.6),
+                    backdropFilter: 'none',
                     border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                     boxShadow: 'none',
                     backgroundImage: 'none',
@@ -258,8 +258,8 @@ export function Navbar() {
                 onClose={() => setMobileOpen(false)}
                 sx={{
                     '& .MuiDrawer-paper': {
-                        bgcolor: alpha(theme.palette.background.default, 0.95),
-                        backdropFilter: 'blur(20px)',
+                        bgcolor: alpha(theme.palette.background.default, 0.6),
+                        backdropFilter: 'none',
                         px: 2,
                         py: 4,
                         display: 'flex',

@@ -65,3 +65,47 @@ export function getStoredSeed(): Uint8Array | null {
 export function clearStoredSeed(): void {
     sessionStorage.removeItem(SEED_STORAGE_KEY);
 }
+
+/**
+ * Derive a high-performance AES-GCM vault key from the 64-byte PQC seed.
+ * Uses the first 32 bytes of the seed as key material for AES-256-GCM.
+ * This is deterministic based on the user's password-derived seed.
+ */
+export async function deriveVaultKey(seed: Uint8Array): Promise<CryptoKey> {
+    if (seed.length < 32) {
+        throw new Error('Seed must be at least 32 bytes for AES-256 key derivation');
+    }
+
+    // Use first 32 bytes (256 bits) for AES-256-GCM
+    const keyMaterial = seed.slice(0, 32);
+
+    return window.crypto.subtle.importKey(
+        'raw',
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false, // Not extractable for security
+        ['encrypt', 'decrypt']
+    );
+}
+
+/**
+ * Derive an AES-CTR key for low-overhead "Eco-Mode" encryption.
+ * Uses the first 32 bytes of the seed as key material for AES-256-CTR.
+ * This is deterministic based on the user's password-derived seed.
+ */
+export async function deriveGlobalCtrKey(seed: Uint8Array): Promise<CryptoKey> {
+    if (seed.length < 32) {
+        throw new Error('Seed must be at least 32 bytes for AES-256 key derivation');
+    }
+
+    // Use first 32 bytes (256 bits) for AES-256-CTR
+    const keyMaterial = seed.slice(0, 32);
+
+    return window.crypto.subtle.importKey(
+        'raw',
+        keyMaterial,
+        { name: 'AES-CTR', length: 256 },
+        false, // Not extractable for security
+        ['encrypt', 'decrypt']
+    );
+}

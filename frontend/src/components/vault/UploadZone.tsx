@@ -54,7 +54,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId }) =
     return (
         <Box sx={{ width: '100%' }}>
             <Paper
-                variant="glass"
+                variant="translucent"
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}

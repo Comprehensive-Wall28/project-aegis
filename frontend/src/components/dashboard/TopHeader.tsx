@@ -189,14 +189,12 @@ export function TopHeader() {
                         open={Boolean(anchorEl)}
                         onClose={handleCloseMenu}
                         PaperProps={{
+                            variant: 'translucent',
                             sx: {
                                 mt: 2,
                                 width: 240,
                                 p: 1,
                                 borderRadius: '28px',
-                                bgcolor: alpha(theme.palette.background.paper, 0.8),
-                                backdropFilter: 'blur(16px)',
-                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                                 boxShadow: theme.shadows[20]
                             }
                         }}

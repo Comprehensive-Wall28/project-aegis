@@ -81,7 +81,7 @@ export function DashboardLayout() {
                 {/* Content Area ('The Stage') */}
                 <Box sx={{ flexGrow: 1, m: { xs: 1, sm: 2 }, mt: { xs: 0, sm: 1 }, overflow: 'hidden' }}>
                     <Paper
-                        variant="glass"
+                        variant="translucent"
                         component={motion.div}
                         layout
                         sx={{
@@ -90,9 +90,6 @@ export function DashboardLayout() {
                             flexDirection: 'column',
                             borderRadius: '16px',
                             overflow: 'hidden',
-                            bgcolor: alpha(theme.palette.background.paper, 0.2),
-                            backdropFilter: 'blur(32px)',
-                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                             boxShadow: theme.shadows[10]
                         }}
                     >

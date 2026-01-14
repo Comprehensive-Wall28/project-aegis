@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchAndDecryptFile, type User } from './useVaultDownload';
+import { fetchAndDecryptFile } from './useVaultDownload';
 import { useSessionStore } from '../stores/sessionStore';
 import { type FileMetadata } from '../services/vaultService';
 
@@ -30,7 +30,7 @@ export const useImageGallery = (
     currentIndex: number,
     isOpen: boolean
 ) => {
-    const { user, setCryptoStatus } = useSessionStore();
+    const { vaultCtrKey, setCryptoStatus } = useSessionStore();
 
     // Cache: fileId -> { blobUrl, loading, error }
     const cacheRef = useRef<Record<string, CacheEntry>>({});
@@ -62,7 +62,7 @@ export const useImageGallery = (
             return null;
         }
 
-        if (!user?.privateKey) {
+        if (!vaultCtrKey) {
             return null;
         }
 
@@ -77,7 +77,7 @@ export const useImageGallery = (
         try {
             const blob = await fetchAndDecryptFile(
                 file,
-                { privateKey: user.privateKey } as User
+                { vaultCtrKey }
             );
 
             const blobUrl = URL.createObjectURL(blob);
@@ -95,7 +95,7 @@ export const useImageGallery = (
                 setCryptoStatus('idle');
             }
         }
-    }, [user, setCryptoStatus]);
+    }, [vaultCtrKey, setCryptoStatus]);
 
     // Cleanup Object URLs outside the cache window
     const cleanupOutsideWindow = useCallback((centerIndex: number) => {

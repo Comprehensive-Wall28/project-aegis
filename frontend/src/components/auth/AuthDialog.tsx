@@ -248,8 +248,6 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                             right: 0,
                             bottom: 0,
                             backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                            backdropFilter: 'blur(8px)',
-                            WebkitBackdropFilter: 'blur(8px)',
                             zIndex: theme.zIndex.modal
                         }}
                     />
@@ -283,12 +281,11 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                 width: '100%',
                                 maxWidth: 420,
                                 borderRadius: 4,
-                                bgcolor: theme.palette.background.paper,
-                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                                 boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.5)`,
                                 overflow: 'hidden',
                                 position: 'relative'
                             }}
+                            variant="translucent"
                         >
                             {/* Close Button */}
                             <IconButton

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import {
     InsertDriveFile as FileIcon,
     FileDownload as DownloadIcon,
@@ -146,6 +146,7 @@ export function FilesPage() {
     const { downloadAndDecrypt } = useVaultDownload();
     const { contextMenu, handleContextMenu, closeContextMenu } = useContextMenu();
     const theme = useTheme();
+    const isImageFile = (file: FileMetadata) => file.mimeType?.startsWith('image/');
 
     useEffect(() => {
         fetchData();
@@ -261,8 +262,6 @@ export function FilesPage() {
     // Filter for image files only (for the gallery)
     const imageFiles = filteredFiles.filter(f => f.mimeType?.startsWith('image/'));
 
-    // Check if a file is an image
-    const isImageFile = (file: FileMetadata) => file.mimeType?.startsWith('image/');
 
     // Handle file card click
     const handleFileClick = (file: FileMetadata, e: React.MouseEvent) => {
@@ -636,7 +635,7 @@ export function FilesPage() {
 
             {/* Upload Section */}
             <Collapse in={showUpload}>
-                <Paper variant="glass" sx={{ p: 4, borderRadius: '16px' }}>
+                <Paper variant="translucent" sx={{ p: 4, borderRadius: '16px' }}>
                     <UploadZone
                         folderId={currentFolderId}
                         onUploadComplete={() => {
@@ -757,7 +756,7 @@ export function FilesPage() {
                 </Box>
             ) : (filteredFiles.length === 0 && folders.length === 0) ? (
                 <Paper
-                    variant="glass"
+                    variant="translucent"
                     sx={{ p: 10, textAlign: 'center', borderRadius: '16px' }}
                     onContextMenu={(e) => handleContextMenu(e, { type: 'empty' })}
                 >
@@ -767,230 +766,44 @@ export function FilesPage() {
                 </Paper>
             ) : (
                 <Grid container spacing={2} onContextMenu={(e) => handleContextMenu(e, { type: 'empty' })}>
-                    <AnimatePresence mode="popLayout">
-                        {/* Folder Cards */}
-                        {folders.map((folder) => {
-                            const iconScaling = getIconScaling();
-                            const typoScaling = getTypographyScaling();
+                    {folders.map((folder) => (
+                        <FolderGridItem
+                            key={`folder-${folder._id}`}
+                            folder={folder}
+                            gridSize={getGridSize()}
+                            iconScaling={getIconScaling()}
+                            typoScaling={getTypographyScaling()}
+                            dragOverId={dragOverId}
+                            onNavigate={navigateToFolder}
+                            onContextMenu={handleContextMenu}
+                            onDragOver={(id: string | null) => setDragOverId(id)}
+                            onDrop={(targetId: string, droppedFileId: string) => {
+                                setDragOverId(null);
+                                const idsToMove = selectedIds.has(droppedFileId)
+                                    ? Array.from(selectedIds)
+                                    : [droppedFileId];
+                                handleMoveToFolder(targetId, idsToMove);
+                            }}
+                        />
+                    ))}
 
-                            return (
-                                <Grid size={getGridSize()} key={`folder-${folder._id}`}>
-                                    <motion.div
-                                        layout
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.9 }}
-                                        transition={{ duration: 0.2 }}
-                                        style={{ height: '100%' }}
-                                    >
-                                        <Paper
-                                            variant="glass"
-                                            elevation={0}
-                                            onClick={() => navigateToFolder(folder)}
-                                            onContextMenu={(e) => handleContextMenu(e, { type: 'folder', id: folder._id })}
-                                            onDragOver={(e) => {
-                                                e.preventDefault();
-                                                setDragOverId(folder._id);
-                                            }}
-                                            onDragLeave={() => setDragOverId(null)}
-                                            onDrop={(e) => {
-                                                e.preventDefault();
-                                                setDragOverId(null);
-                                                const droppedFileId = e.dataTransfer.getData('fileId');
-                                                if (droppedFileId) {
-                                                    const idsToMove = selectedIds.has(droppedFileId)
-                                                        ? Array.from(selectedIds)
-                                                        : [droppedFileId];
-                                                    setFilesToMove(idsToMove);
-                                                    handleMoveToFolder(folder._id, idsToMove);
-                                                }
-                                            }}
-                                            sx={{
-                                                p: 2,
-                                                position: 'relative',
-                                                cursor: 'pointer',
-                                                borderRadius: '24px',
-                                                border: dragOverId === folder._id
-                                                    ? `2px solid ${theme.palette.primary.main}`
-                                                    : '1px solid transparent',
-                                                bgcolor: dragOverId === folder._id
-                                                    ? alpha(theme.palette.primary.main, 0.1)
-                                                    : 'transparent',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                aspectRatio: '1/1',
-                                                transition: 'all 0.2s ease-in-out',
-                                                '&:hover': {
-                                                    bgcolor: alpha(theme.palette.background.paper, 0.1),
-                                                    borderColor: alpha(theme.palette.divider, 0.1),
-                                                    transform: 'scale(1.02)',
-                                                    boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.2)}`
-                                                }
-                                            }}
-                                        >
-                                            <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}>
-                                                <FolderIcon sx={{ fontSize: iconScaling.size, color: '#FFB300' }} />
-                                            </Box>
-
-                                            <Typography
-                                                variant={typoScaling.name as any}
-                                                sx={{
-                                                    fontWeight: 700,
-                                                    color: 'text.primary',
-                                                    width: '100%',
-                                                    textAlign: 'center',
-                                                    px: 1,
-                                                    display: '-webkit-box',
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: 'vertical',
-                                                    overflow: 'hidden',
-                                                    lineHeight: 1.2,
-                                                    wordBreak: 'break-word'
-                                                }}
-                                            >
-                                                {folder.name}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>
-                                                Folder
-                                            </Typography>
-                                        </Paper>
-                                    </motion.div>
-                                </Grid>
-                            );
-                        })}
-
-                        {/* File Cards */}
-                        {filteredFiles.map((file) => {
-                            const iconScaling = getIconScaling();
-                            const typoScaling = getTypographyScaling();
-
-                            return (
-                                <Grid size={getGridSize()} key={file._id}>
-                                    <motion.div
-                                        layout
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.9 }}
-                                        transition={{ duration: 0.2 }}
-                                        style={{ height: '100%' }}
-                                    >
-                                        <Paper
-                                            variant="glass"
-                                            elevation={0}
-                                            draggable
-                                            onDragStart={(e) => {
-                                                e.dataTransfer.setData('fileId', file._id);
-                                                // If multiple are selected, we still drag the one we started with, 
-                                                // but the drop handler will check if it's part of the selection.
-                                            }}
-                                            onClick={(e) => handleFileClick(file, e)}
-                                            onContextMenu={(e) => handleContextMenu(e, { type: 'file', id: file._id })}
-                                            sx={{
-                                                p: 2,
-                                                position: 'relative',
-                                                cursor: 'grab',
-                                                '&:active': { cursor: 'grabbing' },
-                                                borderRadius: '24px',
-                                                border: selectedIds.has(file._id)
-                                                    ? `2px solid ${theme.palette.primary.main}`
-                                                    : '1px solid transparent',
-                                                bgcolor: selectedIds.has(file._id)
-                                                    ? alpha(theme.palette.primary.main, 0.1)
-                                                    : 'transparent',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                aspectRatio: '1/1',
-                                                transition: 'all 0.2s ease-in-out',
-                                                '&:hover': {
-                                                    bgcolor: selectedIds.has(file._id)
-                                                        ? alpha(theme.palette.primary.main, 0.15)
-                                                        : alpha(theme.palette.background.paper, 0.1),
-                                                    borderColor: selectedIds.has(file._id) ? theme.palette.primary.main : alpha(theme.palette.divider, 0.1),
-                                                    transform: 'scale(1.02)',
-                                                    boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.2)}`
-                                                }
-                                            }}
-                                        >
-                                            <Box sx={{ position: 'absolute', top: 12, left: 12, opacity: selectedIds.has(file._id) ? 1 : 0, transition: 'opacity 0.2s' }}>
-                                                <Checkbox
-                                                    checked={selectedIds.has(file._id)}
-                                                    size="small"
-                                                    sx={{ p: 0, color: theme.palette.primary.main }}
-                                                />
-                                            </Box>
-
-                                            <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}>
-                                                {(() => {
-                                                    const { icon: FileTypeIcon, color } = getFileIconInfo(file.originalFileName);
-                                                    return <FileTypeIcon sx={{ fontSize: iconScaling.size, color: color }} />;
-                                                })()}
-                                            </Box>
-
-                                            <Typography
-                                                variant={typoScaling.name as any}
-                                                sx={{
-                                                    fontWeight: 700,
-                                                    color: 'text.primary',
-                                                    width: '100%',
-                                                    textAlign: 'center',
-                                                    px: 1,
-                                                    display: '-webkit-box',
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: 'vertical',
-                                                    overflow: 'hidden',
-                                                    lineHeight: 1.2,
-                                                    wordBreak: 'break-word'
-                                                }}
-                                                title={file.originalFileName}
-                                            >
-                                                {file.originalFileName}
-                                            </Typography>
-
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7, mb: 1 }}>
-                                                {formatFileSize(file.fileSize)}
-                                            </Typography>
-
-                                            <Stack
-                                                direction="row"
-                                                spacing={1}
-                                                justifyContent="center"
-                                                onClick={e => e.stopPropagation()}
-                                            >
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() => handleDownload(file)}
-                                                    disabled={downloadingId === file._id}
-                                                    sx={{
-                                                        color: '#29B6F6', // Blue for download
-                                                        p: 0.5,
-                                                        '&:hover': { bgcolor: alpha('#29B6F6', 0.1) }
-                                                    }}
-                                                >
-                                                    {downloadingId === file._id ? <CircularProgress size={20} /> : <DownloadIcon fontSize="small" />}
-                                                </IconButton>
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() => handleDelete(file._id)}
-                                                    disabled={deletingIds.has(file._id)}
-                                                    sx={{
-                                                        color: '#EF5350', // Red for delete
-                                                        p: 0.5,
-                                                        '&:hover': { bgcolor: alpha('#EF5350', 0.1) }
-                                                    }}
-                                                >
-                                                    {deletingIds.has(file._id) ? <CircularProgress size={20} /> : <TrashIcon fontSize="small" />}
-                                                </IconButton>
-                                            </Stack>
-                                        </Paper>
-                                    </motion.div>
-                                </Grid>
-                            );
-                        })}
-                    </AnimatePresence>
+                    {filteredFiles.map((file) => (
+                        <FileGridItem
+                            key={file._id}
+                            file={file}
+                            gridSize={getGridSize()}
+                            iconScaling={getIconScaling()}
+                            typoScaling={getTypographyScaling()}
+                            isSelected={selectedIds.has(file._id)}
+                            isDownloading={downloadingId === file._id}
+                            isDeleting={deletingIds.has(file._id)}
+                            onFileClick={handleFileClick}
+                            onContextMenu={handleContextMenu}
+                            onDownload={handleDownload}
+                            onDelete={handleDelete}
+                            onDragStart={() => { /* handled by draggable attribute */ }}
+                        />
+                    ))}
                 </Grid>
             )}
 
@@ -1003,7 +816,13 @@ export function FilesPage() {
             />
 
             {/* New Folder Dialog */}
-            <Dialog open={newFolderDialog} onClose={() => setNewFolderDialog(false)} maxWidth="xs" fullWidth>
+            <Dialog
+                open={newFolderDialog}
+                onClose={() => setNewFolderDialog(false)}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{ variant: 'translucent' }}
+            >
                 <DialogTitle sx={{ fontWeight: 700 }}>Create New Folder</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -1025,7 +844,13 @@ export function FilesPage() {
             </Dialog>
 
             {/* Rename Folder Dialog */}
-            <Dialog open={renameFolderDialog.open} onClose={() => setRenameFolderDialog({ open: false, folder: null })} maxWidth="xs" fullWidth>
+            <Dialog
+                open={renameFolderDialog.open}
+                onClose={() => setRenameFolderDialog({ open: false, folder: null })}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{ variant: 'translucent' }}
+            >
                 <DialogTitle sx={{ fontWeight: 700 }}>Rename Folder</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -1047,7 +872,13 @@ export function FilesPage() {
             </Dialog>
 
             {/* Move to Folder Dialog */}
-            <Dialog open={moveToFolderDialog} onClose={() => setMoveToFolderDialog(false)} maxWidth="xs" fullWidth>
+            <Dialog
+                open={moveToFolderDialog}
+                onClose={() => setMoveToFolderDialog(false)}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{ variant: 'translucent' }}
+            >
                 <DialogTitle sx={{ fontWeight: 700 }}>Move {selectedIds.size} file(s) to...</DialogTitle>
                 <DialogContent>
                     <Stack spacing={1} sx={{ mt: 1 }}>
@@ -1096,4 +927,247 @@ export function FilesPage() {
         </Stack>
     );
 }
+
+const FolderGridItem = memo(({
+    folder,
+    gridSize,
+    iconScaling,
+    typoScaling,
+    dragOverId,
+    onNavigate,
+    onContextMenu,
+    onDragOver,
+    onDrop
+}: {
+    folder: Folder;
+    gridSize: any;
+    iconScaling: any;
+    typoScaling: any;
+    dragOverId: string | null;
+    onNavigate: (folder: Folder) => void;
+    onContextMenu: (e: React.MouseEvent, target: any) => void;
+    onDragOver: (id: string | null) => void;
+    onDrop: (targetId: string, droppedFileId: string) => void;
+}) => {
+    const theme = useTheme();
+
+    return (
+        <Grid size={gridSize}>
+            <Box style={{ height: '100%' }}>
+                <Paper
+                    variant="translucent"
+                    elevation={0}
+                    onClick={() => onNavigate(folder)}
+                    onContextMenu={(e) => onContextMenu(e, { type: 'folder', id: folder._id })}
+                    onDragOver={(e) => {
+                        e.preventDefault();
+                        onDragOver(folder._id);
+                    }}
+                    onDragLeave={() => onDragOver(null)}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        const droppedFileId = e.dataTransfer.getData('fileId');
+                        if (droppedFileId) {
+                            onDrop(folder._id, droppedFileId);
+                        }
+                    }}
+                    sx={{
+                        p: 2,
+                        position: 'relative',
+                        cursor: 'pointer',
+                        borderRadius: '24px',
+                        border: dragOverId === folder._id
+                            ? `2px solid ${theme.palette.primary.main}`
+                            : '1px solid transparent',
+                        bgcolor: dragOverId === folder._id
+                            ? alpha(theme.palette.primary.main, 0.1)
+                            : 'transparent',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        aspectRatio: '1/1',
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                            bgcolor: alpha(theme.palette.background.paper, 0.1),
+                            borderColor: alpha(theme.palette.divider, 0.1),
+                            transform: 'scale(1.02)',
+                            boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.2)}`
+                        }
+                    }}
+                >
+                    <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}>
+                        <FolderIcon sx={{ fontSize: iconScaling.size, color: '#FFB300' }} />
+                    </Box>
+
+                    <Typography
+                        variant={typoScaling.name as any}
+                        sx={{
+                            fontWeight: 700,
+                            color: 'text.primary',
+                            width: '100%',
+                            textAlign: 'center',
+                            px: 1,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            lineHeight: 1.2,
+                            wordBreak: 'break-word'
+                        }}
+                    >
+                        {folder.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>
+                        Folder
+                    </Typography>
+                </Paper>
+            </Box>
+        </Grid>
+    );
+});
+
+const FileGridItem = memo(({
+    file,
+    gridSize,
+    iconScaling,
+    typoScaling,
+    isSelected,
+    isDownloading,
+    isDeleting,
+    onFileClick,
+    onContextMenu,
+    onDownload,
+    onDelete,
+    onDragStart
+}: {
+    file: FileMetadata;
+    gridSize: any;
+    iconScaling: any;
+    typoScaling: any;
+    isSelected: boolean;
+    isDownloading: boolean;
+    isDeleting: boolean;
+    onFileClick: (file: FileMetadata, e: React.MouseEvent) => void;
+    onContextMenu: (e: React.MouseEvent, target: any) => void;
+    onDownload: (file: FileMetadata) => void;
+    onDelete: (id: string) => void;
+    onDragStart: (id: string) => void;
+}) => {
+    const theme = useTheme();
+    const { icon: FileTypeIcon, color } = getFileIconInfo(file.originalFileName);
+
+    return (
+        <Grid size={gridSize}>
+            <Box style={{ height: '100%' }}>
+                <Paper
+                    variant="translucent"
+                    elevation={0}
+                    draggable
+                    onDragStart={(e) => {
+                        e.dataTransfer.setData('fileId', file._id);
+                        onDragStart(file._id);
+                    }}
+                    onClick={(e) => onFileClick(file, e)}
+                    onContextMenu={(e) => onContextMenu(e, { type: 'file', id: file._id })}
+                    sx={{
+                        p: 2,
+                        position: 'relative',
+                        cursor: 'grab',
+                        '&:active': { cursor: 'grabbing' },
+                        borderRadius: '24px',
+                        border: isSelected
+                            ? `2px solid ${theme.palette.primary.main}`
+                            : '1px solid transparent',
+                        bgcolor: isSelected
+                            ? alpha(theme.palette.primary.main, 0.1)
+                            : 'transparent',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        aspectRatio: '1/1',
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                            bgcolor: isSelected
+                                ? alpha(theme.palette.primary.main, 0.15)
+                                : alpha(theme.palette.background.paper, 0.1),
+                            borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.1),
+                            transform: 'scale(1.02)',
+                            boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.2)}`
+                        }
+                    }}
+                >
+                    <Box sx={{ position: 'absolute', top: 12, left: 12, opacity: isSelected ? 1 : 0, transition: 'opacity 0.2s' }}>
+                        <Checkbox
+                            checked={isSelected}
+                            size="small"
+                            sx={{ p: 0, color: theme.palette.primary.main }}
+                        />
+                    </Box>
+
+                    <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}>
+                        <FileTypeIcon sx={{ fontSize: iconScaling.size, color: color }} />
+                    </Box>
+
+                    <Typography
+                        variant={typoScaling.name as any}
+                        sx={{
+                            fontWeight: 700,
+                            color: 'text.primary',
+                            width: '100%',
+                            textAlign: 'center',
+                            px: 1,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            lineHeight: 1.2,
+                            wordBreak: 'break-word'
+                        }}
+                        title={file.originalFileName}
+                    >
+                        {file.originalFileName}
+                    </Typography>
+
+                    <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7, mb: 1 }}>
+                        {formatFileSize(file.fileSize)}
+                    </Typography>
+
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        justifyContent="center"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <IconButton
+                            size="small"
+                            onClick={() => onDownload(file)}
+                            disabled={isDownloading}
+                            sx={{
+                                color: '#29B6F6',
+                                p: 0.5,
+                                '&:hover': { bgcolor: alpha('#29B6F6', 0.1) }
+                            }}
+                        >
+                            {isDownloading ? <CircularProgress size={20} /> : <DownloadIcon fontSize="small" />}
+                        </IconButton>
+                        <IconButton
+                            size="small"
+                            onClick={() => onDelete(file._id)}
+                            disabled={isDeleting}
+                            sx={{
+                                color: '#EF5350',
+                                p: 0.5,
+                                '&:hover': { bgcolor: alpha('#EF5350', 0.1) }
+                            }}
+                        >
+                            {isDeleting ? <CircularProgress size={20} /> : <TrashIcon fontSize="small" />}
+                        </IconButton>
+                    </Stack>
+                </Paper>
+            </Box>
+        </Grid>
+    );
+});
 

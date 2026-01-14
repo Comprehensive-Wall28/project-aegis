@@ -1,15 +1,13 @@
 import { useState, useCallback } from 'react';
-// @ts-ignore - Module likely exists but types are missing in environment
-import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 import { useSessionStore } from '../stores/sessionStore';
 import { type FileMetadata, API_URL } from '../services/vaultService';
 
-// Constants - must match upload chunk sizes
+// Constants - must match upload chunk sizes (AES-CTR: 16-byte IV overhead)
 const ENCRYPTED_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB encrypted chunks
 
 // User type for standalone function (only the keys we need)
 export interface User {
-    privateKey: string;
+    vaultCtrKey: CryptoKey;
 }
 
 interface VaultDownloadState {
@@ -18,61 +16,19 @@ interface VaultDownloadState {
     error: string | null;
 }
 
-// --- Standalone Utility Functions ---
+/**
+ * Decrypt an AES-CTR encrypted chunk.
+ * Format: IV (16 bytes) + Ciphertext
+ */
+const decryptChunkCtr = async (encryptedChunk: Uint8Array, vaultCtrKey: CryptoKey): Promise<ArrayBuffer> => {
+    // Extract IV (first 16 bytes) and encrypted content
+    const iv = encryptedChunk.slice(0, 16);
+    const encryptedContent = encryptedChunk.slice(16);
 
-// Helper: Convert Hex to Uint8Array
-const hexToBytes = (hex: string): Uint8Array => {
-    const bytes = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2) {
-        bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-    }
-    return bytes;
-};
-
-// Decrypt the AES file key using the shared secret
-const decryptFileKey = async (encryptedSymmetricKey: string, sharedSecret: Uint8Array): Promise<CryptoKey> => {
-    const encryptedKeyBytes = hexToBytes(encryptedSymmetricKey);
-
-    // First 12 bytes are IV, rest is encrypted key + auth tag
-    const iv = encryptedKeyBytes.slice(0, 12);
-    const encryptedKey = encryptedKeyBytes.slice(12);
-
-    // Import sharedSecret as decryption key
-    const unwrappingKey = await window.crypto.subtle.importKey(
-        'raw',
-        sharedSecret.buffer.slice(sharedSecret.byteOffset, sharedSecret.byteOffset + sharedSecret.byteLength) as ArrayBuffer,
-        { name: 'AES-GCM' },
-        false,
-        ['decrypt']
-    );
-
-    // Decrypt the file key
-    const rawFileKey = await window.crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv },
-        unwrappingKey,
-        encryptedKey
-    );
-
-    // Import as AES-GCM key for file decryption
-    return window.crypto.subtle.importKey(
-        'raw',
-        rawFileKey,
-        { name: 'AES-GCM' },
-        false,
-        ['decrypt']
-    );
-};
-
-// Decrypt a single encrypted chunk
-const decryptChunk = async (encryptedChunk: Uint8Array, fileKey: CryptoKey): Promise<ArrayBuffer> => {
-    // Extract IV (first 12 bytes) and encrypted content
-    const iv = encryptedChunk.slice(0, 12);
-    const encryptedContent = encryptedChunk.slice(12);
-
-    // Decrypt chunk
+    // Decrypt chunk using AES-CTR
     return window.crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv },
-        fileKey,
+        { name: 'AES-CTR', counter: iv, length: 64 },
+        vaultCtrKey,
         encryptedContent
     );
 };
@@ -85,28 +41,22 @@ const getCsrfToken = (): string | null => {
 
 /**
  * Standalone function to fetch and decrypt a file from the vault.
- * Does not depend on React state - can be used outside of React components.
+ * Uses AES-CTR Eco-Mode with global vault key for high-performance decryption.
  * 
- * @param file - The file metadata containing encryption keys and file ID
- * @param user - The user object containing the private key for decryption
+ * @param file - The file metadata containing encryption info and file ID
+ * @param user - The user object containing the vault CTR key for decryption
  * @param onProgress - Optional callback for progress updates (0-100)
  * @returns Promise<Blob> - The decrypted file as a Blob
- * @throws Error if user private key is missing, download fails, or decryption fails
+ * @throws Error if vault key is missing, download fails, or decryption fails
  */
 export const fetchAndDecryptFile = async (
     file: FileMetadata,
     user: User,
     onProgress?: (progress: number) => void
 ): Promise<Blob> => {
-    if (!user.privateKey) {
-        throw new Error('User private key not found. Session invalid?');
+    if (!user.vaultCtrKey) {
+        throw new Error('Vault CTR key not found. Please log in again.');
     }
-
-    // 1. Derive shared secret and file key first
-    const privateKeyBytes = hexToBytes(user.privateKey);
-    const encapsulatedKeyBytes = hexToBytes(file.encapsulatedKey);
-    const sharedSecret = ml_kem768.decapsulate(encapsulatedKeyBytes, privateKeyBytes);
-    const fileKey = await decryptFileKey(file.encryptedSymmetricKey, sharedSecret);
 
     // 2. Initiate streaming download using fetch
     const csrfToken = getCsrfToken();
@@ -132,7 +82,7 @@ export const fetchAndDecryptFile = async (
 
     const contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
 
-    // 3. Stream and decrypt chunks
+    // 3. Stream and decrypt chunks using AES-CTR
     const decryptedChunks: ArrayBuffer[] = [];
     let encryptedBuffer = new Uint8Array(0);
     let totalBytesRead = 0;
@@ -143,7 +93,7 @@ export const fetchAndDecryptFile = async (
         if (done) {
             // Process any remaining data as the last chunk
             if (encryptedBuffer.length > 0) {
-                const decryptedChunk = await decryptChunk(encryptedBuffer, fileKey);
+                const decryptedChunk = await decryptChunkCtr(encryptedBuffer, user.vaultCtrKey);
                 decryptedChunks.push(decryptedChunk);
             }
             break;
@@ -161,7 +111,7 @@ export const fetchAndDecryptFile = async (
             const chunk = encryptedBuffer.slice(0, ENCRYPTED_CHUNK_SIZE);
             encryptedBuffer = encryptedBuffer.slice(ENCRYPTED_CHUNK_SIZE);
 
-            const decryptedChunk = await decryptChunk(chunk, fileKey);
+            const decryptedChunk = await decryptChunkCtr(chunk, user.vaultCtrKey);
             decryptedChunks.push(decryptedChunk);
         }
 
@@ -194,11 +144,11 @@ export const useVaultDownload = () => {
         error: null,
     });
 
-    const { user, setCryptoStatus } = useSessionStore();
+    const { vaultCtrKey, setCryptoStatus } = useSessionStore();
 
     const downloadAndDecrypt = useCallback(async (file: FileMetadata): Promise<Blob | null> => {
-        if (!user || !user.privateKey) {
-            setState({ status: 'error', progress: 0, error: 'User private key not found. Session invalid?' });
+        if (!vaultCtrKey) {
+            setState({ status: 'error', progress: 0, error: 'Vault CTR key not found. Please log in again.' });
             return null;
         }
 
@@ -209,7 +159,7 @@ export const useVaultDownload = () => {
             // Use the standalone function with progress callback
             const blob = await fetchAndDecryptFile(
                 file,
-                { privateKey: user.privateKey },
+                { vaultCtrKey },
                 (progress) => {
                     setState(prev => ({
                         ...prev,
@@ -229,7 +179,7 @@ export const useVaultDownload = () => {
         } finally {
             setCryptoStatus('idle');
         }
-    }, [user, setCryptoStatus]);
+    }, [vaultCtrKey, setCryptoStatus]);
 
     const resetState = () => {
         setState({ status: 'idle', progress: 0, error: null });

@@ -1,15 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-// @ts-ignore - Module likely exists but types are missing in environment
-import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 import { useSessionStore } from '../stores/sessionStore';
 import apiClient from '../services/api';
 
 
 // Constants
-// Google Drive resumable uploads require 256KB-aligned chunks
-// Encryption adds 28 bytes (12 IV + 16 tag), so raw chunk = 5MB - 28 = 5242852
-// This makes encrypted chunk exactly 5MB (5242880 bytes), which is 256KB aligned
-const CHUNK_SIZE = 5 * 1024 * 1024 - 28; // ~5MB raw, exactly 5MB after encryption
+// AES-CTR adds only 16-byte IV overhead (no auth tag like GCM)
+// Using 5MB chunks aligned for Google Drive resumable uploads
+const CHUNK_SIZE = 5 * 1024 * 1024 - 16; // ~5MB raw, exactly 5MB after adding 16-byte IV
 const MAX_CONCURRENT_UPLOADS = 3;
 
 // Types
@@ -46,16 +43,7 @@ export const useVaultUpload = () => {
     // Queue processing lock to prevent race conditions
     const processingRef = useRef(false);
 
-    const { user, setCryptoStatus } = useSessionStore();
-
-    // Helper: Convert Hex to Uint8Array
-    const hexToBytes = (hex: string): Uint8Array => {
-        const bytes = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < hex.length; i += 2) {
-            bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-        }
-        return bytes;
-    };
+    const { vaultCtrKey, setCryptoStatus } = useSessionStore();
 
     // Helper: Convert Uint8Array to Hex
     const bytesToHex = (bytes: Uint8Array): string => {
@@ -64,53 +52,27 @@ export const useVaultUpload = () => {
             .join('');
     };
 
-    const generateAESKey = async (): Promise<CryptoKey> => {
-        return window.crypto.subtle.generateKey(
-            {
-                name: 'AES-GCM',
-                length: 256,
-            },
-            true,
-            ['encrypt', 'decrypt']
-        );
-    };
+    /**
+     * Encrypt data using AES-CTR with the global vault key.
+     * Returns IV (16 bytes) + Ciphertext.
+     */
+    const encryptWithCtr = async (
+        data: ArrayBuffer,
+        key: CryptoKey
+    ): Promise<ArrayBuffer> => {
+        const iv = window.crypto.getRandomValues(new Uint8Array(16));
 
-    const encryptFileKey = async (fileKey: CryptoKey, sharedSecret: Uint8Array): Promise<string> => {
-        const wrappingKey = await window.crypto.subtle.importKey(
-            'raw',
-            sharedSecret as any,
-            { name: 'AES-GCM' },
-            false,
-            ['encrypt']
-        );
-
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
-        const rawFileKey = await window.crypto.subtle.exportKey('raw', fileKey);
-
-        const encryptedKeyBuffer = await window.crypto.subtle.encrypt(
-            { name: 'AES-GCM', iv },
-            wrappingKey,
-            rawFileKey
-        );
-
-        // Format: IV (12 bytes) + EncryptedKey
-        const result = new Uint8Array(iv.length + encryptedKeyBuffer.byteLength);
-        result.set(iv);
-        result.set(new Uint8Array(encryptedKeyBuffer), iv.length);
-
-        return bytesToHex(result);
-    };
-
-    const encryptChunk = async (chunk: ArrayBuffer, key: CryptoKey, iv: Uint8Array): Promise<ArrayBuffer> => {
         const encrypted = await window.crypto.subtle.encrypt(
             {
-                name: 'AES-GCM',
-                iv: iv as any,
+                name: 'AES-CTR',
+                counter: iv,
+                length: 64 // Counter block uses lower 64 bits
             },
             key,
-            chunk
+            data
         );
 
+        // Prepend IV to ciphertext
         const result = new Uint8Array(iv.length + encrypted.byteLength);
         result.set(iv);
         result.set(new Uint8Array(encrypted), iv.length);
@@ -131,10 +93,10 @@ export const useVaultUpload = () => {
 
     // Process a single upload item (worker function)
     const processUploadItem = useCallback(async (item: UploadItem) => {
-        if (!user || !user.publicKey) {
+        if (!vaultCtrKey) {
             updateUploadItem(item.id, {
                 status: 'error',
-                error: 'User public key not found. Session invalid?'
+                error: 'Vault CTR key not found. Please log in again.'
             });
             return;
         }
@@ -143,44 +105,34 @@ export const useVaultUpload = () => {
             setCryptoStatus('encrypting');
             updateUploadItem(item.id, { status: 'encrypting', progress: 0 });
 
-            // 1. Generate AES-256 Key
-            const fileKey = await generateAESKey();
-
-            // 2. Encapsulate Key (PQC)
-            const pubKeyBytes = hexToBytes(user.publicKey);
-            const { cipherText: encapsulatedKey, sharedSecret } = ml_kem768.encapsulate(pubKeyBytes);
-
-            // 3. Wrap AES Key
-            const encryptedSymmetricKey = await encryptFileKey(fileKey, sharedSecret);
-
-            // 4. Register Metadata (Upload Init)
-            const nameIv = window.crypto.getRandomValues(new Uint8Array(12));
+            // 1. Encrypt filename using AES-CTR with global key
+            const nameIv = window.crypto.getRandomValues(new Uint8Array(16));
             const nameEnc = await window.crypto.subtle.encrypt(
-                { name: 'AES-GCM', iv: nameIv },
-                fileKey,
+                { name: 'AES-CTR', counter: nameIv, length: 64 },
+                vaultCtrKey,
                 new TextEncoder().encode(item.file.name)
             );
-            const encryptedFileName = bytesToHex(new Uint8Array(nameIv)) + ':' + bytesToHex(new Uint8Array(nameEnc));
+            const encryptedFileName = bytesToHex(nameIv) + ':' + bytesToHex(new Uint8Array(nameEnc));
 
-            // Calculate Encrypted Size for Metadata and Content-Range
+            // 2. Calculate Encrypted Size (16-byte IV overhead per chunk)
             const totalChunks = Math.ceil(item.file.size / CHUNK_SIZE);
-            const overheadPerChunk = 28;
+            const overheadPerChunk = 16; // AES-CTR IV only, no auth tag
             const totalEncryptedSize = item.file.size + (totalChunks * overheadPerChunk);
 
-            // Send Init
+            // 3. Send Init (Eco-Mode markers)
             const initResponse = await apiClient.post('/vault/upload-init', {
                 fileName: encryptedFileName,
                 originalFileName: item.file.name,
                 fileSize: totalEncryptedSize,
-                encryptedSymmetricKey: encryptedSymmetricKey,
-                encapsulatedKey: bytesToHex(encapsulatedKey),
+                encryptedSymmetricKey: 'GLOBAL', // Eco-Mode: uses global key
+                encapsulatedKey: 'AES-CTR-V1', // Eco-Mode version marker
                 mimeType: item.file.type || 'application/octet-stream',
                 folderId: item.folderId
             });
 
             const { fileId } = initResponse.data;
 
-            // 5. Encrypt & Upload Chunks
+            // 4. Encrypt & Upload Chunks using AES-CTR
             updateUploadItem(item.id, { status: 'uploading', progress: 0 });
 
             let uploadedBytes = 0;
@@ -192,9 +144,8 @@ export const useVaultUpload = () => {
                 const chunkBlob = item.file.slice(uploadedBytes, end);
                 const chunkArrayBuffer = await chunkBlob.arrayBuffer();
 
-                // Encrypt Chunk
-                const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                const encryptedChunk = await encryptChunk(chunkArrayBuffer, fileKey, iv);
+                // Encrypt chunk with AES-CTR
+                const encryptedChunk = await encryptWithCtr(chunkArrayBuffer, vaultCtrKey);
 
                 // Calculate Content-Range based on ENCRYPTED data
                 const currentEncryptedChunkSize = encryptedChunk.byteLength;
@@ -233,7 +184,7 @@ export const useVaultUpload = () => {
         } finally {
             setCryptoStatus('idle');
         }
-    }, [user, setCryptoStatus, updateUploadItem]);
+    }, [vaultCtrKey, setCryptoStatus, updateUploadItem]);
 
     // Process the upload queue - uses functional update to get fresh state
     const processQueue = useCallback(() => {

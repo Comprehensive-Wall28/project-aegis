@@ -12,6 +12,7 @@ interface User {
     username: string;
     publicKey?: string; // Hex encoded ML-KEM-768 public key
     privateKey?: string; // Hex encoded ML-KEM-768 private key (stored only in memory, never sent to server)
+    vaultKey?: CryptoKey | null; // AES-GCM vault key for file encryption (in-memory only)
     preferences?: UserPreferences;
     hasPassword?: boolean;
     webauthnCredentials?: Array<{
@@ -32,6 +33,8 @@ interface SessionState {
     cryptoOpsCount: number;
     // Ephemeral session keys - stored only in memory
     sessionKey: string | null;
+    // AES-CTR key for Eco-Mode encryption (memory only)
+    vaultCtrKey: CryptoKey | null;
     // Recent activity for dashboard widget
     recentActivity: AuditLog[];
 
@@ -59,6 +62,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     cryptoStatus: 'idle',
     cryptoOpsCount: 0,
     sessionKey: null,
+    vaultCtrKey: null,
     recentActivity: [],
 
     setUser: (user) => {
@@ -79,10 +83,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         user: null,
         isAuthenticated: false,
         sessionKey: null,
+        vaultCtrKey: null,
         pqcEngineStatus: 'initializing',
         cryptoStatus: 'idle',
         cryptoOpsCount: 0,
         recentActivity: []
+        // Note: vaultKey is on user object, so cleared when user is set to null
     }),
 
     setPqcEngineStatus: (status) => set({ pqcEngineStatus: status }),
@@ -143,17 +149,29 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 const pubHex = bytesToHex(publicKey);
                 const privHex = bytesToHex(secretKey);
 
+                // Derive vault key for high-performance symmetric encryption
+                let vaultKey: CryptoKey | null = null;
+                if (seed) {
+                    const { deriveVaultKey, deriveGlobalCtrKey } = await import('../lib/cryptoUtils');
+                    vaultKey = await deriveVaultKey(seed);
+
+                    // Derive CTR key for Eco-Mode encryption
+                    const ctrKey = await deriveGlobalCtrKey(seed);
+                    set({ vaultCtrKey: ctrKey });
+                }
+
                 const currentState = get();
                 if (currentState.user) {
                     set({
                         user: {
                             ...currentState.user,
                             publicKey: pubHex,
-                            privateKey: privHex
+                            privateKey: privHex,
+                            vaultKey
                         },
                         pqcEngineStatus: 'operational'
                     });
-                    console.log(`Quantum Keys Initialized for Session ${seed ? '(Persistent)' : '(Ephemeral)'}`);
+                    console.log(`Quantum Keys Initialized for Session ${seed ? '(Persistent)' : '(Ephemeral)'}, Vault Key: ${vaultKey ? 'Yes' : 'No'}`);
                 } else {
                     // If no user, we still set it as operational for the engine itself
                     set({ pqcEngineStatus: 'operational' });

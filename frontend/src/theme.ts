@@ -3,6 +3,7 @@ import { createTheme, alpha } from '@mui/material/styles';
 declare module '@mui/material/Paper' {
     interface PaperPropsVariantOverrides {
         glass: true;
+        translucent: true;
     }
 }
 
@@ -182,6 +183,15 @@ export const getTheme = (mode: ThemeMode) => {
                             backdropFilter: 'blur(24px)',
                             WebkitBackdropFilter: 'blur(24px)',
                             border: `1px solid ${alpha(selectedPalette.primary.main || '#ffffff', 0.1)}`,
+                        },
+                    },
+                    {
+                        props: { variant: 'translucent' as any },
+                        style: {
+                            background: alpha(selectedPalette.background.paper, 0.6),
+                            border: `1px solid ${alpha(selectedPalette.divider, 0.1)}`,
+                            backdropFilter: 'none',
+                            WebkitBackdropFilter: 'none',
                         },
                     },
                 ],

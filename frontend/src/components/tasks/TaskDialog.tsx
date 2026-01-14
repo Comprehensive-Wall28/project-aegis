@@ -105,11 +105,9 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
             fullWidth
             maxWidth="sm"
             PaperProps={{
+                variant: 'translucent',
                 sx: {
                     borderRadius: '24px',
-                    bgcolor: alpha(theme.palette.background.paper, 0.9),
-                    backdropFilter: 'blur(16px)',
-                    border: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
                     boxShadow: theme.shadows[20],
                 }
             }}
@@ -160,6 +158,16 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
                                 label="Priority"
                                 onChange={(e) => setPriority(e.target.value as any)}
                                 sx={{ borderRadius: '12px' }}
+                                MenuProps={{
+                                    PaperProps: {
+                                        variant: 'translucent',
+                                        sx: {
+                                            minWidth: 180,
+                                            borderRadius: '12px',
+                                            boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
+                                        }
+                                    }
+                                }}
                             >
                                 {PRIORITY_OPTIONS.map((opt) => (
                                     <MenuItem key={opt.value} value={opt.value}>
