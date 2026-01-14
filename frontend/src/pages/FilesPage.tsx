@@ -58,6 +58,7 @@ import { useVaultUpload } from '@/hooks/useVaultUpload';
 import { useVaultDownload } from '@/hooks/useVaultDownload';
 import { BackendDown } from '@/components/BackendDown';
 import { ContextMenu, useContextMenu, CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/ContextMenu';
+import { ImagePreviewOverlay } from '@/components/vault/ImagePreviewOverlay';
 
 function formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';
@@ -139,6 +140,8 @@ export function FilesPage() {
     const [filesToMove, setFilesToMove] = useState<string[]>([]);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
     const [isExternalDragging, setIsExternalDragging] = useState(false);
+    const [previewOpen, setPreviewOpen] = useState(false);
+    const [previewInitialId, setPreviewInitialId] = useState<string | null>(null);
     const { uploadFile, state: uploadState } = useVaultUpload();
     const { downloadAndDecrypt } = useVaultDownload();
     const { contextMenu, handleContextMenu, closeContextMenu } = useContextMenu();
@@ -254,6 +257,30 @@ export function FilesPage() {
     const filteredFiles = files.filter(f =>
         f.originalFileName.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // Filter for image files only (for the gallery)
+    const imageFiles = filteredFiles.filter(f => f.mimeType?.startsWith('image/'));
+
+    // Check if a file is an image
+    const isImageFile = (file: FileMetadata) => file.mimeType?.startsWith('image/');
+
+    // Handle file card click
+    const handleFileClick = (file: FileMetadata, e: React.MouseEvent) => {
+        // If holding Ctrl/Cmd, always do selection
+        if (e.ctrlKey || e.metaKey) {
+            toggleSelect(file._id);
+            return;
+        }
+
+        // If it's an image, open the preview
+        if (isImageFile(file)) {
+            setPreviewInitialId(file._id);
+            setPreviewOpen(true);
+        } else {
+            // For non-images, toggle selection
+            toggleSelect(file._id);
+        }
+    };
 
     const getGridSize = () => {
         switch (viewPreset) {
@@ -904,7 +931,7 @@ export function FilesPage() {
                                                 // If multiple are selected, we still drag the one we started with, 
                                                 // but the drop handler will check if it's part of the selection.
                                             }}
-                                            onClick={() => toggleSelect(file._id)}
+                                            onClick={(e) => handleFileClick(file, e)}
                                             onContextMenu={(e) => handleContextMenu(e, { type: 'file', id: file._id })}
                                             sx={{
                                                 p: 2,
@@ -1104,6 +1131,14 @@ export function FilesPage() {
                     <Button onClick={() => setMoveToFolderDialog(false)}>Cancel</Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Image Preview Overlay */}
+            <ImagePreviewOverlay
+                isOpen={previewOpen}
+                onClose={() => setPreviewOpen(false)}
+                files={imageFiles}
+                initialFileId={previewInitialId || ''}
+            />
         </Stack>
     );
 }
