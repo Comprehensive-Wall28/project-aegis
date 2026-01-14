@@ -26,7 +26,7 @@ import authService from '@/services/authService';
 import { useSessionStore } from '@/stores/sessionStore';
 import { storeSeed, derivePQCSeed } from '@/lib/cryptoUtils';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '@/services/api';
+import apiClient, { refreshCsrfToken } from '@/services/api';
 
 interface AuthResponse {
     _id: string;
@@ -111,11 +111,14 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                     return;
                 }
 
+                // Set user first so initializeQuantumKeys can attach keys to it
+                setUser({ _id: response._id, email: response.email, username: response.username });
                 if (response.pqcSeed) {
                     storeSeed(response.pqcSeed);
                     initializeQuantumKeys(response.pqcSeed);
                 }
-                setUser({ _id: response._id, email: response.email, username: response.username });
+                // Refresh CSRF token after login to prevent 403 errors
+                await refreshCsrfToken();
                 onClose();
                 navigate('/dashboard');
             }
@@ -155,9 +158,12 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
             const pqcSeed = await derivePQCSeed(password);
 
             if (data._id) {
+                // Set user first so initializeQuantumKeys can attach keys to it
+                setUser({ _id: data._id, email: data.email, username: data.username });
                 storeSeed(pqcSeed);
                 initializeQuantumKeys(pqcSeed);
-                setUser({ _id: data._id, email: data.email, username: data.username });
+                // Refresh CSRF token after 2FA login to prevent 403 errors
+                await refreshCsrfToken();
                 onClose();
                 navigate('/dashboard');
             }
