@@ -33,9 +33,9 @@ export function Dashboard() {
             initial="hidden"
             animate="visible"
             variants={containerVariants}
-            sx={{ maxWidth: 1600, mx: 'auto', p: { xs: 2, md: 3 } }}
+            sx={{ maxWidth: 1600, mx: 'auto', p: { xs: 1.5, sm: 2, md: 3 } }}
         >
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, md: 3 }}>
                 {/* 1. Vault Quick-View: Main Feature (Top Left) - Spans 8 cols */}
                 <Grid size={{ xs: 12, lg: 8 }} sx={{ minHeight: { lg: 400 } }}>
                     <Box component={motion.div} variants={itemVariants} sx={{ height: '100%' }}>

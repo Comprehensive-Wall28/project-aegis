@@ -64,8 +64,8 @@ export function TopHeader() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                pl: { xs: 8, sm: 8, lg: 3 }, // Account for hamburger menu on mobile/tablet
-                pr: { xs: 2, sm: 3 },
+                pl: { xs: 2, sm: 3, lg: 3 }, // Removed extra pl on mobile
+                pr: { xs: 8, sm: 8, lg: 3 }, // Added extra pr for hamburger menu on mobile/tablet
                 bgcolor: 'transparent'
             }}
         >
@@ -189,7 +189,7 @@ export function TopHeader() {
                         open={Boolean(anchorEl)}
                         onClose={handleCloseMenu}
                         PaperProps={{
-                            variant: 'translucent',
+                            variant: 'glass',
                             sx: {
                                 mt: 2,
                                 width: 240,

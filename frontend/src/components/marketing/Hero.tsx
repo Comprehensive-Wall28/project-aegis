@@ -179,8 +179,8 @@ export function Hero() {
                             maxWidth: 1000,
                             borderRadius: { xs: 2, md: 4 },
                             overflow: 'hidden',
-                            bgcolor: alpha(theme.palette.background.paper, 0.1),
-                            backdropFilter: 'blur(20px)',
+                            bgcolor: alpha(theme.palette.background.paper, 0.15), // Increased opacity slightly
+                            backdropFilter: 'blur(12px)', // Reduced from 20px
                             border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                             position: 'relative',
                             p: { xs: 3, md: 5 }

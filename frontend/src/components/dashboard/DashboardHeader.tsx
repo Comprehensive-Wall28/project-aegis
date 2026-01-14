@@ -74,7 +74,7 @@ export function DashboardHeader() {
                             <div className="relative">
                                 <Shield className="h-5 w-5 text-primary" />
                                 {pqcEngineStatus === 'operational' && (
-                                    <div className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[oklch(75%_0.18_210)] animate-ping-glow" />
+                                    <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[oklch(75%_0.18_210)] shadow-[0_0_8px_oklch(75%_0.18_210)]" />
                                 )}
                             </div>
                             <div className="flex flex-col">
@@ -99,8 +99,7 @@ export function DashboardHeader() {
                             </div>
                             {pqcEngineStatus === 'operational' && (
                                 <div className="relative">
-                                    <div className="h-2.5 w-2.5 rounded-full bg-[oklch(75%_0.18_210)]" />
-                                    <div className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-[oklch(75%_0.18_210)] animate-ping-glow" />
+                                    <div className="h-2.5 w-2.5 rounded-full bg-[oklch(75%_0.18_210)] shadow-[0_0_10px_oklch(75%_0.18_210)]" />
                                 </div>
                             )}
                         </div>

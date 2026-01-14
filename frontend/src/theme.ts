@@ -20,7 +20,7 @@ export const getTheme = (mode: ThemeMode) => {
         default: {
             background: {
                 default: '#020617', // Slate 950 (Deep Cosmos)
-                paper: '#0f172a',   // Slate 900
+                paper: '#0a1122',   // Refined middle ground (Adjusted from #0c1425)
             },
             primary: {
                 main: '#0ea5e9',    // Sky 500
@@ -179,19 +179,19 @@ export const getTheme = (mode: ThemeMode) => {
                     {
                         props: { variant: 'glass' as any },
                         style: {
-                            background: alpha(selectedPalette.background.paper, 0.4),
-                            backdropFilter: 'blur(24px)',
-                            WebkitBackdropFilter: 'blur(24px)',
+                            background: alpha(selectedPalette.background.paper, 0.3), // Darker glass effect
+                            backdropFilter: 'blur(12px)',
+                            WebkitBackdropFilter: 'blur(12px)',
                             border: `1px solid ${alpha(selectedPalette.primary.main || '#ffffff', 0.1)}`,
                         },
                     },
                     {
                         props: { variant: 'translucent' as any },
                         style: {
-                            background: alpha(selectedPalette.background.paper, 0.6),
+                            background: alpha(selectedPalette.background.paper, 0.75), // Increased from 0.7
                             border: `1px solid ${alpha(selectedPalette.divider, 0.1)}`,
-                            backdropFilter: 'none',
-                            WebkitBackdropFilter: 'none',
+                            backdropFilter: 'blur(6px)', // Reduced from 10px
+                            WebkitBackdropFilter: 'blur(6px)',
                         },
                     },
                 ],

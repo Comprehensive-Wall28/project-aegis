@@ -105,7 +105,7 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
             fullWidth
             maxWidth="sm"
             PaperProps={{
-                variant: 'translucent',
+                variant: 'glass',
                 sx: {
                     borderRadius: '24px',
                     boxShadow: theme.shadows[20],
@@ -160,7 +160,7 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
                                 sx={{ borderRadius: '12px' }}
                                 MenuProps={{
                                     PaperProps: {
-                                        variant: 'translucent',
+                                        variant: 'glass',
                                         sx: {
                                             minWidth: 180,
                                             borderRadius: '12px',

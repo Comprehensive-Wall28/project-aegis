@@ -18,35 +18,17 @@ export function DashboardLayout() {
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}>
-            {/* Animated Background */}
-            <Box sx={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-                <Box
-                    sx={{
-                        position: 'absolute',
-                        top: '-25%',
-                        left: '-25%',
-                        width: '50%',
-                        height: '50%',
-                        bgcolor: alpha(theme.palette.primary.main, 0.05),
-                        borderRadius: '50%',
-                        filter: 'blur(100px)',
-                        animation: 'mesh 20s infinite alternate'
-                    }}
-                />
-                <Box
-                    sx={{
-                        position: 'absolute',
-                        bottom: '-25%',
-                        right: '-25%',
-                        width: '50%',
-                        height: '50%',
-                        bgcolor: alpha(theme.palette.info.main, 0.05),
-                        borderRadius: '50%',
-                        filter: 'blur(100px)',
-                        animation: 'mesh-delayed 25s infinite alternate'
-                    }}
-                />
-            </Box>
+            {/* Solid Thematic Background */}
+            <Box
+                sx={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 0,
+                    background: `radial-gradient(circle at 50% -20%, ${alpha(theme.palette.primary.main, 0.4)} 0%, ${theme.palette.background.default} 100%)`,
+                    opacity: 0.1, // Deeper, more immersive
+                    pointerEvents: 'none'
+                }}
+            />
 
             {/* Sidebar */}
             <Sidebar
@@ -60,7 +42,7 @@ export function DashboardLayout() {
                 sx={{
                     flexGrow: 1,
                     ml: { lg: isSidebarCollapsed ? '64px' : '224px' },
-                    transition: theme.transitions.create('margin', {
+                    transition: theme.transitions.create(['margin', 'padding'], {
                         easing: theme.transitions.easing.sharp,
                         duration: theme.transitions.duration.shorter,
                     }),
@@ -79,9 +61,9 @@ export function DashboardLayout() {
                 </Box>
 
                 {/* Content Area ('The Stage') */}
-                <Box sx={{ flexGrow: 1, m: { xs: 1, sm: 2 }, mt: { xs: 0, sm: 1 }, overflow: 'hidden' }}>
+                <Box sx={{ flexGrow: 1, m: { xs: 1, sm: 2 }, mt: { xs: 0, sm: 0 }, overflow: 'hidden' }}>
                     <Paper
-                        variant="translucent"
+                        elevation={0}
                         component={motion.div}
                         layout
                         sx={{
@@ -90,13 +72,16 @@ export function DashboardLayout() {
                             flexDirection: 'column',
                             borderRadius: '16px',
                             overflow: 'hidden',
-                            boxShadow: theme.shadows[10]
+                            // Solid stage for professionalism and performance
+                            bgcolor: theme.palette.background.paper,
+                            border: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
+                            boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`
                         }}
                     >
                         <Box
                             sx={{
                                 flexGrow: 1,
-                                p: { xs: 1.5, sm: 3, md: 6 },
+                                p: { xs: 2, sm: 3, md: 6 },
                                 overflowY: 'auto',
                                 '&::-webkit-scrollbar': { width: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: 3 }

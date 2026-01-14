@@ -285,7 +285,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                 overflow: 'hidden',
                                 position: 'relative'
                             }}
-                            variant="translucent"
+                            variant="glass"
                         >
                             {/* Close Button */}
                             <IconButton

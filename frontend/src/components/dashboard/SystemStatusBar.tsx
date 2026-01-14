@@ -107,11 +107,11 @@ export function SystemStatusBar() {
                 sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 3 }, flexWrap: 'wrap', justifyContent: 'center' }}
             >
                 {/* PQC Engine Badge */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
                     <Box sx={{ position: 'relative', display: 'flex' }}>
                         <ShieldIcon
                             sx={{
-                                fontSize: 18,
+                                fontSize: { xs: 16, sm: 18 },
                                 color: isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.primary.main),
                                 animation: 'none',
                                 filter: (isBusy || isFinished) ? `drop-shadow(0 0 4px ${alpha(isFinished ? theme.palette.success.main : '#c084fc', 0.5)})` : 'none',
@@ -124,18 +124,18 @@ export function SystemStatusBar() {
                                     position: 'absolute',
                                     top: -2,
                                     right: -2,
-                                    height: 6,
-                                    width: 6,
+                                    height: 5,
+                                    width: 5,
                                     borderRadius: '50%',
                                     bgcolor: isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.info.main),
                                     boxShadow: `0 0 10px ${isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.info.main)}`,
-                                    animation: isBusy ? 'pulse 0.5s infinite' : 'pulse 2s infinite',
+                                    // animation: isBusy ? 'pulse 0.5s infinite' : 'pulse 4s infinite', // Much slower idle pulse
                                     transition: 'all 0.3s ease'
                                 }}
                             />
                         )}
                     </Box>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '11px' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', fontSize: { xs: '10px', sm: '11px' } }}>
                         PQC Engine
                     </Typography>
                     <Typography
@@ -188,7 +188,7 @@ export function SystemStatusBar() {
                                     width: 6,
                                     borderRadius: '50%',
                                     bgcolor: status.dotColor,
-                                    animation: isBusy ? 'pulse 0.5s infinite' : 'pulse 2s infinite'
+                                    // animation: isBusy ? 'pulse 0.5s infinite' : 'pulse 2s infinite'
                                 }}
                             />
                         </Box>

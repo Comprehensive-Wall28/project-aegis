@@ -43,7 +43,7 @@ export function ContextMenu({ open, anchorPosition, onClose, items }: ContextMen
             anchorReference="anchorPosition"
             anchorPosition={{ top: anchorPosition.y, left: anchorPosition.x }}
             PaperProps={{
-                variant: 'translucent',
+                variant: 'glass',
                 sx: {
                     borderRadius: '24px',
                     boxShadow: theme.shadows[20],

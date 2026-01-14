@@ -82,8 +82,8 @@ export function GPASnapshot() {
                     p: 3,
                     height: '100%',
                     borderRadius: '16px',
-                    bgcolor: alpha(theme.palette.background.paper, 0.4),
-                    backdropFilter: 'blur(12px)',
+                    bgcolor: alpha(theme.palette.background.paper, 0.5),
+                    backdropFilter: 'blur(8px)',
                     border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
                     display: 'flex',
                     alignItems: 'center',
@@ -98,7 +98,7 @@ export function GPASnapshot() {
     return (
         <Paper
             sx={{
-                p: 3,
+                p: { xs: 2, sm: 3 }, // Reduced padding on mobile
                 height: '100%',
                 borderRadius: '16px',
                 bgcolor: alpha(theme.palette.background.paper, 0.4),
@@ -116,11 +116,26 @@ export function GPASnapshot() {
                 }
             }}
         >
-            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' }, // Stack on mobile
+                alignItems: { xs: 'center', sm: 'center' },
+                justifyContent: 'space-between',
+                gap: { xs: 3, sm: 0 } // Add gap when stacked
+            }}>
                 {/* Left Side: Info & Button */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', height: '100%', maxWidth: '50%' }}>
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: { xs: 'center', sm: 'flex-start' }, // Center on mobile
+                    justifyContent: 'center',
+                    height: '100%',
+                    maxWidth: { xs: '100%', sm: '50%' }, // Full width on mobile
+                    textAlign: { xs: 'center', sm: 'left' }
+                }}>
                     <Box sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, color: 'text.secondary', mb: 0.5 }}>
+                        <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', sm: 'flex-start' }, gap: 1, fontWeight: 700, color: 'text.secondary', mb: 0.5 }}>
                             <GraduationCapIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
                             GPA SNAPSHOT
                         </Typography>
@@ -155,7 +170,7 @@ export function GPASnapshot() {
                 </Box>
 
                 {/* Right Side: Gauge */}
-                <Box sx={{ position: 'relative', width: 170, height: 100, display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>
+                <Box sx={{ position: 'relative', width: 170, height: 100, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', mb: { xs: 1, sm: 0 } }}>
                     {isLoading ? (
                         <CircularProgress size={24} thickness={5} />
                     ) : hasError ? (

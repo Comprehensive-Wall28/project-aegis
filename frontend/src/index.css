@@ -227,25 +227,29 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Glassmorphism Refinements */
+/* Glassmorphism Refinements - Optimized for GPU */
 .glass-panel {
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(10px);
+  /* Reduced from 16px */
   background: linear-gradient(135deg,
-      rgba(255, 255, 255, 0.03) 0%,
-      rgba(255, 255, 255, 0.01) 100%);
+      rgba(255, 255, 255, 0.04) 0%,
+      /* Increased opacity slightly */
+      rgba(255, 255, 255, 0.02) 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
 
 .glass-card {
-  backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(8px);
+  /* Reduced from 12px */
+  background: rgba(255, 255, 255, 0.03);
+  /* Increased opacity slightly */
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
 }
@@ -296,6 +300,7 @@ body {
     animation: scroll 40s linear infinite;
     display: flex;
     width: max-content;
+    will-change: transform;
   }
 }
 
@@ -350,16 +355,19 @@ body {
 
 .animate-mesh {
   animation: mesh-float 20s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-mesh-delayed {
   animation: mesh-float 25s ease-in-out infinite;
   animation-delay: -8s;
+  will-change: transform;
 }
 
 .animate-mesh-slow {
   animation: mesh-float 30s ease-in-out infinite;
   animation-delay: -15s;
+  will-change: transform;
 }
 
 

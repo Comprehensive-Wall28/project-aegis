@@ -120,7 +120,7 @@ export function IntegrityMonitor() {
 
     return (
         <Paper
-            variant="translucent"
+            variant="glass"
             sx={{
                 height: '100%',
                 p: 3,

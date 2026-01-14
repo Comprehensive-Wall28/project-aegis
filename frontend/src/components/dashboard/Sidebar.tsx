@@ -248,8 +248,8 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     '& .MuiDrawer-paper': {
                         width: isCollapsed ? 64 : 224,
                         boxSizing: 'border-box',
-                        bgcolor: theme.palette.background.default,
-                        borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        bgcolor: 'transparent', // Transparent to show backdrop
+                        borderRight: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
                         transition: theme.transitions.create('width', {
                             easing: theme.transitions.easing.sharp,
                             duration: theme.transitions.duration.shorter,
@@ -269,7 +269,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     display: { lg: 'none' },
                     position: 'fixed',
                     top: 12,
-                    left: 12,
+                    right: 12, // Moved from left to right
                     zIndex: theme.zIndex.appBar + 1,
                     bgcolor: alpha(theme.palette.background.paper, 0.8),
                     backdropFilter: 'blur(8px)',
@@ -284,6 +284,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             {/* Mobile Sidebar */}
             <Drawer
                 variant="temporary"
+                anchor="right" // Changed anchor to right
                 open={isMobileOpen}
                 onClose={() => setIsMobileOpen(false)}
                 ModalProps={{ keepMounted: true }}

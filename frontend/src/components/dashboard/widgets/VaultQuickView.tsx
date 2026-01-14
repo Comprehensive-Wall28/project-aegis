@@ -34,13 +34,30 @@ export function VaultQuickView() {
             }}
         >
             {/* Header */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+            <Box sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                justifyContent: 'space-between',
+                gap: 2,
+                mb: 3
+            }}>
                 <Box>
-                    <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontWeight: 700 }}>
-                        <FolderOpenIcon color="primary" sx={{ fontSize: 24 }} />
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            fontWeight: 700,
+                            fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        <FolderOpenIcon color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
                         Secure Vault
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mt: 0.5 }}>
                         Drag & drop to encrypt with ML-KEM-1024
                     </Typography>
                 </Box>
@@ -56,6 +73,8 @@ export function VaultQuickView() {
                         borderRadius: '8px',
                         bgcolor: alpha(theme.palette.primary.main, 0.1),
                         color: theme.palette.primary.main,
+                        px: 2,
+                        whiteSpace: 'nowrap',
                         '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.15) }
                     }}
                 >
