@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, useCallback, useMemo, useRef } from 'react';
 import {
     InsertDriveFile as FileIcon,
     FileDownload as DownloadIcon,
@@ -36,7 +36,6 @@ import {
     Grid,
     Checkbox,
     Stack,
-    Collapse,
     TextField,
     InputAdornment,
     MenuItem,
@@ -53,7 +52,6 @@ import vaultService, { type FileMetadata } from '@/services/vaultService';
 import folderService, { type Folder } from '@/services/folderService';
 import { motion, AnimatePresence } from 'framer-motion';
 import UploadZone from '@/components/vault/UploadZone';
-import UploadManager from '@/components/vault/UploadManager';
 import { useVaultUpload } from '@/hooks/useVaultUpload';
 import { useVaultDownload } from '@/hooks/useVaultDownload';
 import { BackendDown } from '@/components/BackendDown';
@@ -131,7 +129,7 @@ export function FilesPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showUpload, setShowUpload] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [viewPreset, setViewPreset] = useState<ViewPreset>('compact');
+    const [viewPreset, setViewPreset] = useState<ViewPreset>('standard');
     const [backendError, setBackendError] = useState(false);
     const [newFolderDialog, setNewFolderDialog] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
@@ -142,17 +140,15 @@ export function FilesPage() {
     const [isExternalDragging, setIsExternalDragging] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewInitialId, setPreviewInitialId] = useState<string | null>(null);
-    const { uploadFiles, activeUploads, globalState: uploadState, clearCompleted } = useVaultUpload();
+    const [displayLimit, setDisplayLimit] = useState(20);
+    const sentinelRef = useRef<HTMLDivElement>(null);
+    const { uploadFiles, globalState: uploadState } = useVaultUpload();
     const { downloadAndDecrypt } = useVaultDownload();
     const { contextMenu, handleContextMenu, closeContextMenu } = useContextMenu();
     const theme = useTheme();
     const isImageFile = (file: FileMetadata) => file.mimeType?.startsWith('image/');
 
-    useEffect(() => {
-        fetchData();
-    }, [currentFolderId]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
             setBackendError(false);
@@ -174,9 +170,9 @@ export function FilesPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [currentFolderId]);
 
-    const handleDownload = async (file: FileMetadata) => {
+    const handleDownload = useCallback(async (file: FileMetadata) => {
         try {
             setDownloadingId(file._id);
             const decryptedBlob = await downloadAndDecrypt(file);
@@ -195,14 +191,14 @@ export function FilesPage() {
         } finally {
             setDownloadingId(null);
         }
-    };
+    }, [downloadAndDecrypt]);
 
-    const handleDelete = async (fileId: string) => {
+    const handleDelete = useCallback(async (fileId: string) => {
         if (!confirm('Are you sure you want to delete this file?')) return;
         try {
             setDeletingIds(prev => new Set(prev).add(fileId));
             await vaultService.deleteFile(fileId);
-            setFiles(files.filter(f => f._id !== fileId));
+            setFiles(files => files.filter(f => f._id !== fileId));
             setSelectedIds(prev => {
                 const next = new Set(prev);
                 next.delete(fileId);
@@ -217,7 +213,7 @@ export function FilesPage() {
                 return next;
             });
         }
-    };
+    }, []);
 
     const handleMassDelete = async () => {
         if (selectedIds.size === 0) return;
@@ -241,34 +237,35 @@ export function FilesPage() {
         setSelectedIds(new Set());
     };
 
-    const toggleSelect = (id: string) => {
+    const toggleSelect = useCallback((id: string) => {
         setSelectedIds(prev => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
             else next.add(id);
             return next;
         });
-    };
+    }, []);
 
-    const selectAll = () => {
-        if (selectedIds.size === files.length) setSelectedIds(new Set());
-        else setSelectedIds(new Set(files.map(f => f._id)));
-    };
+    const selectAll = useCallback(() => {
+        setSelectedIds(prev => {
+            if (prev.size === files.length) return new Set();
+            return new Set(files.map(f => f._id));
+        });
+    }, [files.length]);
 
     // Natural sort helper for proper numeric ordering (1, 2, 10 instead of 1, 10, 2)
-    const naturalSort = (a: FileMetadata, b: FileMetadata) =>
-        a.originalFileName.localeCompare(b.originalFileName, undefined, { numeric: true, sensitivity: 'base' });
+    const naturalSort = useCallback((a: FileMetadata, b: FileMetadata) =>
+        a.originalFileName.localeCompare(b.originalFileName, undefined, { numeric: true, sensitivity: 'base' }), []);
 
-    const filteredFiles = files
+    const filteredFiles = useMemo(() => files
         .filter(f => f.originalFileName.toLowerCase().includes(searchQuery.toLowerCase()))
-        .sort(naturalSort);
+        .sort(naturalSort), [files, searchQuery, naturalSort]);
 
     // Filter for image files only (for the gallery) - already sorted from filteredFiles
-    const imageFiles = filteredFiles.filter(f => f.mimeType?.startsWith('image/'));
-
+    const imageFiles = useMemo(() => filteredFiles.filter(f => f.mimeType?.startsWith('image/')), [filteredFiles]);
 
     // Handle file card click
-    const handleFileClick = (file: FileMetadata, e: React.MouseEvent) => {
+    const handleFileClick = useCallback((file: FileMetadata, e: React.MouseEvent) => {
         // If holding Ctrl/Cmd, always do selection
         if (e.ctrlKey || e.metaKey) {
             toggleSelect(file._id);
@@ -283,34 +280,66 @@ export function FilesPage() {
             // For non-images, toggle selection
             toggleSelect(file._id);
         }
-    };
+    }, [toggleSelect, isImageFile]);
 
-    const getGridSize = () => {
+    const gridSize = useMemo(() => {
         switch (viewPreset) {
             case 'compact': return { xs: 6, sm: 4, md: 3, lg: 2 };
             case 'comfort': return { xs: 12, sm: 6, md: 4, lg: 3 };
             case 'detailed': return { xs: 12, sm: 12, md: 6, lg: 4 };
             default: return { xs: 6, sm: 4, md: 3, lg: 2.4 }; // Standard (5 items per row on large)
         }
-    };
+    }, [viewPreset]);
 
-    const getIconScaling = () => {
+    const iconScaling = useMemo(() => {
         switch (viewPreset) {
             case 'compact': return { size: 48, padding: 1.5, badge: 14 };
             case 'comfort': return { size: 80, padding: 2.5, badge: 20 };
             case 'detailed': return { size: 64, padding: 3.5, badge: 24 };
             default: return { size: 64, padding: 2, badge: 18 }; // Standard
         }
-    };
+    }, [viewPreset]);
 
-    const getTypographyScaling = () => {
+    const typoScaling = useMemo(() => {
         switch (viewPreset) {
             case 'compact': return { name: 'caption', size: 11, mb: 0.5 };
             case 'comfort': return { name: 'body1', size: 24, mb: 1 };
             case 'detailed': return { name: 'h6', size: 30, mb: 1.5 };
             default: return { name: 'body2', size: 16, mb: 1 }; // Standard
         }
-    };
+    }, [viewPreset]);
+
+    useEffect(() => {
+        fetchData();
+        setDisplayLimit(40); // Reset limit when folder changes
+    }, [currentFolderId, fetchData]);
+
+    // Lazy load observer
+    useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                setDisplayLimit(prev => prev + 20);
+            }
+        }, { threshold: 0.1 });
+
+        const currentSentinel = sentinelRef.current;
+        if (currentSentinel) {
+            observer.observe(currentSentinel);
+        }
+
+        return () => {
+            if (currentSentinel) {
+                observer.unobserve(currentSentinel);
+            }
+        };
+    }, [filteredFiles.length]);
+
+    // Refresh file list when an upload completes
+    useEffect(() => {
+        if (uploadState.status === 'completed') {
+            fetchData();
+        }
+    }, [uploadState.status, fetchData]);
 
     // Folder handlers
     const handleCreateFolder = async () => {
@@ -347,7 +376,7 @@ export function FilesPage() {
         }
     };
 
-    const navigateToFolder = (folder: Folder | null) => {
+    const navigateToFolder = useCallback((folder: Folder | null) => {
         if (folder) {
             setFolderPath(prev => [...prev, folder]);
             setCurrentFolderId(folder._id);
@@ -356,7 +385,7 @@ export function FilesPage() {
             setCurrentFolderId(null);
         }
         setSelectedIds(new Set());
-    };
+    }, []);
 
     const handleMoveToFolder = async (targetFolderId: string | null, idsToOverride?: string[]) => {
         const ids = idsToOverride || filesToMove;
@@ -466,15 +495,13 @@ export function FilesPage() {
                             setIsExternalDragging(false);
                             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                                 uploadFiles(Array.from(e.dataTransfer.files), currentFolderId);
-                                fetchData();
                             }
                         }}
                         sx={{
                             position: 'fixed',
                             inset: 0,
                             zIndex: 9999,
-                            bgcolor: alpha(theme.palette.primary.main, 0.15),
-                            backdropFilter: 'blur(8px)',
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -637,18 +664,45 @@ export function FilesPage() {
                 )}
             </Box>
 
-            {/* Upload Section */}
-            <Collapse in={showUpload}>
-                <Paper variant="translucent" sx={{ p: 4, borderRadius: '16px' }}>
+            {/* Upload Modal Overlay */}
+            <Dialog
+                open={showUpload}
+                onClose={() => setShowUpload(false)}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: '24px',
+                        bgcolor: alpha(theme.palette.background.paper, 0.98), // Solid-ish for performance
+                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        backgroundImage: 'none',
+                        overflow: 'hidden'
+                    }
+                }}
+            >
+                <DialogTitle sx={{ fontWeight: 800, textAlign: 'center', pt: 4 }}>
+                    Secure File Upload
+                </DialogTitle>
+                <DialogContent sx={{ px: 4, pb: 4 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3, textAlign: 'center', fontWeight: 500 }}>
+                        Files are encrypted locally using AES-CTR before being uploaded.
+                    </Typography>
                     <UploadZone
                         folderId={currentFolderId}
                         onUploadComplete={() => {
-                            fetchData();
-                            setShowUpload(false);
+                            // Keep modal open to show progress in the UploadManager or status in zone
                         }}
                     />
-                </Paper>
-            </Collapse>
+                </DialogContent>
+                <DialogActions sx={{ p: 3, bgcolor: alpha(theme.palette.background.default, 0.4) }}>
+                    <Button
+                        onClick={() => setShowUpload(false)}
+                        sx={{ fontWeight: 700, px: 4, borderRadius: '12px' }}
+                    >
+                        Done
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             {/* Breadcrumbs */}
             {folderPath.length > 0 && (
@@ -731,12 +785,7 @@ export function FilesPage() {
                 </Breadcrumbs>
             )}
 
-            {/* Upload Manager Widget (floating) */}
-            <UploadManager
-                uploads={activeUploads}
-                globalProgress={uploadState.progress}
-                onClearCompleted={clearCompleted}
-            />
+
 
             {/* Files Grid */}
             {isLoading ? (
@@ -774,9 +823,9 @@ export function FilesPage() {
                         <FolderGridItem
                             key={`folder-${folder._id}`}
                             folder={folder}
-                            gridSize={getGridSize()}
-                            iconScaling={getIconScaling()}
-                            typoScaling={getTypographyScaling()}
+                            gridSize={gridSize}
+                            iconScaling={iconScaling}
+                            typoScaling={typoScaling}
                             dragOverId={dragOverId}
                             onNavigate={navigateToFolder}
                             onContextMenu={handleContextMenu}
@@ -791,13 +840,13 @@ export function FilesPage() {
                         />
                     ))}
 
-                    {filteredFiles.map((file) => (
+                    {filteredFiles.slice(0, displayLimit).map((file) => (
                         <FileGridItem
                             key={file._id}
                             file={file}
-                            gridSize={getGridSize()}
-                            iconScaling={getIconScaling()}
-                            typoScaling={getTypographyScaling()}
+                            gridSize={gridSize}
+                            iconScaling={iconScaling}
+                            typoScaling={typoScaling}
                             isSelected={selectedIds.has(file._id)}
                             isDownloading={downloadingId === file._id}
                             isDeleting={deletingIds.has(file._id)}
@@ -809,6 +858,13 @@ export function FilesPage() {
                         />
                     ))}
                 </Grid>
+            )}
+
+            {/* Load More Sentinel */}
+            {filteredFiles.length > displayLimit && (
+                <Box ref={sentinelRef} sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+                    <CircularProgress size={24} />
+                </Box>
             )}
 
             {/* Context Menu */}
@@ -960,7 +1016,6 @@ const FolderGridItem = memo(({
         <Grid size={gridSize}>
             <Box style={{ height: '100%' }}>
                 <Paper
-                    variant="translucent"
                     elevation={0}
                     onClick={() => onNavigate(folder)}
                     onContextMenu={(e) => onContextMenu(e, { type: 'folder', id: folder._id })}
@@ -983,21 +1038,21 @@ const FolderGridItem = memo(({
                         borderRadius: '24px',
                         border: dragOverId === folder._id
                             ? `2px solid ${theme.palette.primary.main}`
-                            : '1px solid transparent',
+                            : `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                         bgcolor: dragOverId === folder._id
                             ? alpha(theme.palette.primary.main, 0.1)
-                            : alpha('#000', 0.2),
+                            : alpha(theme.palette.background.paper, 0.4),
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
                         aspectRatio: '1/1',
-                        transition: 'all 0.2s ease-in-out',
+                        transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s, box-shadow 0.2s',
                         '&:hover': {
-                            bgcolor: alpha(theme.palette.background.paper, 0.1),
-                            borderColor: alpha(theme.palette.divider, 0.1),
-                            transform: 'scale(1.02)',
-                            boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.2)}`
+                            bgcolor: alpha(theme.palette.background.paper, 0.6),
+                            borderColor: alpha(theme.palette.divider, 0.3),
+                            transform: 'translateY(-4px)',
+                            boxShadow: `0 12px 24px -8px ${alpha(theme.palette.common.black, 0.5)}`
                         }
                     }}
                 >
@@ -1066,7 +1121,6 @@ const FileGridItem = memo(({
         <Grid size={gridSize}>
             <Box style={{ height: '100%' }}>
                 <Paper
-                    variant="translucent"
                     elevation={0}
                     draggable
                     onDragStart={(e) => {
@@ -1083,23 +1137,23 @@ const FileGridItem = memo(({
                         borderRadius: '24px',
                         border: isSelected
                             ? `2px solid ${theme.palette.primary.main}`
-                            : '1px solid transparent',
+                            : `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                         bgcolor: isSelected
                             ? alpha(theme.palette.primary.main, 0.1)
-                            : alpha('#000', 0.2),
+                            : alpha(theme.palette.background.paper, 0.4),
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
                         aspectRatio: '1/1',
-                        transition: 'all 0.2s ease-in-out',
+                        transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s, box-shadow 0.2s',
                         '&:hover': {
                             bgcolor: isSelected
                                 ? alpha(theme.palette.primary.main, 0.15)
-                                : alpha(theme.palette.background.paper, 0.1),
-                            borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.1),
-                            transform: 'scale(1.02)',
-                            boxShadow: `0 8px 32px 0 ${alpha(theme.palette.common.black, 0.2)}`
+                                : alpha(theme.palette.background.paper, 0.6),
+                            borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.3),
+                            transform: 'translateY(-4px)',
+                            boxShadow: `0 12px 24px -8px ${alpha(theme.palette.common.black, 0.5)}`
                         }
                     }}
                 >

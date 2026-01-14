@@ -6,10 +6,13 @@ import { SystemStatusBar } from './SystemStatusBar';
 import { motion } from 'framer-motion';
 import { Box, alpha, useTheme, Paper } from '@mui/material';
 import { refreshCsrfToken } from '@/services/api';
+import UploadManager from '@/components/vault/UploadManager';
+import { useVaultUpload } from '@/hooks/useVaultUpload';
 
 export function DashboardLayout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const theme = useTheme();
+    const { activeUploads, globalState, clearCompleted } = useVaultUpload();
 
     // Fetch CSRF token when dashboard loads
     useEffect(() => {
@@ -65,7 +68,9 @@ export function DashboardLayout() {
                     <Paper
                         elevation={0}
                         component={motion.div}
-                        layout
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
                         sx={{
                             height: '100%',
                             display: 'flex',
@@ -94,6 +99,13 @@ export function DashboardLayout() {
                     </Paper>
                 </Box>
             </Box>
+
+            {/* Persistent Upload Manager */}
+            <UploadManager
+                uploads={activeUploads}
+                globalProgress={globalState.progress}
+                onClearCompleted={clearCompleted}
+            />
 
             <style>{`
                 @keyframes mesh {

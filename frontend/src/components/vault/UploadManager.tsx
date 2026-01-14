@@ -25,7 +25,7 @@ import {
     FolderZip as ArchiveIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { type UploadItem } from '../../hooks/useVaultUpload';
+import { type UploadItem } from '../../stores/useUploadStore';
 
 interface UploadManagerProps {
     uploads: UploadItem[];
@@ -72,10 +72,6 @@ const UploadManager: React.FC<UploadManagerProps> = ({
     ).length;
     const totalCount = uploads.length;
 
-    // Don't show if no uploads or if dismissed
-    if (totalCount === 0 || isDismissed) return null;
-
-    // Reset dismissed state when new uploads come in
     const hasActiveUploads = activeCount > 0;
 
     // Auto-show when new uploads start
@@ -84,6 +80,9 @@ const UploadManager: React.FC<UploadManagerProps> = ({
             setIsDismissed(false);
         }
     }, [hasActiveUploads, isDismissed]);
+
+    // Don't show if no uploads or if dismissed
+    if (totalCount === 0 || isDismissed) return null;
 
     // Build header text
     const getHeaderText = () => {
