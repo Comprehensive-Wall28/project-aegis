@@ -294,6 +294,16 @@ export const postLink = async (req: AuthRequest, res: Response, next: NextFuncti
             return res.status(404).json({ message: 'Collection not found' });
         }
 
+        // Check for duplicate link in this collection
+        const existingLink = await LinkPost.findOne({
+            collectionId: targetCollectionId,
+            url: url
+        });
+
+        if (existingLink) {
+            return res.status(400).json({ message: 'Link already exists in this collection' });
+        }
+
         // Fetch OpenGraph data
         let previewData = {};
         try {
