@@ -113,18 +113,18 @@ export function CourseForm({ onSubmit, isLoading = false }: CourseFormProps) {
             animate={{ opacity: 1, y: 0 }}
             sx={{
                 p: 3,
-                borderRadius: '16px',
+                borderRadius: '24px',
                 bgcolor: alpha(theme.palette.background.paper, 0.4),
                 backdropFilter: 'blur(12px)',
                 border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
             }}
         >
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-                Add Course
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 800, letterSpacing: '-0.01em' }}>
+                Add New Course
             </Typography>
 
             <Box component="form" onSubmit={handleSubmit}>
-                <Grid container spacing={2}>
+                <Grid container spacing={2.5}>
                     <Grid size={{ xs: 12 }}>
                         <TextField
                             fullWidth
@@ -133,8 +133,11 @@ export function CourseForm({ onSubmit, isLoading = false }: CourseFormProps) {
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             error={!!errors.name}
                             helperText={errors.name}
-                            placeholder="e.g., Calculus I"
+                            placeholder="e.g., Quantum Cryptography"
                             size="small"
+                            sx={{
+                                '& .MuiOutlinedInput-root': { borderRadius: '12px' }
+                            }}
                         />
                     </Grid>
 
@@ -148,6 +151,9 @@ export function CourseForm({ onSubmit, isLoading = false }: CourseFormProps) {
                             helperText={errors.grade}
                             placeholder={gpaSystem === 'GERMAN' ? '1.0 - 5.0' : '0 - 4.0'}
                             size="small"
+                            sx={{
+                                '& .MuiOutlinedInput-root': { borderRadius: '12px' }
+                            }}
                         />
                     </Grid>
 
@@ -161,6 +167,9 @@ export function CourseForm({ onSubmit, isLoading = false }: CourseFormProps) {
                             helperText={errors.credits}
                             placeholder="e.g., 3"
                             size="small"
+                            sx={{
+                                '& .MuiOutlinedInput-root': { borderRadius: '12px' }
+                            }}
                         />
                     </Grid>
 
@@ -171,6 +180,7 @@ export function CourseForm({ onSubmit, isLoading = false }: CourseFormProps) {
                                 value={formData.semester}
                                 onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
                                 label="Semester"
+                                sx={{ borderRadius: '12px' }}
                             >
                                 {SEMESTER_OPTIONS.map((sem) => (
                                     <MenuItem key={sem} value={sem}>
@@ -182,20 +192,22 @@ export function CourseForm({ onSubmit, isLoading = false }: CourseFormProps) {
                     </Grid>
                 </Grid>
 
-                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
                     <Button
                         type="submit"
                         variant="contained"
                         disabled={isLoading}
                         startIcon={<AddIcon />}
                         sx={{
-                            borderRadius: '12px',
+                            borderRadius: '14px',
                             textTransform: 'none',
                             fontWeight: 700,
-                            px: 3,
+                            px: 4,
+                            py: 1,
+                            boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.25)}`,
                         }}
                     >
-                        {isLoading ? 'Adding...' : 'Add Course'}
+                        {isLoading ? 'Adding...' : 'Securely Add Record'}
                     </Button>
                 </Box>
             </Box>

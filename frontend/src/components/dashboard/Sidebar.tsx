@@ -12,8 +12,7 @@ import {
     FolderOpen as FolderOpenIcon,
     CalendarMonth as CalendarIcon,
     CheckCircle as TasksIcon,
-    Group as SocialIcon,
-    FolderShared as SharedIcon
+    Share as ShareIcon,
 } from '@mui/icons-material';
 import {
     Box,
@@ -37,12 +36,11 @@ import { clearStoredSeed } from '@/lib/cryptoUtils';
 
 const navItems = [
     { name: 'Vault', href: '/dashboard', icon: VaultIcon },
+    { name: 'Social', icon: ShareIcon, href: '/dashboard/social' },
     { name: 'Files', href: '/dashboard/files', icon: FolderOpenIcon },
     { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
     { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
     { name: 'Tasks', href: '/dashboard/tasks', icon: TasksIcon },
-    { name: 'Social', icon: SocialIcon, href: '/dashboard/social' },
-    { name: 'Shared', href: '/dashboard/files?view=shared', icon: SharedIcon },
     { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
     { name: 'Security', href: '/dashboard/security', icon: SettingsIcon },
 ];

@@ -12,8 +12,6 @@ export function CumulativeGPAChart({ data }: CumulativeGPAChartProps) {
     const theme = useTheme();
     const gpaSystem = usePreferenceStore((state) => state.gpaSystem);
 
-    const maxGPA = gpaSystem === 'GERMAN' ? 4.0 : 4.0;
-
     if (data.length === 0) {
         return (
             <Paper
@@ -43,21 +41,57 @@ export function CumulativeGPAChart({ data }: CumulativeGPAChartProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             sx={{
-                p: 3,
+                p: { xs: 2, sm: 3 },
                 height: '100%',
-                minHeight: 350,
-                borderRadius: '16px',
+                minHeight: 380,
+                borderRadius: '24px',
                 bgcolor: alpha(theme.palette.background.paper, 0.4),
-                backdropFilter: 'blur(12px)',
-                border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                backdropFilter: 'blur(16px)',
+                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                position: 'relative',
+                overflow: 'hidden',
+                '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: '100px',
+                    height: '100px',
+                    background: `radial-gradient(circle at 100% 0%, ${alpha(theme.palette.primary.main, 0.15)} 0%, transparent 70%)`,
+                    pointerEvents: 'none'
+                }
             }}
         >
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-                Cumulative GPA Progression
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em', color: 'text.primary' }}>
+                        Cumulative GPA Progression
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                        Performance trend across semesters
+                    </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: theme.palette.primary.main }} />
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>Cumulative</Typography>
+                    </Box>
+                </Box>
+            </Box>
 
             <Box sx={{ width: '100%', height: 280 }}>
                 <LineChart
+                    slotProps={{
+                        tooltip: {
+                            sx: {
+                                '& .MuiChartsTooltip-root': {
+                                    borderRadius: '12px',
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                    boxShadow: `0 8px 16px ${alpha('#000', 0.4)}`,
+                                }
+                            }
+                        }
+                    }}
                     dataset={data.map((d, index) => ({
                         index,
                         semester: d.semester,
@@ -65,49 +99,81 @@ export function CumulativeGPAChart({ data }: CumulativeGPAChartProps) {
                     }))}
                     xAxis={[
                         {
-                            scaleType: 'band',
+                            scaleType: 'point',
                             dataKey: 'semester',
+                            disableLine: true,
+                            disableTicks: true,
                             tickLabelStyle: {
-                                fontSize: 11,
+                                fontSize: 10,
+                                fontWeight: 600,
                                 fill: theme.palette.text.secondary,
+                                fontFamily: 'Inter, sans-serif'
                             },
                         },
                     ]}
                     yAxis={[
                         {
-                            min: 0,
-                            max: maxGPA,
+                            min: gpaSystem === 'GERMAN' ? 1.0 : 0,
+                            max: gpaSystem === 'GERMAN' ? 4.0 : 4.0,
+                            reverse: gpaSystem === 'GERMAN',
+                            disableLine: true,
+                            disableTicks: true,
                             tickLabelStyle: {
-                                fontSize: 11,
+                                fontSize: 10,
+                                fontWeight: 600,
                                 fill: theme.palette.text.secondary,
                             },
                         },
                     ]}
+                    grid={{ horizontal: true }}
                     series={[
                         {
                             dataKey: 'gpa',
                             label: 'Cumulative GPA',
-                            color: '#9c27b0',
-                            curve: 'linear',
+                            color: theme.palette.primary.main,
+                            curve: 'monotoneX',
                             showMark: true,
                             valueFormatter: (value) => value?.toFixed(2) || '0.00',
                             area: true,
                         },
                     ]}
                     hideLegend
-                    margin={{ top: 20, right: 20, bottom: 40, left: 40 }}
+                    margin={{ top: 10, right: 30, bottom: 40, left: 40 }}
                     sx={{
-                        '& .MuiChartsAxis-line': {
-                            stroke: alpha(theme.palette.common.white, 0.2),
+                        '& .MuiChartsGrid-line': {
+                            stroke: alpha(theme.palette.divider, 0.05),
+                            strokeDasharray: '4 4',
                         },
-                        '& .MuiChartsAxis-tick': {
-                            stroke: alpha(theme.palette.common.white, 0.2),
+                        '& .MuiLineElement-root': {
+                            strokeWidth: 4,
+                            strokeLinecap: 'round',
+                            filter: `drop-shadow(0 0 12px ${alpha(theme.palette.primary.main, 0.5)})`,
                         },
                         '& .MuiAreaElement-root': {
-                            fill: alpha('#9c27b0', 0.1),
+                            fill: `url(#gpa-gradient)`,
+                            fillOpacity: 0.15,
+                            maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)',
+                            WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)',
+                        },
+                        '& .MuiMarkElement-root': {
+                            stroke: theme.palette.background.paper,
+                            strokeWidth: 2,
+                            scale: '1.2',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                                scale: '1.5',
+                            }
                         },
                     }}
-                />
+                >
+                    <defs>
+                        <linearGradient id="gpa-gradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={theme.palette.primary.main} stopOpacity={0.6} />
+                            <stop offset="80%" stopColor={theme.palette.primary.main} stopOpacity={0.05} />
+                            <stop offset="100%" stopColor={theme.palette.primary.main} stopOpacity={0} />
+                        </linearGradient>
+                    </defs>
+                </LineChart>
             </Box>
         </Paper>
     );

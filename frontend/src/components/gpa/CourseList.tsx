@@ -86,10 +86,10 @@ export function CourseList({ courses, onDelete, onEdit, isLoading = false }: Cou
                 sx={{
                     p: 4,
                     textAlign: 'center',
-                    borderRadius: '16px',
+                    borderRadius: '24px',
                     bgcolor: alpha(theme.palette.background.paper, 0.4),
                     backdropFilter: 'blur(12px)',
-                    border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                 }}
             >
                 <SchoolIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
@@ -114,10 +114,10 @@ export function CourseList({ courses, onDelete, onEdit, isLoading = false }: Cou
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         sx={{
-                            borderRadius: '16px',
+                            borderRadius: '24px',
                             bgcolor: alpha(theme.palette.background.paper, 0.4),
                             backdropFilter: 'blur(12px)',
-                            border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                             overflow: 'hidden',
                         }}
                     >
@@ -145,6 +145,8 @@ export function CourseList({ courses, onDelete, onEdit, isLoading = false }: Cou
                                     sx={{
                                         bgcolor: alpha(theme.palette.primary.main, 0.1),
                                         color: theme.palette.primary.main,
+                                        borderRadius: '8px',
+                                        fontWeight: 600
                                     }}
                                 />
                             </Box>

@@ -216,10 +216,10 @@ export const getTheme = (mode: ThemeMode) => {
                     {
                         props: { variant: 'glass' as any },
                         style: {
-                            background: alpha(selectedPalette.background.paper, 0.3),
-                            backdropFilter: 'blur(12px)',
-                            WebkitBackdropFilter: 'blur(12px)',
-                            border: `1px solid ${alpha(selectedPalette.primary.main, 0.1)}`,
+                            background: alpha(selectedPalette.background.paper, 0.5),
+                            backdropFilter: 'blur(16px)',
+                            WebkitBackdropFilter: 'blur(16px)',
+                            border: `1px solid ${selectedPalette.divider}`,
                         },
                     },
                     {

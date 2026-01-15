@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon } from '@mui/icons-material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LinkPost } from '@/services/socialService';
 
@@ -49,15 +49,15 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                     variant="glass"
                     sx={{
                         overflow: 'hidden',
-                        borderRadius: '16px',
+                        borderRadius: '24px',
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
                         transition: 'all 0.2s ease',
                         border: '1px solid transparent',
                         '&:hover': {
-                            borderColor: alpha(theme.palette.primary.main, 0.4),
-                            bgcolor: alpha(theme.palette.primary.main, 0.05),
+                            borderColor: alpha(theme.palette.primary.main, 0.2),
+                            bgcolor: alpha(theme.palette.primary.main, 0.03),
                         },
                     }}
                     onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
@@ -78,7 +78,7 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                         }}
                     >
                         {!previewData.image && (
-                            <Typography variant="h4" sx={{ opacity: 0.3 }}>🔗</Typography>
+                            <LinkIcon sx={{ fontSize: 40, opacity: 0.2, color: 'primary.main' }} />
                         )}
                     </Box>
 
@@ -215,7 +215,7 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                                         }}
                                     />
                                 ) : (
-                                    <Typography variant="h1">🔗</Typography>
+                                    <LinkIcon sx={{ fontSize: 80, opacity: 0.2, color: 'primary.main' }} />
                                 )}
 
                                 {/* Close Button */}
@@ -248,7 +248,7 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                                     <Button
                                         variant="contained"
                                         size="large"
-                                        startIcon={<Typography component="span">🔗</Typography>}
+                                        startIcon={<LinkIcon />}
                                         onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
                                     >
                                         Visit Website

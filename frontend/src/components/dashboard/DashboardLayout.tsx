@@ -101,9 +101,9 @@ export function DashboardLayout() {
                     <Paper
                         elevation={0}
                         component={motion.div}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
                         sx={{
                             height: '100%',
                             display: 'flex',
@@ -113,7 +113,8 @@ export function DashboardLayout() {
                             // Solid stage for professionalism and performance
                             bgcolor: theme.palette.background.paper,
                             border: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
-                            boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`
+                            boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`,
+                            willChange: 'opacity'
                         }}
                     >
                         <Box

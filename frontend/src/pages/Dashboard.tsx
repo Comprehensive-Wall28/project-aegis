@@ -10,19 +10,21 @@ export function Dashboard() {
         visible: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.1
+                staggerChildren: 0.1,
+                delayChildren: 0.1
             }
         }
     };
 
     const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
+        hidden: { opacity: 0, scale: 0.98, y: 5 },
         visible: {
             opacity: 1,
+            scale: 1,
             y: 0,
             transition: {
-                duration: 0.5,
-                ease: [0.22, 1, 0.36, 1] as [number, number, number, number] // Custom easeOutQuint for smoother feeling
+                duration: 0.4,
+                ease: [0.22, 1, 0.36, 1] as [number, number, number, number]
             }
         }
     };
@@ -33,12 +35,21 @@ export function Dashboard() {
             initial="hidden"
             animate="visible"
             variants={containerVariants}
-            sx={{ maxWidth: 1600, mx: 'auto', p: { xs: 1.5, sm: 2, md: 3 } }}
+            sx={{
+                maxWidth: 1600,
+                mx: 'auto',
+                p: { xs: 1.5, sm: 2, md: 3 },
+                willChange: 'opacity'
+            }}
         >
             <Grid container spacing={{ xs: 2, md: 3 }}>
                 {/* 1. Vault Quick-View: Main Feature (Top Left) - Spans 8 cols */}
                 <Grid size={{ xs: 12, lg: 8 }} sx={{ minHeight: { lg: 400 } }}>
-                    <Box component={motion.div} variants={itemVariants} sx={{ height: '100%' }}>
+                    <Box
+                        component={motion.div}
+                        variants={itemVariants}
+                        sx={{ height: '100%', willChange: 'transform, opacity' }}
+                    >
                         <VaultQuickView />
                     </Box>
                 </Grid>
@@ -48,20 +59,27 @@ export function Dashboard() {
                     <Grid container spacing={3} direction="column" sx={{ height: '100%' }}>
                         {/* GPA Snapshot */}
                         <Grid size={12} sx={{ flex: 1 }}>
-                            <Box component={motion.div} variants={itemVariants} sx={{ height: '100%' }}>
+                            <Box
+                                component={motion.div}
+                                variants={itemVariants}
+                                sx={{ height: '100%', willChange: 'transform, opacity' }}
+                            >
                                 <GPASnapshot />
                             </Box>
                         </Grid>
 
                         {/* Live Activity Widget */}
                         <Grid size={12} sx={{ flex: 1 }}>
-                            <Box component={motion.div} variants={itemVariants} sx={{ height: '100%' }}>
+                            <Box
+                                component={motion.div}
+                                variants={itemVariants}
+                                sx={{ height: '100%', willChange: 'transform, opacity' }}
+                            >
                                 <LiveActivityWidget />
                             </Box>
                         </Grid>
                     </Grid>
                 </Grid>
-
             </Grid>
         </Box>
     );

@@ -89,7 +89,7 @@ function CreateRoomDialog({
                     p: 3,
                     width: '100%',
                     maxWidth: 400,
-                    borderRadius: '20px',
+                    borderRadius: '24px',
                 }}
                 onClick={(e) => e.stopPropagation()}
             >
@@ -180,7 +180,7 @@ function CreateCollectionDialog({
                     p: 3,
                     width: '100%',
                     maxWidth: 400,
-                    borderRadius: '20px',
+                    borderRadius: '24px',
                 }}
                 onClick={(e) => e.stopPropagation()}
             >
@@ -258,7 +258,7 @@ function PostLinkDialog({
                     p: 3,
                     width: '100%',
                     maxWidth: 400,
-                    borderRadius: '20px',
+                    borderRadius: '24px',
                     m: 2,
                 }}
                 onClick={(e) => e.stopPropagation()}
@@ -575,7 +575,7 @@ export function SocialPage() {
                 sx={{
                     width: 72,
                     flexShrink: 0,
-                    borderRadius: isMobile ? 0 : '16px',
+                    borderRadius: isMobile ? 0 : '24px',
                     p: 1.5,
                     display: 'flex',
                     flexDirection: 'column',
@@ -583,7 +583,6 @@ export function SocialPage() {
                     gap: 1.5,
                     overflowY: 'auto',
                     height: '100%',
-                    borderRight: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : 'none',
                 }}
             >
                 {rooms.map((room) => (
@@ -651,7 +650,7 @@ export function SocialPage() {
                     sx={{
                         width: 180,
                         flexShrink: 0,
-                        borderRadius: isMobile ? 0 : '16px',
+                        borderRadius: isMobile ? 0 : '24px',
                         p: 2,
                         display: 'flex',
                         flexDirection: 'column',
@@ -677,7 +676,7 @@ export function SocialPage() {
                         </IconButton>
                     </Box>
 
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence>
                         {collections.map((collection) => (
                             <Box
                                 key={collection._id}
@@ -798,7 +797,7 @@ export function SocialPage() {
                         variant="glass"
                         sx={{
                             p: 2,
-                            borderRadius: isMobile ? '12px' : '16px',
+                            borderRadius: isMobile ? '12px' : '24px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -867,7 +866,7 @@ export function SocialPage() {
                                                 }}
                                                 sx={{
                                                     '& .MuiOutlinedInput-root': {
-                                                        borderRadius: '20px',
+                                                        borderRadius: '14px',
                                                         bgcolor: alpha(theme.palette.background.paper, 0.5),
                                                     }
                                                 }}
@@ -954,7 +953,7 @@ export function SocialPage() {
                                                 flex: 1,
                                                 maxWidth: 400,
                                                 '& .MuiOutlinedInput-root': {
-                                                    borderRadius: '10px',
+                                                    borderRadius: '14px',
                                                 },
                                             }}
                                         />
@@ -963,7 +962,7 @@ export function SocialPage() {
                                             variant="contained"
                                             onClick={() => handlePostLink()}
                                             disabled={!newLinkUrl.trim() || isPostingLink}
-                                            sx={{ borderRadius: '10px', flexShrink: 0 }}
+                                            sx={{ borderRadius: '14px', flexShrink: 0 }}
                                         >
                                             {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
                                         </Button>
@@ -972,7 +971,7 @@ export function SocialPage() {
                                             variant="outlined"
                                             startIcon={<CopyIcon />}
                                             onClick={handleCopyInvite}
-                                            sx={{ borderRadius: '10px', flexShrink: 0 }}
+                                            sx={{ borderRadius: '14px', flexShrink: 0 }}
                                         >
                                             Invite
                                         </Button>
@@ -1143,7 +1142,7 @@ export function SocialPage() {
                     onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
                     severity={snackbar.severity}
                     variant="filled"
-                    sx={{ borderRadius: '12px' }}
+                    sx={{ borderRadius: '14px' }}
                 >
                     {snackbar.message}
                 </Alert>

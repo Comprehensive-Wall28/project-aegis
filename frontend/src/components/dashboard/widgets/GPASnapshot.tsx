@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-    School as GraduationCapIcon,
-    Warning as WarningIcon
+    School as GraduationCapIcon
 } from '@mui/icons-material';
 import {
     Box,
@@ -68,23 +67,47 @@ export function GPASnapshot() {
     // For German system: 1.0 is best, 4.0 is minimum pass.
     // Progress gauge should show how close you are to 1.0 from 4.0.
     const isGerman = gpaSystem === 'GERMAN';
-    const gpaPercentage = currentGPA
+    const germanConfig = usePreferenceStore((state) => state.germanScaleConfig);
+
+    // Better calculation for German system: 1.0 (nMax) is 100%, 4.0 (nMin) is 0%.
+    // If it's worse than nMin, it should show 0% (but the number reflects the reality).
+    const nMax = germanConfig?.nMax || 1.0;
+    const nMin = germanConfig?.nMin || 4.0;
+
+    const gpaPercentage = currentGPA !== null
         ? (isGerman
-            ? ((4.0 - currentGPA) / 3.0) * 100
-            : (currentGPA / 4.0) * 100)
+            ? Math.max(0, Math.min(100, ((nMin - currentGPA) / (nMin - nMax)) * 100))
+            : Math.max(0, Math.min(100, (currentGPA / 4.0) * 100)))
         : 0;
 
-    // Show loading while PQC engine initializes
+    // Define colors based on performance
+    const getStatusColor = () => {
+        if (currentGPA === null) return theme.palette.primary.main;
+        if (isGerman) {
+            if (currentGPA <= 1.5) return theme.palette.primary.main; // Excellent
+            if (currentGPA <= 2.5) return theme.palette.info.main;    // Good
+            if (currentGPA <= 3.5) return '#ff9800';                 // Satifactory
+            return theme.palette.error.main;                         // Poor
+        } else {
+            if (currentGPA >= 3.7) return theme.palette.primary.main;
+            if (currentGPA >= 3.0) return theme.palette.info.main;
+            if (currentGPA >= 2.0) return '#ff9800';
+            return theme.palette.error.main;
+        }
+    };
+
+    const statusColor = getStatusColor();
+
     if (pqcEngineStatus !== 'operational') {
         return (
             <Paper
                 sx={{
                     p: 3,
                     height: '100%',
-                    borderRadius: '16px',
+                    borderRadius: '24px',
                     bgcolor: alpha(theme.palette.background.paper, 0.5),
-                    backdropFilter: 'blur(8px)',
-                    border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                    backdropFilter: 'blur(16px)',
+                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -98,49 +121,76 @@ export function GPASnapshot() {
     return (
         <Paper
             sx={{
-                p: { xs: 2, sm: 3 }, // Reduced padding on mobile
+                p: { xs: 2, sm: 3 },
                 height: '100%',
-                borderRadius: '16px',
+                borderRadius: '24px',
                 bgcolor: alpha(theme.palette.background.paper, 0.4),
-                backdropFilter: 'blur(12px)',
-                border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                backdropFilter: 'blur(16px)',
+                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                 display: 'flex',
                 flexDirection: 'column',
                 position: 'relative',
                 overflow: 'hidden',
-                boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
-                transition: 'all 0.3s ease',
+                boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`,
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: 'translateZ(0)',
+                willChange: 'transform, opacity',
+                '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: '120px',
+                    height: '120px',
+                    background: `radial-gradient(circle at 100% 0%, ${alpha(statusColor, 0.15)} 0%, transparent 70%)`,
+                    pointerEvents: 'none'
+                },
                 '&:hover': {
-                    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                    boxShadow: `0 8px 32px -4px ${alpha(theme.palette.primary.main, 0.05)}`,
+                    border: `1px solid ${alpha(statusColor, 0.3)}`,
+                    boxShadow: `0 12px 48px -12px ${alpha(statusColor, 0.2)}`,
+                    transform: 'translateY(-2px)'
                 }
             }}
         >
             <Box sx={{
                 flex: 1,
                 display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' }, // Stack on mobile
+                flexDirection: { xs: 'column', sm: 'row' },
                 alignItems: { xs: 'center', sm: 'center' },
                 justifyContent: 'space-between',
-                gap: { xs: 3, sm: 0 } // Add gap when stacked
+                gap: { xs: 3, sm: 0 }
             }}>
                 {/* Left Side: Info & Button */}
                 <Box sx={{
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: { xs: 'center', sm: 'flex-start' }, // Center on mobile
+                    alignItems: { xs: 'center', sm: 'flex-start' },
                     justifyContent: 'center',
                     height: '100%',
-                    maxWidth: { xs: '100%', sm: '50%' }, // Full width on mobile
+                    maxWidth: { xs: '100%', sm: '55%' },
                     textAlign: { xs: 'center', sm: 'left' }
                 }}>
-                    <Box sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', sm: 'flex-start' }, gap: 1, fontWeight: 700, color: 'text.secondary', mb: 0.5 }}>
-                            <GraduationCapIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle2" sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: { xs: 'center', sm: 'flex-start' },
+                            gap: 1.5,
+                            fontWeight: 800,
+                            color: 'text.primary',
+                            mb: 0.5,
+                            letterSpacing: '0.02em'
+                        }}>
+                            <GraduationCapIcon sx={{ fontSize: 20, color: statusColor }} />
                             GPA SNAPSHOT
                         </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, fontSize: '0.75rem', opacity: 0.8 }}>
-                            {hasError ? 'Data sync required' : 'Your Academic Performance'}
+                        <Typography variant="caption" sx={{
+                            color: 'text.secondary',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            opacity: 0.7
+                        }}>
+                            {hasError ? 'Sync failed. Retry required.' : 'Secure Academic Overview'}
                         </Typography>
                     </Box>
 
@@ -149,79 +199,106 @@ export function GPASnapshot() {
                         onClick={() => navigate('/dashboard/gpa')}
                         disableElevation
                         sx={{
-                            borderRadius: '10px',
+                            borderRadius: '14px',
                             textTransform: 'none',
-                            fontWeight: 700,
-                            fontSize: '12px',
-                            px: 2.5,
-                            py: 0.8,
-                            bgcolor: theme.palette.primary.main,
-                            color: '#000',
+                            fontWeight: 800,
+                            fontSize: '0.8rem',
+                            px: 3,
+                            py: 1,
+                            bgcolor: alpha(theme.palette.common.white, 0.05),
+                            color: theme.palette.common.white,
+                            border: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
+                            backdropFilter: 'blur(4px)',
                             '&:hover': {
-                                bgcolor: alpha(theme.palette.primary.main, 0.9),
-                                transform: 'translateY(-1px)',
+                                bgcolor: alpha(theme.palette.common.white, 0.1),
+                                border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
+                                transform: 'translateX(4px)',
                             },
-                            '&:active': { transform: 'translateY(0)' },
-                            transition: 'all 0.2s',
+                            transition: 'all 0.3s ease',
                         }}
                     >
-                        View Full Details
+                        Detailed Analytics
                     </Button>
                 </Box>
 
                 {/* Right Side: Gauge */}
-                <Box sx={{ position: 'relative', width: 170, height: 100, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', mb: { xs: 1, sm: 0 } }}>
+                <Box sx={{
+                    position: 'relative',
+                    width: 180,
+                    height: 110,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'flex-end',
+                    mb: { xs: 1, sm: 0 }
+                }}>
                     {isLoading ? (
-                        <CircularProgress size={24} thickness={5} />
-                    ) : hasError ? (
-                        <Box sx={{ textAlign: 'center', opacity: 0.7 }}>
-                            <WarningIcon sx={{ fontSize: 32, color: 'warning.main', mb: 0.5 }} />
-                            <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '10px' }}>
-                                Unable to load
-                            </Typography>
-                        </Box>
+                        <CircularProgress size={32} thickness={5} sx={{ color: statusColor }} />
                     ) : (
                         <>
-                            <svg width="170" height="100" viewBox="0 0 180 105">
+                            <svg width="180" height="110" viewBox="0 0 180 110">
                                 <defs>
-                                    <linearGradient id="gauge-gradient" x1="0" y1="0" x2="1" y2="0">
-                                        <stop offset="0%" stopColor={theme.palette.primary.main} stopOpacity={0.8} />
-                                        <stop offset="100%" stopColor={theme.palette.primary.light} stopOpacity={1} />
+                                    <linearGradient id="snapshot-gauge-gradient" x1="0" y1="0" x2="1" y2="0">
+                                        <stop offset="0%" stopColor={statusColor} stopOpacity={0.7} />
+                                        <stop offset="50%" stopColor={statusColor} stopOpacity={1} />
+                                        <stop offset="100%" stopColor={statusColor} stopOpacity={0.7} />
                                     </linearGradient>
+                                    <filter id="gauge-glow">
+                                        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                                        <feMerge>
+                                            <feMergeNode in="coloredBlur" />
+                                            <feMergeNode in="SourceGraphic" />
+                                        </feMerge>
+                                    </filter>
                                 </defs>
-                                {/* Background Arc - Full 180 degrees */}
+                                {/* Background Arc */}
                                 <path
-                                    d="M 10 100 A 80 80 0 0 1 170 100"
+                                    d="M 15 100 A 75 75 0 0 1 165 100"
                                     fill="none"
-                                    stroke={alpha(theme.palette.common.white, 0.05)}
-                                    strokeWidth="16"
+                                    stroke={alpha(theme.palette.divider, 0.05)}
+                                    strokeWidth="14"
                                     strokeLinecap="round"
                                 />
-                                {/* Progress Arc - Animated */}
+                                {/* Progress Arc */}
                                 <motion.path
-                                    d="M 10 100 A 80 80 0 0 1 170 100"
+                                    d="M 15 100 A 75 75 0 0 1 165 100"
                                     fill="none"
-                                    stroke="url(#gauge-gradient)"
-                                    strokeWidth="16"
+                                    stroke="url(#snapshot-gauge-gradient)"
+                                    strokeWidth="14"
                                     strokeLinecap="round"
+                                    filter="url(#gauge-glow)"
                                     initial={{ pathLength: 0 }}
-                                    animate={{ pathLength: Math.min(100, Math.max(0, gpaPercentage)) / 100 }}
-                                    transition={{ duration: 1.5, ease: "easeOut" }}
+                                    animate={{ pathLength: gpaPercentage / 100 }}
+                                    transition={{ duration: 2, ease: [0.34, 1.56, 0.64, 1] }}
                                 />
                             </svg>
-                            <Box sx={{ position: 'absolute', bottom: 5, textAlign: 'center' }}>
-                                <Typography variant="h4" sx={{
-                                    fontWeight: 800,
+                            <Box sx={{
+                                position: 'absolute',
+                                bottom: 12,
+                                textAlign: 'center',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center'
+                            }}>
+                                <Typography variant="h3" sx={{
+                                    fontWeight: 900,
                                     lineHeight: 1,
-                                    letterSpacing: -1,
-                                    fontSize: '2.1rem',
+                                    letterSpacing: '-0.04em',
+                                    fontSize: '2.4rem',
                                     color: theme.palette.common.white,
-                                    mb: -0.5
+                                    mb: 0.5,
+                                    textShadow: `0 0 20px ${alpha(statusColor, 0.4)}`
                                 }}>
-                                    {currentGPA?.toFixed(2) ?? '—'}
+                                    {currentGPA ? currentGPA.toFixed(2) : '—'}
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, opacity: 0.8, fontSize: '0.7rem', letterSpacing: 0.5 }}>
-                                    {isGerman ? 'TARGET 1.00' : '/ 4.00'}
+                                <Typography variant="caption" sx={{
+                                    color: 'text.secondary',
+                                    fontWeight: 800,
+                                    opacity: 0.6,
+                                    fontSize: '0.65rem',
+                                    letterSpacing: '0.1em',
+                                    textTransform: 'uppercase'
+                                }}>
+                                    {isGerman ? `Target ${nMax.toFixed(2)}` : 'Academic GPA'}
                                 </Typography>
                             </Box>
                         </>
