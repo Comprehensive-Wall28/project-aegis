@@ -66,45 +66,42 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     },
 
     addTask: async (task, decryptFn) => {
-        set({ isLoading: true, error: null });
+        set({ error: null });
         try {
             const newEncryptedTask = await taskService.createTask(task);
             const decryptedTask = await decryptFn(newEncryptedTask);
             set(state => ({
-                tasks: [...state.tasks, decryptedTask],
-                isLoading: false
+                tasks: [...state.tasks, decryptedTask]
             }));
         } catch (error: any) {
-            set({ error: error.message || 'Failed to add task', isLoading: false });
+            set({ error: error.message || 'Failed to add task' });
             throw error;
         }
     },
 
     updateTask: async (id, updates, decryptFn) => {
-        set({ isLoading: true, error: null });
+        set({ error: null });
         try {
             const updatedEncryptedTask = await taskService.updateTask(id, updates);
             const decryptedTask = await decryptFn(updatedEncryptedTask);
             set(state => ({
-                tasks: state.tasks.map(t => t._id === id ? decryptedTask : t),
-                isLoading: false
+                tasks: state.tasks.map(t => t._id === id ? decryptedTask : t)
             }));
         } catch (error: any) {
-            set({ error: error.message || 'Failed to update task', isLoading: false });
+            set({ error: error.message || 'Failed to update task' });
             throw error;
         }
     },
 
     deleteTask: async (id) => {
-        set({ isLoading: true, error: null });
+        set({ error: null });
         try {
             await taskService.deleteTask(id);
             set(state => ({
-                tasks: state.tasks.filter(t => t._id !== id),
-                isLoading: false
+                tasks: state.tasks.filter(t => t._id !== id)
             }));
         } catch (error: any) {
-            set({ error: error.message || 'Failed to delete task', isLoading: false });
+            set({ error: error.message || 'Failed to delete task' });
             throw error;
         }
     },
