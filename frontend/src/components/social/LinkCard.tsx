@@ -1,7 +1,7 @@
 import { useState, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon } from '@mui/icons-material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LinkPost } from '@/services/socialService';
 
@@ -24,6 +24,16 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
 
     const [isDragging, setIsDragging] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
+
+    // Helper to get proxied URL
+    const getProxiedUrl = (originalUrl: string) => {
+        if (!originalUrl) return '';
+        const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+        return `${API_URL}/api/social/proxy-image?url=${encodeURIComponent(originalUrl)}`;
+    };
+
+    const previewImage = previewData.image ? getProxiedUrl(previewData.image) : '';
+    const faviconImage = previewData.favicon ? getProxiedUrl(previewData.favicon) : '';
 
     // Close preview
     const closePreview = () => setShowPreview(false);
@@ -119,17 +129,54 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                             width: '100%',
                             height: 140,
                             flexShrink: 0,
-                            backgroundImage: previewData.image ? `url(${previewData.image})` : 'none',
+                            backgroundImage: previewImage ? `url(${previewImage})` : 'none',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
-                            bgcolor: previewData.image ? 'transparent' : alpha(theme.palette.primary.main, 0.08),
+                            bgcolor: previewImage ? 'transparent' : alpha(theme.palette.primary.main, 0.08),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            position: 'relative',
                         }}
                     >
-                        {!previewData.image && (
-                            <LinkIcon sx={{ fontSize: 40, opacity: 0.2, color: 'primary.main' }} />
+                        {!previewImage && (
+                            <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <LinkIcon sx={{ fontSize: 40, opacity: 0.1, color: 'primary.main' }} />
+                                {faviconImage && (
+                                    <Box
+                                        component="img"
+                                        src={faviconImage}
+                                        sx={{
+                                            position: 'absolute',
+                                            width: 32,
+                                            height: 32,
+                                            borderRadius: '8px',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                        }}
+                                    />
+                                )}
+                                {previewData.scrapeStatus === 'blocked' && (
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            bottom: -40,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 0.5,
+                                            bgcolor: alpha(theme.palette.warning.main, 0.1),
+                                            color: 'warning.main',
+                                            px: 1,
+                                            py: 0.2,
+                                            borderRadius: '12px',
+                                            fontSize: '0.65rem',
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        <ShieldIcon sx={{ fontSize: 10 }} />
+                                        PROTECTED SITE
+                                    </Box>
+                                )}
+                            </Box>
                         )}
                     </Box>
 
@@ -269,9 +316,9 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                         position: 'relative',
                                     }}
                                 >
-                                    {previewData.image ? (
+                                    {previewImage ? (
                                         <img
-                                            src={previewData.image}
+                                            src={previewImage}
                                             alt={previewData.title}
                                             style={{
                                                 width: '100%',
@@ -280,7 +327,22 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                             }}
                                         />
                                     ) : (
-                                        <LinkIcon sx={{ fontSize: 80, opacity: 0.2, color: 'primary.main' }} />
+                                        <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <LinkIcon sx={{ fontSize: 80, opacity: 0.1, color: 'primary.main' }} />
+                                            {faviconImage && (
+                                                <Box
+                                                    component="img"
+                                                    src={faviconImage}
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        width: 64,
+                                                        height: 64,
+                                                        borderRadius: '12px',
+                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                                                    }}
+                                                />
+                                            )}
+                                        </Box>
                                     )}
 
                                     {/* Close Button */}

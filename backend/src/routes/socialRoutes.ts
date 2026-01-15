@@ -16,6 +16,7 @@ import {
     postComment,
     deleteComment
 } from '../controllers/socialController';
+import { proxyImage } from '../controllers/linkPreviewController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection } from '../middleware/csrfMiddleware';
 
@@ -23,6 +24,7 @@ const router = Router();
 
 // Public endpoint - no auth required
 router.get('/invite/:inviteCode', getInviteInfo);
+router.get('/proxy-image', proxyImage);
 
 // Protected routes - require auth and CSRF
 router.get('/rooms', protect, csrfProtection, getUserRooms);

@@ -29,6 +29,8 @@ export interface PreviewData {
     title?: string;
     description?: string;
     image?: string;
+    favicon?: string;
+    scrapeStatus?: 'success' | 'blocked' | 'failed';
 }
 
 export interface LinkPost {

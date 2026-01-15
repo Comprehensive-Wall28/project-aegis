@@ -6,8 +6,11 @@ import Room from '../models/Room';
 import Collection from '../models/Collection';
 import LinkPost from '../models/LinkPost';
 import LinkView from '../models/LinkView';
+import LinkMetadata from '../models/LinkMetadata';
 import logger from '../utils/logger';
 import { logAuditEvent } from '../utils/auditLogger';
+import { advancedScrape } from '../utils/scraper';
+import { URL } from 'url';
 
 interface AuthRequest extends Request {
     user?: { id: string; username: string };
@@ -305,24 +308,107 @@ export const postLink = async (req: AuthRequest, res: Response, next: NextFuncti
             return res.status(400).json({ message: 'Link already exists in this collection' });
         }
 
-        // Fetch OpenGraph data
-        let previewData = {};
-        try {
-            const { result } = await ogs({ url });
+        // Clean up URL - ensure protocol
+        let targetUrl = url;
+        if (!/^https?:\/\//i.test(targetUrl)) {
+            targetUrl = 'https://' + targetUrl;
+        }
+
+        // Check global metadata cache
+        let previewData: {
+            title: string;
+            description: string;
+            image: string;
+            favicon: string;
+            scrapeStatus: 'success' | 'blocked' | 'failed';
+        } = {
+            title: '',
+            description: '',
+            image: '',
+            favicon: '',
+            scrapeStatus: 'success'
+        };
+
+        const cachedMetadata = await LinkMetadata.findOne({ url: targetUrl });
+        if (cachedMetadata) {
             previewData = {
-                title: result.ogTitle || result.twitterTitle || '',
-                description: result.ogDescription || result.twitterDescription || '',
-                image: result.ogImage?.[0]?.url || result.twitterImage?.[0]?.url || ''
+                title: cachedMetadata.title,
+                description: cachedMetadata.description,
+                image: cachedMetadata.image,
+                favicon: cachedMetadata.favicon,
+                scrapeStatus: cachedMetadata.scrapeStatus || 'success'
             };
-        } catch (ogsError) {
-            logger.warn(`Failed to fetch OpenGraph data for ${url}:`, ogsError);
-            // Continue with empty preview data
+        } else {
+            // Fetch metadata using Puppeteer Stealth + Metascraper
+            try {
+                const scrapeResult = await advancedScrape(targetUrl);
+
+                previewData = {
+                    ...scrapeResult,
+                    title: scrapeResult.title || '',
+                    description: scrapeResult.description || '',
+                    image: scrapeResult.image || '',
+                    favicon: scrapeResult.favicon || '',
+                    scrapeStatus: scrapeResult.scrapeStatus
+                };
+
+                // Domain fallback if Metascraper didn't find a title
+                if (!previewData.title) {
+                    try {
+                        const urlObj = new URL(targetUrl);
+                        const domain = urlObj.hostname.replace('www.', '');
+                        previewData.title = domain.charAt(0).toUpperCase() + domain.slice(1);
+                        if (!previewData.favicon) {
+                            previewData.favicon = `${urlObj.origin}/favicon.ico`;
+                        }
+                    } catch (e) {
+                        previewData.title = targetUrl;
+                    }
+                }
+
+                // Normalizing URLs happens inside advancedScrape usually, 
+                // but let's double check image/favicon protocols
+                const normalize = (u: string) => {
+                    if (u && !/^https?:\/\//i.test(u)) {
+                        try {
+                            const baseUrl = new URL(targetUrl);
+                            if (u.startsWith('//')) return baseUrl.protocol + u;
+                            if (u.startsWith('/')) return baseUrl.origin + u;
+                            return baseUrl.origin + '/' + u;
+                        } catch (e) { return u; }
+                    }
+                    return u;
+                };
+
+                previewData.image = normalize(previewData.image);
+                previewData.favicon = normalize(previewData.favicon);
+
+                // Save to global cache
+                await LinkMetadata.create({
+                    url: targetUrl,
+                    ...previewData,
+                    lastFetched: new Date()
+                });
+            } catch (error) {
+                logger.error(`Error in advanced scraping flow for ${targetUrl}:`, error);
+
+                // Absolute last-resort fallback
+                try {
+                    const urlObj = new URL(targetUrl);
+                    const domain = urlObj.hostname.replace('www.', '');
+                    previewData.title = domain.charAt(0).toUpperCase() + domain.slice(1);
+                    previewData.scrapeStatus = 'failed';
+                } catch (e) {
+                    previewData.title = targetUrl;
+                    previewData.scrapeStatus = 'failed';
+                }
+            }
         }
 
         const linkPost = await LinkPost.create({
             collectionId: targetCollectionId,
             userId: req.user.id,
-            url,
+            url: targetUrl,
             previewData
         });
 
