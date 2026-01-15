@@ -193,7 +193,7 @@ export const createFolder = async (req: AuthRequest, res: Response) => {
 };
 
 /**
- * Rename a folder.
+ * Update a folder (rename and/or change color).
  */
 export const renameFolder = async (req: AuthRequest, res: Response) => {
     try {
@@ -202,15 +202,24 @@ export const renameFolder = async (req: AuthRequest, res: Response) => {
         }
 
         const { id } = req.params;
-        const { name } = req.body;
+        const { name, color } = req.body;
 
-        if (!name || name.trim() === '') {
-            return res.status(400).json({ message: 'Folder name is required' });
+        // Build update object
+        const update: Record<string, any> = {};
+        if (name && name.trim() !== '') {
+            update.name = name.trim();
+        }
+        if (color !== undefined) {
+            update.color = color; // Can be null to reset to default
+        }
+
+        if (Object.keys(update).length === 0) {
+            return res.status(400).json({ message: 'No valid fields to update' });
         }
 
         const folder = await Folder.findOneAndUpdate(
             { _id: { $eq: id }, ownerId: { $eq: req.user.id } },
-            { name: name.trim() },
+            update,
             { new: true }
         );
 
@@ -218,10 +227,10 @@ export const renameFolder = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'Folder not found' });
         }
 
-        logger.info(`Folder renamed: ${folder.name} for user ${req.user.id}`);
+        logger.info(`Folder updated: ${folder.name} for user ${req.user.id}`);
         res.status(200).json(folder);
     } catch (error) {
-        logger.error('Error renaming folder:', error);
+        logger.error('Error updating folder:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };

@@ -6,6 +6,7 @@ export interface IFolder extends Document {
     parentId?: mongoose.Types.ObjectId; // null = root level
     encryptedSessionKey: string;
     isShared: boolean;
+    color?: string; // Custom folder color (hex)
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -16,6 +17,7 @@ const FolderSchema: Schema = new Schema({
     parentId: { type: Schema.Types.ObjectId, ref: 'Folder', default: null },
     encryptedSessionKey: { type: String, required: true },
     isShared: { type: Boolean, default: false },
+    color: { type: String, default: null },
 }, { timestamps: true });
 
 // Compound index for efficient folder queries

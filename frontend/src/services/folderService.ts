@@ -16,6 +16,7 @@ export interface Folder {
     permissions?: string[];
     ownerId?: string;
     encryptedSessionKey?: string;
+    color?: string; // Custom folder color (hex)
 }
 
 
@@ -38,6 +39,11 @@ const folderService = {
 
     renameFolder: async (id: string, name: string): Promise<Folder> => {
         const response = await apiClient.put<Folder>(`${PREFIX}/${id}`, { name });
+        return response.data;
+    },
+
+    updateFolderColor: async (id: string, color: string | null): Promise<Folder> => {
+        const response = await apiClient.put<Folder>(`${PREFIX}/${id}`, { color });
         return response.data;
     },
 

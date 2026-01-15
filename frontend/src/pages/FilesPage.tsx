@@ -23,7 +23,8 @@ import {
     Folder as FolderIcon,
     ChevronRight as ChevronRightIcon,
     Home as HomeIcon,
-    FolderShared as SharedIcon
+    FolderShared as SharedIcon,
+    Palette as PaletteIcon
 } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
 
@@ -172,6 +173,20 @@ export function FilesPage() {
         count?: number;
     }>({ open: false, type: 'file' });
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Color picker state
+    const [colorPickerFolderId, setColorPickerFolderId] = useState<string | null>(null);
+    const FOLDER_COLORS = [
+        '#FFB300', // Default Yellow
+        '#EF5350', // Red
+        '#AB47BC', // Purple
+        '#42A5F5', // Blue
+        '#66BB6A', // Green
+        '#26C6DA', // Cyan
+        '#FFA726', // Orange
+        '#8D6E63', // Brown
+        '#78909C', // Gray
+    ];
 
     const sentinelRef = useRef<HTMLDivElement>(null);
     const { uploadFiles } = useVaultUpload();
@@ -473,6 +488,19 @@ export function FilesPage() {
         }
     };
 
+    const handleFolderColorChange = async (folderId: string, color: string) => {
+        try {
+            await folderService.updateFolderColor(folderId, color);
+            // Update local state
+            setFolders(prev => prev.map(f =>
+                f._id === folderId ? { ...f, color } : f
+            ));
+            setColorPickerFolderId(null);
+        } catch (err) {
+            console.error('Failed to update folder color:', err);
+        }
+    };
+
     const navigateToFolder = useCallback((folder: Folder | null) => {
         if (folder) {
             setFolderPath(prev => [...prev, folder]);
@@ -552,6 +580,13 @@ export function FilesPage() {
                     label: 'Share', icon: <ShareIcon fontSize="small" />, onClick: () => {
                         const folder = folders.find(f => f._id === contextMenu.target?.id);
                         if (folder) setShareDialog({ open: true, item: folder, type: 'folder' });
+                    }
+                },
+                {
+                    label: 'Change Color', icon: <PaletteIcon fontSize="small" />, onClick: () => {
+                        if (contextMenu.target?.id) {
+                            setColorPickerFolderId(contextMenu.target.id);
+                        }
                     }
                 },
                 {
@@ -1117,6 +1152,45 @@ export function FilesPage() {
                 />
             )}
 
+            {/* Color Picker Dialog */}
+            <Dialog
+                open={Boolean(colorPickerFolderId)}
+                onClose={() => setColorPickerFolderId(null)}
+                PaperProps={{
+                    sx: {
+                        p: 2,
+                        borderRadius: '20px',
+                        bgcolor: theme.palette.background.paper,
+                        minWidth: 200,
+                    }
+                }}
+            >
+                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 700, mb: 2 }}>
+                    Choose Folder Color
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 1 }}>
+                    {FOLDER_COLORS.map((color) => (
+                        <Box
+                            key={color}
+                            onClick={() => colorPickerFolderId && handleFolderColorChange(colorPickerFolderId, color)}
+                            sx={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: '10px',
+                                bgcolor: color,
+                                cursor: 'pointer',
+                                border: `2px solid transparent`,
+                                transition: 'transform 0.15s, border-color 0.15s',
+                                '&:hover': {
+                                    transform: 'scale(1.1)',
+                                    borderColor: alpha(theme.palette.common.white, 0.5),
+                                }
+                            }}
+                        />
+                    ))}
+                </Box>
+            </Dialog>
+
             {/* Delete Confirmation Dialog */}
             <ConfirmDialog
                 open={deleteConfirm.open}
@@ -1221,7 +1295,7 @@ const FolderGridItem = memo(({
                     }}
                 >
                     <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))', position: 'relative' }}>
-                        <FolderIcon sx={{ fontSize: iconScaling.size, color: '#FFB300' }} />
+                        <FolderIcon sx={{ fontSize: iconScaling.size, color: folder.color || '#FFB300' }} />
                         {folder.isSharedWithMe && (
                             <SharedIcon
                                 sx={{
