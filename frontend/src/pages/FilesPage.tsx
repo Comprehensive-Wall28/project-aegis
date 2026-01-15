@@ -65,6 +65,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useFolderKeyStore } from '@/stores/useFolderKeyStore';
 import { generateFolderKey, wrapKey } from '@/lib/cryptoUtils';
 import { Share as ShareIcon } from '@mui/icons-material';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 
 
@@ -156,6 +157,15 @@ export function FilesPage() {
     const [shareDialog, setShareDialog] = useState<{ open: boolean; folder: Folder | null }>({ open: false, folder: null });
     const [displayLimit, setDisplayLimit] = useState(20);
 
+    // Delete confirmation states
+    const [deleteConfirm, setDeleteConfirm] = useState<{
+        open: boolean;
+        type: 'file' | 'mass' | 'folder';
+        id?: string;
+        count?: number;
+    }>({ open: false, type: 'file' });
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const sentinelRef = useRef<HTMLDivElement>(null);
     const { uploadFiles } = useVaultUpload();
     const uploadStatus = useUploadStatus(); // Using specialized status-only hook
@@ -208,14 +218,19 @@ export function FilesPage() {
     }, [downloadAndDecrypt]);
 
     const handleDelete = useCallback(async (fileId: string) => {
-        if (!confirm('Are you sure you want to delete this file?')) return;
+        setDeleteConfirm({ open: true, type: 'file', id: fileId });
+    }, []);
+
+    const confirmDeleteFile = async () => {
+        if (!deleteConfirm.id) return;
+        setIsDeleting(true);
         try {
-            setDeletingIds(prev => new Set(prev).add(fileId));
-            await vaultService.deleteFile(fileId);
-            setFiles(files => files.filter(f => f._id !== fileId));
+            setDeletingIds(prev => new Set(prev).add(deleteConfirm.id!));
+            await vaultService.deleteFile(deleteConfirm.id);
+            setFiles(files => files.filter(f => f._id !== deleteConfirm.id));
             setSelectedIds(prev => {
                 const next = new Set(prev);
-                next.delete(fileId);
+                next.delete(deleteConfirm.id!);
                 return next;
             });
         } catch (err) {
@@ -223,16 +238,21 @@ export function FilesPage() {
         } finally {
             setDeletingIds(prev => {
                 const next = new Set(prev);
-                next.delete(fileId);
+                next.delete(deleteConfirm.id!);
                 return next;
             });
+            setIsDeleting(false);
+            setDeleteConfirm({ open: false, type: 'file' });
         }
-    }, []);
+    };
 
     const handleMassDelete = async () => {
         if (selectedIds.size === 0) return;
-        if (!confirm(`Are you sure you want to delete ${selectedIds.size} file(s)?`)) return;
+        setDeleteConfirm({ open: true, type: 'mass', count: selectedIds.size });
+    };
 
+    const confirmMassDelete = async () => {
+        setIsDeleting(true);
         for (const id of Array.from(selectedIds)) {
             try {
                 setDeletingIds(prev => new Set(prev).add(id));
@@ -249,6 +269,8 @@ export function FilesPage() {
             }
         }
         setSelectedIds(new Set());
+        setIsDeleting(false);
+        setDeleteConfirm({ open: false, type: 'file' });
     };
 
     const toggleSelect = useCallback((id: string) => {
@@ -418,12 +440,20 @@ export function FilesPage() {
     };
 
     const handleDeleteFolder = async (folderId: string) => {
-        if (!confirm('Are you sure you want to delete this folder?')) return;
+        setDeleteConfirm({ open: true, type: 'folder', id: folderId });
+    };
+
+    const confirmDeleteFolder = async () => {
+        if (!deleteConfirm.id) return;
+        setIsDeleting(true);
         try {
-            await folderService.deleteFolder(folderId);
+            await folderService.deleteFolder(deleteConfirm.id);
             fetchData();
         } catch (err: any) {
             alert(err.response?.data?.message || 'Failed to delete folder');
+        } finally {
+            setIsDeleting(false);
+            setDeleteConfirm({ open: false, type: 'file' });
         }
     };
 
@@ -1052,6 +1082,34 @@ export function FilesPage() {
                     folderName={shareDialog.folder.name}
                 />
             )}
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                open={deleteConfirm.open}
+                title={
+                    deleteConfirm.type === 'folder'
+                        ? 'Delete Folder'
+                        : deleteConfirm.type === 'mass'
+                            ? 'Delete Files'
+                            : 'Delete File'
+                }
+                message={
+                    deleteConfirm.type === 'folder'
+                        ? 'Are you sure you want to delete this folder? This action cannot be undone.'
+                        : deleteConfirm.type === 'mass'
+                            ? `Are you sure you want to delete ${deleteConfirm.count} file(s)? This action cannot be undone.`
+                            : 'Are you sure you want to delete this file? This action cannot be undone.'
+                }
+                confirmText="Delete"
+                onConfirm={() => {
+                    if (deleteConfirm.type === 'file') confirmDeleteFile();
+                    else if (deleteConfirm.type === 'mass') confirmMassDelete();
+                    else if (deleteConfirm.type === 'folder') confirmDeleteFolder();
+                }}
+                onCancel={() => setDeleteConfirm({ open: false, type: 'file' })}
+                isLoading={isDeleting}
+                variant="danger"
+            />
         </Stack>
     );
 }

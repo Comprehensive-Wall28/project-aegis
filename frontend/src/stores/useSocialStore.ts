@@ -44,6 +44,7 @@ interface SocialState {
     postLink: (url: string) => Promise<LinkPost>;
     deleteLink: (linkId: string) => Promise<void>;
     createCollection: (name: string) => Promise<Collection>;
+    deleteCollection: (collectionId: string) => Promise<void>;
     moveLink: (linkId: string, collectionId: string) => Promise<void>;
     createInvite: (roomId: string) => Promise<string>;
     setPendingInvite: (invite: SocialState['pendingInvite']) => void;
@@ -419,6 +420,28 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             links: state.links.map(l =>
                 l._id === linkId ? { ...l, collectionId: collectionId } : l
             )
+        });
+    },
+
+    deleteCollection: async (collectionId: string) => {
+        await socialService.deleteCollection(collectionId);
+        const state = get();
+
+        // Remove collection from list
+        const updatedCollections = state.collections.filter(c => c._id !== collectionId);
+
+        // Remove links in that collection
+        const updatedLinks = state.links.filter(l => l.collectionId !== collectionId);
+
+        // If the deleted collection was selected, select the first available or null
+        const newCollectionId = state.currentCollectionId === collectionId
+            ? (updatedCollections[0]?._id || null)
+            : state.currentCollectionId;
+
+        set({
+            collections: updatedCollections,
+            links: updatedLinks,
+            currentCollectionId: newCollectionId,
         });
     },
 

@@ -53,12 +53,11 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
-                        transition: 'border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease',
+                        transition: 'border-color 0.2s ease, background-color 0.2s ease',
                         border: '1px solid transparent',
                         '&:hover': {
                             borderColor: alpha(theme.palette.primary.main, 0.2),
                             bgcolor: alpha(theme.palette.primary.main, 0.03),
-                            transform: 'translateY(-2px)',
                         },
                     }}
                     onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}

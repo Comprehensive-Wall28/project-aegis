@@ -159,6 +159,13 @@ const socialService = {
     moveLink: async (linkId: string, collectionId: string): Promise<void> => {
         await apiClient.patch(`/social/links/${linkId}/move`, { collectionId });
     },
+
+    /**
+     * Delete a collection from a room
+     */
+    deleteCollection: async (collectionId: string): Promise<void> => {
+        await apiClient.delete(`/social/collections/${collectionId}`);
+    },
 };
 
 export default socialService;

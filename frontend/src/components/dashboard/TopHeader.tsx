@@ -189,13 +189,15 @@ export function TopHeader() {
                         open={Boolean(anchorEl)}
                         onClose={handleCloseMenu}
                         PaperProps={{
-                            variant: 'glass',
                             sx: {
                                 mt: 2,
                                 width: 240,
                                 p: 1,
-                                borderRadius: '28px',
-                                boxShadow: theme.shadows[20]
+                                borderRadius: '16px',
+                                bgcolor: theme.palette.background.paper,
+                                backgroundImage: 'none',
+                                boxShadow: theme.shadows[20],
+                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                             }
                         }}
                         transformOrigin={{ horizontal: 'right', vertical: 'top' }}

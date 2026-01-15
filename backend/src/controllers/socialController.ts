@@ -557,3 +557,56 @@ export const moveLink = async (req: AuthRequest, res: Response, next: NextFuncti
         next(error);
     }
 };
+
+// Delete a collection and all its links.
+// Requires owner or admin role in the room.
+export const deleteCollection = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { collectionId } = req.params;
+
+        if (!userId) {
+            res.status(401).json({ message: 'Unauthorized' });
+            return;
+        }
+
+        // Find the collection
+        const collection = await Collection.findById(collectionId);
+        if (!collection) {
+            res.status(404).json({ message: 'Collection not found' });
+            return;
+        }
+
+        // Find the room to check permissions
+        const room = await Room.findById(collection.roomId);
+        if (!room) {
+            res.status(404).json({ message: 'Room not found' });
+            return;
+        }
+
+        // Check if user is owner or admin
+        const member = room.members.find(m => m.userId.toString() === userId);
+        if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+            res.status(403).json({ message: 'Only room owner or admin can delete collections' });
+            return;
+        }
+
+        // Delete all links in the collection
+        await LinkPost.deleteMany({ collectionId: collection._id });
+
+        // Delete the collection
+        await Collection.findByIdAndDelete(collectionId);
+
+        await logAuditEvent(userId, 'COLLECTION_DELETE', 'SUCCESS', req, {
+            collectionId,
+            roomId: room._id.toString()
+        });
+
+        logger.info(`Collection ${collectionId} deleted by user ${userId}`);
+
+        res.status(200).json({ message: 'Collection deleted successfully' });
+    } catch (error) {
+        logger.error('Error deleting collection:', error);
+        next(error);
+    }
+};

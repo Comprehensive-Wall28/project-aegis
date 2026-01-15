@@ -9,6 +9,7 @@ import {
     getRoomContent,
     deleteLink,
     createCollection,
+    deleteCollection,
     moveLink
 } from '../controllers/socialController';
 import { protect } from '../middleware/authMiddleware';
@@ -28,6 +29,7 @@ router.post('/rooms/:roomId/links', protect, csrfProtection, postLink);
 router.post('/rooms/:roomId/collections', protect, csrfProtection, createCollection);
 router.get('/rooms/:roomId', protect, csrfProtection, getRoomContent);
 router.delete('/links/:linkId', protect, csrfProtection, deleteLink);
+router.delete('/collections/:collectionId', protect, csrfProtection, deleteCollection);
 router.patch('/links/:linkId/move', protect, csrfProtection, moveLink);
 
 export default router;

@@ -43,10 +43,12 @@ export function ContextMenu({ open, anchorPosition, onClose, items }: ContextMen
             anchorReference="anchorPosition"
             anchorPosition={{ top: anchorPosition.y, left: anchorPosition.x }}
             PaperProps={{
-                variant: 'glass',
                 sx: {
-                    borderRadius: '24px',
+                    borderRadius: '16px',
+                    bgcolor: theme.palette.background.paper,
+                    backgroundImage: 'none',
                     boxShadow: theme.shadows[20],
+                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                 }
             }}
         >

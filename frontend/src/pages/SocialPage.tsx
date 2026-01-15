@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, memo, useMemo } from 'react';
+import { useState, useCallback, useEffect, memo, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import {
     Box,
@@ -33,11 +33,13 @@ import {
     Close as CloseIcon,
     Menu as MenuIcon,
     Share as ShareIcon,
+    Delete as DeleteIcon,
 } from '@mui/icons-material';
 // Internal store and components
 import { useSocialStore } from '@/stores/useSocialStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { LinkCard } from '@/components/social/LinkCard';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import type { Room, LinkPost, Collection } from '@/services/socialService';
 
 type SnackbarState = {
@@ -326,6 +328,7 @@ export function SocialPage() {
     const postLink = useSocialStore((state) => state.postLink);
     const deleteLink = useSocialStore((state) => state.deleteLink);
     const createCollection = useSocialStore((state) => state.createCollection);
+    const deleteCollection = useSocialStore((state) => state.deleteCollection);
     const moveLink = useSocialStore((state) => state.moveLink);
     const createInvite = useSocialStore((state) => state.createInvite);
     const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
@@ -360,6 +363,16 @@ export function SocialPage() {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
+    // Collection context menu state
+    const [collectionContextMenu, setCollectionContextMenu] = useState<{
+        mouseX: number;
+        mouseY: number;
+        collectionId: string;
+    } | null>(null);
+    const [collectionToDelete, setCollectionToDelete] = useState<string | null>(null);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [isDeletingCollection, setIsDeletingCollection] = useState(false);
+
     // Fetch rooms on mount
     useEffect(() => {
         if (pqcEngineStatus === 'operational') {
@@ -374,7 +387,12 @@ export function SocialPage() {
         }
     }, [roomId, pqcEngineStatus, selectRoom]);
 
-    // Removed auto-select first room - user explicitly selects room now
+    // Auto-select first room when entering page
+    useEffect(() => {
+        if (!currentRoom && !roomId && rooms.length > 0 && !isLoadingRooms) {
+            selectRoom(rooms[0]._id);
+        }
+    }, [rooms, currentRoom, roomId, isLoadingRooms, selectRoom]);
 
     // Auto-refresh content every 5 seconds
     useEffect(() => {
@@ -492,6 +510,48 @@ export function SocialPage() {
 
         setDraggedLinkId(null);
         setDropTargetId(null);
+    };
+
+    const handleCollectionContextMenu = (event: React.MouseEvent, collectionId: string) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setCollectionContextMenu({
+            mouseX: event.clientX,
+            mouseY: event.clientY,
+            collectionId,
+        });
+    };
+
+    // Long press for mobile delete
+    const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleCollectionTouchStart = (collectionId: string) => {
+        longPressTimerRef.current = setTimeout(() => {
+            setCollectionToDelete(collectionId);
+            setDeleteConfirmOpen(true);
+        }, 600); // 600ms long press
+    };
+
+    const handleCollectionTouchEnd = () => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+    };
+
+    const handleDeleteCollection = async () => {
+        if (!collectionToDelete) return;
+        setIsDeletingCollection(true);
+
+        try {
+            await deleteCollection(collectionToDelete);
+            showSnackbar('Collection deleted', 'success');
+        } catch (error: any) {
+            showSnackbar(error.message || 'Failed to delete collection', 'error');
+        }
+        setIsDeletingCollection(false);
+        setDeleteConfirmOpen(false);
+        setCollectionToDelete(null);
     };
 
     const handleCopyInvite = async () => {
@@ -676,6 +736,10 @@ export function SocialPage() {
                                 selectCollection(collection._id);
                                 if (isMobile) setMobileDrawerOpen(false);
                             }}
+                            onContextMenu={(e) => handleCollectionContextMenu(e, collection._id)}
+                            onTouchStart={() => handleCollectionTouchStart(collection._id)}
+                            onTouchEnd={handleCollectionTouchEnd}
+                            onTouchMove={handleCollectionTouchEnd}
                             onDragOver={(e) => {
                                 e.preventDefault();
                                 setDropTargetId(collection._id);
@@ -1114,6 +1178,44 @@ export function SocialPage() {
                     <AddIcon />
                 </Fab>
             )}
+
+            {/* Collection Context Menu */}
+            <Menu
+                open={collectionContextMenu !== null}
+                onClose={() => setCollectionContextMenu(null)}
+                anchorReference="anchorPosition"
+                anchorPosition={
+                    collectionContextMenu !== null
+                        ? { top: collectionContextMenu.mouseY, left: collectionContextMenu.mouseX }
+                        : undefined
+                }
+            >
+                <MenuItem onClick={() => {
+                    if (collectionContextMenu) {
+                        setCollectionToDelete(collectionContextMenu.collectionId);
+                    }
+                    setCollectionContextMenu(null);
+                    setDeleteConfirmOpen(true);
+                }} sx={{ color: 'error.main', gap: 1 }}>
+                    <DeleteIcon fontSize="small" />
+                    Delete Collection
+                </MenuItem>
+            </Menu>
+
+            {/* Delete Collection Confirmation Dialog */}
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                title="Delete Collection"
+                message={`Are you sure you want to delete "${collectionToDelete ? decryptedCollections.get(collectionToDelete) || 'this collection' : ''}"? All links in this collection will be permanently deleted.`}
+                confirmText="Delete"
+                onConfirm={handleDeleteCollection}
+                onCancel={() => {
+                    setDeleteConfirmOpen(false);
+                    setCollectionToDelete(null);
+                }}
+                isLoading={isDeletingCollection}
+                variant="danger"
+            />
 
             {/* Snackbar */}
             <Snackbar

@@ -38,7 +38,7 @@ export function LiveActivityWidget() {
     };
 
     const handleViewAll = () => {
-        navigate('/settings', { state: { activeTab: 2 } }); // Navigate to Activity tab
+        navigate('/security', { state: { activeTab: 2 } }); // Navigate to Activity tab
     };
 
     return (
