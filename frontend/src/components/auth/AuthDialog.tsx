@@ -321,7 +321,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                     >
                                         {isRegisterMode
                                             ? 'Generate a new PQC identity. Your keys never leave this device.'
-                                            : 'Enter your credentials to verify identity via Zero-Knowledge Proof.'}
+                                            : 'Enter your credentials to access your vault.'}
                                     </Typography>
                                 </Box>
 
