@@ -173,24 +173,17 @@ export function Hero() {
                         component={motion.div}
                         variants={itemVariants}
                         elevation={24}
+                        variant="glass"
                         sx={{
                             mt: 10,
                             width: '100%',
                             maxWidth: 1000,
                             borderRadius: { xs: 2, md: 4 },
                             overflow: 'hidden',
-                            bgcolor: alpha(theme.palette.background.paper, 0.15), // Increased opacity slightly
-                            backdropFilter: 'blur(12px)', // Reduced from 20px
-                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                             position: 'relative',
                             p: { xs: 3, md: 5 }
                         }}
                     >
-                        <Box sx={{
-                            position: 'absolute', top: 0, left: 0, right: 0, height: '100%',
-                            background: `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, transparent 100%)`,
-                            pointerEvents: 'none'
-                        }} />
 
                         <Grid container spacing={4} sx={{ position: 'relative', zIndex: 1 }}>
                             <Grid size={{ xs: 12, md: 5 }}>
@@ -231,26 +224,27 @@ export function Hero() {
                                         <Grid size={{ xs: 6 }} key={feature.title}>
                                             <Box sx={{
                                                 p: 2,
-                                                bgcolor: alpha(feature.color, 0.08),
+                                                bgcolor: alpha(feature.color, 0.05),
                                                 borderRadius: 2,
-                                                border: `1px solid ${alpha(feature.color, 0.15)}`,
+                                                border: `1px solid ${alpha(feature.color, 0.1)}`,
                                                 transition: 'all 0.2s ease',
                                                 '&:hover': {
                                                     transform: 'translateY(-2px)',
-                                                    bgcolor: alpha(feature.color, 0.12),
-                                                    boxShadow: `0 4px 12px ${alpha(feature.color, 0.2)}`
+                                                    bgcolor: alpha(feature.color, 0.08),
+                                                    border: `1px solid ${alpha(feature.color, 0.3)}`,
+                                                    boxShadow: `0 4px 12px ${alpha(feature.color, 0.15)}`
                                                 }
                                             }}>
                                                 <Box sx={{
                                                     p: 1.25,
                                                     borderRadius: '50%',
-                                                    bgcolor: alpha(feature.color, 0.15),
+                                                    bgcolor: alpha(feature.color, 0.1),
                                                     display: 'inline-flex',
                                                     mb: 1.5
                                                 }}>
                                                     <feature.Icon sx={{ fontSize: 24, color: feature.color }} />
                                                 </Box>
-                                                <Typography variant="subtitle2" fontWeight={700} sx={{ color: feature.color }}>
+                                                <Typography variant="subtitle2" fontWeight={700} sx={{ color: 'text.primary' }}>
                                                     {feature.title}
                                                 </Typography>
                                                 <Typography variant="caption" color="text.secondary">
