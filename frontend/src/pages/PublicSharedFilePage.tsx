@@ -7,7 +7,6 @@ import {
     Box,
     Button,
     CircularProgress,
-    Alert,
     Stack,
     useTheme,
     useMediaQuery,
@@ -66,6 +65,7 @@ export const PublicSharedFilePage = () => {
     const [decryptedKey, setDecryptedKey] = useState<CryptoKey | null>(null);
     const [downloading, setDownloading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [previewLoading, setPreviewLoading] = useState(false);
 
     const decryptChunk = async (chunk: Uint8Array, key: CryptoKey) => {
         const iv = chunk.slice(0, 16);
@@ -80,6 +80,7 @@ export const PublicSharedFilePage = () => {
     const downloadAndPreview = async (meta: SharedFileMetadata, key: CryptoKey) => {
         try {
             if (previewUrl) return;
+            setPreviewLoading(true);
 
             const response = await fetch(`${apiClient.defaults.baseURL}/public/share/${token}/download`, {
                 headers: {
@@ -121,6 +122,8 @@ export const PublicSharedFilePage = () => {
 
         } catch (e) {
             console.error('Preview generation failed:', e);
+        } finally {
+            setPreviewLoading(false);
         }
     };
 
@@ -235,8 +238,9 @@ export const PublicSharedFilePage = () => {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: 3, bgcolor: '#000000' }}>
                 <motion.div
-                    animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
                 >
                     <AegisLogo size={80} showText textVariant="h4" disableLink />
                 </motion.div>
@@ -247,20 +251,104 @@ export const PublicSharedFilePage = () => {
 
     if (error || !metadata) {
         return (
-            <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#000000', px: 2 }}>
+            <Box sx={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: '#000000',
+                px: 2,
+                flexDirection: 'column'
+            }}>
+                <Box sx={{ marginBottom: '40px' }}>
+                    <AegisLogo size={80} showText textVariant="h3" disableLink />
+                </Box>
+
                 <Container maxWidth="sm">
-                    <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 4, bgcolor: '#0a0a0a', border: '1px solid #1a1a1a' }}>
-                        <Alert severity="error" variant="outlined" sx={{ mb: 3, justifyContent: 'center', border: '1px solid #ef4444', bgcolor: 'transparent' }}>
-                            {error || 'Link Expired or Invalid'}
-                        </Alert>
-                        <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3 }}>
-                            This link may have expired, been revoked, or is incorrect. Please ask the sender for a new link.
+                    <Paper sx={{
+                        p: { xs: 4, md: 6 },
+                        textAlign: 'center',
+                        borderRadius: '32px',
+                        bgcolor: alpha('#0a0a0a', 0.8),
+                        backdropFilter: 'blur(20px)',
+                        border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                        boxShadow: `0 20px 60px ${alpha('#000', 0.8)}, 0 0 20px ${alpha(theme.palette.error.main, 0.05)}`
+                    }}>
+                        <Box sx={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: '20px',
+                            bgcolor: alpha(theme.palette.error.main, 0.1),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mx: 'auto',
+                            mb: 3,
+                            border: `1px solid ${alpha(theme.palette.error.main, 0.3)}`
+                        }}>
+                            <SecurityIcon sx={{ color: theme.palette.error.main, fontSize: 32 }} />
+                        </Box>
+
+                        <Typography variant="h4" sx={{ fontWeight: 900, mb: 2, letterSpacing: '-0.02em', color: '#fff' }}>
+                            Link Revoked or Invalid
                         </Typography>
-                        <Button component={Link} to="/" variant="contained" color="primary">
-                            Back to Home
-                        </Button>
+
+                        <Typography variant="body1" sx={{ color: alpha('#fff', 0.6), mb: 4, lineHeight: 1.6 }}>
+                            This link may have expired, been revoked, or is incorrect.
+                            For your security, Aegis ensures that access can be managed instantly by the sender.
+                        </Typography>
+
+                        <Stack spacing={2}>
+                            <Button
+                                component={Link}
+                                to="/"
+                                variant="contained"
+                                size="large"
+                                sx={{
+                                    py: 2,
+                                    borderRadius: '16px',
+                                    fontSize: '1.1rem',
+                                    fontWeight: 800,
+                                    bgcolor: '#fff',
+                                    color: '#000',
+                                    '&:hover': {
+                                        bgcolor: alpha('#fff', 0.9),
+                                        transform: 'translateY(-2px)',
+                                        boxShadow: '0 10px 20px rgba(0,0,0,0.4)'
+                                    },
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                Get Started for Free
+                            </Button>
+                            <Button
+                                component={Link}
+                                to="/"
+                                variant="outlined"
+                                size="large"
+                                sx={{
+                                    py: 1.5,
+                                    borderRadius: '16px',
+                                    borderColor: '#333',
+                                    color: alpha('#fff', 0.7),
+                                    fontWeight: 700,
+                                    '&:hover': {
+                                        borderColor: '#fff',
+                                        color: '#fff',
+                                        bgcolor: alpha('#fff', 0.05)
+                                    },
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                Back to Home
+                            </Button>
+                        </Stack>
                     </Paper>
                 </Container>
+
+                <Typography variant="caption" sx={{ mt: 6, color: alpha('#fff', 0.2), fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    Aegis Quantum-Safe Infrastructure
+                </Typography>
             </Box>
         );
     }
@@ -306,7 +394,14 @@ export const PublicSharedFilePage = () => {
                                     justifyContent: 'center',
                                     position: 'relative',
                                 }}>
-                                    {metadata.mimeType.startsWith('image/') && previewUrl ? (
+                                    {previewLoading ? (
+                                        <Stack alignItems="center" spacing={2}>
+                                            <CircularProgress size={40} sx={{ color: 'primary.main' }} />
+                                            <Typography variant="caption" sx={{ color: alpha('#fff', 0.4), fontWeight: 700, letterSpacing: '0.1em' }}>
+                                                DECRYPTING PREVIEW...
+                                            </Typography>
+                                        </Stack>
+                                    ) : (metadata.mimeType.startsWith('image/') && previewUrl) ? (
                                         <img src={previewUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', padding: '24px' }} />
                                     ) : (
                                         <Box sx={{ textAlign: 'center', color: alpha('#fff', 0.2) }}>
@@ -314,7 +409,7 @@ export const PublicSharedFilePage = () => {
                                                 {getIconForMimeType(metadata.mimeType)}
                                             </motion.div>
                                             <Typography sx={{ mt: 3, fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                                                Safe Preview Not Available
+                                                {metadata.mimeType.startsWith('image/') ? 'Preview Generation Failed' : 'Safe Preview Not Available'}
                                             </Typography>
                                         </Box>
                                     )}

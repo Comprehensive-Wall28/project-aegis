@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Box,
     Button,
@@ -8,7 +9,9 @@ import {
     CircularProgress,
     IconButton,
     Tooltip,
-    Stack
+    Stack,
+    useTheme,
+    alpha
 } from '@mui/material';
 import { ContentCopy as CopyIcon, Link as LinkIcon, Refresh as RefreshIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import apiClient from '@/services/api';
@@ -24,6 +27,7 @@ interface ShareLinkTabProps {
 }
 
 export const ShareLinkTab: React.FC<ShareLinkTabProps> = ({ item, type }) => {
+    const theme = useTheme();
     const [generatedLink, setGeneratedLink] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -127,6 +131,36 @@ export const ShareLinkTab: React.FC<ShareLinkTabProps> = ({ item, type }) => {
                 </Box>
             ) : (
                 <Box>
+                    <Box sx={{
+                        mb: 2,
+                        p: 1.5,
+                        borderRadius: '12px',
+                        border: `1px solid ${alpha(theme.palette.warning.main, 0.4)}`,
+                        bgcolor: alpha(theme.palette.warning.main, 0.05),
+                        textAlign: 'center'
+                    }}>
+                        <Typography variant="caption" sx={{ color: 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, fontWeight: 600 }}>
+                            Manage or revoke this link anytime in
+                            <Button
+                                component={Link}
+                                to="/dashboard/security?tab=security"
+                                size="small"
+                                sx={{
+                                    textTransform: 'none',
+                                    p: 0,
+                                    px: 0.5,
+                                    minWidth: 'auto',
+                                    verticalAlign: 'baseline',
+                                    fontWeight: 700,
+                                    color: 'warning.main',
+                                    '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
+                                }}
+                            >
+                                Security Settings
+                            </Button>
+                        </Typography>
+                    </Box>
+
                     <TextField
                         fullWidth
                         value={generatedLink}

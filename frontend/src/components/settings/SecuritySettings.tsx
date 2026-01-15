@@ -29,9 +29,11 @@ import {
     Fingerprint as FingerprintIcon,
     Add as AddIcon,
     Delete as DeleteIcon,
+    Link as LinkIcon,
 } from '@mui/icons-material';
 import { useSessionStore, type UserPreferences } from '@/stores/sessionStore';
 import authService from '@/services/authService';
+import { PublicLinkSettings } from './PublicLinkSettings';
 
 const SESSION_TIMEOUT_OPTIONS = [
     { value: 15, label: '15 minutes' },
@@ -177,6 +179,15 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Public Link Management */}
+            <Paper sx={sharedPaperStyles}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: '0.1em', fontSize: '10px', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <LinkIcon sx={{ fontSize: 14 }} />
+                    PUBLIC LINKS MANAGEMENT
+                </Typography>
+                <PublicLinkSettings onNotification={onNotification} />
+            </Paper>
+
             {/* Security Preferences */}
             <Paper sx={sharedPaperStyles}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: '0.1em', fontSize: '10px', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -314,17 +325,19 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                                 {truncatedKey}
                             </Typography>
                             <Tooltip title={copied ? 'Copied!' : 'Copy to clipboard'}>
-                                <IconButton
-                                    onClick={handleCopyPublicKey}
-                                    disabled={!user?.publicKey}
-                                    sx={{
-                                        bgcolor: copied ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.primary.main, 0.1),
-                                        color: copied ? theme.palette.success.main : theme.palette.primary.main,
-                                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) },
-                                    }}
-                                >
-                                    {copied ? <CheckIcon fontSize="small" /> : <CopyIcon fontSize="small" />}
-                                </IconButton>
+                                <Box component="span">
+                                    <IconButton
+                                        onClick={handleCopyPublicKey}
+                                        disabled={!user?.publicKey}
+                                        sx={{
+                                            bgcolor: copied ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.primary.main, 0.1),
+                                            color: copied ? theme.palette.success.main : theme.palette.primary.main,
+                                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) },
+                                        }}
+                                    >
+                                        {copied ? <CheckIcon fontSize="small" /> : <CopyIcon fontSize="small" />}
+                                    </IconButton>
+                                </Box>
                             </Tooltip>
                         </Box>
                         <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block', opacity: 0.7 }}>
@@ -398,31 +411,32 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                                     Counter: {cred.counter}
                                 </Typography>
                                 <Tooltip title="Remove Passkey">
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => handleRemovePasskey(cred.credentialID)}
-                                        disabled={removingPasskeyId === cred.credentialID}
-                                        sx={{
-                                            color: theme.palette.error.main,
-                                            opacity: 0.7,
-                                            '&:hover': {
-                                                opacity: 1,
-                                                bgcolor: alpha(theme.palette.error.main, 0.1)
-                                            }
-                                        }}
-                                    >
-                                        {removingPasskeyId === cred.credentialID ? (
-                                            <CircularProgress size={16} color="error" />
-                                        ) : (
-                                            <DeleteIcon fontSize="small" />
-                                        )}
-                                    </IconButton>
+                                    <Box component="span">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleRemovePasskey(cred.credentialID)}
+                                            disabled={removingPasskeyId === cred.credentialID}
+                                            sx={{
+                                                color: theme.palette.error.main,
+                                                opacity: 0.7,
+                                                '&:hover': {
+                                                    opacity: 1,
+                                                    bgcolor: alpha(theme.palette.error.main, 0.1)
+                                                }
+                                            }}
+                                        >
+                                            {removingPasskeyId === cred.credentialID ? (
+                                                <CircularProgress size={16} color="error" />
+                                            ) : (
+                                                <DeleteIcon fontSize="small" />
+                                            )}
+                                        </IconButton>
+                                    </Box>
                                 </Tooltip>
                             </Box>
                         ))}
                     </Box>
                 )}
-
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <Button
                         variant="outlined"

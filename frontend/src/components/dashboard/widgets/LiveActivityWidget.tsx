@@ -35,7 +35,7 @@ export function LiveActivityWidget() {
     }), [theme]);
 
     const handleViewAll = () => {
-        navigate('/dashboard/security', { state: { activeTab: 2 } });
+        navigate('/dashboard/security?tab=activity', { state: { activeTab: 3 } });
     };
 
     return (

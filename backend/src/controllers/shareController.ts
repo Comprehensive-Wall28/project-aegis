@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
 import SharedFolder from '../models/SharedFolder';
-import Folder from '../models/Folder';
+import Folder, { IFolder } from '../models/Folder';
 import User from '../models/User';
 import logger from '../utils/logger';
 import crypto from 'crypto';
 import SharedFile from '../models/SharedFile';
 import SharedLink from '../models/SharedLink';
-import FileMetadata from '../models/FileMetadata';
+import FileMetadata, { IFileMetadata } from '../models/FileMetadata';
 
 interface AuthRequest extends Request {
     user?: { id: string; username: string };
@@ -244,6 +244,76 @@ export const getSharedFileKey = async (req: AuthRequest, res: Response) => {
         });
     } catch (error) {
         logger.error('Error fetching shared file key:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+/**
+ * Get all shared links created by the current user.
+ */
+export const getMyLinks = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 5;
+        const skip = (page - 1) * limit;
+
+        const total = await SharedLink.countDocuments({ creatorId: req.user.id });
+        const links = await SharedLink.find({ creatorId: req.user.id })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        // Manually populate resource details since refPath is used
+        const populatedLinks = await Promise.all(links.map(async (link) => {
+            const linkObj = link.toObject() as any;
+            if (link.resourceType === 'file') {
+                const file = await FileMetadata.findById(link.resourceId).select('originalFileName fileSize mimeType');
+                linkObj.resourceDetails = file;
+            } else {
+                const folder = await Folder.findById(link.resourceId).select('name');
+                linkObj.resourceDetails = folder;
+            }
+            return linkObj;
+        }));
+
+        res.json({
+            links: populatedLinks,
+            total,
+            pages: Math.ceil(total / limit),
+            currentPage: page
+        });
+    } catch (error) {
+        logger.error('Error fetching user links:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+/**
+ * Revoke/Delete a shared link.
+ */
+export const revokeLink = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { id } = req.params;
+        const link = await SharedLink.findOne({ _id: id, creatorId: req.user.id });
+
+        if (!link) {
+            return res.status(404).json({ message: 'Link not found or unauthorized' });
+        }
+
+        await SharedLink.deleteOne({ _id: id });
+
+        logger.info(`Shared link ${id} revoked by ${req.user.username}`);
+        res.json({ message: 'Link revoked successfully' });
+    } catch (error) {
+        logger.error('Error revoking shared link:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
