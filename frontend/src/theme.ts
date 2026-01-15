@@ -12,7 +12,7 @@ declare module '@mui/material/Paper' {
 const FONT_PRIMARY = 'Outfit, sans-serif';
 const FONT_SECONDARY = 'Inter, sans-serif';
 
-export type ThemeMode = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'grey' | 'ocean' | 'light';
+export type ThemeMode = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'grey' | 'ocean' | 'light' | 'tokyonight';
 
 export const getTheme = (mode: ThemeMode) => {
 
@@ -143,6 +143,24 @@ export const getTheme = (mode: ThemeMode) => {
                 secondary: '#94a3b8',
             },
             divider: 'rgba(148, 163, 184, 0.08)',
+        },
+        tokyonight: {
+            background: {
+                default: '#1a1b26', // Tokyo Night Storm background
+                paper: '#24283b',   // Tokyo Night Storm surface
+            },
+            primary: {
+                main: '#7aa2f7',    // Tokyo Night blue
+                contrastText: '#1a1b26',
+            },
+            secondary: {
+                main: '#bb9af7',    // Tokyo Night purple
+            },
+            text: {
+                primary: '#c0caf5', // Tokyo Night foreground
+                secondary: '#565f89', // Tokyo Night comment
+            },
+            divider: 'rgba(86, 95, 137, 0.3)',
         },
     };
 
