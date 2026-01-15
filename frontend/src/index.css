@@ -221,6 +221,52 @@
   --color-primary-fg-aegis: #000000;
 }
 
+[data-theme="purple"] {
+  /* Deep Purple Theme */
+  --background: 272 100% 3%;
+  /* #07000d */
+  --foreground: 270 100% 98%;
+  /* #faf5ff */
+
+  --card: 265 75% 6%;
+  /* #0e041b */
+  --card-foreground: 270 100% 98%;
+
+  --popover: 272 100% 3%;
+  --popover-foreground: 270 100% 98%;
+
+  --primary: 271 81% 56%;
+  /* #9333ea */
+  --primary-foreground: 270 100% 98%;
+
+  --secondary: 263 70% 50%;
+  /* #6d28d9 */
+  --secondary-foreground: 270 100% 98%;
+
+  --muted: 265 75% 10%;
+  --muted-foreground: 255 92% 76%;
+  /* #a78bfa */
+
+  --accent: 271 81% 56%;
+  --accent-foreground: 270 100% 98%;
+
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 265 75% 10%;
+  --input: 265 75% 10%;
+  --ring: 271 81% 56%;
+
+  /* Aegis Custom Variables (Purple) */
+  --color-background-aegis: #07000d;
+  --color-card-aegis: #0e041b;
+  --color-text-primary: #faf5ff;
+  --color-text-secondary: #a78bfa;
+  --color-accent-blue: #9333ea;
+  --color-accent-lime: #a78bfa;
+  --color-primary-fg-aegis: #faf5ff;
+}
+
 body {
   background-color: var(--color-background-aegis);
   color: var(--color-text-primary);

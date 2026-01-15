@@ -19,4 +19,22 @@ export default defineConfig({
       "@": "/src",
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@mui/material') || id.includes('@emotion')) return 'mui-base';
+            if (id.includes('@mui/icons-material')) return 'mui-icons';
+            if (id.includes('@mui/x-charts')) return 'mui-charts';
+            if (id.includes('@fullcalendar')) return 'calendar-vendor';
+            if (id.includes('framer-motion')) return 'motion-vendor';
+            if (id.includes('@noble') || id.includes('@simplewebauthn')) return 'crypto-vendor';
+            if (id.includes('lucide-react')) return 'lucide-vendor';
+            return 'vendor';
+          }
+        }
+      }
+    }
+  }
 })

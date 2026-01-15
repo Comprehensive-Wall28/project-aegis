@@ -1,5 +1,9 @@
 import { create } from 'zustand';
-import type { AuditLog } from '@/services/auditService';
+import auditService, { type AuditLog } from '@/services/auditService';
+import authService from '@/services/authService';
+import * as cryptoUtils from '@/lib/cryptoUtils';
+// @ts-ignore
+import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 
 export interface UserPreferences {
     sessionTimeout: number; // minutes
@@ -136,8 +140,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         // Run async initialization without blocking
         (async () => {
             try {
-                // Dynamic import to handle WASM loading issues
-                const { ml_kem768 } = await import('@noble/post-quantum/ml-kem.js');
+                // WASM loading issues handled by @noble/post-quantum pure JS
+                // const { ml_kem768 } = await import('@noble/post-quantum/ml-kem.js');
 
                 // Generate keys - use seed if provided for persistence
                 const { publicKey, secretKey } = seed ? ml_kem768.keygen(seed) : ml_kem768.keygen();
@@ -152,7 +156,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 // Derive vault key for high-performance symmetric encryption
                 let vaultKey: CryptoKey | null = null;
                 if (seed) {
-                    const { deriveVaultKey, deriveGlobalCtrKey } = await import('../lib/cryptoUtils');
+                    const { deriveVaultKey, deriveGlobalCtrKey } = cryptoUtils;
                     vaultKey = await deriveVaultKey(seed);
 
                     // Derive CTR key for Eco-Mode encryption
@@ -212,7 +216,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         try {
             // First check if there's a stored seed - if not, don't bother checking auth
             // This prevents unnecessary 401 requests on the homepage for non-logged-in users
-            const { getStoredSeed } = await import('../lib/cryptoUtils');
+            const { getStoredSeed } = cryptoUtils;
             const seed = getStoredSeed();
 
             if (!seed) {
@@ -226,8 +230,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 return;
             }
 
-            // Dynamically import authService to avoid circular dependencies if any
-            const { default: authService } = await import('../services/authService');
+            // Use static import
+            // const { default: authService } = await import('../services/authService');
             const user = await authService.validateSession();
 
             if (user) {
@@ -242,7 +246,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 currentState.initializeQuantumKeys(seed);
             } else {
                 // Server says not authenticated but we have a seed - clear it
-                const { clearStoredSeed } = await import('../lib/cryptoUtils');
+                const { clearStoredSeed } = cryptoUtils;
                 clearStoredSeed();
                 set({
                     user: null,
@@ -271,7 +275,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         if (!currentState.isAuthenticated) return;
 
         try {
-            const { default: auditService } = await import('../services/auditService');
             const logs = await auditService.getRecentActivity();
             set({ recentActivity: logs });
         } catch (error) {

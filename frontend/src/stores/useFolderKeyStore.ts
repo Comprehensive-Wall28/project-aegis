@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import folderService from '@/services/folderService';
+import apiClient from '@/services/api';
 import { useSessionStore } from './sessionStore';
 import { unwrapKey, decapsulateFolderKey } from '@/lib/cryptoUtils';
 
@@ -50,9 +51,7 @@ export const useFolderKeyStore = create<FolderKeyState>((set, get) => ({
                 key = await unwrapKey(folder.encryptedSessionKey, masterKey, 'AES-GCM');
             } else {
                 // Shared folder: Fetch the encryptedSharedKey (PQC)
-                const response = await import('@/services/api').then(m =>
-                    m.default.get(`/share/shared-folder/${folderId}`)
-                );
+                const response = await apiClient.get(`/share/shared-folder/${folderId}`);
                 const { encryptedSharedKey } = response.data;
                 key = await decapsulateFolderKey(encryptedSharedKey, user.privateKey);
             }

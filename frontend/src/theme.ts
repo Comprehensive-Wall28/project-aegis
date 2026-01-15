@@ -56,21 +56,21 @@ export const getTheme = (mode: ThemeMode) => {
         },
         purple: {
             background: {
-                default: '#0d0015', // Deep Purple/Black
-                paper: '#1a0a2e',   // Dark Purple
+                default: '#07000d', // Deepest Purple/Black
+                paper: '#0e041b',   // Slightly Lighter Refined Purple
             },
             primary: {
-                main: '#a855f7',    // Purple 500
-                contrastText: '#0d0015',
+                main: '#9333ea',    // Purple 600 (Darker than 500)
+                contrastText: '#faf5ff',
             },
             secondary: {
-                main: '#7c3aed',    // Violet 600
+                main: '#6d28d9',    // Violet 700 (Darker than 600)
             },
             text: {
                 primary: '#faf5ff', // Purple 50
-                secondary: '#c4b5fd', // Violet 300
+                secondary: '#a78bfa', // Violet 400 (Darker than 300)
             },
-            divider: 'rgba(168, 85, 247, 0.15)',
+            divider: 'rgba(147, 51, 234, 0.12)',
         },
         amoled: {
             background: {
