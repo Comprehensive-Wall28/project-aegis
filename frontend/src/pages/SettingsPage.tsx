@@ -8,17 +8,20 @@ import {
     Tab,
     alpha,
     useTheme,
+    useMediaQuery,
 } from '@mui/material';
 import {
     Settings as SettingsIcon,
     Person as PersonIcon,
     Security as SecurityIcon,
     History as HistoryIcon,
+    Palette as PaletteIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { AccountSettings } from '@/components/settings/AccountSettings';
 import { SecuritySettings } from '@/components/settings/SecuritySettings';
+import { AppearanceSettings } from '@/components/settings/AppearanceSettings';
 import { AuditTrailView } from '@/components/security/AuditTrailView';
 
 interface NotificationState {
@@ -46,6 +49,7 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 
 export function SettingsPage() {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const location = useLocation();
     const [activeTab, setActiveTab] = useState(0);
     const [notification, setNotification] = useState<NotificationState | null>(null);
@@ -113,6 +117,9 @@ export function SettingsPage() {
                 <Tabs
                     value={activeTab}
                     onChange={handleTabChange}
+                    variant={isMobile ? 'scrollable' : 'standard'}
+                    scrollButtons={isMobile ? 'auto' : false}
+                    allowScrollButtonsMobile
                     sx={{
                         mb: 1,
                         '& .MuiTabs-indicator': {
@@ -123,10 +130,11 @@ export function SettingsPage() {
                         '& .MuiTab-root': {
                             textTransform: 'none',
                             fontWeight: 600,
-                            fontSize: '14px',
+                            fontSize: { xs: '12px', sm: '14px' },
                             color: 'text.secondary',
                             minHeight: 48,
-                            px: 2,
+                            px: { xs: 1.5, sm: 2 },
+                            minWidth: { xs: 'auto', sm: 90 },
                             '&.Mui-selected': {
                                 color: theme.palette.primary.main,
                             },
@@ -136,19 +144,25 @@ export function SettingsPage() {
                     <Tab
                         icon={<PersonIcon sx={{ fontSize: 18 }} />}
                         iconPosition="start"
-                        label="Account"
+                        label={isMobile ? undefined : 'Account'}
                         sx={{ gap: 1 }}
                     />
                     <Tab
                         icon={<SecurityIcon sx={{ fontSize: 18 }} />}
                         iconPosition="start"
-                        label="Security"
+                        label={isMobile ? undefined : 'Security'}
+                        sx={{ gap: 1 }}
+                    />
+                    <Tab
+                        icon={<PaletteIcon sx={{ fontSize: 18 }} />}
+                        iconPosition="start"
+                        label={isMobile ? undefined : 'Appearance'}
                         sx={{ gap: 1 }}
                     />
                     <Tab
                         icon={<HistoryIcon sx={{ fontSize: 18 }} />}
                         iconPosition="start"
-                        label="Activity"
+                        label={isMobile ? undefined : 'Activity'}
                         sx={{ gap: 1 }}
                     />
                 </Tabs>
@@ -172,6 +186,10 @@ export function SettingsPage() {
                 </TabPanel>
 
                 <TabPanel value={activeTab} index={2}>
+                    <AppearanceSettings onNotification={handleNotification} />
+                </TabPanel>
+
+                <TabPanel value={activeTab} index={3}>
                     <AuditTrailView maxHeight={600} />
                 </TabPanel>
             </Box>

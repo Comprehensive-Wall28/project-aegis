@@ -5,6 +5,7 @@ import {
     Typography,
     alpha,
     useTheme,
+    useMediaQuery,
     CircularProgress,
     Button,
     IconButton,
@@ -35,6 +36,7 @@ interface AuditTrailViewProps {
 
 export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [total, setTotal] = useState(0);
     const [hasMore, setHasMore] = useState(false);
@@ -156,19 +158,21 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
                         <Table stickyHeader size="small">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell sx={{ bgcolor: 'transparent', borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
+                                    <TableCell sx={{ bgcolor: theme.palette.background.paper, borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
                                         ACTION
                                     </TableCell>
-                                    <TableCell sx={{ bgcolor: 'transparent', borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
+                                    <TableCell sx={{ bgcolor: theme.palette.background.paper, borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
                                         STATUS
                                     </TableCell>
-                                    <TableCell sx={{ bgcolor: 'transparent', borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
-                                        IP ADDRESS
-                                    </TableCell>
-                                    <TableCell sx={{ bgcolor: 'transparent', borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
+                                    {!isMobile && (
+                                        <TableCell sx={{ bgcolor: theme.palette.background.paper, borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
+                                            IP ADDRESS
+                                        </TableCell>
+                                    )}
+                                    <TableCell sx={{ bgcolor: theme.palette.background.paper, borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
                                         TIME
                                     </TableCell>
-                                    <TableCell sx={{ bgcolor: 'transparent', borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, width: 40 }} />
+                                    <TableCell sx={{ bgcolor: theme.palette.background.paper, borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, width: 40 }} />
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -214,20 +218,22 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
                                                             </Typography>
                                                         </Box>
                                                     </TableCell>
-                                                    <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
-                                                        <Tooltip title={log.ipAddress}>
-                                                            <Typography
-                                                                variant="caption"
-                                                                sx={{
-                                                                    fontFamily: '"JetBrains Mono", monospace',
-                                                                    fontSize: '11px',
-                                                                    color: 'text.secondary',
-                                                                }}
-                                                            >
-                                                                {auditService.maskIpAddress(log.ipAddress)}
-                                                            </Typography>
-                                                        </Tooltip>
-                                                    </TableCell>
+                                                    {!isMobile && (
+                                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
+                                                            <Tooltip title={log.ipAddress}>
+                                                                <Typography
+                                                                    variant="caption"
+                                                                    sx={{
+                                                                        fontFamily: '"JetBrains Mono", monospace',
+                                                                        fontSize: '11px',
+                                                                        color: 'text.secondary',
+                                                                    }}
+                                                                >
+                                                                    {auditService.maskIpAddress(log.ipAddress)}
+                                                                </Typography>
+                                                            </Tooltip>
+                                                        </TableCell>
+                                                    )}
                                                     <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
                                                         <Tooltip title={new Date(log.timestamp).toLocaleString()}>
                                                             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '11px' }}>
@@ -244,7 +250,7 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
 
                                                 {/* Expanded Details Row */}
                                                 <TableRow>
-                                                    <TableCell colSpan={5} sx={{ py: 0, borderBottom: expandedRow === log._id ? `1px solid ${alpha(theme.palette.common.white, 0.05)}` : 'none' }}>
+                                                    <TableCell colSpan={isMobile ? 4 : 5} sx={{ py: 0, borderBottom: expandedRow === log._id ? `1px solid ${alpha(theme.palette.common.white, 0.05)}` : 'none' }}>
                                                         <Collapse in={expandedRow === log._id} timeout="auto" unmountOnExit>
                                                             <Box sx={{ py: 2, px: 1 }}>
                                                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
@@ -333,8 +339,9 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
                         </Box>
                     )}
                 </>
-            )}
-        </Paper>
+            )
+            }
+        </Paper >
     );
 }
 
