@@ -37,9 +37,10 @@ import {
     FiberManualRecord as DotIcon,
 } from '@mui/icons-material';
 // Internal store and components
-import { useSocialStore } from '@/stores/useSocialStore';
+import { useSocialStore, encryptWithAES, decryptWithAES } from '@/stores/useSocialStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { LinkCard } from '@/components/social/LinkCard';
+import { CommentsOverlay } from '@/components/social/CommentsOverlay';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import type { Room, LinkPost, Collection } from '@/services/socialService';
 
@@ -337,6 +338,8 @@ export function SocialPage() {
     const markLinkViewed = useSocialStore((state) => state.markLinkViewed);
     const getUnviewedCountByCollection = useSocialStore((state) => state.getUnviewedCountByCollection);
     const viewedLinkIds = useSocialStore((state) => state.viewedLinkIds);
+    const roomKeys = useSocialStore((state) => state.roomKeys);
+    const commentCounts = useSocialStore((state) => state.commentCounts);
 
     // Get current user ID for delete permissions
     const currentUserId = useSessionStore((state) => state.user?._id);
@@ -377,6 +380,9 @@ export function SocialPage() {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [isDeletingCollection, setIsDeletingCollection] = useState(false);
 
+    // Comments overlay state
+    const [commentsLink, setCommentsLink] = useState<LinkPost | null>(null);
+
     // Fetch rooms on mount
     useEffect(() => {
         if (pqcEngineStatus === 'operational') {
@@ -398,16 +404,16 @@ export function SocialPage() {
         }
     }, [rooms, currentRoom, roomId, isLoadingRooms, selectRoom]);
 
-    // Auto-refresh content every 5 seconds
+    // Auto-refresh content every 5 seconds (paused when comments overlay is open)
     useEffect(() => {
-        if (!currentRoom) return;
+        if (!currentRoom || commentsLink) return;
 
         const interval = setInterval(() => {
             refreshCurrentRoom();
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [currentRoom, refreshCurrentRoom]);
+    }, [currentRoom, refreshCurrentRoom, commentsLink]);
 
     // Decrypt room names when rooms change
     useEffect(() => {
@@ -1090,7 +1096,9 @@ export function SocialPage() {
                                             onDelete={() => deleteLink(link._id)}
                                             onDragStart={(id) => setDraggedLinkId(id)}
                                             onView={(id) => markLinkViewed(id)}
+                                            onCommentsClick={(l) => setCommentsLink(l)}
                                             isViewed={viewedLinkIds.has(link._id)}
+                                            commentCount={commentCounts[link._id] || 0}
                                             canDelete={
                                                 currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
                                             }
@@ -1257,6 +1265,26 @@ export function SocialPage() {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
+
+            {/* Comments Overlay */}
+            {commentsLink && currentRoom && (
+                <CommentsOverlay
+                    open={!!commentsLink}
+                    onClose={() => setCommentsLink(null)}
+                    link={commentsLink}
+                    currentUserId={currentUserId}
+                    encryptComment={async (text) => {
+                        const roomKey = roomKeys.get(currentRoom._id);
+                        if (!roomKey) throw new Error('Room key not available');
+                        return encryptWithAES(roomKey, text);
+                    }}
+                    decryptComment={async (encrypted) => {
+                        const roomKey = roomKeys.get(currentRoom._id);
+                        if (!roomKey) throw new Error('Room key not available');
+                        return decryptWithAES(roomKey, encrypted);
+                    }}
+                />
+            )}
         </Box >
     );
 }

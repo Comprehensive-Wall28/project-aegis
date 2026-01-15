@@ -19,6 +19,7 @@ interface SocialState {
     currentCollectionId: string | null;
     links: LinkPost[];
     viewedLinkIds: Set<string>;
+    commentCounts: Record<string, number>;
 
     // Loading states
     isLoadingRooms: boolean;
@@ -200,6 +201,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     currentCollectionId: null,
     links: [],
     viewedLinkIds: new Set(),
+    commentCounts: {},
     isLoadingRooms: false,
     isLoadingContent: false,
     pendingInvite: null,
@@ -271,6 +273,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 collections: content.collections,
                 links: content.links,
                 viewedLinkIds: new Set(content.viewedLinkIds || []),
+                commentCounts: content.commentCounts || {},
                 rooms: updatedRooms,
                 currentCollectionId: content.collections[0]?._id || null,
                 isLoadingContent: false,
@@ -309,6 +312,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 collections: content.collections,
                 links: content.links,
                 viewedLinkIds: new Set(content.viewedLinkIds || []),
+                commentCounts: content.commentCounts || {},
                 // Do NOT reset currentCollectionId or loading state
             });
         } catch (error) {
@@ -538,6 +542,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             currentCollectionId: null,
             links: [],
             viewedLinkIds: new Set(),
+            commentCounts: {},
             pendingInvite: null,
             roomKeys: new Map(),
         });

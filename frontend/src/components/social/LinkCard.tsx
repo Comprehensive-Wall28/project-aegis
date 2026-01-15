@@ -1,6 +1,6 @@
 import { useState, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { Box, Paper, Typography, IconButton, alpha, useTheme, Button } from '@mui/material';
+import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge } from '@mui/material';
 import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LinkPost } from '@/services/socialService';
@@ -12,10 +12,11 @@ interface LinkCardProps {
     onDragStart?: (linkId: string) => void;
     onView?: (linkId: string) => void;
     isViewed?: boolean;
+    commentCount?: number;
     canDelete?: boolean;
 }
 
-export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, isViewed = true, canDelete }: LinkCardProps) => {
+export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, isViewed = true, commentCount = 0, canDelete }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
@@ -181,7 +182,20 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     }}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
                                 >
-                                    <CommentsIcon fontSize="small" />
+                                    <Badge
+                                        badgeContent={commentCount}
+                                        color="primary"
+                                        max={99}
+                                        sx={{
+                                            '& .MuiBadge-badge': {
+                                                fontSize: '0.65rem',
+                                                minWidth: 16,
+                                                height: 16,
+                                            }
+                                        }}
+                                    >
+                                        <CommentsIcon fontSize="small" />
+                                    </Badge>
                                 </IconButton>
 
                                 {canDelete && (

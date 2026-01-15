@@ -45,6 +45,7 @@ export interface RoomContent {
     collections: Collection[];
     links: LinkPost[];
     viewedLinkIds: string[];
+    commentCounts: Record<string, number>;
 }
 
 export interface CreateRoomData {
@@ -58,6 +59,14 @@ export interface InviteInfo {
     name: string; // Encrypted
     description: string; // Encrypted
     icon: string;
+}
+
+export interface LinkComment {
+    _id: string;
+    linkId: string;
+    userId: { _id: string; username: string } | string;
+    encryptedContent: string;
+    createdAt: string;
 }
 
 const socialService = {
@@ -166,6 +175,29 @@ const socialService = {
      */
     markLinkViewed: async (linkId: string): Promise<void> => {
         await apiClient.post(`/social/links/${linkId}/view`);
+    },
+
+    /**
+     * Get all comments for a link
+     */
+    getComments: async (linkId: string): Promise<LinkComment[]> => {
+        const response = await apiClient.get<LinkComment[]>(`/social/links/${linkId}/comments`);
+        return response.data;
+    },
+
+    /**
+     * Post a new comment on a link
+     */
+    postComment: async (linkId: string, encryptedContent: string): Promise<LinkComment> => {
+        const response = await apiClient.post<LinkComment>(`/social/links/${linkId}/comments`, { encryptedContent });
+        return response.data;
+    },
+
+    /**
+     * Delete a comment
+     */
+    deleteComment: async (commentId: string): Promise<void> => {
+        await apiClient.delete(`/social/comments/${commentId}`);
     },
 
     /**

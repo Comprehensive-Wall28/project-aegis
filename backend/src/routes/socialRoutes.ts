@@ -11,7 +11,10 @@ import {
     createCollection,
     deleteCollection,
     moveLink,
-    markLinkViewed
+    markLinkViewed,
+    getComments,
+    postComment,
+    deleteComment
 } from '../controllers/socialController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection } from '../middleware/csrfMiddleware';
@@ -33,5 +36,8 @@ router.delete('/links/:linkId', protect, csrfProtection, deleteLink);
 router.delete('/collections/:collectionId', protect, csrfProtection, deleteCollection);
 router.patch('/links/:linkId/move', protect, csrfProtection, moveLink);
 router.post('/links/:linkId/view', protect, csrfProtection, markLinkViewed);
+router.get('/links/:linkId/comments', protect, csrfProtection, getComments);
+router.post('/links/:linkId/comments', protect, csrfProtection, postComment);
+router.delete('/comments/:commentId', protect, csrfProtection, deleteComment);
 
 export default router;

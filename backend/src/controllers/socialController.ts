@@ -388,6 +388,17 @@ export const getRoomContent = async (req: AuthRequest, res: Response, next: Next
         }).select('linkId');
         const viewedLinkIds = viewedLinks.map(v => v.linkId.toString());
 
+        // Get comment counts for each link
+        const LinkComment = (await import('../models/LinkComment')).default;
+        const commentCounts = await LinkComment.aggregate([
+            { $match: { linkId: { $in: links.map(l => l._id) } } },
+            { $group: { _id: '$linkId', count: { $sum: 1 } } }
+        ]);
+        const commentCountMap: Record<string, number> = {};
+        commentCounts.forEach((cc: { _id: string; count: number }) => {
+            commentCountMap[cc._id.toString()] = cc.count;
+        });
+
         res.status(200).json({
             room: {
                 _id: room._id,
@@ -399,7 +410,8 @@ export const getRoomContent = async (req: AuthRequest, res: Response, next: Next
             },
             collections,
             links,
-            viewedLinkIds
+            viewedLinkIds,
+            commentCounts: commentCountMap
         });
     } catch (error) {
         logger.error('Error getting room content:', error);
@@ -662,6 +674,166 @@ export const deleteCollection = async (req: AuthRequest, res: Response, next: Ne
         res.status(200).json({ message: 'Collection deleted successfully' });
     } catch (error) {
         logger.error('Error deleting collection:', error);
+        next(error);
+    }
+};
+
+/**
+ * Get all comments for a link.
+ * Requires room membership.
+ */
+export const getComments = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { linkId } = req.params;
+
+        // Find the link
+        const linkPost = await LinkPost.findById(linkId);
+        if (!linkPost) {
+            return res.status(404).json({ message: 'Link not found' });
+        }
+
+        // Verify room membership
+        const collection = await Collection.findById(linkPost.collectionId);
+        if (!collection) {
+            return res.status(404).json({ message: 'Collection not found' });
+        }
+
+        const room = await Room.findOne({
+            _id: collection.roomId,
+            'members.userId': req.user.id
+        });
+
+        if (!room) {
+            return res.status(403).json({ message: 'Not a member of this room' });
+        }
+
+        // Get comments
+        const LinkComment = (await import('../models/LinkComment')).default;
+        const comments = await LinkComment.find({ linkId })
+            .populate('userId', 'username')
+            .sort({ createdAt: 1 });
+
+        res.status(200).json(comments);
+    } catch (error) {
+        logger.error('Error getting comments:', error);
+        next(error);
+    }
+};
+
+/**
+ * Post a new encrypted comment on a link.
+ * Requires room membership.
+ */
+export const postComment = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { linkId } = req.params;
+        const { encryptedContent } = req.body;
+
+        if (!encryptedContent) {
+            return res.status(400).json({ message: 'Encrypted content is required' });
+        }
+
+        // Find the link
+        const linkPost = await LinkPost.findById(linkId);
+        if (!linkPost) {
+            return res.status(404).json({ message: 'Link not found' });
+        }
+
+        // Verify room membership
+        const collection = await Collection.findById(linkPost.collectionId);
+        if (!collection) {
+            return res.status(404).json({ message: 'Collection not found' });
+        }
+
+        const room = await Room.findOne({
+            _id: collection.roomId,
+            'members.userId': req.user.id
+        });
+
+        if (!room) {
+            return res.status(403).json({ message: 'Not a member of this room' });
+        }
+
+        // Create comment
+        const LinkComment = (await import('../models/LinkComment')).default;
+        const comment = await LinkComment.create({
+            linkId,
+            userId: req.user.id,
+            encryptedContent
+        });
+
+        // Populate user info
+        await comment.populate('userId', 'username');
+
+        logger.info(`Comment posted on link ${linkId} by user ${req.user.id}`);
+
+        res.status(201).json(comment);
+    } catch (error) {
+        logger.error('Error posting comment:', error);
+        next(error);
+    }
+};
+
+/**
+ * Delete a comment.
+ * Only the comment author or room owner can delete.
+ */
+export const deleteComment = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { commentId } = req.params;
+
+        // Find the comment
+        const LinkComment = (await import('../models/LinkComment')).default;
+        const comment = await LinkComment.findById(commentId);
+        if (!comment) {
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+
+        // Find the link and room to check permissions
+        const linkPost = await LinkPost.findById(comment.linkId);
+        if (!linkPost) {
+            return res.status(404).json({ message: 'Link not found' });
+        }
+
+        const collection = await Collection.findById(linkPost.collectionId);
+        if (!collection) {
+            return res.status(404).json({ message: 'Collection not found' });
+        }
+
+        const room = await Room.findById(collection.roomId);
+        if (!room) {
+            return res.status(404).json({ message: 'Room not found' });
+        }
+
+        // Check permissions
+        const isCommentAuthor = comment.userId.toString() === req.user.id;
+        const isRoomOwner = room.members.some(
+            m => m.userId.toString() === req.user!.id && m.role === 'owner'
+        );
+
+        if (!isCommentAuthor && !isRoomOwner) {
+            return res.status(403).json({ message: 'Permission denied' });
+        }
+
+        await LinkComment.findByIdAndDelete(commentId);
+
+        logger.info(`Comment ${commentId} deleted by user ${req.user.id}`);
+
+        res.status(200).json({ message: 'Comment deleted successfully' });
+    } catch (error) {
+        logger.error('Error deleting comment:', error);
         next(error);
     }
 };
