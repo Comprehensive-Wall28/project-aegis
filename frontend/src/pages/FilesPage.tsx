@@ -55,7 +55,7 @@ import vaultService, { type FileMetadata } from '@/services/vaultService';
 import folderService, { type Folder } from '@/services/folderService';
 import { motion, AnimatePresence } from 'framer-motion';
 import UploadZone from '@/components/vault/UploadZone';
-import { useVaultUpload } from '@/hooks/useVaultUpload';
+import { useVaultUpload, useUploadStatus } from '@/hooks/useVaultUpload';
 import { useVaultDownload } from '@/hooks/useVaultDownload';
 import { BackendDown } from '@/components/BackendDown';
 import { ContextMenu, useContextMenu, CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/ContextMenu';
@@ -157,7 +157,8 @@ export function FilesPage() {
     const [displayLimit, setDisplayLimit] = useState(20);
 
     const sentinelRef = useRef<HTMLDivElement>(null);
-    const { uploadFiles, globalState: uploadState } = useVaultUpload();
+    const { uploadFiles } = useVaultUpload();
+    const uploadStatus = useUploadStatus(); // Using specialized status-only hook
     const { downloadAndDecrypt } = useVaultDownload();
     const { contextMenu, handleContextMenu, closeContextMenu } = useContextMenu();
     const theme = useTheme();
@@ -361,10 +362,10 @@ export function FilesPage() {
 
     // Refresh file list when an upload completes
     useEffect(() => {
-        if (uploadState.status === 'completed') {
+        if (uploadStatus === 'completed') {
             fetchData();
         }
-    }, [uploadState.status, fetchData]);
+    }, [uploadStatus, fetchData]);
 
     // Folder handlers
     const handleCreateFolder = async () => {

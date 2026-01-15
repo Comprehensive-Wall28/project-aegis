@@ -26,12 +26,9 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { type UploadItem } from '../../stores/useUploadStore';
+import { useVaultUpload } from '../../hooks/useVaultUpload';
 
-interface UploadManagerProps {
-    uploads: UploadItem[];
-    globalProgress: number;
-    onClearCompleted?: () => void;
-}
+interface UploadManagerProps { }
 
 // Get file icon based on mime type
 const getFileIcon = (fileName: string) => {
@@ -55,19 +52,153 @@ const truncateFileName = (name: string, maxLength: number = 24) => {
     return `${truncatedBase}...${ext}`;
 };
 
-const UploadManager: React.FC<UploadManagerProps> = ({
-    uploads,
-    globalProgress,
-    onClearCompleted
+// Memoized individual upload item row to prevent unnecessary re-renders
+const UploadItemRow = React.memo(({
+    upload,
+    theme,
+    getFileIcon,
+    truncateFileName
+}: {
+    upload: UploadItem;
+    theme: any;
+    getFileIcon: (name: string) => React.ElementType;
+    truncateFileName: (name: string, max?: number) => string;
 }) => {
+    const FileIconComponent = getFileIcon(upload.file.name);
+    const isActive = upload.status === 'encrypting' || upload.status === 'uploading';
+    const isPending = upload.status === 'pending';
+    const isComplete = upload.status === 'completed';
+    const isError = upload.status === 'error';
+
+    return (
+        <Box
+            sx={{
+                px: 2,
+                py: 1.25,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+                transition: 'background-color 0.2s',
+                '&:hover': {
+                    bgcolor: alpha(theme.palette.text.primary, 0.02),
+                },
+                '&:last-child': { borderBottom: 'none' },
+            }}
+        >
+            {/* File Icon */}
+            <Box
+                sx={{
+                    p: 0.75,
+                    borderRadius: '8px',
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}
+            >
+                <FileIconComponent
+                    sx={{
+                        fontSize: 18,
+                        color: isError ? 'error.main' : 'primary.main',
+                        opacity: isPending ? 0.5 : 1,
+                    }}
+                />
+            </Box>
+
+            {/* File Info */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                    variant="caption"
+                    sx={{
+                        display: 'block',
+                        fontWeight: 600,
+                        color: isError ? 'error.main' : 'text.primary',
+                        opacity: isPending ? 0.6 : 1,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                    }}
+                >
+                    {truncateFileName(upload.file.name)}
+                </Typography>
+                {(isActive || isPending) && (
+                    <LinearProgress
+                        variant={isPending ? 'indeterminate' : 'determinate'}
+                        value={upload.progress}
+                        sx={{
+                            mt: 0.5,
+                            height: 3,
+                            borderRadius: 1.5,
+                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            '& .MuiLinearProgress-bar': {
+                                borderRadius: 1.5,
+                                // Disable slow transitions for active uploads
+                                transition: isActive ? 'none' : undefined,
+                            },
+                        }}
+                    />
+                )}
+                {isError && (
+                    <Typography
+                        variant="caption"
+                        sx={{ color: 'error.main', fontSize: 10 }}
+                    >
+                        {upload.error || 'Upload failed'}
+                    </Typography>
+                )}
+            </Box>
+
+            {/* Status Icon */}
+            <Box sx={{ flexShrink: 0 }}>
+                {isActive && (
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            fontWeight: 700,
+                            fontFamily: 'JetBrains Mono',
+                            color: 'primary.main',
+                            fontSize: 11,
+                        }}
+                    >
+                        {upload.progress}%
+                    </Typography>
+                )}
+                {isPending && (
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            color: 'text.secondary',
+                            fontSize: 10,
+                            fontWeight: 600,
+                        }}
+                    >
+                        Queued
+                    </Typography>
+                )}
+                {isComplete && (
+                    <SuccessIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                )}
+                {isError && (
+                    <ErrorIcon sx={{ fontSize: 18, color: 'error.main' }} />
+                )}
+            </Box>
+        </Box>
+    );
+});
+
+const UploadManager: React.FC<UploadManagerProps> = () => {
+    const { activeUploads: uploads, globalState, clearCompleted: onClearCompleted } = useVaultUpload();
+    const globalProgress = globalState.progress;
+
     const [isMinimized, setIsMinimized] = useState(false);
     const [isDismissed, setIsDismissed] = useState(false);
     const theme = useTheme();
 
     // Calculate stats
-    const completedCount = uploads.filter(u => u.status === 'completed').length;
-    const errorCount = uploads.filter(u => u.status === 'error').length;
-    const activeCount = uploads.filter(u =>
+    const completedCount = uploads.filter((u: UploadItem) => u.status === 'completed').length;
+    const errorCount = uploads.filter((u: UploadItem) => u.status === 'error').length;
+    const activeCount = uploads.filter((u: UploadItem) =>
         u.status === 'pending' || u.status === 'encrypting' || u.status === 'uploading'
     ).length;
     const totalCount = uploads.length;
@@ -118,6 +249,7 @@ const UploadManager: React.FC<UploadManagerProps> = ({
                     zIndex: 1400,
                     width: 360,
                     maxWidth: 'calc(100vw - 48px)',
+                    willChange: 'transform, opacity',
                 }}
             >
                 <Paper
@@ -125,10 +257,12 @@ const UploadManager: React.FC<UploadManagerProps> = ({
                     sx={{
                         borderRadius: '16px',
                         overflow: 'hidden',
-                        bgcolor: alpha(theme.palette.background.paper, 0.95),
-                        backdropFilter: 'blur(20px)',
+                        bgcolor: alpha(theme.palette.background.paper, 0.98),
+                        // Drop backdropFilter entirely during active work
+                        backdropFilter: activeCount > 0 ? 'none' : 'blur(12px)',
                         border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                         boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
+                        transition: 'backdrop-filter 0.3s',
                     }}
                 >
                     {/* Header */}
@@ -146,15 +280,17 @@ const UploadManager: React.FC<UploadManagerProps> = ({
                         <Stack direction="row" spacing={1.5} alignItems="center">
                             {activeCount > 0 && (
                                 <Box
-                                    component={motion.div}
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                                     sx={{
-                                        width: 20,
-                                        height: 20,
+                                        width: 18,
+                                        height: 18,
                                         borderRadius: '50%',
                                         border: `2px solid ${alpha(theme.palette.primary.main, 0.3)}`,
                                         borderTopColor: theme.palette.primary.main,
+                                        animation: 'spin 1s linear infinite',
+                                        '@keyframes spin': {
+                                            '0%': { transform: 'rotate(0deg)' },
+                                            '100%': { transform: 'rotate(360deg)' },
+                                        },
                                     }}
                                 />
                             )}
@@ -200,6 +336,7 @@ const UploadManager: React.FC<UploadManagerProps> = ({
                                 bgcolor: alpha(theme.palette.primary.main, 0.1),
                                 '& .MuiLinearProgress-bar': {
                                     bgcolor: theme.palette.primary.main,
+                                    transition: 'none',
                                 },
                             }}
                         />
@@ -218,128 +355,15 @@ const UploadManager: React.FC<UploadManagerProps> = ({
                                 },
                             }}
                         >
-                            {uploads.map((upload) => {
-                                const FileIconComponent = getFileIcon(upload.file.name);
-                                const isActive = upload.status === 'encrypting' || upload.status === 'uploading';
-                                const isPending = upload.status === 'pending';
-                                const isComplete = upload.status === 'completed';
-                                const isError = upload.status === 'error';
-
-                                return (
-                                    <Box
-                                        key={upload.id}
-                                        sx={{
-                                            px: 2,
-                                            py: 1.25,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 1.5,
-                                            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
-                                            transition: 'background-color 0.2s',
-                                            '&:hover': {
-                                                bgcolor: alpha(theme.palette.text.primary, 0.02),
-                                            },
-                                            '&:last-child': { borderBottom: 'none' },
-                                        }}
-                                    >
-                                        {/* File Icon */}
-                                        <Box
-                                            sx={{
-                                                p: 0.75,
-                                                borderRadius: '8px',
-                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <FileIconComponent
-                                                sx={{
-                                                    fontSize: 18,
-                                                    color: isError ? 'error.main' : 'primary.main',
-                                                    opacity: isPending ? 0.5 : 1,
-                                                }}
-                                            />
-                                        </Box>
-
-                                        {/* File Info */}
-                                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                                            <Typography
-                                                variant="caption"
-                                                sx={{
-                                                    display: 'block',
-                                                    fontWeight: 600,
-                                                    color: isError ? 'error.main' : 'text.primary',
-                                                    opacity: isPending ? 0.6 : 1,
-                                                    whiteSpace: 'nowrap',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                }}
-                                            >
-                                                {truncateFileName(upload.file.name)}
-                                            </Typography>
-                                            {(isActive || isPending) && (
-                                                <LinearProgress
-                                                    variant={isPending ? 'indeterminate' : 'determinate'}
-                                                    value={upload.progress}
-                                                    sx={{
-                                                        mt: 0.5,
-                                                        height: 3,
-                                                        borderRadius: 1.5,
-                                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                                        '& .MuiLinearProgress-bar': {
-                                                            borderRadius: 1.5,
-                                                        },
-                                                    }}
-                                                />
-                                            )}
-                                            {isError && (
-                                                <Typography
-                                                    variant="caption"
-                                                    sx={{ color: 'error.main', fontSize: 10 }}
-                                                >
-                                                    {upload.error || 'Upload failed'}
-                                                </Typography>
-                                            )}
-                                        </Box>
-
-                                        {/* Status Icon */}
-                                        <Box sx={{ flexShrink: 0 }}>
-                                            {isActive && (
-                                                <Typography
-                                                    variant="caption"
-                                                    sx={{
-                                                        fontWeight: 700,
-                                                        fontFamily: 'JetBrains Mono',
-                                                        color: 'primary.main',
-                                                        fontSize: 11,
-                                                    }}
-                                                >
-                                                    {upload.progress}%
-                                                </Typography>
-                                            )}
-                                            {isPending && (
-                                                <Typography
-                                                    variant="caption"
-                                                    sx={{
-                                                        color: 'text.secondary',
-                                                        fontSize: 10,
-                                                        fontWeight: 600,
-                                                    }}
-                                                >
-                                                    Queued
-                                                </Typography>
-                                            )}
-                                            {isComplete && (
-                                                <SuccessIcon sx={{ fontSize: 18, color: 'success.main' }} />
-                                            )}
-                                            {isError && (
-                                                <ErrorIcon sx={{ fontSize: 18, color: 'error.main' }} />
-                                            )}
-                                        </Box>
-                                    </Box>
-                                );
-                            })}
+                            {uploads.map((upload: UploadItem) => (
+                                <UploadItemRow
+                                    key={upload.id}
+                                    upload={upload}
+                                    theme={theme}
+                                    getFileIcon={getFileIcon}
+                                    truncateFileName={truncateFileName}
+                                />
+                            ))}
                         </Box>
                     </Collapse>
                 </Paper>

@@ -56,7 +56,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx 
     return (
         <Box sx={{ width: '100%', height: '100%', ...sx }}>
             <Paper
-                variant="translucent"
+                variant={isActive ? 'solid' : 'translucent'}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -159,6 +159,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx 
                                 bgcolor: alpha(theme.palette.primary.main, 0.1),
                                 '& .MuiLinearProgress-bar': {
                                     boxShadow: `0 0 10px ${theme.palette.primary.main}`,
+                                    transition: 'none',
                                 },
                             }}
                         />

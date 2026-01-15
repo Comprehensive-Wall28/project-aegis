@@ -12,7 +12,7 @@ declare module '@mui/material/Paper' {
 const FONT_PRIMARY = 'Outfit, sans-serif';
 const FONT_SECONDARY = 'Inter, sans-serif';
 
-export type ThemeMode = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'light';
+export type ThemeMode = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'grey' | 'ocean' | 'light';
 
 export const getTheme = (mode: ThemeMode) => {
 
@@ -107,6 +107,42 @@ export const getTheme = (mode: ThemeMode) => {
                 secondary: '#475569', // Slate 600
             },
             divider: 'rgba(15, 23, 42, 0.1)',
+        },
+        grey: {
+            background: {
+                default: '#0c0c0c',
+                paper: '#141414',
+            },
+            primary: {
+                main: '#ffffff',
+                contrastText: '#000000',
+            },
+            secondary: {
+                main: '#27272a',
+            },
+            text: {
+                primary: '#ededed',
+                secondary: '#a1a1aa',
+            },
+            divider: 'rgba(255, 255, 255, 0.08)',
+        },
+        ocean: {
+            background: {
+                default: '#0a0c12',
+                paper: '#0d111a',
+            },
+            primary: {
+                main: '#ffffff',
+                contrastText: '#000000',
+            },
+            secondary: {
+                main: '#1e293b',
+            },
+            text: {
+                primary: '#f1f5f9',
+                secondary: '#94a3b8',
+            },
+            divider: 'rgba(148, 163, 184, 0.08)',
         },
     };
 

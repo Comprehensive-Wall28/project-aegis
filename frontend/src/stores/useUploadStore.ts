@@ -230,7 +230,15 @@ export const useUploadStore = create<UploadState>((set, get) => ({
                         uploadedEncryptedBytes += currentEncryptedChunkSize;
 
                         const percent = Math.round((uploadedBytes / totalSize) * 100);
-                        get().updateUploadItem(item.id, { progress: percent });
+
+                        // Throttle progress updates to avoid overwhelming the UI
+                        const currentItem = get().uploads.get(item.id);
+                        if (percent === 100 || !currentItem || percent !== currentItem.progress) {
+                            // Only update if it's a significant change or 100%
+                            // Add a small delay/throttle if needed, but per-chunk 5MB is already somewhat throttled.
+                            // However, for many small chunks, we should be careful.
+                            get().updateUploadItem(item.id, { progress: percent });
+                        }
                     }
 
                     // 6. Complete

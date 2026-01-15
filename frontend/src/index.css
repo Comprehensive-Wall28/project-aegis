@@ -78,7 +78,54 @@
 }
 
 :root {
-  /* Default Theme (Deep Cosmos) */
+  /* Default Theme (Ocean - High Visibility Tinted) */
+  --background: 225 30% 6%;
+  /* #0a0c12 */
+  --foreground: 210 40% 96%;
+  /* #f1f5f9 */
+
+  --card: 224 35% 8%;
+  /* #0d111a */
+  --card-foreground: 210 40% 96%;
+
+  --popover: 220 20% 5%;
+  --popover-foreground: 210 40% 96%;
+
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 215 25% 17%;
+  /* #1e293b */
+  --secondary-foreground: 210 40% 96%;
+
+  --muted: 215 25% 17%;
+  --muted-foreground: 215 16% 65%;
+  /* #94a3b8 */
+
+  --accent: 0 0% 100%;
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 215 14% 15%;
+  --input: 215 14% 15%;
+  --ring: 0 0% 100%;
+
+  --radius: 0.75rem;
+
+  /* Aegis Custom Variables (Ocean) */
+  --color-background-aegis: #0a0c12;
+  --color-card-aegis: #0d111a;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-accent-blue: #ffffff;
+  --color-accent-lime: #94a3b8;
+  --color-primary-fg-aegis: #000000;
+}
+
+[data-theme="default"] {
+  /* Legacy Default (Deep Cosmos) */
   --background: 224 71% 4%;
   /* #020617 - Slate 950 */
   --foreground: 210 40% 98%;
@@ -112,23 +159,14 @@
   --input: 215 25% 27%;
   --ring: 199 89% 48%;
 
-  --radius: 0.75rem;
-
   /* Aegis Custom Variables (Default - Cosmos) */
   --color-background-aegis: #020617;
-  /* Slate 950 */
   --color-card-aegis: #0f172a;
-  /* Slate 900 */
   --color-text-primary: #f8fafc;
-  /* Slate 50 */
   --color-text-secondary: #94a3b8;
-  /* Slate 400 */
   --color-accent-blue: #38bdf8;
-  /* Sky 400 */
   --color-accent-lime: #4ade80;
-  /* Green 400 */
   --color-primary-fg-aegis: #020617;
-  /* Dark text on bright primary */
 }
 
 [data-theme="catppuccin"] {
@@ -265,6 +303,96 @@
   --color-accent-blue: #9333ea;
   --color-accent-lime: #a78bfa;
   --color-primary-fg-aegis: #faf5ff;
+}
+
+[data-theme="grey"] {
+  /* Dark Modern Grey Theme (Neutral High Visibility) */
+  --background: 0 0% 5%;
+  /* #0c0c0c */
+  --foreground: 0 0% 93%;
+  /* #ededed */
+
+  --card: 0 0% 8%;
+  /* #141414 */
+  --card-foreground: 0 0% 93%;
+
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 93%;
+
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 240 5% 16%;
+  /* #27272a */
+  --secondary-foreground: 0 0% 93%;
+
+  --muted: 240 5% 16%;
+  --muted-foreground: 240 5% 65%;
+  /* #a1a1aa */
+
+  --accent: 0 0% 100%;
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 15%;
+  --input: 0 0% 15%;
+  --ring: 0 0% 100%;
+
+  /* Aegis Custom Variables (Grey) */
+  --color-background-aegis: #0c0c0c;
+  --color-card-aegis: #141414;
+  --color-text-primary: #ededed;
+  --color-text-secondary: #a1a1aa;
+  --color-accent-blue: #ffffff;
+  --color-accent-lime: #a1a1aa;
+  --color-primary-fg-aegis: #000000;
+}
+
+[data-theme="ocean"] {
+  /* Dark Ocean Theme (Tinted Center, Slightly Lighter Backdrop) */
+  --background: 225 30% 6%;
+  /* #0a0c12 - Slightly Lighter Cool Backdrop */
+  --foreground: 210 40% 96%;
+  /* #f1f5f9 */
+
+  --card: 224 35% 8%;
+  /* #0d111a - Slightly more pronounced tint for the center */
+  --card-foreground: 210 40% 96%;
+
+  --popover: 220 20% 5%;
+  --popover-foreground: 210 40% 96%;
+
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 215 25% 17%;
+  /* #1e293b */
+  --secondary-foreground: 210 40% 96%;
+
+  --muted: 215 25% 17%;
+  --muted-foreground: 215 16% 65%;
+  /* #94a3b8 */
+
+  --accent: 0 0% 100%;
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 215 14% 15%;
+  --input: 215 14% 15%;
+  --ring: 0 0% 100%;
+
+  /* Aegis Custom Variables (Ocean) */
+  --color-background-aegis: #050505;
+  --color-card-aegis: #0d1017;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-accent-blue: #ffffff;
+  --color-accent-lime: #94a3b8;
+  --color-primary-fg-aegis: #000000;
 }
 
 body {
