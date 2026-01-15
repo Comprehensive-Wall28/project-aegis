@@ -251,9 +251,6 @@ export function CalendarPage() {
                     >
                         <CalendarIcon sx={{ fontSize: { xs: 28, md: 32 }, color: 'primary.main' }} /> Secure Calendar
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                        PQC-encrypted scheduling
-                    </Typography>
                 </Box>
             </Box>
 
