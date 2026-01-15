@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { useSessionStore } from './sessionStore';
+import { useFolderKeyStore } from './useFolderKeyStore';
 import apiClient from '../services/api';
+import { generateDEK, wrapKey, bytesToHex } from '../lib/cryptoUtils';
 
 // Constants
 const CHUNK_SIZE = 5 * 1024 * 1024 - 16; // ~5MB raw, exactly 5MB after adding 16-byte IV
@@ -39,12 +41,7 @@ interface UploadState {
     getGlobalState: () => GlobalUploadState;
 }
 
-// Helper: Convert Uint8Array to Hex
-const bytesToHex = (bytes: Uint8Array): string => {
-    return Array.from(bytes)
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-};
+// Helper functions (defined in cryptoUtils)
 
 /**
  * Encrypt data using AES-CTR with the global vault key.
@@ -134,9 +131,10 @@ export const useUploadStore = create<UploadState>((set, get) => ({
 
             // Start upload (don't await - run concurrently)
             (async () => {
-                const { vaultCtrKey, setCryptoStatus } = useSessionStore.getState();
+                const { user, vaultCtrKey, setCryptoStatus } = useSessionStore.getState();
+                const masterKey = user?.vaultKey;
 
-                if (!vaultCtrKey) {
+                if (!vaultCtrKey || !masterKey) {
                     get().updateUploadItem(item.id, {
                         status: 'error',
                         error: 'Vault keys not ready. Please wait or log in again.'
@@ -148,6 +146,26 @@ export const useUploadStore = create<UploadState>((set, get) => ({
                 try {
                     setCryptoStatus('encrypting');
                     get().updateUploadItem(item.id, { status: 'encrypting', progress: 0 });
+
+                    // 1. Generate per-file DEK (Data Encryption Key)
+                    const dek = await generateDEK();
+
+                    // 2. Resolve Master/Folder Key for wrapping the DEK
+                    let wrapWithKey = masterKey;
+                    let encapsulatedKey = 'AES-KW';
+
+                    if (item.folderId) {
+                        try {
+                            wrapWithKey = await useFolderKeyStore.getState().getOrFetchKey(item.folderId);
+                            encapsulatedKey = 'FOLDER'; // Backend recognizes this as folder-level wrapping
+                        } catch (folderErr) {
+                            console.warn('Folder key not available, falling back to Master Key:', folderErr);
+                            // Fallback to masterKey is already default
+                        }
+                    }
+
+                    // 3. Wrap DEK
+                    const encryptedDEK = await wrapKey(dek, wrapWithKey);
 
                     // 1. Encrypt filename using AES-CTR with global key
                     const nameIv = window.crypto.getRandomValues(new Uint8Array(16));
@@ -168,11 +186,12 @@ export const useUploadStore = create<UploadState>((set, get) => ({
                         fileName: encryptedFileName,
                         originalFileName: item.file.name,
                         fileSize: totalEncryptedSize,
-                        encryptedSymmetricKey: 'GLOBAL',
-                        encapsulatedKey: 'AES-CTR-V1',
+                        encryptedSymmetricKey: encryptedDEK,
+                        encapsulatedKey: encapsulatedKey,
                         mimeType: item.file.type || 'application/octet-stream',
                         folderId: item.folderId
                     });
+
 
                     const { fileId } = initResponse.data;
 
@@ -188,8 +207,8 @@ export const useUploadStore = create<UploadState>((set, get) => ({
                         const chunkBlob = item.file.slice(uploadedBytes, end);
                         const chunkArrayBuffer = await chunkBlob.arrayBuffer();
 
-                        // Encrypt chunk with AES-CTR
-                        const encryptedChunk = await encryptWithCtr(chunkArrayBuffer, vaultCtrKey);
+                        // Encrypt chunk with per-file DEK
+                        const encryptedChunk = await encryptWithCtr(chunkArrayBuffer, dek);
 
                         // Calculate Content-Range
                         const currentEncryptedChunkSize = encryptedChunk.byteLength;

@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import FileMetadata from '../models/FileMetadata';
+import Folder from '../models/Folder';
+import SharedFolder from '../models/SharedFolder';
 import { initiateUpload, appendChunk, finalizeUpload, getFileStream, deleteFile } from '../services/googleDriveService';
 import logger from '../utils/logger';
 import { logAuditEvent } from '../utils/auditLogger';
@@ -154,10 +156,24 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
         }
 
         const fileId = req.params.id;
-        const fileRecord = await FileMetadata.findOne({
+        let fileRecord = await FileMetadata.findOne({
             _id: { $eq: fileId },
             ownerId: { $eq: req.user.id }
         });
+
+        // If not owner, check if file is in a shared folder
+        if (!fileRecord) {
+            const potentialFile = await FileMetadata.findById(fileId);
+            if (potentialFile && potentialFile.folderId) {
+                const isShared = await SharedFolder.findOne({
+                    folderId: potentialFile.folderId,
+                    sharedWith: req.user.id
+                });
+                if (isShared && isShared.permissions.includes('DOWNLOAD')) {
+                    fileRecord = potentialFile;
+                }
+            }
+        }
 
         if (!fileRecord || !fileRecord.googleDriveFileId) {
             return res.status(404).json({ message: 'File not found or not ready' });
@@ -192,9 +208,55 @@ export const getUserFiles = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        const files = await FileMetadata.find({
-            ownerId: { $eq: req.user.id }
-        }).sort({ createdAt: -1 });
+        const { folderId } = req.query;
+        let query: any = { ownerId: req.user.id };
+
+        if (folderId && folderId !== 'null') {
+            const folder = await Folder.findById(folderId);
+            if (!folder) {
+                return res.status(404).json({ message: 'Folder not found' });
+            }
+
+            const isOwner = folder.ownerId.toString() === req.user.id;
+            let hasAccess = isOwner;
+
+            if (!hasAccess) {
+                // Check direct share
+                const directShare = await SharedFolder.findOne({ folderId, sharedWith: req.user.id });
+                if (directShare) {
+                    hasAccess = true;
+                } else {
+                    // Check ancestors
+                    let current = folder;
+                    while (current.parentId) {
+                        const ancestorShare = await SharedFolder.findOne({
+                            folderId: current.parentId,
+                            sharedWith: req.user.id
+                        });
+                        if (ancestorShare) {
+                            hasAccess = true;
+                            break;
+                        }
+                        const parent = await Folder.findById(current.parentId);
+                        if (!parent) break;
+                        current = parent;
+                    }
+                }
+            }
+
+            if (!hasAccess) {
+                return res.status(403).json({ message: 'Access denied to this folder' });
+            }
+
+            // Always fetch files owned by the folder's owner
+            query = { folderId: { $eq: folderId }, ownerId: { $eq: folder.ownerId } };
+        } else {
+            // Root level files - show only owned ones (shared folders appear as distinct objects)
+            query = { ownerId: { $eq: req.user.id }, folderId: null };
+        }
+
+        const files = await FileMetadata.find(query).sort({ createdAt: -1 });
+
         res.json(files);
     } catch (error) {
         logger.error(`Get Files Error: ${error}`);

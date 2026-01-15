@@ -10,7 +10,14 @@ export interface Folder {
     parentId?: string | null;
     createdAt: string;
     updatedAt: string;
+    isShared?: boolean; // Owned by us and shared with others
+    isSharedWithMe?: boolean; // Shared with us by others
+    encryptedSharedKey?: string;
+    permissions?: string[];
+    ownerId?: string;
+    encryptedSessionKey?: string;
 }
+
 
 const folderService = {
     getFolders: async (parentId?: string | null): Promise<Folder[]> => {
@@ -19,8 +26,13 @@ const folderService = {
         return response.data;
     },
 
-    createFolder: async (name: string, parentId?: string | null): Promise<Folder> => {
-        const response = await apiClient.post<Folder>(`${PREFIX}`, { name, parentId });
+    getFolder: async (id: string): Promise<Folder & { encryptedSessionKey?: string }> => {
+        const response = await apiClient.get<Folder & { encryptedSessionKey?: string }>(`${PREFIX}/${id}`);
+        return response.data;
+    },
+
+    createFolder: async (name: string, parentId?: string | null, encryptedSessionKey?: string): Promise<Folder> => {
+        const response = await apiClient.post<Folder>(`${PREFIX}`, { name, parentId, encryptedSessionKey });
         return response.data;
     },
 

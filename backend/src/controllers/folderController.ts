@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Folder from '../models/Folder';
 import FileMetadata from '../models/FileMetadata';
+import SharedFolder from '../models/SharedFolder';
 import logger from '../utils/logger';
 
 interface AuthRequest extends Request {
@@ -36,13 +37,123 @@ export const getFolders = async (req: AuthRequest, res: Response) => {
             parentId = candidate;
         }
 
-        const query = { ownerId: { $eq: req.user.id }, parentId: { $eq: parentId } };
+        let finalFolders: any[] = [];
 
+        if (parentId === null) {
+            // Root level: Fetch owned root folders and all folders shared with the user
+            const ownedFolders = await Folder.find({
+                ownerId: { $eq: req.user.id },
+                parentId: null
+            }).sort({ name: 1 });
 
-        const folders = await Folder.find(query).sort({ name: 1 });
-        res.status(200).json(folders);
+            const sharedFolderEntries = await SharedFolder.find({ sharedWith: req.user.id })
+                .populate('folderId');
+
+            const sharedFolders = sharedFolderEntries
+                .filter(sf => sf.folderId)
+                .map(sf => {
+                    const f = sf.folderId as any;
+                    return {
+                        ...f.toObject(),
+                        isSharedWithMe: true,
+                        encryptedSharedKey: sf.encryptedSharedKey,
+                        permissions: sf.permissions
+                    };
+                });
+
+            finalFolders = [...ownedFolders, ...sharedFolders];
+        } else {
+            // Subfolder: Verify access first
+            const parentFolder = await Folder.findById(parentId);
+            if (!parentFolder) {
+                return res.status(404).json({ message: 'Parent folder not found' });
+            }
+
+            const isOwner = parentFolder.ownerId.toString() === req.user.id;
+            let hasAccess = isOwner;
+
+            if (!hasAccess) {
+                // Check direct share
+                const directShare = await SharedFolder.findOne({ folderId: parentId, sharedWith: req.user.id });
+                if (directShare) {
+                    hasAccess = true;
+                } else {
+                    // Check ancestors
+                    let current = parentFolder;
+                    while (current.parentId) {
+                        const ancestorShare = await SharedFolder.findOne({
+                            folderId: current.parentId,
+                            sharedWith: req.user.id
+                        });
+                        if (ancestorShare) {
+                            hasAccess = true;
+                            break;
+                        }
+                        const parent = await Folder.findById(current.parentId);
+                        if (!parent) break;
+                        current = parent;
+                    }
+                }
+            }
+
+            if (!hasAccess) {
+                return res.status(403).json({ message: 'Access denied' });
+            }
+
+            // Note: If navigating a SHARED tree, we fetch folders owned by the same owner
+            const subfolders = await Folder.find({
+                parentId: { $eq: parentId },
+                ownerId: { $eq: parentFolder.ownerId }
+            }).sort({ name: 1 });
+
+            // If it's a shared tree, mark children as shared too for UI hints
+            if (!isOwner) {
+                finalFolders = subfolders.map(f => ({
+                    ...f.toObject(),
+                    isSharedWithMe: true
+                }));
+            } else {
+                finalFolders = subfolders;
+            }
+
+        }
+
+        res.status(200).json(finalFolders);
+
     } catch (error) {
         logger.error('Error fetching folders:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+/**
+ * Get a single folder by ID.
+ */
+export const getFolder = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { id } = req.params;
+        let folder = await Folder.findOne({ _id: { $eq: id }, ownerId: { $eq: req.user.id } });
+
+        // If not owner, check if the folder is shared with this user
+        if (!folder) {
+            const isShared = await SharedFolder.findOne({ folderId: { $eq: id }, sharedWith: { $eq: req.user.id } });
+            if (isShared) {
+                folder = await Folder.findById(id);
+            }
+        }
+
+        if (!folder) {
+            return res.status(404).json({ message: 'Folder not found or access denied' });
+        }
+
+
+        res.status(200).json(folder);
+    } catch (error) {
+        logger.error('Error fetching folder:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -56,16 +167,21 @@ export const createFolder = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const { name, parentId } = req.body;
+        const { name, parentId, encryptedSessionKey } = req.body;
 
         if (!name || name.trim() === '') {
             return res.status(400).json({ message: 'Folder name is required' });
+        }
+
+        if (!encryptedSessionKey) {
+            return res.status(400).json({ message: 'Encrypted session key is required' });
         }
 
         const folder = await Folder.create({
             ownerId: req.user.id,
             name: name.trim(),
             parentId: parentId || null,
+            encryptedSessionKey,
         });
 
         logger.info(`Folder created: ${folder.name} for user ${req.user.id}`);

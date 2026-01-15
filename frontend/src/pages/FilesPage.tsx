@@ -22,8 +22,11 @@ import {
     TextSnippet as TextIcon,
     Folder as FolderIcon,
     ChevronRight as ChevronRightIcon,
-    Home as HomeIcon
+    Home as HomeIcon,
+    FolderShared as SharedIcon
 } from '@mui/icons-material';
+import { useSearchParams } from 'react-router-dom';
+
 import {
     Box,
     Typography,
@@ -57,6 +60,13 @@ import { useVaultDownload } from '@/hooks/useVaultDownload';
 import { BackendDown } from '@/components/BackendDown';
 import { ContextMenu, useContextMenu, CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/ContextMenu';
 import { ImagePreviewOverlay } from '@/components/vault/ImagePreviewOverlay';
+import { ShareFolderDialog } from '@/components/folders/ShareFolderDialog';
+import { useSessionStore } from '@/stores/sessionStore';
+import { useFolderKeyStore } from '@/stores/useFolderKeyStore';
+import { generateFolderKey, wrapKey } from '@/lib/cryptoUtils';
+import { Share as ShareIcon } from '@mui/icons-material';
+
+
 
 function formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';
@@ -118,9 +128,12 @@ function getFileIconInfo(fileName: string): { icon: React.ElementType; color: st
 type ViewPreset = 'compact' | 'standard' | 'comfort' | 'detailed';
 
 export function FilesPage() {
+    const [searchParams] = useSearchParams();
+    const currentView = searchParams.get('view');
     const [files, setFiles] = useState<FileMetadata[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]);
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+
     const [folderPath, setFolderPath] = useState<Folder[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [, setError] = useState<string | null>(null);
@@ -140,7 +153,9 @@ export function FilesPage() {
     const [isExternalDragging, setIsExternalDragging] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewInitialId, setPreviewInitialId] = useState<string | null>(null);
+    const [shareDialog, setShareDialog] = useState<{ open: boolean; folder: Folder | null }>({ open: false, folder: null });
     const [displayLimit, setDisplayLimit] = useState(20);
+
     const sentinelRef = useRef<HTMLDivElement>(null);
     const { uploadFiles, globalState: uploadState } = useVaultUpload();
     const { downloadAndDecrypt } = useVaultDownload();
@@ -153,15 +168,13 @@ export function FilesPage() {
             setIsLoading(true);
             setBackendError(false);
             const [filesData, foldersData] = await Promise.all([
-                vaultService.getRecentFiles(),
+                vaultService.getRecentFiles(currentFolderId),
                 folderService.getFolders(currentFolderId)
             ]);
-            // Filter files by current folder (null = root)
-            const filteredFiles = filesData.filter((f: any) =>
-                (currentFolderId === null && !f.folderId) || f.folderId === currentFolderId
-            );
-            setFiles(filteredFiles);
+
+            setFiles(filesData);
             setFolders(foldersData);
+
             setError(null);
         } catch (err) {
             console.error('Failed to fetch files:', err);
@@ -261,6 +274,18 @@ export function FilesPage() {
         .filter(f => f.originalFileName.toLowerCase().includes(searchQuery.toLowerCase()))
         .sort(naturalSort), [files, searchQuery, naturalSort]);
 
+    const filteredFolders = useMemo(() => {
+        let result = folders;
+        if (currentView === 'shared' && !currentFolderId) {
+            result = folders.filter(f => f.isSharedWithMe);
+        }
+        if (searchQuery) {
+            result = result.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        }
+        return result;
+    }, [folders, searchQuery, currentView, currentFolderId]);
+
+
     // Filter for image files only (for the gallery) - already sorted from filteredFiles
     const imageFiles = useMemo(() => filteredFiles.filter(f => f.mimeType?.startsWith('image/')), [filteredFiles]);
 
@@ -344,13 +369,38 @@ export function FilesPage() {
     // Folder handlers
     const handleCreateFolder = async () => {
         if (!newFolderName.trim()) return;
+
+        const { user } = useSessionStore.getState();
+        const masterKey = user?.vaultKey;
+
+        if (!masterKey) {
+            alert('Vault keys not ready. Please wait or log in again.');
+            return;
+        }
+
         try {
-            await folderService.createFolder(newFolderName.trim(), currentFolderId);
+            // 1. Generate Folder Key (AES-GCM 256)
+            const folderKey = await generateFolderKey();
+
+            // 2. Wrap Folder Key with Master Key
+            const encryptedSessionKey = await wrapKey(folderKey, masterKey);
+
+            // 3. Create folder on backend
+            const newFolder = await folderService.createFolder(
+                newFolderName.trim(),
+                currentFolderId,
+                encryptedSessionKey
+            );
+
+            // 4. Store decrypted key in memory
+            useFolderKeyStore.getState().setKey(newFolder._id, folderKey);
+
             setNewFolderName('');
             setNewFolderDialog(false);
             fetchData();
         } catch (err) {
             console.error('Failed to create folder:', err);
+            alert('Failed to create secure folder. Please try again.');
         }
     };
 
@@ -446,12 +496,19 @@ export function FilesPage() {
                     }
                 },
                 {
+                    label: 'Share', icon: <ShareIcon fontSize="small" />, onClick: () => {
+                        const folder = folders.find(f => f._id === contextMenu.target?.id);
+                        if (folder) setShareDialog({ open: true, folder });
+                    }
+                },
+                {
                     label: 'Delete', icon: <DeleteIcon fontSize="small" />, onClick: () => {
                         if (contextMenu.target?.id) handleDeleteFolder(contextMenu.target.id);
                     }
                 },
             ];
         }
+
         // Empty area context menu
         return [
             { label: 'New Folder', icon: <CreateFolderIcon fontSize="small" />, onClick: () => setNewFolderDialog(true) },
@@ -819,7 +876,7 @@ export function FilesPage() {
                 </Paper>
             ) : (
                 <Grid container spacing={2} onContextMenu={(e) => handleContextMenu(e, { type: 'empty' })}>
-                    {folders.map((folder) => (
+                    {filteredFolders.map((folder) => (
                         <FolderGridItem
                             key={`folder-${folder._id}`}
                             folder={folder}
@@ -958,7 +1015,7 @@ export function FilesPage() {
                                 No folders available. Create a folder first.
                             </Typography>
                         )}
-                        {folders.map(folder => (
+                        {filteredFolders.map(folder => (
                             <Button
                                 key={folder._id}
                                 variant="outlined"
@@ -985,9 +1042,19 @@ export function FilesPage() {
                 files={imageFiles}
                 initialFileId={previewInitialId || ''}
             />
+            {/* Share Folder Dialog */}
+            {shareDialog.folder && (
+                <ShareFolderDialog
+                    open={shareDialog.open}
+                    onClose={() => setShareDialog({ open: false, folder: null })}
+                    folderId={shareDialog.folder._id}
+                    folderName={shareDialog.folder.name}
+                />
+            )}
         </Stack>
     );
 }
+
 
 const FolderGridItem = memo(({
     folder,
@@ -1056,8 +1123,22 @@ const FolderGridItem = memo(({
                         }
                     }}
                 >
-                    <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}>
+                    <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))', position: 'relative' }}>
                         <FolderIcon sx={{ fontSize: iconScaling.size, color: '#FFB300' }} />
+                        {folder.isSharedWithMe && (
+                            <SharedIcon
+                                sx={{
+                                    position: 'absolute',
+                                    bottom: -iconScaling.size * 0.1,
+                                    right: -iconScaling.size * 0.1,
+                                    fontSize: iconScaling.size * 0.5,
+                                    color: 'primary.main',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.8),
+                                    borderRadius: '50%',
+                                    p: 0.2
+                                }}
+                            />
+                        )}
                     </Box>
 
                     <Typography

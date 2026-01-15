@@ -11,6 +11,7 @@ import {
     getAuthenticationOptions,
     verifyAuthentication,
     removePasskey,
+    discoverUser,
 } from '../controllers/authController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection, csrfTokenCookie } from '../middleware/csrfMiddleware';
@@ -28,6 +29,7 @@ router.get('/csrf-token', csrfProtection, csrfTokenCookie, getCsrfToken);
 // Protected routes WITH CSRF protection
 router.get('/me', protect, csrfProtection, getMe);
 router.put('/me', protect, csrfProtection, updateMe);
+router.get('/discovery/:email', protect, csrfProtection, discoverUser);
 
 // Logout - no CSRF (cookie might be stale, and logout is low-risk)
 router.post('/logout', logoutUser);

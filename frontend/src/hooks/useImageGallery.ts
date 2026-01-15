@@ -23,7 +23,9 @@ export const useImageGallery = (
     currentIndex: number,
     isOpen: boolean
 ) => {
-    const { vaultCtrKey, setCryptoStatus } = useSessionStore();
+    const { user, vaultCtrKey, setCryptoStatus } = useSessionStore();
+    const vaultKey = user?.vaultKey;
+
 
     // Cache: fileId -> { blobUrl, error }
     const cacheRef = useRef<Record<string, CacheEntry>>({});
@@ -56,7 +58,7 @@ export const useImageGallery = (
             return null;
         }
 
-        if (!vaultCtrKey) {
+        if (!vaultCtrKey || !vaultKey) {
             return null;
         }
 
@@ -68,7 +70,10 @@ export const useImageGallery = (
         }
 
         try {
-            const blob = await fetchAndDecryptFile(file, { vaultCtrKey });
+            const privateKey = user?.privateKey;
+            const blob = await fetchAndDecryptFile(file, { vaultCtrKey, vaultKey: vaultKey as CryptoKey, privateKey });
+
+
             const blobUrl = URL.createObjectURL(blob);
             const entry: CacheEntry = { blobUrl, error: null };
             cacheRef.current[fileId] = entry;

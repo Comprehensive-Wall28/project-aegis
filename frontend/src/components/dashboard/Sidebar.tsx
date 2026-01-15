@@ -12,7 +12,8 @@ import {
     FolderOpen as FolderOpenIcon,
     CalendarMonth as CalendarIcon,
     CheckCircle as TasksIcon,
-    Group as SocialIcon
+    Group as SocialIcon,
+    FolderShared as SharedIcon
 } from '@mui/icons-material';
 import {
     Box,
@@ -40,10 +41,12 @@ const navItems = [
     { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
     { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
     { name: 'Tasks', href: '/dashboard/tasks', icon: TasksIcon },
-    { name: 'Social', href: '/dashboard/social', icon: SocialIcon },
+    { name: 'Social', icon: SocialIcon, href: '/dashboard/social' },
+    { name: 'Shared', href: '/dashboard/files?view=shared', icon: SharedIcon },
     { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
     { name: 'Security', href: '/dashboard/security', icon: SettingsIcon },
 ];
+
 
 interface SidebarProps {
     isCollapsed: boolean;
