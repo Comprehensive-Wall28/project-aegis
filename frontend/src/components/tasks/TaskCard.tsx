@@ -60,19 +60,19 @@ export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
             sx={{
                 p: 2,
                 borderRadius: '16px',
-                bgcolor: alpha(theme.palette.background.paper, isDragging ? 0.9 : 0.6),
-                backdropFilter: 'blur(8px)',
+                bgcolor: alpha(theme.palette.background.paper, isDragging ? 0.95 : 0.7),
                 border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                 position: 'relative',
                 overflow: 'hidden',
+                willChange: 'transform, opacity',
                 boxShadow: isDragging
                     ? `0 20px 40px ${alpha(theme.palette.common.black, 0.3)}`
-                    : `0 4px 12px ${alpha(theme.palette.common.black, 0.1)}`,
+                    : `0 4px 12px ${alpha(theme.palette.common.black, 0.15)}`,
                 '&:hover': {
-                    borderColor: alpha(theme.palette.primary.main, 0.3),
-                    boxShadow: `0 8px 20px ${alpha(theme.palette.common.black, 0.15)}`,
+                    borderColor: alpha(theme.palette.primary.main, 0.35),
+                    boxShadow: `0 8px 20px ${alpha(theme.palette.common.black, 0.2)}`,
                 },
                 '&::before': {
                     content: '""',

@@ -244,9 +244,6 @@ export function GPAPage() {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Header - Rendered immediately for LCP */}
             <Box
-                component={motion.div}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
                 sx={{
                     display: 'flex',
                     flexDirection: { xs: 'column', md: 'row' },

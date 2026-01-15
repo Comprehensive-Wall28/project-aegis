@@ -22,7 +22,7 @@ export function LiveActivityWidget() {
         height: '100%',
         borderRadius: '16px',
         bgcolor: alpha(theme.palette.background.paper, 0.5),
-        backdropFilter: 'blur(6px)',
+        backdropFilter: 'blur(4px)',
         transform: 'translateZ(0)',
         willChange: 'transform, opacity',
         border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,

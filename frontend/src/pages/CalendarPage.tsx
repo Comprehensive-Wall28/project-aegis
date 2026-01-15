@@ -11,7 +11,6 @@ import {
     Stack,
 } from '@mui/material';
 import { CalendarMonth as CalendarIcon } from '@mui/icons-material';
-import { motion } from 'framer-motion';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -235,11 +234,8 @@ export function CalendarPage() {
     }
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: { xs: 1, md: 3 } }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: { xs: 1, md: 0 }, pt: { md: 1 } }}>
             <Box
-                component={motion.div}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
                 sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
             >
                 <Box>

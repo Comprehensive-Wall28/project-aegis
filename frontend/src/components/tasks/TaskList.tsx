@@ -29,6 +29,30 @@ const PRIORITY_LABELS = {
     low: 'Low Priority',
 };
 
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.05
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: {
+        opacity: 1,
+        x: 0,
+        transition: { duration: 0.3 }
+    },
+    exit: {
+        opacity: 0,
+        x: 10,
+        transition: { duration: 0.2 }
+    }
+};
+
 export const TaskList = ({ tasks, onTaskClick, onStatusToggle, onDelete, groupBy = 'status' }: TaskListProps) => {
     const theme = useTheme();
 
@@ -72,130 +96,138 @@ export const TaskList = ({ tasks, onTaskClick, onStatusToggle, onDelete, groupBy
                         >
                             {groupLabels[groupKey as keyof typeof groupLabels]} ({groupTasks.length})
                         </Typography>
-
-                        <AnimatePresence mode="popLayout">
-                            {groupTasks.map((task) => (
-                                <Paper
-                                    key={task._id}
-                                    component={motion.div}
-                                    layout
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    onClick={() => onTaskClick(task)}
-                                    sx={{
-                                        p: 2,
-                                        mb: 1.5,
-                                        borderRadius: '12px',
-                                        bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                        border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 2,
-                                        '&:hover': {
-                                            bgcolor: alpha(theme.palette.background.paper, 0.7),
-                                            borderColor: alpha(theme.palette.primary.main, 0.2),
-                                        },
-                                    }}
-                                >
-                                    <Checkbox
-                                        checked={task.status === 'done'}
-                                        size="small"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onStatusToggle(task._id, task.status);
-                                        }}
-                                        sx={{
-                                            p: 0.5,
-                                            color: alpha(theme.palette.common.white, 0.2),
-                                            '&.Mui-checked': {
-                                                color: alpha('#4caf50', 0.7),
-                                            },
-                                            '&:hover': {
-                                                color: alpha(theme.palette.common.white, 0.4),
-                                            },
-                                            '& .MuiSvgIcon-root': {
-                                                fontSize: 18,
-                                            },
-                                        }}
-                                    />
-
-                                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                                        <Typography
-                                            variant="body1"
+                        <Box
+                            component={motion.div}
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="visible"
+                        >
+                            <AnimatePresence mode="popLayout">
+                                {groupTasks.map((task) => (
+                                    <Box
+                                        key={task._id}
+                                        component={motion.div}
+                                        layout
+                                        variants={itemVariants}
+                                    >
+                                        <Paper
+                                            onClick={() => onTaskClick(task)}
                                             sx={{
-                                                fontWeight: 600,
-                                                textDecoration: task.status === 'done' ? 'line-through' : 'none',
-                                                opacity: task.status === 'done' ? 0.6 : 1,
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
-                                            }}
-                                        >
-                                            {task.title}
-                                        </Typography>
-                                        {task.description && (
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                sx={{
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    whiteSpace: 'nowrap',
-                                                    fontSize: '0.8rem',
-                                                    mt: 0.5,
-                                                }}
-                                            >
-                                                {task.description}
-                                            </Typography>
-                                        )}
-                                    </Box>
-
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
-                                        {task.dueDate && (
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                <DueDateIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {formatDueDate(task.dueDate)}
-                                                </Typography>
-                                            </Box>
-                                        )}
-
-                                        <Chip
-                                            label={task.priority.charAt(0).toUpperCase()}
-                                            size="small"
-                                            sx={{
-                                                minWidth: 28,
-                                                height: 22,
-                                                fontSize: '0.65rem',
-                                                fontWeight: 700,
-                                                bgcolor: alpha(PRIORITY_COLORS[task.priority], 0.15),
-                                                color: PRIORITY_COLORS[task.priority],
-                                            }}
-                                        />
-
-                                        <IconButton
-                                            size="small"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onDelete(task._id);
-                                            }}
-                                            sx={{
-                                                opacity: 0.5,
+                                                p: 2,
+                                                mb: 1.5,
+                                                borderRadius: '12px',
+                                                bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                                border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+                                                cursor: 'pointer',
+                                                transition: 'border-color 0.2s ease, background-color 0.2s ease',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 2,
+                                                willChange: 'transform, opacity',
                                                 '&:hover': {
-                                                    opacity: 1,
-                                                    color: 'error.main',
+                                                    bgcolor: alpha(theme.palette.background.paper, 0.7),
+                                                    borderColor: alpha(theme.palette.primary.main, 0.2),
                                                 },
                                             }}
                                         >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
+                                            <Checkbox
+                                                checked={task.status === 'done'}
+                                                size="small"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onStatusToggle(task._id, task.status);
+                                                }}
+                                                sx={{
+                                                    p: 0.5,
+                                                    color: alpha(theme.palette.common.white, 0.2),
+                                                    '&.Mui-checked': {
+                                                        color: alpha('#4caf50', 0.7),
+                                                    },
+                                                    '&:hover': {
+                                                        color: alpha(theme.palette.common.white, 0.4),
+                                                    },
+                                                    '& .MuiSvgIcon-root': {
+                                                        fontSize: 18,
+                                                    },
+                                                }}
+                                            />
+
+                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                <Typography
+                                                    variant="body1"
+                                                    sx={{
+                                                        fontWeight: 600,
+                                                        textDecoration: task.status === 'done' ? 'line-through' : 'none',
+                                                        opacity: task.status === 'done' ? 0.6 : 1,
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        whiteSpace: 'nowrap',
+                                                    }}
+                                                >
+                                                    {task.title}
+                                                </Typography>
+                                                {task.description && (
+                                                    <Typography
+                                                        variant="body2"
+                                                        color="text.secondary"
+                                                        sx={{
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                            fontSize: '0.8rem',
+                                                            mt: 0.5,
+                                                        }}
+                                                    >
+                                                        {task.description}
+                                                    </Typography>
+                                                )}
+                                            </Box>
+
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+                                                {task.dueDate && (
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                        <DueDateIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {formatDueDate(task.dueDate)}
+                                                        </Typography>
+                                                    </Box>
+                                                )}
+
+                                                <Chip
+                                                    label={task.priority.charAt(0).toUpperCase()}
+                                                    size="small"
+                                                    sx={{
+                                                        minWidth: 28,
+                                                        height: 22,
+                                                        fontSize: '0.65rem',
+                                                        fontWeight: 700,
+                                                        bgcolor: alpha(PRIORITY_COLORS[task.priority], 0.15),
+                                                        color: PRIORITY_COLORS[task.priority],
+                                                    }}
+                                                />
+
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onDelete(task._id);
+                                                    }}
+                                                    sx={{
+                                                        opacity: 0.5,
+                                                        '&:hover': {
+                                                            opacity: 1,
+                                                            color: 'error.main',
+                                                        },
+                                                    }}
+                                                >
+                                                    <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                            </Box>
+                                        </Paper>
                                     </Box>
-                                </Paper>
-                            ))}
-                        </AnimatePresence>
+                                ))}
+                            </AnimatePresence>
+                        </Box>
                     </Box>
                 );
             })}

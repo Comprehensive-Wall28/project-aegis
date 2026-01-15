@@ -25,6 +25,25 @@ interface KanbanBoardProps {
     onTaskMove: (taskId: string, newStatus: 'todo' | 'in_progress' | 'done', newOrder: number) => void;
 }
 
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1
+        }
+    }
+};
+
+const columnVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.4 }
+    }
+};
+
 export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: KanbanBoardProps) => {
     const theme = useTheme();
     const [draggedTask, setDraggedTask] = useState<string | null>(null);
@@ -73,6 +92,10 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
 
     return (
         <Box
+            component={motion.div}
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
             sx={{
                 display: 'grid',
                 gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
@@ -85,151 +108,155 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
                 const isOver = dragOverColumn === column.id;
 
                 return (
-                    <Paper
+                    <Box
                         key={column.id}
                         component={motion.div}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        onDragOver={(e: any) => handleDragOver(e, column.id)}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e: any) => handleDrop(e, column.id)}
-                        sx={{
-                            p: 2,
-                            borderRadius: '20px',
-                            bgcolor: alpha(theme.palette.background.paper, isOver ? 0.5 : 0.3),
-                            border: `2px dashed ${isOver
-                                ? alpha(column.color, 0.5)
-                                : alpha(theme.palette.common.white, 0.08)}`,
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            minHeight: { xs: 300, md: 500 },
-                        }}
+                        variants={columnVariants}
+                        sx={{ height: '100%' }}
                     >
-                        {/* Column Header */}
-                        <Box
+                        <Paper
+                            onDragOver={(e: any) => handleDragOver(e, column.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e: any) => handleDrop(e, column.id)}
                             sx={{
+                                p: 2,
+                                borderRadius: '20px',
+                                bgcolor: alpha(theme.palette.background.paper, isOver ? 0.5 : 0.3),
+                                border: `2px dashed ${isOver
+                                    ? alpha(column.color, 0.5)
+                                    : alpha(theme.palette.common.white, 0.08)}`,
+                                transition: 'all 0.2s ease',
                                 display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                mb: 2,
-                                pb: 2,
-                                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                flexDirection: 'column',
+                                minHeight: { xs: 300, md: 500 },
+                                height: '100%',
                             }}
                         >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        width: 36,
-                                        height: 36,
-                                        borderRadius: '10px',
-                                        bgcolor: alpha(column.color, 0.15),
-                                        color: column.color,
-                                    }}
-                                >
-                                    {column.icon}
-                                </Box>
-                                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-                                    {column.title}
-                                </Typography>
-                                <Badge
-                                    badgeContent={columnTasks.length}
-                                    sx={{
-                                        '& .MuiBadge-badge': {
-                                            bgcolor: alpha(column.color, 0.2),
+                            {/* Column Header */}
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    mb: 2,
+                                    pb: 2,
+                                    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: 36,
+                                            height: 36,
+                                            borderRadius: '10px',
+                                            bgcolor: alpha(column.color, 0.15),
                                             color: column.color,
-                                            fontWeight: 700,
-                                            fontSize: '0.7rem',
+                                        }}
+                                    >
+                                        {column.icon}
+                                    </Box>
+                                    <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+                                        {column.title}
+                                    </Typography>
+                                    <Badge
+                                        badgeContent={columnTasks.length}
+                                        sx={{
+                                            '& .MuiBadge-badge': {
+                                                bgcolor: alpha(column.color, 0.2),
+                                                color: column.color,
+                                                fontWeight: 700,
+                                                fontSize: '0.7rem',
+                                            },
+                                        }}
+                                    />
+                                </Box>
+                                <Button
+                                    size="small"
+                                    startIcon={<AddIcon />}
+                                    onClick={() => onAddTask(column.id)}
+                                    sx={{
+                                        minWidth: 0,
+                                        px: 1.5,
+                                        borderRadius: '10px',
+                                        textTransform: 'none',
+                                        fontSize: '0.75rem',
+                                        bgcolor: alpha(theme.palette.common.white, 0.05),
+                                        '&:hover': {
+                                            bgcolor: alpha(column.color, 0.15),
                                         },
                                     }}
-                                />
+                                >
+                                    Add
+                                </Button>
                             </Box>
-                            <Button
-                                size="small"
-                                startIcon={<AddIcon />}
-                                onClick={() => onAddTask(column.id)}
+
+                            {/* Task List */}
+                            <Box
                                 sx={{
-                                    minWidth: 0,
-                                    px: 1.5,
-                                    borderRadius: '10px',
-                                    textTransform: 'none',
-                                    fontSize: '0.75rem',
-                                    bgcolor: alpha(theme.palette.common.white, 0.05),
-                                    '&:hover': {
-                                        bgcolor: alpha(column.color, 0.15),
+                                    flex: 1,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 1.5,
+                                    overflowY: 'auto',
+                                    pr: 0.5,
+                                    '&::-webkit-scrollbar': {
+                                        width: 4,
+                                    },
+                                    '&::-webkit-scrollbar-track': {
+                                        bgcolor: 'transparent',
+                                    },
+                                    '&::-webkit-scrollbar-thumb': {
+                                        bgcolor: alpha(theme.palette.common.white, 0.1),
+                                        borderRadius: 2,
                                     },
                                 }}
                             >
-                                Add
-                            </Button>
-                        </Box>
+                                <AnimatePresence mode="popLayout">
+                                    {columnTasks.map((task) => (
+                                        <Box
+                                            key={task._id}
+                                            draggable
+                                            onDragStart={(e) => handleDragStart(e, task._id)}
+                                            onDragEnd={handleDragEnd}
+                                            sx={{
+                                                opacity: draggedTask === task._id ? 0.5 : 1,
+                                                transition: 'opacity 0.2s ease',
+                                            }}
+                                        >
+                                            <TaskCard
+                                                task={task}
+                                                onClick={() => onTaskClick(task)}
+                                                isDragging={draggedTask === task._id}
+                                            />
+                                        </Box>
+                                    ))}
+                                </AnimatePresence>
 
-                        {/* Task List */}
-                        <Box
-                            sx={{
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1.5,
-                                overflowY: 'auto',
-                                pr: 0.5,
-                                '&::-webkit-scrollbar': {
-                                    width: 4,
-                                },
-                                '&::-webkit-scrollbar-track': {
-                                    bgcolor: 'transparent',
-                                },
-                                '&::-webkit-scrollbar-thumb': {
-                                    bgcolor: alpha(theme.palette.common.white, 0.1),
-                                    borderRadius: 2,
-                                },
-                            }}
-                        >
-                            <AnimatePresence mode="popLayout">
-                                {columnTasks.map((task) => (
+                                {columnTasks.length === 0 && (
                                     <Box
-                                        key={task._id}
-                                        draggable
-                                        onDragStart={(e) => handleDragStart(e, task._id)}
-                                        onDragEnd={handleDragEnd}
                                         sx={{
-                                            opacity: draggedTask === task._id ? 0.5 : 1,
-                                            transition: 'opacity 0.2s ease',
+                                            flex: 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            py: 4,
                                         }}
                                     >
-                                        <TaskCard
-                                            task={task}
-                                            onClick={() => onTaskClick(task)}
-                                            isDragging={draggedTask === task._id}
-                                        />
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            sx={{ opacity: 0.5, fontStyle: 'italic' }}
+                                        >
+                                            Drop tasks here
+                                        </Typography>
                                     </Box>
-                                ))}
-                            </AnimatePresence>
-
-                            {columnTasks.length === 0 && (
-                                <Box
-                                    sx={{
-                                        flex: 1,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        py: 4,
-                                    }}
-                                >
-                                    <Typography
-                                        variant="body2"
-                                        color="text.secondary"
-                                        sx={{ opacity: 0.5, fontStyle: 'italic' }}
-                                    >
-                                        Drop tasks here
-                                    </Typography>
-                                </Box>
-                            )}
-                        </Box>
-                    </Paper>
+                                )}
+                            </Box>
+                        </Paper>
+                    </Box>
                 );
             })}
         </Box>

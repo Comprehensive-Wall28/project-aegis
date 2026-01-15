@@ -23,14 +23,14 @@ export function VaultQuickView() {
                 height: '100%',
                 borderRadius: '16px',
                 bgcolor: alpha(theme.palette.background.paper, 0.4),
-                backdropFilter: 'blur(12px)',
+                backdropFilter: 'blur(8px)',
                 border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
                 display: 'flex',
                 flexDirection: 'column',
                 position: 'relative',
                 overflow: 'hidden',
                 boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
-                transition: 'all 0.3s ease',
+                transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
                 transform: 'translateZ(0)',
                 willChange: 'transform, opacity'
             }}

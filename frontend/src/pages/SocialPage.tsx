@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, memo, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
     Box,
@@ -34,11 +34,11 @@ import {
     Menu as MenuIcon,
     Share as ShareIcon,
 } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+// Internal store and components
 import { useSocialStore } from '@/stores/useSocialStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { LinkCard } from '@/components/social/LinkCard';
-import type { Room } from '@/services/socialService';
+import type { Room, LinkPost, Collection } from '@/services/socialService';
 
 type SnackbarState = {
     open: boolean;
@@ -47,7 +47,7 @@ type SnackbarState = {
 };
 
 // Create Room Dialog (inline for simplicity)
-function CreateRoomDialog({
+const CreateRoomDialog = memo(({
     open,
     onClose,
     onSubmit,
@@ -57,7 +57,7 @@ function CreateRoomDialog({
     onClose: () => void;
     onSubmit: (name: string, description: string) => void;
     isLoading: boolean;
-}) {
+}) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
 
@@ -79,7 +79,7 @@ function CreateRoomDialog({
                 alignItems: 'center',
                 justifyContent: 'center',
                 bgcolor: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(4px)',
+                backdropFilter: 'blur(2px)',
             }}
             onClick={onClose}
         >
@@ -131,10 +131,10 @@ function CreateRoomDialog({
             </Paper>
         </Box>
     );
-}
+});
 
 // Create Collection Dialog
-function CreateCollectionDialog({
+const CreateCollectionDialog = memo(({
     open,
     onClose,
     onSubmit,
@@ -144,7 +144,7 @@ function CreateCollectionDialog({
     onClose: () => void;
     onSubmit: (name: string) => void;
     isLoading: boolean;
-}) {
+}) => {
     const [name, setName] = useState('');
 
     const handleSubmit = () => {
@@ -170,7 +170,7 @@ function CreateCollectionDialog({
                 alignItems: 'center',
                 justifyContent: 'center',
                 bgcolor: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(4px)',
+                backdropFilter: 'blur(2px)',
             }}
             onClick={onClose}
         >
@@ -213,10 +213,10 @@ function CreateCollectionDialog({
             </Paper>
         </Box>
     );
-}
+});
 
 // Post Link Dialog
-function PostLinkDialog({
+const PostLinkDialog = memo(({
     open,
     onClose,
     onSubmit,
@@ -226,7 +226,7 @@ function PostLinkDialog({
     onClose: () => void;
     onSubmit: (url: string) => void;
     isLoading: boolean;
-}) {
+}) => {
     const [url, setUrl] = useState('');
 
     const handleSubmit = () => {
@@ -248,7 +248,7 @@ function PostLinkDialog({
                 alignItems: 'center',
                 justifyContent: 'center',
                 bgcolor: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(4px)',
+                backdropFilter: 'blur(2px)',
             }}
             onClick={onClose}
         >
@@ -300,7 +300,7 @@ function PostLinkDialog({
             </Paper>
         </Box>
     );
-}
+});
 
 export function SocialPage() {
     const theme = useTheme();
@@ -374,12 +374,7 @@ export function SocialPage() {
         }
     }, [roomId, pqcEngineStatus, selectRoom]);
 
-    // Auto-select first room if none selected
-    useEffect(() => {
-        if (!roomId && rooms.length > 0 && !currentRoom && !isLoadingRooms) {
-            selectRoom(rooms[0]._id);
-        }
-    }, [roomId, rooms, currentRoom, isLoadingRooms, selectRoom]);
+    // Removed auto-select first room - user explicitly selects room now
 
     // Auto-refresh content every 5 seconds
     useEffect(() => {
@@ -395,16 +390,15 @@ export function SocialPage() {
     // Decrypt room names when rooms change
     useEffect(() => {
         const decryptNames = async () => {
-            const newDecryptedNames = new Map<string, string>();
-            for (const room of rooms) {
+            const results = await Promise.all(rooms.map(async (room) => {
                 try {
                     const { name } = await decryptRoomMetadata(room);
-                    newDecryptedNames.set(room._id, name);
+                    return [room._id, name];
                 } catch {
-                    newDecryptedNames.set(room._id, room.name.substring(0, 2));
+                    return [room._id, room.name.substring(0, 2)];
                 }
-            }
-            setDecryptedNames(newDecryptedNames);
+            }));
+            setDecryptedNames(new Map(results as [string, string][]));
         };
 
         if (rooms.length > 0) {
@@ -415,16 +409,15 @@ export function SocialPage() {
     // Decrypt collection names when they change
     useEffect(() => {
         const decryptNames = async () => {
-            const newDecrypted = new Map<string, string>();
-            for (const col of collections) {
+            const results = await Promise.all(collections.map(async (col) => {
                 try {
                     const { name } = await decryptCollectionMetadata(col);
-                    newDecrypted.set(col._id, name);
+                    return [col._id, name];
                 } catch {
-                    newDecrypted.set(col._id, 'Encrypted Collection');
+                    return [col._id, 'Encrypted Collection'];
                 }
-            }
-            setDecryptedCollections(newDecrypted);
+            }));
+            setDecryptedCollections(new Map(results as [string, string][]));
         };
 
         if (collections.length > 0) {
@@ -523,7 +516,7 @@ export function SocialPage() {
         return Array.from(uploaders.entries()).map(([id, username]) => ({ id, username }));
     }, [links]);
 
-    const getFilteredLinks = useCallback(() => {
+    const filteredLinks = useMemo(() => {
         let filtered = links;
 
         if (currentCollectionId) {
@@ -588,7 +581,6 @@ export function SocialPage() {
                 {rooms.map((room) => (
                     <Tooltip key={room._id} title={decryptedNames.get(room._id) || 'Room'} placement="right">
                         <Avatar
-                            component={motion.div}
                             sx={{
                                 width: 48,
                                 height: 48,
@@ -603,11 +595,12 @@ export function SocialPage() {
                                 cursor: 'pointer',
                                 fontWeight: 600,
                                 fontSize: '1rem',
-                                transition: 'all 0.2s ease',
+                                transition: 'background-color 0.2s ease, transform 0.2s ease',
                                 '&:hover': {
                                     bgcolor: currentRoom?._id === room._id
                                         ? 'primary.main'
                                         : alpha(theme.palette.primary.main, 0.3),
+                                    transform: 'scale(1.05)',
                                 }
                             }}
                             onClick={() => {
@@ -676,74 +669,68 @@ export function SocialPage() {
                         </IconButton>
                     </Box>
 
-                    <AnimatePresence>
-                        {collections.map((collection) => (
-                            <Box
-                                key={collection._id}
-                                component={motion.div}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -10 }}
-                                onClick={() => {
-                                    selectCollection(collection._id);
-                                    if (isMobile) setMobileDrawerOpen(false);
-                                }}
-                                onDragOver={(e) => {
-                                    e.preventDefault();
-                                    setDropTargetId(collection._id);
-                                }}
-                                onDragLeave={() => setDropTargetId(null)}
-                                onDrop={(e) => {
-                                    e.preventDefault();
-                                    handleDrop(collection._id);
-                                }}
+                    {collections.map((collection: Collection) => (
+                        <Box
+                            key={collection._id}
+                            onClick={() => {
+                                selectCollection(collection._id);
+                                if (isMobile) setMobileDrawerOpen(false);
+                            }}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                setDropTargetId(collection._id);
+                            }}
+                            onDragLeave={() => setDropTargetId(null)}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                handleDrop(collection._id);
+                            }}
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1.5,
+                                p: 1.5,
+                                borderRadius: '10px',
+                                cursor: 'pointer',
+                                position: 'relative',
+                                transition: 'background-color 0.2s ease, border-color 0.2s ease',
+                                bgcolor:
+                                    currentCollectionId === collection._id
+                                        ? alpha(theme.palette.primary.main, 0.15)
+                                        : dropTargetId === collection._id
+                                            ? alpha(theme.palette.primary.main, 0.25)
+                                            : 'transparent',
+                                border: dropTargetId === collection._id
+                                    ? `1px dashed ${theme.palette.primary.main}`
+                                    : '1px solid transparent',
+                                '&:hover': {
+                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                },
+                            }}
+                        >
+                            <CollectionIcon
                                 sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 1.5,
-                                    p: 1.5,
-                                    borderRadius: '10px',
-                                    cursor: 'pointer',
-                                    position: 'relative',
-                                    transition: 'all 0.2s ease',
-                                    bgcolor:
+                                    fontSize: 18,
+                                    color:
                                         currentCollectionId === collection._id
-                                            ? alpha(theme.palette.primary.main, 0.15)
-                                            : dropTargetId === collection._id
-                                                ? alpha(theme.palette.primary.main, 0.25)
-                                                : 'transparent',
-                                    border: dropTargetId === collection._id
-                                        ? `1px dashed ${theme.palette.primary.main}`
-                                        : '1px solid transparent',
-                                    '&:hover': {
-                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                    },
+                                            ? 'primary.main'
+                                            : 'text.secondary',
+                                }}
+                            />
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    fontWeight: currentCollectionId === collection._id ? 600 : 400,
+                                    color:
+                                        currentCollectionId === collection._id
+                                            ? 'primary.main'
+                                            : 'text.primary',
                                 }}
                             >
-                                <CollectionIcon
-                                    sx={{
-                                        fontSize: 18,
-                                        color:
-                                            currentCollectionId === collection._id
-                                                ? 'primary.main'
-                                                : 'text.secondary',
-                                    }}
-                                />
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        fontWeight: currentCollectionId === collection._id ? 600 : 400,
-                                        color:
-                                            currentCollectionId === collection._id
-                                                ? 'primary.main'
-                                                : 'text.primary',
-                                    }}
-                                >
-                                    {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
-                                </Typography>
-                            </Box>
-                        ))}
-                    </AnimatePresence>
+                                {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
+                            </Typography>
+                        </Box>
+                    ))}
                 </Paper>
             )}
         </Box>
@@ -792,7 +779,8 @@ export function SocialPage() {
             {/* Main Content */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0, overflow: 'hidden' }}>
                 {/* Unified Header for Mobile Accessibility */}
-                {(isMobile || currentRoom) && (
+                {/* Header - Always visible */}
+                {(
                     <Paper
                         variant="glass"
                         sx={{
@@ -813,7 +801,7 @@ export function SocialPage() {
                             {!isMobile && <GroupIcon sx={{ color: 'primary.main' }} />}
                             <Box>
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    {currentRoom ? (decryptedNames.get(currentRoom._id) || 'Loading...') : 'Social Rooms'}
+                                    {currentRoom ? (decryptedNames.get(currentRoom._id) || 'Loading...') : (rooms.length > 0 ? 'Select a Room' : 'Social Rooms')}
                                 </Typography>
                                 {currentRoom && (
                                     <Typography variant="caption" color="text.secondary">
@@ -826,60 +814,57 @@ export function SocialPage() {
                         {currentRoom && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}>
                                 {/* Search Bar */}
-                                <AnimatePresence mode="wait">
-                                    {isSearchOpen ? (
-                                        <Box
-                                            component={motion.div}
-                                            initial={{ width: 0, opacity: 0 }}
-                                            animate={{ width: 200, opacity: 1 }}
-                                            exit={{ width: 0, opacity: 0 }}
-                                            transition={{ duration: 0.2 }}
-                                            key="search-input"
-                                            sx={{ overflow: 'hidden' }}
-                                        >
-                                            <TextField
-                                                autoFocus
-                                                placeholder="Search links..."
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                size="small"
-                                                fullWidth
-                                                InputProps={{
-                                                    startAdornment: (
-                                                        <InputAdornment position="start">
-                                                            <SearchIcon fontSize="small" color="action" />
-                                                        </InputAdornment>
-                                                    ),
-                                                    endAdornment: (
-                                                        <InputAdornment position="end">
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() => {
-                                                                    setSearchQuery('');
-                                                                    setIsSearchOpen(false);
-                                                                }}
-                                                            >
-                                                                <CloseIcon fontSize="small" />
-                                                            </IconButton>
-                                                        </InputAdornment>
-                                                    ),
-                                                }}
-                                                sx={{
-                                                    '& .MuiOutlinedInput-root': {
-                                                        borderRadius: '14px',
-                                                        bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                                    }
-                                                }}
-                                            />
-                                        </Box>
-                                    ) : (
-                                        <Tooltip title="Search" key="search-icon">
-                                            <IconButton onClick={() => setIsSearchOpen(true)}>
-                                                <SearchIcon />
-                                            </IconButton>
-                                        </Tooltip>
-                                    )}
-                                </AnimatePresence>
+                                {isSearchOpen ? (
+                                    <Box
+                                        sx={{
+                                            width: 200,
+                                            display: 'flex',
+                                            transition: 'width 0.2s ease, opacity 0.2s ease',
+                                            overflow: 'hidden'
+                                        }}
+                                    >
+                                        <TextField
+                                            autoFocus
+                                            placeholder="Search links..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            size="small"
+                                            fullWidth
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <SearchIcon fontSize="small" color="action" />
+                                                    </InputAdornment>
+                                                ),
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => {
+                                                                setSearchQuery('');
+                                                                setIsSearchOpen(false);
+                                                            }}
+                                                        >
+                                                            <CloseIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: '14px',
+                                                    bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                                }
+                                            }}
+                                        />
+                                    </Box>
+                                ) : (
+                                    <Tooltip title="Search" key="search-icon">
+                                        <IconButton onClick={() => setIsSearchOpen(true)}>
+                                            <SearchIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
 
                                 {/* Filter Button */}
                                 <Tooltip title="Filter by Uploader">
@@ -982,55 +967,49 @@ export function SocialPage() {
                     </Paper>
                 )}
 
-                {currentRoom ? (
-                    <>
-                        {/* Links Grid */}
-                        <Box
-                            component={motion.div}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            sx={{
-                                flex: 1,
-                                overflowY: 'auto',
-                                pr: 1,
-                            }}
-                        >
+                {/* Main Content Area */}
+                <Box
+                    sx={{
+                        flex: 1,
+                        overflowY: 'auto',
+                        pr: 1,
+                    }}
+                >
+                    {currentRoom ? (
+                        // Room selected - show links or empty state
+                        <>
                             {isLoadingContent ? (
                                 <Box
                                     sx={{
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        height: 200,
+                                        height: 300,
                                     }}
                                 >
                                     <CircularProgress />
                                 </Box>
+                            ) : filteredLinks.length > 0 ? (
+                                <Box
+                                    sx={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                        gap: 2,
+                                    }}
+                                >
+                                    {filteredLinks.map((link: LinkPost) => (
+                                        <LinkCard
+                                            key={link._id}
+                                            link={link}
+                                            onDelete={() => deleteLink(link._id)}
+                                            onDragStart={(id) => setDraggedLinkId(id)}
+                                            canDelete={
+                                                currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
+                                            }
+                                        />
+                                    ))}
+                                </Box>
                             ) : (
-                                <AnimatePresence mode="popLayout">
-                                    <Box
-                                        sx={{
-                                            display: 'grid',
-                                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                                            gap: 2,
-                                        }}
-                                    >
-                                        {getFilteredLinks().map((link) => (
-                                            <LinkCard
-                                                key={link._id}
-                                                link={link}
-                                                onDelete={() => deleteLink(link._id)}
-                                                onDragStart={(id) => setDraggedLinkId(id)}
-                                                canDelete={
-                                                    currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
-                                                }
-                                            />
-                                        ))}
-                                    </Box>
-                                </AnimatePresence>
-                            )}
-
-                            {!isLoadingContent && getFilteredLinks().length === 0 && (
                                 <Box
                                     sx={{
                                         display: 'flex',
@@ -1047,47 +1026,52 @@ export function SocialPage() {
                                     </Typography>
                                 </Box>
                             )}
-                        </Box>
-                    </>
-                ) : (
-                    // No room selected
-                    <Box
-                        sx={{
-                            flex: 1,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 3,
-                        }}
-                    >
-                        <Paper
-                            variant="glass"
+                        </>
+                    ) : (
+                        // No room selected - show contextual message
+                        <Box
                             sx={{
-                                p: 6,
-                                borderRadius: '24px',
-                                textAlign: 'center',
-                                maxWidth: 400,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                height: '100%',
+                                minHeight: 300,
+                                gap: 2,
                             }}
                         >
-                            <GroupIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
-                            <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
-                                Social Link Sharing
-                            </Typography>
-                            <Typography color="text.secondary" sx={{ mb: 3 }}>
-                                Create a room to share links with your team using end-to-end encryption.
-                            </Typography>
-                            <Button
-                                variant="contained"
-                                startIcon={<AddIcon />}
-                                onClick={() => setShowCreateDialog(true)}
-                                sx={{ borderRadius: '12px' }}
-                            >
-                                Create Your First Room
-                            </Button>
-                        </Paper>
-                    </Box>
-                )}
+                            {isLoadingRooms ? (
+                                // Loading rooms
+                                <CircularProgress />
+                            ) : rooms.length > 0 ? (
+                                // User has rooms but none selected
+                                <>
+                                    <GroupIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
+                                    <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
+                                        Select a room from the sidebar to view shared links
+                                    </Typography>
+                                </>
+                            ) : (
+                                // User has no rooms
+                                <>
+                                    <GroupIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
+                                    <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
+                                        Create or join a room to start sharing links
+                                    </Typography>
+                                    <Button
+                                        variant="contained"
+                                        size="small"
+                                        startIcon={<AddIcon />}
+                                        onClick={() => setShowCreateDialog(true)}
+                                        sx={{ borderRadius: '12px', mt: 1 }}
+                                    >
+                                        Create Room
+                                    </Button>
+                                </>
+                            )}
+                        </Box>
+                    )}
+                </Box>
             </Box>
 
             {/* Create Room Dialog */}

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button } from '@mui/material';
 import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,9 +13,7 @@ interface LinkCardProps {
     canDelete?: boolean;
 }
 
-
-
-export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDelete }: LinkCardProps) {
+export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, canDelete }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
@@ -42,7 +41,8 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                     cursor: 'grab',
                     opacity: isDragging ? 0.5 : 1,
                     transition: 'opacity 0.2s ease',
-                    position: 'relative', // Ensure relative positioning for containment
+                    position: 'relative',
+                    willChange: 'transform, opacity',
                 }}
             >
                 <Paper
@@ -53,11 +53,12 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
-                        transition: 'all 0.2s ease',
+                        transition: 'border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease',
                         border: '1px solid transparent',
                         '&:hover': {
                             borderColor: alpha(theme.palette.primary.main, 0.2),
                             bgcolor: alpha(theme.palette.primary.main, 0.03),
+                            transform: 'translateY(-2px)',
                         },
                     }}
                     onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
@@ -152,123 +153,127 @@ export function LinkCard({ link, onCommentsClick, onDelete, onDragStart, canDele
                 </Paper>
             </div>
 
-            {/* Full Screen Preview Overlay */}
-            <AnimatePresence>
-                {showPreview && (
-                    <Box
-                        component={motion.div}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={closePreview}
-                        sx={{
-                            position: 'fixed',
-                            inset: 0,
-                            zIndex: 9999,
-                            bgcolor: 'rgba(0,0,0,0.8)',
-                            backdropFilter: 'blur(8px)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            p: 4,
-                        }}
-                    >
-                        <Paper
-                            variant="glass"
+            {/* Full Screen Preview Overlay - Rendered via Portal */}
+            {createPortal(
+                <AnimatePresence>
+                    {showPreview && (
+                        <Box
                             component={motion.div}
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={closePreview}
                             sx={{
-                                width: '100%',
-                                maxWidth: 800,
-                                maxHeight: '90vh',
-                                overflow: 'hidden',
-                                borderRadius: '24px',
+                                position: 'fixed',
+                                inset: 0,
+                                zIndex: 9999,
+                                bgcolor: 'rgba(0,0,0,0.8)',
+                                backdropFilter: 'blur(8px)',
                                 display: 'flex',
-                                flexDirection: 'column',
-                                bgcolor: alpha(theme.palette.background.paper, 0.6), // solid backing
-                                boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                p: 4,
                             }}
                         >
-                            {/* Large Image Header */}
-                            <Box
+                            <Paper
+                                variant="glass"
+                                component={motion.div}
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                onClick={(e) => e.stopPropagation()}
                                 sx={{
                                     width: '100%',
-                                    height: 400,
-                                    bgcolor: '#000',
+                                    maxWidth: 800,
+                                    maxHeight: '90vh',
+                                    overflow: 'hidden',
+                                    borderRadius: '24px',
                                     display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    position: 'relative',
+                                    flexDirection: 'column',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.6),
+                                    boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
                                 }}
                             >
-                                {previewData.image ? (
-                                    <img
-                                        src={previewData.image}
-                                        alt={previewData.title}
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'contain',
-                                        }}
-                                    />
-                                ) : (
-                                    <LinkIcon sx={{ fontSize: 80, opacity: 0.2, color: 'primary.main' }} />
-                                )}
-
-                                {/* Close Button */}
-                                <IconButton
-                                    onClick={closePreview}
+                                {/* Large Image Header */}
+                                <Box
                                     sx={{
-                                        position: 'absolute',
-                                        top: 16,
-                                        right: 16,
-                                        bgcolor: 'rgba(0,0,0,0.5)',
-                                        color: '#fff',
-                                        '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                                        width: '100%',
+                                        height: 400,
+                                        bgcolor: '#000',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        position: 'relative',
                                     }}
                                 >
-                                    <CloseIcon />
-                                </IconButton>
-                            </Box>
+                                    {previewData.image ? (
+                                        <img
+                                            src={previewData.image}
+                                            alt={previewData.title}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'contain',
+                                            }}
+                                        />
+                                    ) : (
+                                        <LinkIcon sx={{ fontSize: 80, opacity: 0.2, color: 'primary.main' }} />
+                                    )}
 
-                            {/* Details Content */}
-                            <Box sx={{ p: 4, overflowY: 'auto' }}>
-                                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-                                    {previewData.title || 'Untitled Link'}
-                                </Typography>
-
-                                <Typography variant="body1" color="text.secondary" sx={{ mb: 3, whiteSpace: 'pre-wrap' }}>
-                                    {previewData.description || 'No description available for this link.'}
-                                </Typography>
-
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 'auto' }}>
-                                    <Button
-                                        variant="contained"
-                                        size="large"
-                                        startIcon={<LinkIcon />}
-                                        onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                                    {/* Close Button */}
+                                    <IconButton
+                                        onClick={closePreview}
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 16,
+                                            right: 16,
+                                            bgcolor: 'rgba(0,0,0,0.5)',
+                                            color: '#fff',
+                                            '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                                        }}
                                     >
-                                        Visit Website
-                                    </Button>
+                                        <CloseIcon />
+                                    </IconButton>
+                                </Box>
 
-                                    <Box sx={{ ml: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                        <Typography variant="caption" color="text.secondary">
-                                            Shared by
-                                        </Typography>
-                                        <Typography variant="subtitle2">
-                                            {username}
-                                        </Typography>
+                                {/* Details Content */}
+                                <Box sx={{ p: 4, overflowY: 'auto' }}>
+                                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+                                        {previewData.title || 'Untitled Link'}
+                                    </Typography>
+
+                                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3, whiteSpace: 'pre-wrap' }}>
+                                        {previewData.description || 'No description available for this link.'}
+                                    </Typography>
+
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 'auto' }}>
+                                        <Button
+                                            variant="contained"
+                                            size="large"
+                                            startIcon={<LinkIcon />}
+                                            onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                                        >
+                                            Visit Website
+                                        </Button>
+
+                                        <Box sx={{ ml: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                            <Typography variant="caption" color="text.secondary">
+                                                Shared by
+                                            </Typography>
+                                            <Typography variant="subtitle2">
+                                                {username}
+                                            </Typography>
+                                        </Box>
                                     </Box>
                                 </Box>
-                            </Box>
-                        </Paper>
-                    </Box>
-                )}
-            </AnimatePresence>
+                            </Paper>
+                        </Box>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </>
     );
-}
+});
+
 
