@@ -290,7 +290,10 @@ export function TasksPage() {
                         <Button
                             variant="contained"
                             startIcon={<AddIcon />}
-                            onClick={() => handleAddTask('todo')}
+                            onClick={(e) => {
+                                e.currentTarget.blur();
+                                handleAddTask('todo');
+                            }}
                             sx={{
                                 borderRadius: '12px',
                                 textTransform: 'none',

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Shield as VaultIcon,
@@ -6,7 +5,6 @@ import {
     Fingerprint as FingerprintIcon,
     Settings as SettingsIcon,
     Logout as LogOutIcon,
-    Menu as MenuIcon,
     ChevronLeft as ChevronLeftIcon,
     ChevronRight as ChevronRightIcon,
     FolderOpen as FolderOpenIcon,
@@ -23,11 +21,11 @@ import {
     ListItemButton,
     ListItemIcon,
     ListItemText,
-    IconButton,
     alpha,
     useTheme,
     Tooltip
 } from '@mui/material';
+import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSessionStore } from '@/stores/sessionStore';
 import { AegisLogo } from '@/components/AegisLogo';
@@ -49,6 +47,8 @@ const navItems = [
 interface SidebarProps {
     isCollapsed: boolean;
     onToggle: () => void;
+    isMobileOpen: boolean;
+    onMobileClose: () => void;
 }
 
 interface SidebarContentProps {
@@ -58,7 +58,7 @@ interface SidebarContentProps {
     onClose?: () => void;
 }
 
-function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarContentProps) {
+const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: SidebarContentProps) => {
     const theme = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
@@ -160,9 +160,11 @@ function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarCon
                                         {!isCollapsed && (
                                             <ListItemText
                                                 primary={item.name}
-                                                primaryTypographyProps={{
-                                                    fontSize: '14px',
-                                                    fontWeight: isActive ? 700 : 500
+                                                slotProps={{
+                                                    primary: {
+                                                        fontSize: '14px',
+                                                        fontWeight: isActive ? 700 : 500
+                                                    }
                                                 }}
                                             />
                                         )}
@@ -235,10 +237,9 @@ function SidebarContent({ isCollapsed, onToggle, isMobile, onClose }: SidebarCon
             </Box>
         </Box>
     );
-}
+});
 
-export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
-    const [isMobileOpen, setIsMobileOpen] = useState(false);
+export function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileClose }: SidebarProps) {
     const theme = useTheme();
 
     return (
@@ -265,31 +266,12 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 <SidebarContent isCollapsed={isCollapsed} onToggle={onToggle} />
             </Drawer>
 
-            {/* Mobile Menu Button */}
-            <IconButton
-                onClick={() => setIsMobileOpen(true)}
-                sx={{
-                    display: { lg: 'none' },
-                    position: 'fixed',
-                    top: 12,
-                    right: 12, // Moved from left to right
-                    zIndex: theme.zIndex.appBar + 1,
-                    bgcolor: alpha(theme.palette.background.paper, 0.8),
-                    backdropFilter: 'blur(8px)',
-                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                    borderRadius: 3,
-                    p: 1.25
-                }}
-            >
-                <MenuIcon />
-            </IconButton>
-
             {/* Mobile Sidebar */}
             <Drawer
                 variant="temporary"
                 anchor="right" // Changed anchor to right
                 open={isMobileOpen}
-                onClose={() => setIsMobileOpen(false)}
+                onClose={onMobileClose}
                 ModalProps={{ keepMounted: true }}
                 sx={{
                     display: { xs: 'block', lg: 'none' },
@@ -297,8 +279,9 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                         width: 224,
                         boxSizing: 'border-box',
                         bgcolor: alpha(theme.palette.background.default, 0.95),
-                        backdropFilter: 'blur(16px)',
-                        borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                        backdropFilter: 'blur(8px)', // Reduced from 16px for performance
+                        borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        willChange: 'transform, opacity'
                     },
                 }}
             >
@@ -306,7 +289,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     isCollapsed={false}
                     onToggle={() => { }}
                     isMobile
-                    onClose={() => setIsMobileOpen(false)}
+                    onClose={onMobileClose}
                 />
             </Drawer>
         </Box>

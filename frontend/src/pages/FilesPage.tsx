@@ -929,6 +929,8 @@ export function FilesPage() {
                             dragOverId={dragOverId}
                             onNavigate={navigateToFolder}
                             onContextMenu={handleContextMenu}
+                            onShare={(f) => setShareDialog({ open: true, item: f, type: 'folder' })}
+                            onDelete={(id) => handleDeleteFolder(id)}
                             onDragOver={(id: string | null) => setDragOverId(id)}
                             onDrop={(targetId: string, droppedFileId: string) => {
                                 setDragOverId(null);
@@ -1135,6 +1137,8 @@ const FolderGridItem = memo(({
     dragOverId,
     onNavigate,
     onContextMenu,
+    onShare,
+    onDelete,
     onDragOver,
     onDrop
 }: {
@@ -1145,6 +1149,8 @@ const FolderGridItem = memo(({
     dragOverId: string | null;
     onNavigate: (folder: Folder) => void;
     onContextMenu: (e: React.MouseEvent, target: any) => void;
+    onShare: (folder: Folder) => void;
+    onDelete: (id: string) => void;
     onDragOver: (id: string | null) => void;
     onDrop: (targetId: string, droppedFileId: string) => void;
 }) => {
@@ -1230,9 +1236,39 @@ const FolderGridItem = memo(({
                     >
                         {folder.name}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7, mb: 1 }}>
                         Folder
                     </Typography>
+
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        justifyContent="center"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <IconButton
+                            size="small"
+                            onClick={() => onShare(folder)}
+                            sx={{
+                                color: 'primary.main',
+                                p: 0.5,
+                                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
+                            }}
+                        >
+                            <ShareIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                            size="small"
+                            onClick={() => onDelete(folder._id)}
+                            sx={{
+                                color: '#EF5350',
+                                p: 0.5,
+                                '&:hover': { bgcolor: alpha('#EF5350', 0.1) }
+                            }}
+                        >
+                            <TrashIcon fontSize="small" />
+                        </IconButton>
+                    </Stack>
                 </Paper>
             </Box>
         </Grid>

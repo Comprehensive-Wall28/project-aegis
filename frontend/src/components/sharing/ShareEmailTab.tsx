@@ -104,7 +104,7 @@ export const ShareEmailTab: React.FC<ShareEmailTabProps> = ({ item, type, onSucc
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             {successMsg && <Alert severity="success" sx={{ mb: 2 }}>{successMsg}</Alert>}
 
-            <Stack direction="row" spacing={1}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                     fullWidth
                     label="Recipient Email"
@@ -112,13 +112,24 @@ export const ShareEmailTab: React.FC<ShareEmailTabProps> = ({ item, type, onSucc
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
+                    sx={{
+                        '& .MuiOutlinedInput-root': {
+                            borderRadius: '12px'
+                        }
+                    }}
                 />
                 <Button
                     variant="contained"
                     onClick={handleShare}
                     disabled={isLoading || !email.trim()}
                     endIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
-                    sx={{ minWidth: 100 }}
+                    sx={{
+                        minWidth: { xs: '100%', sm: 100 },
+                        height: { xs: 44, sm: 40 },
+                        borderRadius: '12px',
+                        textTransform: 'none',
+                        fontWeight: 700
+                    }}
                 >
                     Share
                 </Button>

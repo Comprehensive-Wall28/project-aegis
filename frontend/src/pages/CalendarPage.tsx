@@ -334,18 +334,16 @@ export function CalendarPage() {
                         fontFamily: 'JetBrains Mono, monospace',
                     },
                     '& .fc-daygrid-day.fc-day-today': {
-                        bgcolor: `${theme.palette.primary.main} !important`,
+                        bgcolor: `${alpha(theme.palette.primary.main, 0.08)} !important`,
                         position: 'relative',
-                        border: 'none !important',
-                        boxShadow: 'none !important',
+                        boxShadow: `inset 0 0 0 2px ${theme.palette.primary.main} !important`,
                         zIndex: 2,
                         '&::after': {
                             display: 'none',
                         },
                         '& .fc-daygrid-day-number': {
-                            color: `${theme.palette.common.white} !important`,
+                            color: `${theme.palette.primary.main} !important`,
                             fontWeight: 800,
-                            textShadow: 'none',
                             position: 'relative',
                             zIndex: 2,
                         }
@@ -450,11 +448,11 @@ export function CalendarPage() {
                         '& .fc-button': {
                             margin: '0 !important',
                         },
-                        '& > .fc-button:not(:last-child)': {
+                        '& > .fc-button:not(:last-of-type)': {
                             borderTopRightRadius: '12px !important',
                             borderBottomRightRadius: '12px !important',
                         },
-                        '& > .fc-button:not(:first-child)': {
+                        '& > .fc-button:not(:first-of-type)': {
                             borderTopLeftRadius: '12px !important',
                             borderBottomLeftRadius: '12px !important',
                         }

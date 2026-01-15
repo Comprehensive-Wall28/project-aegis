@@ -176,7 +176,10 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
                                 <Button
                                     size="small"
                                     startIcon={<AddIcon />}
-                                    onClick={() => onAddTask(column.id)}
+                                    onClick={(e) => {
+                                        e.currentTarget.blur();
+                                        onAddTask(column.id);
+                                    }}
                                     sx={{
                                         minWidth: 0,
                                         px: 1.5,

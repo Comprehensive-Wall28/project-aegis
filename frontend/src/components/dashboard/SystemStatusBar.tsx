@@ -142,7 +142,9 @@ export function SystemStatusBar() {
                                         width: 5,
                                         borderRadius: '50%',
                                         border: `1.5px solid ${isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.info.main)}`,
-                                        animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite'
+                                        animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                                        willChange: 'transform, opacity',
+                                        transform: 'translateZ(0)'
                                     }}
                                 />
                             </Box>
@@ -183,7 +185,9 @@ export function SystemStatusBar() {
                         width: 140, // Fixed width
                         justifyContent: 'center',
                         boxShadow: (status as any).glow ? `0 0 15px ${alpha(status.color, 0.15)}` : 'none',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                        transition: theme.transitions.create(['background-color', 'color', 'border-color', 'box-shadow'], {
+                            duration: theme.transitions.duration.shorter
+                        })
                     }}
                 >
                     {status.icon}

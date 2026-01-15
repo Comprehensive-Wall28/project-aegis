@@ -8,6 +8,7 @@ import {
     Box,
     IconButton,
     Typography,
+    alpha,
 } from '@mui/material';
 import { Close as CloseIcon, Share as ShareIcon, Link as LinkIcon, Email as EmailIcon } from '@mui/icons-material';
 import type { FileMetadata } from '@/services/vaultService';
@@ -38,15 +39,68 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, item, t
             maxWidth="sm"
             fullWidth
             PaperProps={{
-                sx: { borderRadius: '16px' }
+                sx: {
+                    borderRadius: '24px',
+                    backgroundImage: 'none',
+                    bgcolor: 'background.paper',
+                    overflow: 'hidden'
+                }
             }}
         >
-            <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <ShareIcon color="primary" />
-                    <Typography variant="h6" fontWeight={700}>Share "{fileName}"</Typography>
+            <DialogTitle sx={{
+                p: { xs: 2, sm: 3 },
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 2,
+                pr: { xs: 6, sm: 8 } // Make space for the absolute close button
+            }}>
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 40,
+                    height: 40,
+                    borderRadius: '12px',
+                    bgcolor: alpha('#2196F3', 0.1),
+                    color: '#2196F3',
+                    flexShrink: 0
+                }}>
+                    <ShareIcon />
                 </Box>
-                <IconButton onClick={onClose} size="small">
+
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 800, letterSpacing: 1.5 }}>
+                        Share Resource
+                    </Typography>
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            fontWeight: 700,
+                            fontSize: { xs: '1rem', sm: '1.25rem' },
+                            lineHeight: 1.3,
+                            color: 'text.primary',
+                            wordBreak: 'break-all',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                        }}
+                    >
+                        {fileName}
+                    </Typography>
+                </Box>
+
+                <IconButton
+                    onClick={onClose}
+                    size="small"
+                    sx={{
+                        position: 'absolute',
+                        top: { xs: 16, sm: 24 },
+                        right: { xs: 16, sm: 24 },
+                        color: 'text.secondary',
+                        '&:hover': { bgcolor: alpha('#fff', 0.05) }
+                    }}
+                >
                     <CloseIcon />
                 </IconButton>
             </DialogTitle>
@@ -58,14 +112,14 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, item, t
                             <Tab
                                 icon={<EmailIcon fontSize="small" />}
                                 iconPosition="start"
-                                label="Via Email"
-                                sx={{ fontWeight: 600, minHeight: 48 }}
+                                label="Email"
+                                sx={{ fontWeight: 600, minHeight: 48, flex: 1 }}
                             />
                             <Tab
                                 icon={<LinkIcon fontSize="small" />}
                                 iconPosition="start"
-                                label="Via Link"
-                                sx={{ fontWeight: 600, minHeight: 48 }}
+                                label="Link"
+                                sx={{ fontWeight: 600, minHeight: 48, flex: 1 }}
                             />
                         </Tabs>
                     </Box>

@@ -285,7 +285,7 @@ export function Navbar() {
                                 onClick={() => setMobileOpen(false)}
                                 sx={{ borderRadius: 2 }}
                             >
-                                <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 600 }} />
+                                <ListItemText primary={item.label} slotProps={{ primary: { fontWeight: 600 } }} />
                             </ListItemButton>
                         </ListItem>
                     ))}
@@ -294,7 +294,7 @@ export function Navbar() {
                             <ListItemText
                                 primary="Switch Theme"
                                 secondary={currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}
-                                primaryTypographyProps={{ fontWeight: 600 }}
+                                slotProps={{ primary: { fontWeight: 600 } }}
                             />
                         </ListItemButton>
                     </ListItem>

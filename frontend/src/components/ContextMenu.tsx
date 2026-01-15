@@ -73,9 +73,11 @@ export function ContextMenu({ open, anchorPosition, onClose, items }: ContextMen
                         </ListItemIcon>
                         <ListItemText
                             primary={item.label}
-                            primaryTypographyProps={{
-                                fontSize: '13px',
-                                fontWeight: 600
+                            slotProps={{
+                                primary: {
+                                    fontSize: '13px',
+                                    fontWeight: 600
+                                }
                             }}
                         />
                     </MenuItem>

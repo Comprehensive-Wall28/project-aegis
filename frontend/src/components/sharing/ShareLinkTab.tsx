@@ -200,17 +200,26 @@ export const ShareLinkTab: React.FC<ShareLinkTabProps> = ({ item, type }) => {
                             }
                         }}
                     />
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        justifyContent="space-between"
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        spacing={2}
+                    >
                         <Button
                             size="small"
                             onClick={generateLink} // Regenerate
                             startIcon={<RefreshIcon />}
-                            sx={{ textTransform: 'none', color: 'text.secondary' }}
+                            sx={{
+                                textTransform: 'none',
+                                color: 'text.secondary',
+                                fontWeight: 600
+                            }}
                         >
                             Generate New Link
                         </Button>
                         {copied && (
-                            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>
+                            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 700 }}>
                                 Link copied to clipboard!
                             </Typography>
                         )}

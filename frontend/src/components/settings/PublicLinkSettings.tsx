@@ -6,7 +6,6 @@ import {
     List,
     ListItem,
     ListItemText,
-    ListItemSecondaryAction,
     IconButton,
     Button,
     CircularProgress,
@@ -216,65 +215,103 @@ export const PublicLinkSettings: React.FC<PublicLinkSettingsProps> = ({ onNotifi
                         {links.map((link, index) => (
                             <ListItem
                                 key={link._id}
+                                disablePadding
                                 sx={{
                                     borderBottom: index < links.length - 1 ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : 'none',
-                                    py: 2,
-                                    '&:hover': { bgcolor: alpha(theme.palette.common.white, 0.02) }
+                                    '&:hover': { bgcolor: alpha(theme.palette.common.white, 0.02) },
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    p: { xs: 1.5, sm: 2 },
+                                    position: 'relative',
+                                    overflow: 'hidden'
                                 }}
                             >
-                                <Box sx={{ mr: 2, color: link.resourceType === 'file' ? 'primary.main' : 'warning.main' }}>
+                                <Box sx={{
+                                    mr: { xs: 1.5, sm: 2 },
+                                    color: link.resourceType === 'file' ? 'primary.main' : 'warning.main',
+                                    display: 'flex',
+                                    flexShrink: 0
+                                }}>
                                     {link.resourceType === 'file' ? <FileIcon /> : <FolderIcon />}
                                 </Box>
-                                <ListItemText
-                                    primary={
-                                        <Stack direction="row" spacing={1} alignItems="center">
-                                            <Typography variant="subtitle1" fontWeight={700}>
-                                                {link.resourceDetails?.originalFileName || link.resourceDetails?.name || 'Unknown Resource'}
-                                            </Typography>
-                                            <Chip
-                                                label={link.resourceType}
-                                                size="small"
-                                                variant="outlined"
-                                                sx={{ height: 20, fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 800 }}
-                                            />
-                                        </Stack>
-                                    }
-                                    secondary={
-                                        <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                                Created {new Date(link.createdAt).toLocaleDateString()}
-                                            </Typography>
+
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    {/* Primary Info */}
+                                    <Stack direction="row" spacing={1} alignItems="flex-start">
+                                        <Typography
+                                            variant="subtitle2"
+                                            sx={{
+                                                fontWeight: 800,
+                                                color: 'text.primary',
+                                                wordBreak: 'break-all',
+                                                lineHeight: 1.4,
+                                                flex: 1
+                                            }}
+                                        >
+                                            {link.resourceDetails?.originalFileName || link.resourceDetails?.name || 'Unknown Resource'}
+                                        </Typography>
+                                        <Chip
+                                            label={link.resourceType}
+                                            size="small"
+                                            variant="outlined"
+                                            sx={{
+                                                height: 18,
+                                                fontSize: '0.6rem',
+                                                textTransform: 'uppercase',
+                                                fontWeight: 800,
+                                                opacity: 0.8,
+                                                flexShrink: 0,
+                                                mt: 0.3
+                                            }}
+                                        />
+                                    </Stack>
+
+                                    {/* Secondary Info / Metadata */}
+                                    <Stack
+                                        direction={{ xs: 'column', sm: 'row' }}
+                                        spacing={{ xs: 0.5, sm: 2 }}
+                                        sx={{ mt: 0.5 }}
+                                    >
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                            Created {new Date(link.createdAt).toLocaleDateString()}
+                                        </Typography>
+                                        <Stack direction="row" spacing={2} alignItems="center">
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                <ViewIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
-                                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                <ViewIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                                                     {link.views} views
                                                 </Typography>
                                             </Box>
                                             {link.resourceDetails?.fileSize && (
-                                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                                                     {formatSize(link.resourceDetails.fileSize)}
                                                 </Typography>
                                             )}
                                         </Stack>
-                                    }
-                                />
-                                <ListItemSecondaryAction>
-                                    <Stack direction="row" spacing={1}>
-
-                                        <Tooltip title="Revoke Link">
-                                            <Box component="span">
-                                                <IconButton
-                                                    onClick={() => setDeleteConfirmId(link._id)}
-                                                    size="small"
-                                                    color="error"
-                                                    disabled={revokingId === link._id}
-                                                >
-                                                    {revokingId === link._id ? <CircularProgress size={20} color="inherit" /> : <DeleteIcon fontSize="small" />}
-                                                </IconButton>
-                                            </Box>
-                                        </Tooltip>
                                     </Stack>
-                                </ListItemSecondaryAction>
+                                </Box>
+
+                                <Box sx={{ ml: 1, flexShrink: 0 }}>
+                                    <Tooltip title="Revoke Link">
+                                        <Box component="span">
+                                            <IconButton
+                                                onClick={() => setDeleteConfirmId(link._id)}
+                                                size="small"
+                                                sx={{
+                                                    color: 'error.main',
+                                                    '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) }
+                                                }}
+                                                disabled={revokingId === link._id}
+                                            >
+                                                {revokingId === link._id ? (
+                                                    <CircularProgress size={18} color="inherit" />
+                                                ) : (
+                                                    <DeleteIcon fontSize="small" />
+                                                )}
+                                            </IconButton>
+                                        </Box>
+                                    </Tooltip>
+                                </Box>
                             </ListItem>
                         ))}
                     </List>

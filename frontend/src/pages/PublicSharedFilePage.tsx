@@ -481,7 +481,7 @@ export const PublicSharedFilePage = () => {
                                             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                                         }}
                                     >
-                                        {downloading ? 'Decrypting...' : 'Download and Decrypt'}
+                                        {downloading ? 'Decrypting...' : 'Decrypt and Download'}
                                     </Button>
 
                                     <Typography variant="caption" sx={{ mt: 3, textAlign: 'center', color: alpha('#fff', 0.3), fontWeight: 600 }}>

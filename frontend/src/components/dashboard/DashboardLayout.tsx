@@ -11,6 +11,7 @@ import { useSocialStore, importRoomKeyFromBase64 } from '@/stores/useSocialStore
 
 export function DashboardLayout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const theme = useTheme();
 
     // Fetch CSRF token when dashboard loads
@@ -23,6 +24,7 @@ export function DashboardLayout() {
     const [joinMessage, setJoinMessage] = useState<string | null>(null);
 
     // Handle pending invite after login
+    // ... (rest of the checkPendingInvite logic)
     useEffect(() => {
         const checkPendingInvite = async () => {
             const pendingInvite = sessionStorage.getItem('pendingInvite');
@@ -52,8 +54,18 @@ export function DashboardLayout() {
         checkPendingInvite();
     }, [joinRoom, navigate]);
 
+    // Swipe to open sidebar (left swipe on mobile)
+    const handlePanEnd = (_: any, info: any) => {
+        // Detect swipe to left (negative velocity or offset) from the right side
+        if (info.offset.x < -50 && info.velocity.x < -100) {
+            setIsMobileMenuOpen(true);
+        }
+    };
+
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}>
+        <Box
+            sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}
+        >
             {/* Solid Thematic Background */}
             <Box
                 sx={{
@@ -66,10 +78,29 @@ export function DashboardLayout() {
                 }}
             />
 
+            {/* Gesture Strip for Swipe-to-Open (Mobile Only) */}
+            <Box
+                component={motion.div}
+                onPanEnd={handlePanEnd}
+                sx={{
+                    position: 'fixed',
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: 30, // Narrow strip on the right edge
+                    zIndex: 100, // Above content (1) but below modals (1300) and header actions
+                    display: { lg: 'none' },
+                    touchAction: 'none',
+                    bgcolor: 'transparent'
+                }}
+            />
+
             {/* Sidebar */}
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
                 onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                isMobileOpen={isMobileMenuOpen}
+                onMobileClose={() => setIsMobileMenuOpen(false)}
             />
 
             {/* Main Content Wrapper */}
@@ -92,7 +123,7 @@ export function DashboardLayout() {
             >
                 {/* Headers Section */}
                 <Box sx={{ zIndex: 10, flexShrink: 0 }}>
-                    <TopHeader />
+                    <TopHeader onMobileMenuOpen={() => setIsMobileMenuOpen(true)} />
                     <SystemStatusBar />
                 </Box>
 
@@ -114,7 +145,6 @@ export function DashboardLayout() {
                             bgcolor: theme.palette.background.paper,
                             border: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
                             boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`,
-                            willChange: 'opacity'
                         }}
                     >
                         <Box

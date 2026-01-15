@@ -124,6 +124,7 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
             <DialogContent dividers sx={{ borderColor: alpha(theme.palette.divider, 0.1) }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
                     <TextField
+                        autoFocus
                         label="Task Title"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
