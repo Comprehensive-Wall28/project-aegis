@@ -129,16 +129,51 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                             width: '100%',
                             height: 140,
                             flexShrink: 0,
-                            backgroundImage: previewImage ? `url(${previewImage})` : 'none',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            bgcolor: previewImage ? 'transparent' : alpha(theme.palette.primary.main, 0.08),
+                            bgcolor: alpha(theme.palette.primary.main, 0.08), // Default background if no image
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             position: 'relative',
+                            overflow: 'hidden', // Ensure blur doesn't spill
                         }}
                     >
+                        {/* 1. Blurred Background layer (fills area) */}
+                        {previewImage && (
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backgroundImage: `url(${previewImage})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    filter: 'blur(10px) brightness(0.7)',
+                                    transform: 'scale(1.1)', // Prevent blur edges
+                                }}
+                            />
+                        )}
+
+                        {/* 2. Sharp Foreground Image (contained) */}
+                        {previewImage && (
+                            <Box
+                                component="img"
+                                src={previewImage}
+                                sx={{
+                                    position: 'relative',
+                                    maxWidth: '100%',
+                                    maxHeight: '100%',
+                                    objectFit: 'contain',
+                                    zIndex: 1,
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)', // subtle pop
+                                }}
+                                onError={(e) => {
+                                    // Fallback if proxy fails visually
+                                    e.currentTarget.style.display = 'none';
+                                }}
+                            />
+                        )}
                         {!previewImage && (
                             <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <LinkIcon sx={{ fontSize: 40, opacity: 0.1, color: 'primary.main' }} />

@@ -58,9 +58,25 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
 
         // Go to page
         const response = await page.goto(targetUrl, {
-            waitUntil: 'networkidle2',
-            timeout: 30000
+            waitUntil: 'domcontentloaded', // Much faster and more reliable for ad-heavy sites
+            timeout: 60000 // Increase to 60s
         });
+
+        // Try to handle simple gates/overlays ("Enter", "I agree")
+        try {
+            await page.evaluate(() => {
+                const buttons = Array.from(document.querySelectorAll('button, a'));
+                const enterButton = buttons.find(el => {
+                    const text = el.textContent?.toLowerCase() || '';
+                    return text.includes('enter') || text.includes('agree') || text.includes('yes, I am');
+                });
+                if (enterButton) (enterButton as HTMLElement).click();
+            });
+            // Brief wait for content to settle after potential click
+            await new Promise(r => setTimeout(r, 2000));
+        } catch (e) {
+            // Ignore click errors
+        }
 
         const status = response?.status();
         if (status === 403) {
