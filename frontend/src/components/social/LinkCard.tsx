@@ -10,10 +10,12 @@ interface LinkCardProps {
     onCommentsClick?: (link: LinkPost) => void;
     onDelete?: (linkId: string) => void;
     onDragStart?: (linkId: string) => void;
+    onView?: (linkId: string) => void;
+    isViewed?: boolean;
     canDelete?: boolean;
 }
 
-export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, canDelete }: LinkCardProps) => {
+export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, isViewed = true, canDelete }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
@@ -93,14 +95,22 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
-                        transition: 'border-color 0.2s ease, background-color 0.2s ease',
-                        border: '1px solid transparent',
+                        transition: 'border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease',
+                        border: isViewed
+                            ? '1px solid transparent'
+                            : `1px solid ${alpha(theme.palette.primary.main, 0.4)}`,
+                        boxShadow: isViewed
+                            ? 'none'
+                            : `0 0 12px ${alpha(theme.palette.primary.main, 0.15)}`,
                         '&:hover': {
                             borderColor: alpha(theme.palette.primary.main, 0.2),
                             bgcolor: alpha(theme.palette.primary.main, 0.03),
                         },
                     }}
-                    onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                    onClick={() => {
+                        onView?.(link._id);
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                    }}
                 >
                     {/* Preview Image Banner */}
                     <Box

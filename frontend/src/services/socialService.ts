@@ -44,6 +44,7 @@ export interface RoomContent {
     room: Room;
     collections: Collection[];
     links: LinkPost[];
+    viewedLinkIds: string[];
 }
 
 export interface CreateRoomData {
@@ -158,6 +159,13 @@ const socialService = {
      */
     moveLink: async (linkId: string, collectionId: string): Promise<void> => {
         await apiClient.patch(`/social/links/${linkId}/move`, { collectionId });
+    },
+
+    /**
+     * Mark a link as viewed by the current user
+     */
+    markLinkViewed: async (linkId: string): Promise<void> => {
+        await apiClient.post(`/social/links/${linkId}/view`);
     },
 
     /**

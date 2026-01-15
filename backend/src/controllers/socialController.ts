@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import Room from '../models/Room';
 import Collection from '../models/Collection';
 import LinkPost from '../models/LinkPost';
+import LinkView from '../models/LinkView';
 import logger from '../utils/logger';
 import { logAuditEvent } from '../utils/auditLogger';
 
@@ -380,6 +381,13 @@ export const getRoomContent = async (req: AuthRequest, res: Response, next: Next
             .populate('userId', 'username')
             .sort({ createdAt: -1 });
 
+        // Get viewed link IDs for the current user
+        const viewedLinks = await LinkView.find({
+            userId: req.user!.id,
+            linkId: { $in: links.map(l => l._id) }
+        }).select('linkId');
+        const viewedLinkIds = viewedLinks.map(v => v.linkId.toString());
+
         res.status(200).json({
             room: {
                 _id: room._id,
@@ -390,7 +398,8 @@ export const getRoomContent = async (req: AuthRequest, res: Response, next: Next
                 memberCount: room.members.length
             },
             collections,
-            links
+            links,
+            viewedLinkIds
         });
     } catch (error) {
         logger.error('Error getting room content:', error);
@@ -453,6 +462,52 @@ export const deleteLink = async (req: AuthRequest, res: Response, next: NextFunc
         res.status(200).json({ message: 'Link deleted successfully' });
     } catch (error) {
         logger.error('Error deleting link:', error);
+        next(error);
+    }
+};
+
+/**
+ * Mark a link as viewed by the current user.
+ */
+export const markLinkViewed = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { linkId } = req.params;
+
+        // Verify the link exists
+        const linkPost = await LinkPost.findById(linkId);
+        if (!linkPost) {
+            return res.status(404).json({ message: 'Link not found' });
+        }
+
+        // Find the collection and room to verify membership
+        const collection = await Collection.findById(linkPost.collectionId);
+        if (!collection) {
+            return res.status(404).json({ message: 'Collection not found' });
+        }
+
+        const room = await Room.findOne({
+            _id: collection.roomId,
+            'members.userId': req.user.id
+        });
+
+        if (!room) {
+            return res.status(403).json({ message: 'Not a member of this room' });
+        }
+
+        // Create or update the view record (upsert)
+        await LinkView.findOneAndUpdate(
+            { linkId, userId: req.user.id },
+            { viewedAt: new Date() },
+            { upsert: true }
+        );
+
+        res.status(200).json({ message: 'Link marked as viewed' });
+    } catch (error) {
+        logger.error('Error marking link as viewed:', error);
         next(error);
     }
 };

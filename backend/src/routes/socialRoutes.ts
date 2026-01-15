@@ -10,7 +10,8 @@ import {
     deleteLink,
     createCollection,
     deleteCollection,
-    moveLink
+    moveLink,
+    markLinkViewed
 } from '../controllers/socialController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection } from '../middleware/csrfMiddleware';
@@ -31,5 +32,6 @@ router.get('/rooms/:roomId', protect, csrfProtection, getRoomContent);
 router.delete('/links/:linkId', protect, csrfProtection, deleteLink);
 router.delete('/collections/:collectionId', protect, csrfProtection, deleteCollection);
 router.patch('/links/:linkId/move', protect, csrfProtection, moveLink);
+router.post('/links/:linkId/view', protect, csrfProtection, markLinkViewed);
 
 export default router;

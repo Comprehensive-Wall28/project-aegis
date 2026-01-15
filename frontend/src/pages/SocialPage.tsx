@@ -34,6 +34,7 @@ import {
     Menu as MenuIcon,
     Share as ShareIcon,
     Delete as DeleteIcon,
+    FiberManualRecord as DotIcon,
 } from '@mui/icons-material';
 // Internal store and components
 import { useSocialStore } from '@/stores/useSocialStore';
@@ -333,6 +334,9 @@ export function SocialPage() {
     const createInvite = useSocialStore((state) => state.createInvite);
     const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
     const decryptCollectionMetadata = useSocialStore((state) => state.decryptCollectionMetadata);
+    const markLinkViewed = useSocialStore((state) => state.markLinkViewed);
+    const getUnviewedCountByCollection = useSocialStore((state) => state.getUnviewedCountByCollection);
+    const viewedLinkIds = useSocialStore((state) => state.viewedLinkIds);
 
     // Get current user ID for delete permissions
     const currentUserId = useSessionStore((state) => state.user?._id);
@@ -781,18 +785,29 @@ export function SocialPage() {
                                             : 'text.secondary',
                                 }}
                             />
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                    fontWeight: currentCollectionId === collection._id ? 600 : 400,
-                                    color:
-                                        currentCollectionId === collection._id
-                                            ? 'primary.main'
-                                            : 'text.primary',
-                                }}
-                            >
-                                {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        fontWeight: currentCollectionId === collection._id ? 600 : 400,
+                                        color:
+                                            currentCollectionId === collection._id
+                                                ? 'primary.main'
+                                                : 'text.primary',
+                                        flex: 1,
+                                    }}
+                                >
+                                    {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
+                                </Typography>
+                                {getUnviewedCountByCollection(collection._id) > 0 && (
+                                    <DotIcon
+                                        sx={{
+                                            fontSize: 10,
+                                            color: 'primary.main',
+                                        }}
+                                    />
+                                )}
+                            </Box>
                         </Box>
                     ))}
                 </Paper>
@@ -1074,6 +1089,8 @@ export function SocialPage() {
                                             link={link}
                                             onDelete={() => deleteLink(link._id)}
                                             onDragStart={(id) => setDraggedLinkId(id)}
+                                            onView={(id) => markLinkViewed(id)}
+                                            isViewed={viewedLinkIds.has(link._id)}
                                             canDelete={
                                                 currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
                                             }

@@ -18,6 +18,7 @@ interface SocialState {
     collections: Collection[];
     currentCollectionId: string | null;
     links: LinkPost[];
+    viewedLinkIds: Set<string>;
 
     // Loading states
     isLoadingRooms: boolean;
@@ -46,6 +47,8 @@ interface SocialState {
     createCollection: (name: string) => Promise<Collection>;
     deleteCollection: (collectionId: string) => Promise<void>;
     moveLink: (linkId: string, collectionId: string) => Promise<void>;
+    markLinkViewed: (linkId: string) => Promise<void>;
+    getUnviewedCountByCollection: (collectionId: string) => number;
     createInvite: (roomId: string) => Promise<string>;
     setPendingInvite: (invite: SocialState['pendingInvite']) => void;
     decryptRoomMetadata: (room: Room) => Promise<{ name: string; description: string }>;
@@ -196,6 +199,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     collections: [],
     currentCollectionId: null,
     links: [],
+    viewedLinkIds: new Set(),
     isLoadingRooms: false,
     isLoadingContent: false,
     pendingInvite: null,
@@ -266,6 +270,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 currentRoom: content.room,
                 collections: content.collections,
                 links: content.links,
+                viewedLinkIds: new Set(content.viewedLinkIds || []),
                 rooms: updatedRooms,
                 currentCollectionId: content.collections[0]?._id || null,
                 isLoadingContent: false,
@@ -303,6 +308,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 // currentRoom: content.room, // Keep existing room obj to prevent full re-render flickering
                 collections: content.collections,
                 links: content.links,
+                viewedLinkIds: new Set(content.viewedLinkIds || []),
                 // Do NOT reset currentCollectionId or loading state
             });
         } catch (error) {
@@ -423,6 +429,31 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         });
     },
 
+    markLinkViewed: async (linkId: string) => {
+        const state = get();
+
+        // Optimistically update the UI
+        const newViewedIds = new Set(state.viewedLinkIds);
+        newViewedIds.add(linkId);
+        set({ viewedLinkIds: newViewedIds });
+
+        try {
+            await socialService.markLinkViewed(linkId);
+        } catch (error) {
+            // Revert on error
+            console.error('Failed to mark link as viewed:', error);
+            newViewedIds.delete(linkId);
+            set({ viewedLinkIds: new Set(newViewedIds) });
+        }
+    },
+
+    getUnviewedCountByCollection: (collectionId: string) => {
+        const state = get();
+        return state.links.filter(
+            l => l.collectionId === collectionId && !state.viewedLinkIds.has(l._id)
+        ).length;
+    },
+
     deleteCollection: async (collectionId: string) => {
         await socialService.deleteCollection(collectionId);
         const state = get();
@@ -506,6 +537,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             collections: [],
             currentCollectionId: null,
             links: [],
+            viewedLinkIds: new Set(),
             pendingInvite: null,
             roomKeys: new Map(),
         });
