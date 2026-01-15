@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { initGridFS } from '../services/gridfsService';
+// GridFS deprecated
+// import { initGridFS } from '../services/gridfsService';
 
 dotenv.config();
 
@@ -10,8 +11,8 @@ const connectDB = async () => {
         console.log(`MongoDB Connected: ${conn.connection.host}`);
 
         // Initialize GridFS bucket after connection
-        initGridFS();
-        console.log('GridFS bucket initialized');
+        // initGridFS();
+        // console.log('GridFS bucket initialized');
     } catch (error) {
         if (error instanceof Error) {
             console.error(`Error: ${error.message}`);
