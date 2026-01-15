@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
-import { Box, Paper, Typography, alpha, useTheme, Button } from '@mui/material';
+import { useEffect, useMemo, memo } from 'react';
+import { Box, Paper, Typography, useTheme, Button } from '@mui/material';
 import { History as HistoryIcon, ArrowUpRight } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
 import { ActivityItem } from '@/components/security/ActivityItem';
+
+const MemoizedActivityItem = memo(ActivityItem);
 
 export function LiveActivityWidget() {
     const theme = useTheme();
@@ -17,32 +18,32 @@ export function LiveActivityWidget() {
         }
     }, [isAuthenticated, fetchRecentActivity]);
 
-    const sharedPaperStyles = {
+    const paperStyles = useMemo(() => ({
         p: 2.5,
         height: '100%',
         borderRadius: '16px',
-        bgcolor: alpha(theme.palette.background.paper, 0.5),
-        backdropFilter: 'blur(4px)',
-        transform: 'translateZ(0)',
-        willChange: 'transform, opacity',
-        border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
-        boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        transition: 'transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease',
-        '&:hover': {
-            borderColor: alpha(theme.palette.common.white, 0.1),
-            boxShadow: '0 8px 32px -2px rgba(0, 0, 0, 0.3)',
-        }
-    };
+        position: 'relative',
+        contain: 'content',
+        transition: 'none',
+        bgcolor: theme.palette.background.paper, // Force opaque
+        backgroundImage: 'none', // Ensure no gradient
+        backdropFilter: 'none', // Disable blur
+        border: `1px solid ${theme.palette.divider}`,
+    }), [theme]);
 
     const handleViewAll = () => {
-        navigate('/security', { state: { activeTab: 2 } }); // Navigate to Activity tab
+        navigate('/dashboard/security', { state: { activeTab: 2 } });
     };
 
     return (
-        <Paper sx={sharedPaperStyles}>
+        <Paper
+            variant="solid"
+            sx={paperStyles}
+            elevation={0}
+        >
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, px: 0.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -90,15 +91,8 @@ export function LiveActivityWidget() {
                         </Typography>
                     </Box>
                 ) : (
-                    recentActivity.map((log, index) => (
-                        <motion.div
-                            key={log._id}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                        >
-                            <ActivityItem log={log} variant="compact" />
-                        </motion.div>
+                    recentActivity.map((log) => (
+                        <MemoizedActivityItem key={log._id} log={log} variant="compact" />
                     ))
                 )}
             </Box>

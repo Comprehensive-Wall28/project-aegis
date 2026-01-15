@@ -14,8 +14,17 @@ export const uploadInit = async (req: AuthRequest, res: Response) => {
     try {
         const { fileName, originalFileName, fileSize, encryptedSymmetricKey, encapsulatedKey, mimeType, folderId } = req.body;
 
-        if (!fileName || !originalFileName || !fileSize || !encryptedSymmetricKey || !encapsulatedKey || !mimeType) {
-            return res.status(400).json({ message: 'Missing file metadata' });
+        const missingFields = [];
+        if (!fileName) missingFields.push('fileName');
+        if (!originalFileName) missingFields.push('originalFileName');
+        if (fileSize === undefined || fileSize === null) missingFields.push('fileSize');
+        if (!encryptedSymmetricKey) missingFields.push('encryptedSymmetricKey');
+        if (!encapsulatedKey) missingFields.push('encapsulatedKey');
+        if (!mimeType) missingFields.push('mimeType');
+
+        if (missingFields.length > 0) {
+            logger.warn(`Upload Init Failed: Missing fields [${missingFields.join(', ')}]`);
+            return res.status(400).json({ message: `Missing file metadata: ${missingFields.join(', ')}` });
         }
 
         if (!req.user || !req.user.id) {

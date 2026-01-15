@@ -181,8 +181,12 @@ export const useUploadStore = create<UploadState>((set, get) => ({
                     const overheadPerChunk = 16;
                     const totalEncryptedSize = item.file.size + (totalChunks * overheadPerChunk);
 
+                    if (isNaN(totalEncryptedSize)) {
+                        throw new Error(`Invalid file size calculation (size: ${item.file.size})`);
+                    }
+
                     // 3. Send Init
-                    const initResponse = await apiClient.post('/vault/upload-init', {
+                    const initPayload = {
                         fileName: encryptedFileName,
                         originalFileName: item.file.name,
                         fileSize: totalEncryptedSize,
@@ -190,7 +194,9 @@ export const useUploadStore = create<UploadState>((set, get) => ({
                         encapsulatedKey: encapsulatedKey,
                         mimeType: item.file.type || 'application/octet-stream',
                         folderId: item.folderId
-                    });
+                    };
+
+                    const initResponse = await apiClient.post('/vault/upload-init', initPayload);
 
 
                     const { fileId } = initResponse.data;
@@ -246,10 +252,16 @@ export const useUploadStore = create<UploadState>((set, get) => ({
 
                 } catch (err: any) {
                     console.error(`Upload failed for ${item.file.name}:`, err);
+                    if (err.response?.data) {
+                        console.error('Server error details:', err.response.data);
+                    }
+
+                    const errorMessage = err.response?.data?.message || err.message || 'Upload failed';
+
                     get().updateUploadItem(item.id, {
                         status: 'error',
                         progress: 0,
-                        error: err.message || 'Upload failed'
+                        error: errorMessage
                     });
                 } finally {
                     setCryptoStatus('idle');

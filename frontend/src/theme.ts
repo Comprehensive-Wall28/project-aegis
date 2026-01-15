@@ -106,7 +106,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#0f172a', // Slate 900
                 secondary: '#475569', // Slate 600
             },
-            divider: 'rgba(15, 23, 42, 0.1)',
+            divider: '#e2e8f0', // Slate 200 (More visible border)
         },
         grey: {
             background: {

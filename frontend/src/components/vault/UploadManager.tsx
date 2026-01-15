@@ -254,15 +254,15 @@ const UploadManager: React.FC<UploadManagerProps> = () => {
             >
                 <Paper
                     elevation={16}
+                    variant="solid"
                     sx={{
                         borderRadius: '16px',
                         overflow: 'hidden',
-                        bgcolor: alpha(theme.palette.background.paper, 0.98),
-                        // Drop backdropFilter entirely during active work
-                        backdropFilter: activeCount > 0 ? 'none' : 'blur(12px)',
-                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                        boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
-                        transition: 'backdrop-filter 0.3s',
+                        bgcolor: theme.palette.background.paper, // Solid opaque
+                        backgroundImage: 'none',
+                        backdropFilter: 'none',
+                        border: `1px solid ${theme.palette.divider}`,
+                        boxShadow: theme.shadows[16],
                     }}
                 >
                     {/* Header */}
@@ -273,8 +273,8 @@ const UploadManager: React.FC<UploadManagerProps> = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            borderBottom: isMinimized ? 'none' : `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                            bgcolor: alpha(theme.palette.primary.main, 0.05),
+                            borderBottom: isMinimized ? 'none' : `1px solid ${theme.palette.divider}`,
+                            bgcolor: theme.palette.background.default, // Solid opaque contrast
                         }}
                     >
                         <Stack direction="row" spacing={1.5} alignItems="center">

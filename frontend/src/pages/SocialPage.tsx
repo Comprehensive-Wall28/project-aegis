@@ -961,8 +961,15 @@ export function SocialPage() {
                                     open={Boolean(filterAnchorEl)}
                                     onClose={handleFilterClose}
                                     PaperProps={{
-                                        variant: 'glass',
-                                        sx: { minWidth: 200, mt: 1 }
+                                        variant: 'solid',
+                                        elevation: 8,
+                                        sx: {
+                                            minWidth: 200,
+                                            mt: 1,
+                                            bgcolor: theme.palette.background.paper, // Opaque background
+                                            backgroundImage: 'none',
+                                            border: `1px solid ${theme.palette.divider}`,
+                                        }
                                     }}
                                 >
                                     <MenuItem

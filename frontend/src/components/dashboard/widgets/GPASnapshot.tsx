@@ -86,12 +86,12 @@ export function GPASnapshot() {
         if (isGerman) {
             if (currentGPA <= 1.5) return theme.palette.primary.main; // Excellent
             if (currentGPA <= 2.5) return theme.palette.info.main;    // Good
-            if (currentGPA <= 3.5) return '#ff9800';                 // Satifactory
+            if (currentGPA <= 3.5) return theme.palette.text.primary; // Satisfactory (Themed neutral)
             return theme.palette.error.main;                         // Poor
         } else {
             if (currentGPA >= 3.7) return theme.palette.primary.main;
             if (currentGPA >= 3.0) return theme.palette.info.main;
-            if (currentGPA >= 2.0) return '#ff9800';
+            if (currentGPA >= 2.0) return theme.palette.text.primary; // Satisfactory (Themed neutral)
             return theme.palette.error.main;
         }
     };
@@ -205,13 +205,13 @@ export function GPASnapshot() {
                             fontSize: '0.8rem',
                             px: 3,
                             py: 1,
-                            bgcolor: alpha(theme.palette.common.white, 0.05),
-                            color: theme.palette.common.white,
-                            border: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
+                            bgcolor: alpha(theme.palette.text.primary, 0.05),
+                            color: theme.palette.text.primary,
+                            border: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
                             backdropFilter: 'blur(4px)',
                             '&:hover': {
-                                bgcolor: alpha(theme.palette.common.white, 0.1),
-                                border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
+                                bgcolor: alpha(theme.palette.text.primary, 0.1),
+                                border: `1px solid ${alpha(theme.palette.text.primary, 0.2)}`,
                                 transform: 'translateX(4px)',
                             },
                             transition: 'all 0.3s ease',
@@ -284,7 +284,7 @@ export function GPASnapshot() {
                                     lineHeight: 1,
                                     letterSpacing: '-0.04em',
                                     fontSize: '2.4rem',
-                                    color: theme.palette.common.white,
+                                    color: theme.palette.text.primary,
                                     mb: 0.5,
                                     textShadow: `0 0 20px ${alpha(statusColor, 0.4)}`
                                 }}>
