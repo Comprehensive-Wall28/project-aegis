@@ -11,6 +11,7 @@ import { InviteLanding } from '@/pages/InviteLanding';
 import { PqcLearn } from '@/pages/PqcLearn';
 import { NotFound } from '@/pages/NotFound';
 import { BackendDownPage } from '@/pages/BackendDown';
+import { PublicSharedFilePage } from '@/pages/PublicSharedFilePage';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -46,6 +47,10 @@ const router = createBrowserRouter([
     {
         path: '/invite/:code',
         element: <InviteLanding />,
+    },
+    {
+        path: '/share/view/:token',
+        element: <PublicSharedFilePage />,
     },
     {
         path: '/dashboard',
@@ -123,4 +128,3 @@ function AppInitializer() {
 
     return null;
 }
-

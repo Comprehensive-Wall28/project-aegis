@@ -3,6 +3,10 @@ import SharedFolder from '../models/SharedFolder';
 import Folder from '../models/Folder';
 import User from '../models/User';
 import logger from '../utils/logger';
+import crypto from 'crypto';
+import SharedFile from '../models/SharedFile';
+import SharedLink from '../models/SharedLink';
+import FileMetadata from '../models/FileMetadata';
 
 interface AuthRequest extends Request {
     user?: { id: string; username: string };
@@ -115,3 +119,131 @@ export const getSharedFolderKey = async (req: AuthRequest, res: Response) => {
     }
 };
 
+
+/**
+ * Invite a user to a shared file.
+ */
+export const inviteFile = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { fileId, email, encryptedSharedKey, permissions } = req.body;
+
+        if (!fileId || !email || !encryptedSharedKey) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        // Check if file exists and belongs to the user
+        const file = await FileMetadata.findOne({ _id: fileId, ownerId: req.user.id });
+        if (!file) {
+            return res.status(404).json({ message: 'File not found' });
+        }
+
+        // Find recipient
+        const recipient = await User.findOne({ email });
+        if (!recipient) {
+            return res.status(404).json({ message: 'Recipient not found' });
+        }
+
+        if (recipient._id.toString() === req.user.id) {
+            return res.status(400).json({ message: 'Cannot share file with yourself' });
+        }
+
+        // Check if already shared
+        const existingShare = await SharedFile.findOne({ fileId, sharedWith: recipient._id });
+        if (existingShare) {
+            return res.status(400).json({ message: 'File already shared with this user' });
+        }
+
+        const sharedFile = await SharedFile.create({
+            fileId,
+            sharedBy: req.user.id,
+            sharedWith: recipient._id,
+            encryptedSharedKey,
+            permissions: permissions || ['READ', 'DOWNLOAD'],
+        });
+
+        logger.info(`File ${fileId} shared with user ${recipient.username} by ${req.user.username}`);
+        res.status(201).json(sharedFile);
+    } catch (error) {
+        logger.error('Error sharing file:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+/**
+ * Create a shared link for a file or folder.
+ */
+export const createLink = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { resourceId, resourceType, encryptedKey, isPublic, allowedEmails } = req.body;
+
+        if (!resourceId || !resourceType || !encryptedKey) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        // Verify ownership
+        if (resourceType === 'file') {
+            const file = await FileMetadata.findOne({ _id: resourceId, ownerId: req.user.id });
+            if (!file) return res.status(404).json({ message: 'File not found' });
+        } else if (resourceType === 'folder') {
+            const folder = await Folder.findOne({ _id: resourceId, ownerId: req.user.id });
+            if (!folder) return res.status(404).json({ message: 'Folder not found' });
+        } else {
+            return res.status(400).json({ message: 'Invalid resource type' });
+        }
+
+        // Generate a secure random token
+        const token = crypto.randomBytes(32).toString('hex');
+
+        const sharedLink = await SharedLink.create({
+            token,
+            resourceId,
+            resourceType,
+            encryptedKey,
+            creatorId: req.user.id,
+            isPublic: isPublic !== false, // Default to true if not specified, but UI should specify
+            allowedEmails: allowedEmails || []
+        });
+
+        logger.info(`Shared link created for ${resourceType} ${resourceId} by ${req.user.username}`);
+        res.status(201).json(sharedLink);
+    } catch (error) {
+        logger.error('Error creating shared link:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+/**
+ * Get the encrypted shared key for a specific file (User-to-User share).
+ */
+export const getSharedFileKey = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { fileId } = req.params;
+        const sharedFile = await SharedFile.findOne({
+            fileId,
+            sharedWith: req.user.id
+        });
+
+        if (!sharedFile) {
+            return res.status(403).json({ message: 'Access denied or file not shared' });
+        }
+
+        res.json({
+            encryptedSharedKey: sharedFile.encryptedSharedKey
+        });
+    } catch (error) {
+        logger.error('Error fetching shared file key:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

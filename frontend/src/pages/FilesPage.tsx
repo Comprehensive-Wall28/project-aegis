@@ -60,7 +60,7 @@ import { useVaultDownload } from '@/hooks/useVaultDownload';
 import { BackendDown } from '@/components/BackendDown';
 import { ContextMenu, useContextMenu, CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/ContextMenu';
 import { ImagePreviewOverlay } from '@/components/vault/ImagePreviewOverlay';
-import { ShareFolderDialog } from '@/components/folders/ShareFolderDialog';
+import { ShareDialog } from '@/components/sharing/ShareDialog';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useFolderKeyStore } from '@/stores/useFolderKeyStore';
 import { generateFolderKey, wrapKey } from '@/lib/cryptoUtils';
@@ -154,7 +154,13 @@ export function FilesPage() {
     const [isExternalDragging, setIsExternalDragging] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewInitialId, setPreviewInitialId] = useState<string | null>(null);
-    const [shareDialog, setShareDialog] = useState<{ open: boolean; folder: Folder | null }>({ open: false, folder: null });
+
+    // Share Dialog State
+    const [shareDialog, setShareDialog] = useState<{
+        open: boolean;
+        item: FileMetadata | Folder | null;
+        type: 'file' | 'folder';
+    }>({ open: false, item: null, type: 'folder' });
     const [displayLimit, setDisplayLimit] = useState(20);
 
     // Delete confirmation states
@@ -502,6 +508,12 @@ export function FilesPage() {
                     }
                 },
                 {
+                    label: 'Share', icon: <ShareIcon fontSize="small" />, onClick: () => {
+                        const file = files.find(f => f._id === targetId);
+                        if (file) setShareDialog({ open: true, item: file, type: 'file' });
+                    }
+                },
+                {
                     label: 'Delete', icon: <DeleteIcon fontSize="small" />, onClick: () => {
                         handleDelete(targetId);
                     }
@@ -529,7 +541,7 @@ export function FilesPage() {
                 {
                     label: 'Share', icon: <ShareIcon fontSize="small" />, onClick: () => {
                         const folder = folders.find(f => f._id === contextMenu.target?.id);
-                        if (folder) setShareDialog({ open: true, folder });
+                        if (folder) setShareDialog({ open: true, item: folder, type: 'folder' });
                     }
                 },
                 {
@@ -1073,13 +1085,13 @@ export function FilesPage() {
                 files={imageFiles}
                 initialFileId={previewInitialId || ''}
             />
-            {/* Share Folder Dialog */}
-            {shareDialog.folder && (
-                <ShareFolderDialog
+            {/* Share Dialog */}
+            {shareDialog.open && shareDialog.item && (
+                <ShareDialog
                     open={shareDialog.open}
-                    onClose={() => setShareDialog({ open: false, folder: null })}
-                    folderId={shareDialog.folder._id}
-                    folderName={shareDialog.folder.name}
+                    onClose={() => setShareDialog(prev => ({ ...prev, open: false, item: null }))}
+                    item={shareDialog.item}
+                    type={shareDialog.type}
                 />
             )}
 

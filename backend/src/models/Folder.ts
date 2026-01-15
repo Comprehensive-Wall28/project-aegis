@@ -6,6 +6,8 @@ export interface IFolder extends Document {
     parentId?: mongoose.Types.ObjectId; // null = root level
     encryptedSessionKey: string;
     isShared: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 const FolderSchema: Schema = new Schema({

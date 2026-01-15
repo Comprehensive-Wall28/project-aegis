@@ -12,6 +12,8 @@ export interface IFileMetadata extends Document {
     encryptedSymmetricKey: string;
     mimeType: string;
     status: 'pending' | 'uploading' | 'completed' | 'failed';
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 const FileMetadataSchema: Schema = new Schema({

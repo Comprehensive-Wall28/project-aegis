@@ -14,6 +14,7 @@ import calendarRoutes from './routes/calendarRoutes';
 import taskRoutes from './routes/taskRoutes';
 import socialRoutes from './routes/socialRoutes';
 import shareRoutes from './routes/shareRoutes';
+import publicRoutes from './routes/publicRoutes';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -72,6 +73,7 @@ app.use('/api/calendar', calendarRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/share', shareRoutes);
+app.use('/api/public', publicRoutes);
 
 app.use(errorHandler);
 
