@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+    <!-- Dark background -->
+    <rect width="1200" height="630" fill="#000000"/>
+    
+    <!-- Centered content group -->
+    <g transform="translate(600, 315)">
+        <!-- Aegis Logo - exact paths from AegisLogo.tsx, scaled 3x and centered -->
+        <g transform="translate(-60, -80) scale(3)">
+            <path
+                d="M12 28 L12 16 L22 16"
+                stroke="#233d83"
+                stroke-width="6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+            />
+            <path
+                d="M16 24 L28 12 M28 12 L28 20 M28 12 L20 12"
+                stroke="#0ea5e9"
+                stroke-width="6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+            />
+        </g>
+        
+        <!-- "Aegis" text using Outfit font -->
+        <text 
+            x="0" 
+            y="100" 
+            text-anchor="middle" 
+            font-family="Outfit, Inter, -apple-system, BlinkMacSystemFont, sans-serif" 
+            font-size="72" 
+            font-weight="900" 
+            fill="#ffffff"
+            letter-spacing="-0.02em"
+        >Aegis</text>
+    </g>
+</svg>

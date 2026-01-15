@@ -54,6 +54,42 @@ function formatFileSize(bytes: number): string {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+/**
+ * Updates Open Graph and Twitter Card meta tags dynamically for better sharing experience.
+ * This enables rich previews when users copy/share the link after the page has loaded.
+ */
+function updateMetaTags(fileName: string, ownerName: string, fileSize: string) {
+    const title = `${fileName} - Shared via Aegis`;
+    const description = `${fileSize} file shared by ${ownerName}. Securely encrypted with post-quantum cryptography.`;
+
+    // Update document title
+    document.title = title;
+
+    // Helper to update or create meta tag
+    const setMetaTag = (property: string, content: string, isName = false) => {
+        const attr = isName ? 'name' : 'property';
+        let tag = document.querySelector(`meta[${attr}="${property}"]`) as HTMLMetaElement;
+        if (!tag) {
+            tag = document.createElement('meta');
+            tag.setAttribute(attr, property);
+            document.head.appendChild(tag);
+        }
+        tag.content = content;
+    };
+
+    // Update OG tags
+    setMetaTag('og:title', title);
+    setMetaTag('og:description', description);
+
+    // Update Twitter tags
+    setMetaTag('twitter:title', title);
+    setMetaTag('twitter:description', description);
+
+    // Update standard meta tags
+    setMetaTag('title', title, true);
+    setMetaTag('description', description, true);
+}
+
 export const PublicSharedFilePage = () => {
     const { token } = useParams<{ token: string }>();
     const theme = useTheme();
@@ -160,6 +196,9 @@ export const PublicSharedFilePage = () => {
                 };
 
                 setMetadata(finalMetadata);
+
+                // Update page meta tags for better sharing experience
+                updateMetaTags(finalMetadata.fileName, finalMetadata.ownerName, formatFileSize(finalMetadata.fileSize));
 
                 const dek = await unwrapKey(responseData.encryptedKey, linkKey);
                 setDecryptedKey(dek);
