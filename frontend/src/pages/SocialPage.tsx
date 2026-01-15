@@ -314,6 +314,7 @@ export function SocialPage() {
     const currentCollectionId = useSocialStore((state) => state.currentCollectionId);
     const links = useSocialStore((state) => state.links);
     const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
+    const isLoadingRooms = useSocialStore((state) => state.isLoadingRooms);
 
     // Actions
 
@@ -372,6 +373,13 @@ export function SocialPage() {
             selectRoom(roomId);
         }
     }, [roomId, pqcEngineStatus, selectRoom]);
+
+    // Auto-select first room if none selected
+    useEffect(() => {
+        if (!roomId && rooms.length > 0 && !currentRoom && !isLoadingRooms) {
+            selectRoom(rooms[0]._id);
+        }
+    }, [roomId, rooms, currentRoom, isLoadingRooms, selectRoom]);
 
     // Auto-refresh content every 5 seconds
     useEffect(() => {
@@ -784,37 +792,39 @@ export function SocialPage() {
 
             {/* Main Content */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0, overflow: 'hidden' }}>
-                {currentRoom ? (
-                    <>
-                        {/* Room Header */}
-                        <Paper
-                            variant="glass"
-                            sx={{
-                                p: 2,
-                                borderRadius: isMobile ? '12px' : '16px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                flexShrink: 0,
-                            }}
-                        >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                {isMobile && (
-                                    <IconButton onClick={() => setMobileDrawerOpen(true)} edge="start" sx={{ mr: -1 }}>
-                                        <MenuIcon />
-                                    </IconButton>
-                                )}
-                                {!isMobile && <GroupIcon sx={{ color: 'primary.main' }} />}
-                                <Box>
-                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                        {decryptedNames.get(currentRoom._id) || 'Loading...'}
-                                    </Typography>
+                {/* Unified Header for Mobile Accessibility */}
+                {(isMobile || currentRoom) && (
+                    <Paper
+                        variant="glass"
+                        sx={{
+                            p: 2,
+                            borderRadius: isMobile ? '12px' : '16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexShrink: 0,
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            {isMobile && (
+                                <IconButton onClick={() => setMobileDrawerOpen(true)} edge="start" sx={{ mr: -1 }}>
+                                    <MenuIcon />
+                                </IconButton>
+                            )}
+                            {!isMobile && <GroupIcon sx={{ color: 'primary.main' }} />}
+                            <Box>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    {currentRoom ? (decryptedNames.get(currentRoom._id) || 'Loading...') : 'Social Rooms'}
+                                </Typography>
+                                {currentRoom && (
                                     <Typography variant="caption" color="text.secondary">
                                         {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
                                     </Typography>
-                                </Box>
+                                )}
                             </Box>
+                        </Box>
 
+                        {currentRoom && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}>
                                 {/* Search Bar */}
                                 <AnimatePresence mode="wait">
@@ -969,8 +979,12 @@ export function SocialPage() {
                                     </>
                                 )}
                             </Box>
-                        </Paper>
+                        )}
+                    </Paper>
+                )}
 
+                {currentRoom ? (
+                    <>
                         {/* Links Grid */}
                         <Box
                             component={motion.div}
