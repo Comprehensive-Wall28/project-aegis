@@ -11,7 +11,8 @@ import {
     useTheme,
     useMediaQuery,
     alpha,
-    Grid
+    Grid,
+    IconButton
 } from '@mui/material';
 import {
     InsertDriveFile as FileIcon,
@@ -20,12 +21,20 @@ import {
     CloudDownload as CloudDownloadIcon,
     Security as SecurityIcon,
     Speed as SpeedIcon,
-    ShieldOutlined as ShieldIcon
+    ShieldOutlined as ShieldIcon,
+    ChevronLeft,
+    ChevronRight
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 import apiClient from '@/services/api';
 import { unwrapKey, hexToBytes } from '@/lib/cryptoUtils';
 import { AegisLogo } from '@/components/AegisLogo';
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface SharedFileMetadata {
     resourceId: string;
@@ -102,6 +111,8 @@ export const PublicSharedFilePage = () => {
     const [downloading, setDownloading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
+    const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
+    const [pdfNumPages, setPdfNumPages] = useState<number | null>(null);
 
     const decryptChunk = async (chunk: Uint8Array, key: CryptoKey) => {
         const iv = chunk.slice(0, 16);
@@ -203,7 +214,7 @@ export const PublicSharedFilePage = () => {
                 const dek = await unwrapKey(responseData.encryptedKey, linkKey);
                 setDecryptedKey(dek);
 
-                if (finalMetadata.mimeType.startsWith('image/')) {
+                if (finalMetadata.mimeType.startsWith('image/') || finalMetadata.mimeType === 'application/pdf') {
                     downloadAndPreview(finalMetadata, dek);
                 }
 
@@ -442,6 +453,59 @@ export const PublicSharedFilePage = () => {
                                         </Stack>
                                     ) : (metadata.mimeType.startsWith('image/') && previewUrl) ? (
                                         <img src={previewUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', padding: '24px' }} />
+                                    ) : (metadata.mimeType === 'application/pdf' && previewUrl) ? (
+                                        <Box sx={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            width: '100%',
+                                            height: '100%',
+                                            p: 2,
+                                            overflow: 'auto'
+                                        }}>
+                                            <Document
+                                                file={previewUrl}
+                                                onLoadSuccess={({ numPages }) => setPdfNumPages(numPages)}
+                                                loading={
+                                                    <Stack alignItems="center" spacing={2} sx={{ py: 4 }}>
+                                                        <CircularProgress size={32} sx={{ color: 'primary.main' }} />
+                                                        <Typography variant="caption" sx={{ color: alpha('#fff', 0.5) }}>
+                                                            Rendering PDF...
+                                                        </Typography>
+                                                    </Stack>
+                                                }
+                                            >
+                                                <Page
+                                                    pageNumber={pdfCurrentPage}
+                                                    height={410}
+                                                    renderTextLayer={false}
+                                                    renderAnnotationLayer={false}
+                                                />
+                                            </Document>
+                                            {pdfNumPages && pdfNumPages > 1 && (
+                                                <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 2 }}>
+                                                    <IconButton
+                                                        onClick={() => setPdfCurrentPage(p => Math.max(1, p - 1))}
+                                                        disabled={pdfCurrentPage <= 1}
+                                                        size="small"
+                                                        sx={{ color: 'white', '&:disabled': { color: alpha('#fff', 0.3) } }}
+                                                    >
+                                                        <ChevronLeft />
+                                                    </IconButton>
+                                                    <Typography sx={{ color: 'white', fontSize: '0.8rem', fontWeight: 600 }}>
+                                                        {pdfCurrentPage} / {pdfNumPages}
+                                                    </Typography>
+                                                    <IconButton
+                                                        onClick={() => setPdfCurrentPage(p => Math.min(pdfNumPages, p + 1))}
+                                                        disabled={pdfCurrentPage >= pdfNumPages}
+                                                        size="small"
+                                                        sx={{ color: 'white', '&:disabled': { color: alpha('#fff', 0.3) } }}
+                                                    >
+                                                        <ChevronRight />
+                                                    </IconButton>
+                                                </Stack>
+                                            )}
+                                        </Box>
                                     ) : (
                                         <Box sx={{ textAlign: 'center', color: alpha('#fff', 0.2) }}>
                                             <motion.div animate={{ y: [0, -15, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>

@@ -60,6 +60,7 @@ import { useVaultDownload } from '@/hooks/useVaultDownload';
 import { BackendDown } from '@/components/BackendDown';
 import { ContextMenu, useContextMenu, CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/ContextMenu';
 import { ImagePreviewOverlay } from '@/components/vault/ImagePreviewOverlay';
+import { PDFPreviewOverlay } from '@/components/vault/PDFPreviewOverlay';
 import { ShareDialog } from '@/components/sharing/ShareDialog';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useFolderKeyStore } from '@/stores/useFolderKeyStore';
@@ -179,6 +180,11 @@ export function FilesPage() {
     const { contextMenu, handleContextMenu, closeContextMenu } = useContextMenu();
     const theme = useTheme();
     const isImageFile = (file: FileMetadata) => file.mimeType?.startsWith('image/');
+    const isPdfFile = (file: FileMetadata) => file.mimeType === 'application/pdf';
+
+    // PDF Preview State
+    const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+    const [pdfPreviewFile, setPdfPreviewFile] = useState<FileMetadata | null>(null);
 
     const fetchData = useCallback(async () => {
         try {
@@ -330,11 +336,15 @@ export function FilesPage() {
         if (isImageFile(file)) {
             setPreviewInitialId(file._id);
             setPreviewOpen(true);
+        } else if (isPdfFile(file)) {
+            // If it's a PDF, open the PDF preview
+            setPdfPreviewFile(file);
+            setPdfPreviewOpen(true);
         } else {
-            // For non-images, toggle selection
+            // For other files, toggle selection
             toggleSelect(file._id);
         }
-    }, [toggleSelect, isImageFile]);
+    }, [toggleSelect, isImageFile, isPdfFile]);
 
     const gridSize = useMemo(() => {
         switch (viewPreset) {
@@ -1086,6 +1096,16 @@ export function FilesPage() {
                 onClose={() => setPreviewOpen(false)}
                 files={imageFiles}
                 initialFileId={previewInitialId || ''}
+            />
+
+            {/* PDF Preview Overlay */}
+            <PDFPreviewOverlay
+                isOpen={pdfPreviewOpen}
+                onClose={() => {
+                    setPdfPreviewOpen(false);
+                    setPdfPreviewFile(null);
+                }}
+                file={pdfPreviewFile}
             />
             {/* Share Dialog */}
             {shareDialog.open && shareDialog.item && (
