@@ -107,11 +107,11 @@ export function SystemStatusBar() {
                 sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 3 }, flexWrap: 'wrap', justifyContent: 'center' }}
             >
                 {/* PQC Engine Badge */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
                     <Box sx={{ position: 'relative', display: 'flex' }}>
                         <ShieldIcon
                             sx={{
-                                fontSize: 18,
+                                fontSize: { xs: 16, sm: 18 },
                                 color: isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.primary.main),
                                 animation: 'none',
                                 filter: (isBusy || isFinished) ? `drop-shadow(0 0 4px ${alpha(isFinished ? theme.palette.success.main : '#c084fc', 0.5)})` : 'none',
@@ -119,23 +119,38 @@ export function SystemStatusBar() {
                             }}
                         />
                         {(isOperational || isBusy || isFinished) && (
-                            <Box
-                                sx={{
-                                    position: 'absolute',
-                                    top: -2,
-                                    right: -2,
-                                    height: 6,
-                                    width: 6,
-                                    borderRadius: '50%',
-                                    bgcolor: isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.info.main),
-                                    boxShadow: `0 0 10px ${isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.info.main)}`,
-                                    animation: isBusy ? 'pulse 0.5s infinite' : 'pulse 2s infinite',
-                                    transition: 'all 0.3s ease'
-                                }}
-                            />
+                            <Box sx={{ position: 'relative' }}>
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -2,
+                                        right: -2,
+                                        height: 5,
+                                        width: 5,
+                                        borderRadius: '50%',
+                                        bgcolor: isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.info.main),
+                                        boxShadow: `0 0 10px ${isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.info.main)}`,
+                                        zIndex: 1
+                                    }}
+                                />
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -2,
+                                        right: -2,
+                                        height: 5,
+                                        width: 5,
+                                        borderRadius: '50%',
+                                        border: `1.5px solid ${isFinished ? theme.palette.success.main : (isBusy ? '#c084fc' : theme.palette.info.main)}`,
+                                        animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                                        willChange: 'transform, opacity',
+                                        transform: 'translateZ(0)'
+                                    }}
+                                />
+                            </Box>
                         )}
                     </Box>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '11px' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', fontSize: { xs: '10px', sm: '11px' } }}>
                         PQC Engine
                     </Typography>
                     <Typography
@@ -167,10 +182,12 @@ export function SystemStatusBar() {
                         bgcolor: status.bgcolor,
                         color: status.color,
                         border: `1px solid ${alpha(status.color, 0.2)}`,
-                        minWidth: { xs: 'auto', sm: 130 },
+                        width: 140, // Fixed width
                         justifyContent: 'center',
                         boxShadow: (status as any).glow ? `0 0 15px ${alpha(status.color, 0.15)}` : 'none',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                        transition: theme.transitions.create(['background-color', 'color', 'border-color', 'box-shadow'], {
+                            duration: theme.transitions.duration.shorter
+                        })
                     }}
                 >
                     {status.icon}
@@ -180,26 +197,15 @@ export function SystemStatusBar() {
                     {(isOperational || isBusy) && (
                         <Box sx={{ position: 'relative', display: 'flex' }}>
                             <Box sx={{ height: 6, width: 6, borderRadius: '50%', bgcolor: status.dotColor }} />
-                            <Box
-                                sx={{
-                                    position: 'absolute',
-                                    inset: 0,
-                                    height: 6,
-                                    width: 6,
-                                    borderRadius: '50%',
-                                    bgcolor: status.dotColor,
-                                    animation: isBusy ? 'pulse 0.5s infinite' : 'pulse 2s infinite'
-                                }}
-                            />
                         </Box>
                     )}
                 </Box>
             </Box>
 
             <style>{`
-                @keyframes pulse {
-                    0% { transform: scale(1); opacity: 1; }
-                    100% { transform: scale(2.5); opacity: 0; }
+                @keyframes ping {
+                    0% { transform: scale(1); opacity: 0.8; }
+                    100% { transform: scale(4); opacity: 0; }
                 }
                 @keyframes spin-slow {
                     from { transform: rotate(0deg); }

@@ -98,11 +98,9 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
             fullWidth
             maxWidth="sm"
             PaperProps={{
+                variant: 'solid',
                 sx: {
                     borderRadius: '24px',
-                    bgcolor: alpha(theme.palette.background.paper, 0.8),
-                    backdropFilter: 'blur(16px)',
-                    border: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
                     boxShadow: theme.shadows[20],
                 }
             }}

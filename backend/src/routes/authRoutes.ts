@@ -10,6 +10,8 @@ import {
     verifyRegistration,
     getAuthenticationOptions,
     verifyAuthentication,
+    removePasskey,
+    discoverUser,
 } from '../controllers/authController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection, csrfTokenCookie } from '../middleware/csrfMiddleware';
@@ -27,6 +29,7 @@ router.get('/csrf-token', csrfProtection, csrfTokenCookie, getCsrfToken);
 // Protected routes WITH CSRF protection
 router.get('/me', protect, csrfProtection, getMe);
 router.put('/me', protect, csrfProtection, updateMe);
+router.get('/discovery/:email', protect, csrfProtection, discoverUser);
 
 // Logout - no CSRF (cookie might be stale, and logout is low-risk)
 router.post('/logout', logoutUser);
@@ -36,5 +39,6 @@ router.post('/webauthn/register-options', protect, csrfProtection, getRegistrati
 router.post('/webauthn/register-verify', protect, csrfProtection, verifyRegistration);
 router.post('/webauthn/login-options', getAuthenticationOptions);
 router.post('/webauthn/login-verify', verifyAuthentication);
+router.delete('/webauthn/passkey', protect, csrfProtection, removePasskey);
 
 export default router;

@@ -105,11 +105,9 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
             fullWidth
             maxWidth="sm"
             PaperProps={{
+                variant: 'solid',
                 sx: {
                     borderRadius: '24px',
-                    bgcolor: alpha(theme.palette.background.paper, 0.9),
-                    backdropFilter: 'blur(16px)',
-                    border: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
                     boxShadow: theme.shadows[20],
                 }
             }}
@@ -126,6 +124,7 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
             <DialogContent dividers sx={{ borderColor: alpha(theme.palette.divider, 0.1) }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
                     <TextField
+                        autoFocus
                         label="Task Title"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
@@ -160,6 +159,16 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
                                 label="Priority"
                                 onChange={(e) => setPriority(e.target.value as any)}
                                 sx={{ borderRadius: '12px' }}
+                                MenuProps={{
+                                    PaperProps: {
+                                        variant: 'glass',
+                                        sx: {
+                                            minWidth: 180,
+                                            borderRadius: '12px',
+                                            boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
+                                        }
+                                    }
+                                }}
                             >
                                 {PRIORITY_OPTIONS.map((opt) => (
                                     <MenuItem key={opt.value} value={opt.value}>

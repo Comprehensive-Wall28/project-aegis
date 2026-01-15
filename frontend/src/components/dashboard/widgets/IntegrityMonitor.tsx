@@ -142,8 +142,8 @@ export function IntegrityMonitor() {
                         sx={{
                             position: 'absolute',
                             inset: 0,
-                            bgcolor: alpha(theme.palette.background.default, 0.8),
-                            backdropFilter: 'blur(12px)',
+                            bgcolor: alpha(theme.palette.background.default, 0.6),
+                            backdropFilter: 'none',
                             zIndex: 10,
                             display: 'flex',
                             flexDirection: 'column',

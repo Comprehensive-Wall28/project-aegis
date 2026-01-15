@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import FileMetadata from '../models/FileMetadata';
-import { initiateUpload, appendChunk, finalizeUpload, getFileStream } from '../services/gridfsService';
+import Folder from '../models/Folder';
+import SharedFolder from '../models/SharedFolder';
+import { initiateUpload, appendChunk, finalizeUpload, getFileStream, deleteFile } from '../services/googleDriveService';
 import logger from '../utils/logger';
 import { logAuditEvent } from '../utils/auditLogger';
 
@@ -12,16 +14,25 @@ export const uploadInit = async (req: AuthRequest, res: Response) => {
     try {
         const { fileName, originalFileName, fileSize, encryptedSymmetricKey, encapsulatedKey, mimeType, folderId } = req.body;
 
-        if (!fileName || !originalFileName || !fileSize || !encryptedSymmetricKey || !encapsulatedKey || !mimeType) {
-            return res.status(400).json({ message: 'Missing file metadata' });
+        const missingFields = [];
+        if (!fileName) missingFields.push('fileName');
+        if (!originalFileName) missingFields.push('originalFileName');
+        if (fileSize === undefined || fileSize === null) missingFields.push('fileSize');
+        if (!encryptedSymmetricKey) missingFields.push('encryptedSymmetricKey');
+        if (!encapsulatedKey) missingFields.push('encapsulatedKey');
+        if (!mimeType) missingFields.push('mimeType');
+
+        if (missingFields.length > 0) {
+            logger.warn(`Upload Init Failed: Missing fields [${missingFields.join(', ')}]`);
+            return res.status(400).json({ message: `Missing file metadata: ${missingFields.join(', ')}` });
         }
 
         if (!req.user || !req.user.id) {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        // Initiate GridFS upload session
-        const uploadStreamId = initiateUpload(originalFileName, {
+        // Initiate Google Drive resumable upload session
+        const uploadStreamId = await initiateUpload(originalFileName, fileSize, {
             ownerId: req.user.id,
             encryptedSymmetricKey,
             encapsulatedKey
@@ -116,7 +127,7 @@ export const uploadChunk = async (req: AuthRequest, res: Response) => {
             await fileRecord.save();
         }
 
-        // Append chunk to GridFS upload session
+        // Append chunk to Google Drive upload session
         const { complete, receivedSize } = await appendChunk(
             fileRecord.uploadStreamId,
             chunkBuffer,
@@ -127,24 +138,17 @@ export const uploadChunk = async (req: AuthRequest, res: Response) => {
 
         if (complete) {
             // Finalize the upload
-            const gridfsFileId = await finalizeUpload(
-                fileRecord.uploadStreamId,
-                fileRecord.fileName,
-                {
-                    ownerId: fileRecord.ownerId,
-                    mimeType: fileRecord.mimeType
-                }
-            );
+            const googleDriveFileId = await finalizeUpload(fileRecord.uploadStreamId);
 
-            fileRecord.gridfsFileId = gridfsFileId as any;
+            fileRecord.googleDriveFileId = googleDriveFileId;
             fileRecord.status = 'completed';
             fileRecord.uploadStreamId = undefined; // Clear session
             await fileRecord.save();
 
-            logger.info(`Vault upload completed: ${fileId} -> GridFS ${gridfsFileId}`);
-            res.status(200).json({ message: 'Upload successful', gridfsFileId: gridfsFileId.toString() });
+            logger.info(`Vault upload completed: ${fileId} -> Google Drive ${googleDriveFileId}`);
+            res.status(200).json({ message: 'Upload successful', googleDriveFileId });
         } else {
-            // Send 308 Resume Incomplete (following Google Drive convention for compatibility)
+            // Send 308 Resume Incomplete (following Google Drive convention)
             res.status(308).set('Range', `bytes=0-${receivedSize - 1}`).send();
         }
 
@@ -161,20 +165,34 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
         }
 
         const fileId = req.params.id;
-        const fileRecord = await FileMetadata.findOne({
+        let fileRecord = await FileMetadata.findOne({
             _id: { $eq: fileId },
             ownerId: { $eq: req.user.id }
         });
 
-        if (!fileRecord || !fileRecord.gridfsFileId) {
+        // If not owner, check if file is in a shared folder
+        if (!fileRecord) {
+            const potentialFile = await FileMetadata.findById(fileId);
+            if (potentialFile && potentialFile.folderId) {
+                const isShared = await SharedFolder.findOne({
+                    folderId: potentialFile.folderId,
+                    sharedWith: req.user.id
+                });
+                if (isShared && isShared.permissions.includes('DOWNLOAD')) {
+                    fileRecord = potentialFile;
+                }
+            }
+        }
+
+        if (!fileRecord || !fileRecord.googleDriveFileId) {
             return res.status(404).json({ message: 'File not found or not ready' });
         }
 
-        const stream = getFileStream(fileRecord.gridfsFileId);
+        const stream = await getFileStream(fileRecord.googleDriveFileId);
 
         // Handle stream errors
         stream.on('error', (err) => {
-            logger.error(`GridFS stream error: ${err}`);
+            logger.error(`Google Drive stream error: ${err}`);
             if (!res.headersSent) {
                 res.status(500).json({ message: 'Download failed' });
             }
@@ -199,9 +217,55 @@ export const getUserFiles = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        const files = await FileMetadata.find({
-            ownerId: { $eq: req.user.id }
-        }).sort({ createdAt: -1 });
+        const { folderId } = req.query;
+        let query: any = { ownerId: req.user.id };
+
+        if (folderId && folderId !== 'null') {
+            const folder = await Folder.findById(folderId);
+            if (!folder) {
+                return res.status(404).json({ message: 'Folder not found' });
+            }
+
+            const isOwner = folder.ownerId.toString() === req.user.id;
+            let hasAccess = isOwner;
+
+            if (!hasAccess) {
+                // Check direct share
+                const directShare = await SharedFolder.findOne({ folderId, sharedWith: req.user.id });
+                if (directShare) {
+                    hasAccess = true;
+                } else {
+                    // Check ancestors
+                    let current = folder;
+                    while (current.parentId) {
+                        const ancestorShare = await SharedFolder.findOne({
+                            folderId: current.parentId,
+                            sharedWith: req.user.id
+                        });
+                        if (ancestorShare) {
+                            hasAccess = true;
+                            break;
+                        }
+                        const parent = await Folder.findById(current.parentId);
+                        if (!parent) break;
+                        current = parent;
+                    }
+                }
+            }
+
+            if (!hasAccess) {
+                return res.status(403).json({ message: 'Access denied to this folder' });
+            }
+
+            // Always fetch files owned by the folder's owner
+            query = { folderId: { $eq: folderId }, ownerId: { $eq: folder.ownerId } };
+        } else {
+            // Root level files - show only owned ones (shared folders appear as distinct objects)
+            query = { ownerId: { $eq: req.user.id }, folderId: null };
+        }
+
+        const files = await FileMetadata.find(query).sort({ createdAt: -1 });
+
         res.json(files);
     } catch (error) {
         logger.error(`Get Files Error: ${error}`);
@@ -225,10 +289,9 @@ export const deleteUserFile = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'File not found' });
         }
 
-        // Delete from GridFS if file was uploaded
-        if (fileRecord.gridfsFileId) {
-            const { deleteFile } = await import('../services/gridfsService');
-            await deleteFile(fileRecord.gridfsFileId);
+        // Delete from Google Drive if file was uploaded
+        if (fileRecord.googleDriveFileId) {
+            await deleteFile(fileRecord.googleDriveFileId);
         }
 
         // Delete metadata record

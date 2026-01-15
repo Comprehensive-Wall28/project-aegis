@@ -10,7 +10,8 @@ import {
     Logout as LogOutIcon,
     KeyboardArrowDown as ChevronDownIcon,
     Settings as SettingsIcon,
-    Palette as PaletteIcon
+    Palette as PaletteIcon,
+    Menu as MenuIcon
 } from '@mui/icons-material';
 import {
     Box,
@@ -26,7 +27,11 @@ import {
     Tooltip
 } from '@mui/material';
 
-export function TopHeader() {
+interface TopHeaderProps {
+    onMobileMenuOpen: () => void;
+}
+
+export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
     const navigate = useNavigate();
     const { user, clearSession } = useSessionStore();
     const { theme: currentTheme, toggleTheme } = useThemeStore();
@@ -64,8 +69,8 @@ export function TopHeader() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                pl: { xs: 8, sm: 8, lg: 3 }, // Account for hamburger menu on mobile/tablet
-                pr: { xs: 2, sm: 3 },
+                pl: { xs: 2, sm: 3, lg: 3 },
+                pr: { xs: 2, sm: 3, lg: 3 }, // Reset extra pr
                 bgcolor: 'transparent'
             }}
         >
@@ -193,11 +198,11 @@ export function TopHeader() {
                                 mt: 2,
                                 width: 240,
                                 p: 1,
-                                borderRadius: '28px',
-                                bgcolor: alpha(theme.palette.background.paper, 0.8),
-                                backdropFilter: 'blur(16px)',
+                                borderRadius: '16px',
+                                bgcolor: theme.palette.background.paper,
+                                backgroundImage: 'none',
+                                boxShadow: theme.shadows[20],
                                 border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                                boxShadow: theme.shadows[20]
                             }
                         }}
                         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
@@ -226,6 +231,21 @@ export function TopHeader() {
                         </MenuItem>
                     </Menu>
                 </Box>
+
+                {/* Mobile Menu Button - Far right */}
+                <IconButton
+                    onClick={onMobileMenuOpen}
+                    sx={{
+                        display: { lg: 'none' },
+                        color: theme.palette.text.secondary,
+                        '&:hover': {
+                            color: theme.palette.primary.main,
+                            bgcolor: alpha(theme.palette.primary.main, 0.05)
+                        }
+                    }}
+                >
+                    <MenuIcon />
+                </IconButton>
             </Box>
         </Box>
     );

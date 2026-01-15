@@ -6,9 +6,12 @@ import { GPAPage } from '@/pages/GPAPage';
 import { CalendarPage } from '@/pages/CalendarPage';
 import { TasksPage } from '@/pages/TasksPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { SocialPage } from '@/pages/SocialPage';
+import { InviteLanding } from '@/pages/InviteLanding';
 import { PqcLearn } from '@/pages/PqcLearn';
 import { NotFound } from '@/pages/NotFound';
 import { BackendDownPage } from '@/pages/BackendDown';
+import { PublicSharedFilePage } from '@/pages/PublicSharedFilePage';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -40,6 +43,14 @@ const router = createBrowserRouter([
     {
         path: '/pqc-learn',
         element: <PqcLearn />,
+    },
+    {
+        path: '/invite/:code',
+        element: <InviteLanding />,
+    },
+    {
+        path: '/share/view/:token',
+        element: <PublicSharedFilePage />,
     },
     {
         path: '/dashboard',
@@ -77,6 +88,14 @@ const router = createBrowserRouter([
                 path: 'security',
                 element: <SettingsPage />,
             },
+            {
+                path: 'social',
+                element: <SocialPage />,
+            },
+            {
+                path: 'social/:roomId',
+                element: <SocialPage />,
+            },
         ],
     },
     {
@@ -109,4 +128,3 @@ function AppInitializer() {
 
     return null;
 }
-

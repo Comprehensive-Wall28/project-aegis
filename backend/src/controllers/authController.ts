@@ -17,7 +17,7 @@ import { logAuditEvent, logFailedAuth } from '../utils/auditLogger';
 
 const generateToken = (id: string, username: string) => {
     return jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
-        expiresIn: '1d', // Short-lived for security with localStorage
+        expiresIn: '365d', // Long-lived for persistence
     });
 };
 
@@ -129,7 +129,7 @@ export const loginUser = async (req: Request, res: Response) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            maxAge: 24 * 60 * 60 * 1000,
+            maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
             partitioned: process.env.NODE_ENV === 'production',
         } as any);
 
@@ -198,6 +198,36 @@ export const getMe = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+/**
+ * Discover a user's PQC public key by email for sharing.
+ */
+export const discoverUser = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { email } = req.params;
+        if (!email) {
+            return res.status(400).json({ message: 'Email parameter is required' });
+        }
+
+        const user = await User.findOne({ email }).select('pqcPublicKey username');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({
+            username: user.username,
+            pqcPublicKey: user.pqcPublicKey
+        });
+    } catch (error) {
+        logger.error('User discovery error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 
 export const updateMe = async (req: AuthRequest, res: Response) => {
     try {
@@ -487,7 +517,7 @@ export const verifyAuthentication = async (req: Request, res: Response) => {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                maxAge: 24 * 60 * 60 * 1000,
+                maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
                 partitioned: process.env.NODE_ENV === 'production',
             } as any);
 
@@ -552,5 +582,42 @@ export const setPassword = async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const removePasskey = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+
+        const { credentialID } = req.body;
+        if (!credentialID || typeof credentialID !== 'string') {
+            return res.status(400).json({ message: 'Missing or invalid credentialID' });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const credentialIndex = user.webauthnCredentials.findIndex(
+            (cred) => cred.credentialID === credentialID
+        );
+
+        if (credentialIndex === -1) {
+            return res.status(404).json({ message: 'Passkey not found' });
+        }
+
+        // Remove the credential
+        user.webauthnCredentials.splice(credentialIndex, 1);
+        await user.save();
+
+        logger.info(`Passkey removed for user: ${user._id}`);
+        await logAuditEvent(user._id.toString(), 'PASSKEY_REMOVE', 'SUCCESS', req, { credentialID });
+
+        res.json({
+            message: 'Passkey removed successfully',
+            remainingCredentials: user.webauthnCredentials.length
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to remove passkey' });
     }
 };

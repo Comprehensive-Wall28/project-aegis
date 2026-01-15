@@ -13,7 +13,6 @@ export function SemesterGPAChart({ data }: SemesterGPAChartProps) {
     const gpaSystem = usePreferenceStore((state) => state.gpaSystem);
 
     // For German system, lower is better (1.0 best), for Normal, higher is better (4.0 best)
-    const maxGPA = gpaSystem === 'GERMAN' ? 4.0 : 4.0;
 
     if (data.length === 0) {
         return (
@@ -44,21 +43,57 @@ export function SemesterGPAChart({ data }: SemesterGPAChartProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             sx={{
-                p: 3,
+                p: { xs: 2, sm: 3 },
                 height: '100%',
-                minHeight: 350,
-                borderRadius: '16px',
+                minHeight: 380,
+                borderRadius: '24px',
                 bgcolor: alpha(theme.palette.background.paper, 0.4),
-                backdropFilter: 'blur(12px)',
-                border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                backdropFilter: 'blur(16px)',
+                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                position: 'relative',
+                overflow: 'hidden',
+                '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: '100px',
+                    height: '100px',
+                    background: `radial-gradient(circle at 100% 0%, ${alpha('#9c27b0', 0.1)} 0%, transparent 70%)`,
+                    pointerEvents: 'none'
+                }
             }}
         >
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-                Semester GPA
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em', color: 'text.primary' }}>
+                        Semester GPA Breakdown
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                        Performance per individual semester
+                    </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: alpha(theme.palette.primary.main, 0.8) }} />
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>GPA</Typography>
+                    </Box>
+                </Box>
+            </Box>
 
             <Box sx={{ width: '100%', height: 280 }}>
                 <BarChart
+                    slotProps={{
+                        tooltip: {
+                            sx: {
+                                '& .MuiChartsTooltip-root': {
+                                    borderRadius: '12px',
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                    boxShadow: `0 8px 16px ${alpha('#000', 0.4)}`,
+                                }
+                            }
+                        }
+                    }}
                     dataset={data.map((d) => ({
                         semester: d.semester,
                         gpa: d.gpa,
@@ -68,24 +103,31 @@ export function SemesterGPAChart({ data }: SemesterGPAChartProps) {
                         {
                             scaleType: 'band',
                             dataKey: 'semester',
+                            disableLine: true,
+                            disableTicks: true,
                             tickLabelStyle: {
-                                fontSize: 11,
-                                fontWeight: 500,
+                                fontSize: 10,
+                                fontWeight: 600,
                                 fill: theme.palette.text.secondary,
+                                fontFamily: 'Inter, sans-serif'
                             },
                         },
                     ]}
                     yAxis={[
                         {
-                            min: 0,
-                            max: maxGPA,
+                            min: gpaSystem === 'GERMAN' ? 1.0 : 0,
+                            max: gpaSystem === 'GERMAN' ? 4.0 : 4.0,
+                            reverse: gpaSystem === 'GERMAN',
+                            disableLine: true,
+                            disableTicks: true,
                             tickLabelStyle: {
-                                fontSize: 11,
-                                fontWeight: 500,
+                                fontSize: 10,
+                                fontWeight: 600,
                                 fill: theme.palette.text.secondary,
                             },
                         },
                     ]}
+                    grid={{ horizontal: true }}
                     series={[
                         {
                             dataKey: 'gpa',
@@ -95,17 +137,29 @@ export function SemesterGPAChart({ data }: SemesterGPAChartProps) {
                         },
                     ]}
                     hideLegend
-                    margin={{ top: 20, right: 20, bottom: 40, left: 40 }}
-                    borderRadius={8}
+                    margin={{ top: 10, right: 30, bottom: 40, left: 40 }}
+                    borderRadius={10}
                     sx={{
-                        '& .MuiChartsAxis-line': {
-                            stroke: alpha(theme.palette.common.white, 0.1),
+                        '& .MuiChartsGrid-line': {
+                            stroke: alpha(theme.palette.divider, 0.05),
+                            strokeDasharray: '4 4',
                         },
-                        '& .MuiChartsAxis-tick': {
-                            stroke: alpha(theme.palette.common.white, 0.1),
+                        '& .MuiBarElement-root': {
+                            fill: `url(#bar-gradient)`,
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                                filter: `brightness(1.2) drop-shadow(0 0 12px ${alpha(theme.palette.primary.main, 0.4)})`,
+                            }
                         },
                     }}
-                />
+                >
+                    <defs>
+                        <linearGradient id="bar-gradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={theme.palette.primary.main} stopOpacity={0.9} />
+                            <stop offset="100%" stopColor={theme.palette.primary.main} stopOpacity={0.6} />
+                        </linearGradient>
+                    </defs>
+                </BarChart>
             </Box>
         </Paper>
     );

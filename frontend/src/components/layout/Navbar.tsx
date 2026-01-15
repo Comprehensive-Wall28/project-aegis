@@ -96,10 +96,10 @@ export function Navbar() {
                     width: 'calc(100% - 32px)',
                     maxWidth: 1400,
                     borderRadius: 4,
-                    bgcolor: alpha(theme.palette.background.paper, 0.5),
-                    backdropFilter: 'blur(16px)',
+                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                    backdropFilter: 'blur(24px)',
                     border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                    boxShadow: 'none',
+                    boxShadow: theme.shadows[4],
                     backgroundImage: 'none',
                     zIndex: theme.zIndex.drawer + 1
                 }}
@@ -258,8 +258,8 @@ export function Navbar() {
                 onClose={() => setMobileOpen(false)}
                 sx={{
                     '& .MuiDrawer-paper': {
-                        bgcolor: alpha(theme.palette.background.default, 0.95),
-                        backdropFilter: 'blur(20px)',
+                        bgcolor: alpha(theme.palette.background.default, 0.6),
+                        backdropFilter: 'blur(24px)',
                         px: 2,
                         py: 4,
                         display: 'flex',
@@ -285,7 +285,7 @@ export function Navbar() {
                                 onClick={() => setMobileOpen(false)}
                                 sx={{ borderRadius: 2 }}
                             >
-                                <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 600 }} />
+                                <ListItemText primary={item.label} slotProps={{ primary: { fontWeight: 600 } }} />
                             </ListItemButton>
                         </ListItem>
                     ))}
@@ -294,7 +294,7 @@ export function Navbar() {
                             <ListItemText
                                 primary="Switch Theme"
                                 secondary={currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}
-                                primaryTypographyProps={{ fontWeight: 600 }}
+                                slotProps={{ primary: { fontWeight: 600 } }}
                             />
                         </ListItemButton>
                     </ListItem>

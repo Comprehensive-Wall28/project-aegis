@@ -26,7 +26,7 @@ import authService from '@/services/authService';
 import { useSessionStore } from '@/stores/sessionStore';
 import { storeSeed, derivePQCSeed } from '@/lib/cryptoUtils';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '@/services/api';
+import apiClient, { refreshCsrfToken } from '@/services/api';
 
 interface AuthResponse {
     _id: string;
@@ -111,11 +111,14 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                     return;
                 }
 
+                // Set user first so initializeQuantumKeys can attach keys to it
+                setUser({ _id: response._id, email: response.email, username: response.username });
                 if (response.pqcSeed) {
                     storeSeed(response.pqcSeed);
                     initializeQuantumKeys(response.pqcSeed);
                 }
-                setUser({ _id: response._id, email: response.email, username: response.username });
+                // Refresh CSRF token after login to prevent 403 errors
+                await refreshCsrfToken();
                 onClose();
                 navigate('/dashboard');
             }
@@ -155,9 +158,12 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
             const pqcSeed = await derivePQCSeed(password);
 
             if (data._id) {
+                // Set user first so initializeQuantumKeys can attach keys to it
+                setUser({ _id: data._id, email: data.email, username: data.username });
                 storeSeed(pqcSeed);
                 initializeQuantumKeys(pqcSeed);
-                setUser({ _id: data._id, email: data.email, username: data.username });
+                // Refresh CSRF token after 2FA login to prevent 403 errors
+                await refreshCsrfToken();
                 onClose();
                 navigate('/dashboard');
             }
@@ -242,8 +248,6 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                             right: 0,
                             bottom: 0,
                             backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                            backdropFilter: 'blur(8px)',
-                            WebkitBackdropFilter: 'blur(8px)',
                             zIndex: theme.zIndex.modal
                         }}
                     />
@@ -277,12 +281,11 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                 width: '100%',
                                 maxWidth: 420,
                                 borderRadius: 4,
-                                bgcolor: theme.palette.background.paper,
-                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                                 boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.5)`,
                                 overflow: 'hidden',
                                 position: 'relative'
                             }}
+                            variant="solid"
                         >
                             {/* Close Button */}
                             <IconButton
@@ -318,7 +321,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                     >
                                         {isRegisterMode
                                             ? 'Generate a new PQC identity. Your keys never leave this device.'
-                                            : 'Enter your credentials to verify identity via Zero-Knowledge Proof.'}
+                                            : 'Enter your credentials to access your vault.'}
                                     </Typography>
                                 </Box>
 

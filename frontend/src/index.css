@@ -78,7 +78,54 @@
 }
 
 :root {
-  /* Default Theme (Deep Cosmos) */
+  /* Default Theme (Ocean - High Visibility Tinted) */
+  --background: 225 30% 6%;
+  /* #0a0c12 */
+  --foreground: 210 40% 96%;
+  /* #f1f5f9 */
+
+  --card: 224 35% 8%;
+  /* #0d111a */
+  --card-foreground: 210 40% 96%;
+
+  --popover: 220 20% 5%;
+  --popover-foreground: 210 40% 96%;
+
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 215 25% 17%;
+  /* #1e293b */
+  --secondary-foreground: 210 40% 96%;
+
+  --muted: 215 25% 17%;
+  --muted-foreground: 215 16% 65%;
+  /* #94a3b8 */
+
+  --accent: 0 0% 100%;
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 215 14% 15%;
+  --input: 215 14% 15%;
+  --ring: 0 0% 100%;
+
+  --radius: 0.75rem;
+
+  /* Aegis Custom Variables (Ocean) */
+  --color-background-aegis: #0a0c12;
+  --color-card-aegis: #0d111a;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-accent-blue: #ffffff;
+  --color-accent-lime: #94a3b8;
+  --color-primary-fg-aegis: #000000;
+}
+
+[data-theme="default"] {
+  /* Legacy Default (Deep Cosmos) */
   --background: 224 71% 4%;
   /* #020617 - Slate 950 */
   --foreground: 210 40% 98%;
@@ -112,23 +159,14 @@
   --input: 215 25% 27%;
   --ring: 199 89% 48%;
 
-  --radius: 0.75rem;
-
   /* Aegis Custom Variables (Default - Cosmos) */
   --color-background-aegis: #020617;
-  /* Slate 950 */
   --color-card-aegis: #0f172a;
-  /* Slate 900 */
   --color-text-primary: #f8fafc;
-  /* Slate 50 */
   --color-text-secondary: #94a3b8;
-  /* Slate 400 */
   --color-accent-blue: #38bdf8;
-  /* Sky 400 */
   --color-accent-lime: #4ade80;
-  /* Green 400 */
   --color-primary-fg-aegis: #020617;
-  /* Dark text on bright primary */
 }
 
 [data-theme="catppuccin"] {
@@ -221,31 +259,171 @@
   --color-primary-fg-aegis: #000000;
 }
 
+[data-theme="purple"] {
+  /* Deep Purple Theme */
+  --background: 272 100% 3%;
+  /* #07000d */
+  --foreground: 270 100% 98%;
+  /* #faf5ff */
+
+  --card: 265 75% 6%;
+  /* #0e041b */
+  --card-foreground: 270 100% 98%;
+
+  --popover: 272 100% 3%;
+  --popover-foreground: 270 100% 98%;
+
+  --primary: 271 81% 56%;
+  /* #9333ea */
+  --primary-foreground: 270 100% 98%;
+
+  --secondary: 263 70% 50%;
+  /* #6d28d9 */
+  --secondary-foreground: 270 100% 98%;
+
+  --muted: 265 75% 10%;
+  --muted-foreground: 255 92% 76%;
+  /* #a78bfa */
+
+  --accent: 271 81% 56%;
+  --accent-foreground: 270 100% 98%;
+
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 265 75% 10%;
+  --input: 265 75% 10%;
+  --ring: 271 81% 56%;
+
+  /* Aegis Custom Variables (Purple) */
+  --color-background-aegis: #07000d;
+  --color-card-aegis: #0e041b;
+  --color-text-primary: #faf5ff;
+  --color-text-secondary: #a78bfa;
+  --color-accent-blue: #9333ea;
+  --color-accent-lime: #a78bfa;
+  --color-primary-fg-aegis: #faf5ff;
+}
+
+[data-theme="grey"] {
+  /* Dark Modern Grey Theme (Neutral High Visibility) */
+  --background: 0 0% 5%;
+  /* #0c0c0c */
+  --foreground: 0 0% 93%;
+  /* #ededed */
+
+  --card: 0 0% 8%;
+  /* #141414 */
+  --card-foreground: 0 0% 93%;
+
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 93%;
+
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 240 5% 16%;
+  /* #27272a */
+  --secondary-foreground: 0 0% 93%;
+
+  --muted: 240 5% 16%;
+  --muted-foreground: 240 5% 65%;
+  /* #a1a1aa */
+
+  --accent: 0 0% 100%;
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 15%;
+  --input: 0 0% 15%;
+  --ring: 0 0% 100%;
+
+  /* Aegis Custom Variables (Grey) */
+  --color-background-aegis: #0c0c0c;
+  --color-card-aegis: #141414;
+  --color-text-primary: #ededed;
+  --color-text-secondary: #a1a1aa;
+  --color-accent-blue: #ffffff;
+  --color-accent-lime: #a1a1aa;
+  --color-primary-fg-aegis: #000000;
+}
+
+[data-theme="ocean"] {
+  /* Dark Ocean Theme (Tinted Center, Slightly Lighter Backdrop) */
+  --background: 225 30% 6%;
+  /* #0a0c12 - Slightly Lighter Cool Backdrop */
+  --foreground: 210 40% 96%;
+  /* #f1f5f9 */
+
+  --card: 224 35% 8%;
+  /* #0d111a - Slightly more pronounced tint for the center */
+  --card-foreground: 210 40% 96%;
+
+  --popover: 220 20% 5%;
+  --popover-foreground: 210 40% 96%;
+
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 215 25% 17%;
+  /* #1e293b */
+  --secondary-foreground: 210 40% 96%;
+
+  --muted: 215 25% 17%;
+  --muted-foreground: 215 16% 65%;
+  /* #94a3b8 */
+
+  --accent: 0 0% 100%;
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 215 14% 15%;
+  --input: 215 14% 15%;
+  --ring: 0 0% 100%;
+
+  /* Aegis Custom Variables (Ocean) */
+  --color-background-aegis: #050505;
+  --color-card-aegis: #0d1017;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-accent-blue: #ffffff;
+  --color-accent-lime: #94a3b8;
+  --color-primary-fg-aegis: #000000;
+}
+
 body {
   background-color: var(--color-background-aegis);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
 }
 
-/* Glassmorphism Refinements */
+/* Glassmorphism Refinements - Optimized for GPU */
 .glass-panel {
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(10px);
+  /* Reduced from 16px */
   background: linear-gradient(135deg,
-      rgba(255, 255, 255, 0.03) 0%,
-      rgba(255, 255, 255, 0.01) 100%);
+      rgba(255, 255, 255, 0.04) 0%,
+      /* Increased opacity slightly */
+      rgba(255, 255, 255, 0.02) 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
 
 .glass-card {
-  backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(8px);
+  /* Reduced from 12px */
+  background: rgba(255, 255, 255, 0.03);
+  /* Increased opacity slightly */
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
 }
@@ -296,6 +474,7 @@ body {
     animation: scroll 40s linear infinite;
     display: flex;
     width: max-content;
+    will-change: transform;
   }
 }
 
@@ -350,16 +529,19 @@ body {
 
 .animate-mesh {
   animation: mesh-float 20s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-mesh-delayed {
   animation: mesh-float 25s ease-in-out infinite;
   animation-delay: -8s;
+  will-change: transform;
 }
 
 .animate-mesh-slow {
   animation: mesh-float 30s ease-in-out infinite;
   animation-delay: -15s;
+  will-change: transform;
 }
 
 

@@ -7,10 +7,12 @@ import { useVaultUpload } from '../../hooks/useVaultUpload';
 interface UploadZoneProps {
     onUploadComplete?: () => void;
     folderId?: string | null;
+    sx?: any;
 }
 
-const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId }) => {
-    const { uploadFile, state } = useVaultUpload();
+const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx }) => {
+    const { uploadFiles, globalState, activeUploads } = useVaultUpload();
+
 
     const [isDragging, setIsDragging] = useState(false);
     const theme = useTheme();
@@ -32,32 +34,36 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId }) =
         setIsDragging(false);
 
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            const file = e.dataTransfer.files[0];
-            await uploadFile(file, folderId);
+            const files = Array.from(e.dataTransfer.files);
+            uploadFiles(files, folderId);
             if (onUploadComplete) onUploadComplete();
         }
-    }, [uploadFile, onUploadComplete]);
+    }, [uploadFiles, onUploadComplete, folderId]);
 
     const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            const file = e.target.files[0];
-            await uploadFile(file, folderId);
+            const files = Array.from(e.target.files);
+            uploadFiles(files, folderId);
             if (onUploadComplete) onUploadComplete();
         }
-    }, [uploadFile, onUploadComplete]);
+    }, [uploadFiles, onUploadComplete, folderId]);
 
-    const isActive = state.status !== 'idle' && state.status !== 'completed' && state.status !== 'error';
+    const isActive = globalState.status === 'uploading';
+    const isCompleted = globalState.status === 'completed';
+    const isError = globalState.status === 'error';
+    const activeCount = activeUploads.filter(u => u.status === 'encrypting' || u.status === 'uploading' || u.status === 'pending').length;
 
     return (
-        <Box sx={{ width: '100%' }}>
+        <Box sx={{ width: '100%', height: '100%', ...sx }}>
             <Paper
-                variant="glass"
+                variant={isActive ? 'solid' : 'translucent'}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 sx={{
                     position: 'relative',
                     p: 6,
+                    height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -89,18 +95,19 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId }) =
                     }}
                     onChange={handleFileSelect}
                     disabled={isActive}
+                    multiple
                 />
 
                 {/* Icons & Status */}
                 <Box sx={{ position: 'relative' }}>
-                    {state.status === 'completed' ? (
+                    {isCompleted && activeCount === 0 ? (
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'success.main' }}>
                             <ShieldCheckIcon sx={{ fontSize: 48 }} />
                             <Typography variant="caption" sx={{ mt: 1, fontFamily: 'JetBrains Mono', letterSpacing: 1.5 }}>
                                 SECURE_VAULT_CONFIRMED
                             </Typography>
                         </Box>
-                    ) : state.status === 'error' ? (
+                    ) : isError && activeCount === 0 ? (
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'error.main' }}>
                             <FileLockIcon sx={{ fontSize: 48 }} />
                             <Typography variant="caption" sx={{ mt: 1, fontFamily: 'JetBrains Mono', letterSpacing: 1.5 }}>
@@ -129,17 +136,15 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId }) =
                 {/* Text Feedback */}
                 <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                        {state.status === 'idle' && 'Drop sensitive files here'}
-                        {state.status === 'encrypting' && 'Encrypting (AES-GCM/ML-KEM)...'}
-                        {state.status === 'uploading' && 'Streaming to Secure Vault...'}
-                        {state.status === 'verifying' && 'Verifying Integrity...'}
-                        {state.status === 'completed' && 'File Secured'}
-                        {state.status === 'error' && 'Failed to Secure File'}
+                        {globalState.status === 'idle' && 'Drop sensitive files here'}
+                        {isActive && activeCount > 0 && `Uploading ${activeCount} file${activeCount > 1 ? 's' : ''}...`}
+                        {isCompleted && activeCount === 0 && 'Files Secured'}
+                        {isError && activeCount === 0 && 'Failed to Secure Files'}
                     </Typography>
                     <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontFamily: 'JetBrains Mono', mt: 0.5 }}>
-                        {state.status === 'idle' && 'End-to-end Encrypted • Quantum-Safe'}
-                        {state.status === 'error' && state.error}
-                        {isActive && `${state.progress}%`}
+                        {globalState.status === 'idle' && 'End-to-end Encrypted • Quantum-Safe'}
+                        {isError && activeUploads.find(u => u.error)?.error}
+                        {isActive && `${globalState.progress}%`}
                     </Typography>
                 </Box>
 
@@ -148,12 +153,13 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId }) =
                     <Box sx={{ position: 'absolute', bottom: 0, left: 0, width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}>
                         <LinearProgress
                             variant="determinate"
-                            value={state.progress}
+                            value={globalState.progress}
                             sx={{
                                 height: 4,
                                 bgcolor: alpha(theme.palette.primary.main, 0.1),
                                 '& .MuiLinearProgress-bar': {
                                     boxShadow: `0 0 10px ${theme.palette.primary.main}`,
+                                    transition: 'none',
                                 },
                             }}
                         />

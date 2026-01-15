@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
     getFolders,
+    getFolder,
     createFolder,
     renameFolder,
     deleteFolder,
@@ -20,6 +21,7 @@ router.put('/move-files', moveFiles);
 
 // Folder CRUD
 router.get('/', getFolders);
+router.get('/:id', getFolder);
 router.post('/', createFolder);
 router.put('/:id', renameFolder);
 router.delete('/:id', deleteFolder);

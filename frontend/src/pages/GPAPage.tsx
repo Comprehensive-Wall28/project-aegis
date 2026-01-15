@@ -244,9 +244,6 @@ export function GPAPage() {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Header - Rendered immediately for LCP */}
             <Box
-                component={motion.div}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
                 sx={{
                     display: 'flex',
                     flexDirection: { xs: 'column', md: 'row' },
@@ -269,7 +266,7 @@ export function GPAPage() {
                     <Paper
                         sx={{
                             p: 0.5,
-                            borderRadius: '14px',
+                            borderRadius: '16px',
                             bgcolor: alpha(theme.palette.background.paper, 0.3),
                             backdropFilter: 'blur(12px)',
                             border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
@@ -287,7 +284,7 @@ export function GPAPage() {
                                 display: 'flex',
                                 '& .MuiToggleButtonGroup-grouped': {
                                     border: 'none',
-                                    borderRadius: '10px !important',
+                                    borderRadius: '12px !important',
                                     px: { xs: 1.5, sm: 2.5 },
                                     py: 0.75,
                                     fontSize: { xs: '0.75rem', sm: '0.8rem' },
@@ -398,7 +395,7 @@ export function GPAPage() {
                                 transition={{ delay: 0 }}
                                 sx={{
                                     p: { xs: 2, sm: 3 },
-                                    borderRadius: '16px',
+                                    borderRadius: '24px',
                                     bgcolor: alpha(theme.palette.background.paper, 0.4),
                                     backdropFilter: 'blur(12px)',
                                     border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
@@ -452,7 +449,7 @@ export function GPAPage() {
                                 transition={{ delay: 0.1 }}
                                 sx={{
                                     p: { xs: 2, sm: 3 },
-                                    borderRadius: '16px',
+                                    borderRadius: '24px',
                                     bgcolor: alpha(theme.palette.background.paper, 0.4),
                                     backdropFilter: 'blur(12px)',
                                     border: `1px solid ${alpha('#9c27b0', 0.2)}`,
@@ -506,7 +503,7 @@ export function GPAPage() {
                                 transition={{ delay: 0.2 }}
                                 sx={{
                                     p: { xs: 2, sm: 3 },
-                                    borderRadius: '16px',
+                                    borderRadius: '24px',
                                     bgcolor: alpha(theme.palette.background.paper, 0.4),
                                     backdropFilter: 'blur(12px)',
                                     border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,

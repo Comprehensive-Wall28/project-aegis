@@ -1,209 +1,51 @@
-import { useState } from 'react';
-// @ts-ignore - Module likely exists but types are missing in environment
-import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
-import { useSessionStore } from '../stores/sessionStore';
-import apiClient from '../services/api';
-
-
-// Constants
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks (safe for browser memory)
-
-interface VaultUploadState {
-    status: 'idle' | 'encrypting' | 'uploading' | 'verifying' | 'completed' | 'error';
-    progress: number;
-    error: string | null;
-}
+import { useUploadStore, type GlobalUploadState } from '../stores/useUploadStore';
+import { useMemo, useCallback } from 'react';
 
 export const useVaultUpload = () => {
-    const [state, setState] = useState<VaultUploadState>({
-        status: 'idle',
-        progress: 0,
-        error: null,
-    });
+    // Granular subscriptions to prevent unnecessary re-renders
+    const uploadFiles = useUploadStore(useCallback((s) => s.uploadFiles, []));
+    const clearCompleted = useUploadStore(useCallback((s) => s.clearCompleted, []));
 
-    const { user, setCryptoStatus } = useSessionStore();
+    // These still cause re-renders when data changes, but now we can be more selective in components if needed
+    // However, for now we keep the same API but optimized with better selectors
+    const uploads = useUploadStore((s) => s.uploads);
 
-    // Helper: Convert Hex to Uint8Array
-    const hexToBytes = (hex: string): Uint8Array => {
-        const bytes = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < hex.length; i += 2) {
-            bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-        }
-        return bytes;
-    };
+    // We derive these but they only change when uploads map changes
+    const activeUploads = useMemo(() => Array.from(uploads.values()), [uploads]);
+    const globalState = useMemo(() => {
+        // Compute global state from items
+        if (uploads.size === 0) return { status: 'idle', progress: 0 } as GlobalUploadState;
 
-    // Helper: Convert Uint8Array to Hex
-    const bytesToHex = (bytes: Uint8Array): string => {
-        return Array.from(bytes)
-            .map((b) => b.toString(16).padStart(2, '0'))
-            .join('');
-    };
-
-    const generateAESKey = async (): Promise<CryptoKey> => {
-        return window.crypto.subtle.generateKey(
-            {
-                name: 'AES-GCM',
-                length: 256,
-            },
-            true,
-            ['encrypt', 'decrypt']
-        );
-    };
-
-    const encryptFileKey = async (fileKey: CryptoKey, sharedSecret: Uint8Array): Promise<string> => {
-        // Import sharedSecret as a Key wrapping key
-        // NOTE: standard AES-GCM requires 96-bit IV.
-        // We use the first 32 bytes of sharedSecret? No, sharedSecret is the key.
-        // We import sharedSecret as an AES-KW (Key Wrap) key or AES-GCM key?
-
-        const wrappingKey = await window.crypto.subtle.importKey(
-            'raw',
-            sharedSecret as any,
-            { name: 'AES-GCM' },
-            false,
-            ['encrypt']
+        const items = Array.from(uploads.values());
+        const hasError = items.some(u => u.status === 'error');
+        const allCompleted = items.every(u => u.status === 'completed');
+        const isUploading = items.some(u =>
+            u.status === 'pending' || u.status === 'encrypting' || u.status === 'uploading'
         );
 
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
-        const rawFileKey = await window.crypto.subtle.exportKey('raw', fileKey);
+        const totalProgress = items.reduce((sum, u) => sum + u.progress, 0);
+        const avgProgress = Math.round(totalProgress / items.length);
 
-        const encryptedKeyBuffer = await window.crypto.subtle.encrypt(
-            { name: 'AES-GCM', iv },
-            wrappingKey,
-            rawFileKey
-        );
-
-        // Format: IV (12 bytes) + EncryptedKey
-        const result = new Uint8Array(iv.length + encryptedKeyBuffer.byteLength);
-        result.set(iv);
-        result.set(new Uint8Array(encryptedKeyBuffer), iv.length);
-
-        return bytesToHex(result);
-    };
-
-    const encryptChunk = async (chunk: ArrayBuffer, key: CryptoKey, iv: Uint8Array): Promise<ArrayBuffer> => {
-        const encrypted = await window.crypto.subtle.encrypt(
-            {
-                name: 'AES-GCM',
-                iv: iv as any,
-            },
-            key,
-            chunk
-        );
-
-        const result = new Uint8Array(iv.length + encrypted.byteLength);
-        result.set(iv);
-        result.set(new Uint8Array(encrypted), iv.length);
-        return result.buffer;
-    };
-
-    const uploadFile = async (file: File, folderId?: string | null) => {
-        if (!user || !user.publicKey) {
-            setState({ ...state, status: 'error', error: 'User public key not found. Session invalid?' });
-            return;
-        }
-
-        try {
-            setCryptoStatus('encrypting');
-            setState({ status: 'encrypting', progress: 0, error: null });
-
-            // 1. Generate AES-256 Key
-            const fileKey = await generateAESKey();
-
-            // 2. Encapsulate Key (PQC)
-            const pubKeyBytes = hexToBytes(user.publicKey);
-            const { cipherText: encapsulatedKey, sharedSecret } = ml_kem768.encapsulate(pubKeyBytes);
-
-            // 3. Wrap AES Key
-            const encryptedSymmetricKey = await encryptFileKey(fileKey, sharedSecret);
-
-            // 4. Register Metadata (Upload Init)
-            const nameIv = window.crypto.getRandomValues(new Uint8Array(12));
-            const nameEnc = await window.crypto.subtle.encrypt(
-                { name: 'AES-GCM', iv: nameIv },
-                fileKey,
-                new TextEncoder().encode(file.name)
-            );
-            const encryptedFileName = bytesToHex(new Uint8Array(nameIv)) + ':' + bytesToHex(new Uint8Array(nameEnc));
-
-            // Calculate Encrypted Size for Metadata and Content-Range
-            // Overhead = IV (12) + Tag (16) = 28 bytes per chunk
-            const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-            const overheadPerChunk = 28;
-            const totalEncryptedSize = file.size + (totalChunks * overheadPerChunk);
-
-            // Send Init
-
-            const initResponse = await apiClient.post('/vault/upload-init', {
-                fileName: encryptedFileName,
-                originalFileName: file.name, // Original filename for display
-                fileSize: totalEncryptedSize, // Send total ENCRYPTED size
-                encryptedSymmetricKey: encryptedSymmetricKey,
-                encapsulatedKey: bytesToHex(encapsulatedKey),
-                mimeType: file.type || 'application/octet-stream',
-                folderId // Pass target folder
-            });
-
-            const { fileId } = initResponse.data;
-
-            // 5. Encrypt & Upload Chunks
-            setState({ status: 'uploading', progress: 0, error: null });
-
-            let uploadedBytes = 0;
-            let uploadedEncryptedBytes = 0;
-            const totalSize = file.size;
-
-            while (uploadedBytes < totalSize) {
-                const end = Math.min(uploadedBytes + CHUNK_SIZE, totalSize);
-                const chunkBlob = file.slice(uploadedBytes, end);
-                const chunkArrayBuffer = await chunkBlob.arrayBuffer();
-
-                // Encrypt Chunk
-                const iv = window.crypto.getRandomValues(new Uint8Array(12));
-                const encryptedChunk = await encryptChunk(chunkArrayBuffer, fileKey, iv);
-
-                // Calculate Content-Range based on ENCRYPTED data
-                // encryptedChunk is ArrayBuffer, so byteLength gives accurate size
-                const currentEncryptedChunkSize = encryptedChunk.byteLength;
-                const rangeStart = uploadedEncryptedBytes;
-                const rangeEnd = rangeStart + currentEncryptedChunkSize - 1;
-
-                const contentRange = `bytes ${rangeStart}-${rangeEnd}/${totalEncryptedSize}`;
-
-                // Upload Chunk
-                await apiClient.put(`/vault/upload-chunk?fileId=${fileId}`, encryptedChunk, {
-                    headers: {
-                        'Content-Type': 'application/octet-stream',
-                        'Content-Range': contentRange
-                    }
-                });
-
-                uploadedBytes = end;
-                uploadedEncryptedBytes += currentEncryptedChunkSize;
-
-                // Update progress based on source file bytes for user friendliness
-                const percent = Math.round((uploadedBytes / totalSize) * 100);
-                setState(prev => ({ ...prev, progress: percent }));
-            }
-
-            // 6. Verify / Finalize
-            setState({ status: 'verifying', progress: 100, error: null });
-
-            // Explicit cleanup
-            setTimeout(() => {
-                setState({ status: 'completed', progress: 100, error: null });
-            }, 1000);
-
-        } catch (err: any) {
-            console.error('Upload failed:', err);
-            setState({ status: 'error', progress: 0, error: err.message || 'Upload failed' });
-        } finally {
-            setCryptoStatus('idle');
-        }
-    };
+        if (allCompleted) return { status: 'completed', progress: 100 } as GlobalUploadState;
+        if (hasError && !isUploading) return { status: 'error', progress: avgProgress } as GlobalUploadState;
+        if (isUploading) return { status: 'uploading', progress: avgProgress } as GlobalUploadState;
+        return { status: 'idle', progress: 0 } as GlobalUploadState;
+    }, [uploads]);
 
     return {
-        uploadFile,
-        state
+        uploadFiles,
+        activeUploads,
+        globalState,
+        clearCompleted,
+
+        // Legacy support
+        uploadFile: (file: File, folderId?: string | null) => uploadFiles([file], folderId),
     };
+};
+
+/**
+ * Hook to listen ONLY to the status of uploads, avoiding re-renders on progress.
+ */
+export const useUploadStatus = () => {
+    return useUploadStore((s) => s.getGlobalState().status);
 };

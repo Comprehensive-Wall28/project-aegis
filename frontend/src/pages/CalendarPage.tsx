@@ -11,7 +11,6 @@ import {
     Stack,
 } from '@mui/material';
 import { CalendarMonth as CalendarIcon } from '@mui/icons-material';
-import { motion } from 'framer-motion';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -235,11 +234,8 @@ export function CalendarPage() {
     }
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: { xs: 1, md: 3 } }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: { xs: 1, md: 0 }, pt: { md: 1 } }}>
             <Box
-                component={motion.div}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
                 sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
             >
                 <Box>
@@ -338,18 +334,16 @@ export function CalendarPage() {
                         fontFamily: 'JetBrains Mono, monospace',
                     },
                     '& .fc-daygrid-day.fc-day-today': {
-                        bgcolor: `${theme.palette.primary.main} !important`,
+                        bgcolor: `${alpha(theme.palette.primary.main, 0.08)} !important`,
                         position: 'relative',
-                        border: 'none !important',
-                        boxShadow: 'none !important',
+                        boxShadow: `inset 0 0 0 2px ${theme.palette.primary.main} !important`,
                         zIndex: 2,
                         '&::after': {
                             display: 'none',
                         },
                         '& .fc-daygrid-day-number': {
-                            color: `${theme.palette.common.white} !important`,
+                            color: `${theme.palette.primary.main} !important`,
                             fontWeight: 800,
-                            textShadow: 'none',
                             position: 'relative',
                             zIndex: 2,
                         }
@@ -454,11 +448,11 @@ export function CalendarPage() {
                         '& .fc-button': {
                             margin: '0 !important',
                         },
-                        '& > .fc-button:not(:last-child)': {
+                        '& > .fc-button:not(:last-of-type)': {
                             borderTopRightRadius: '12px !important',
                             borderBottomRightRadius: '12px !important',
                         },
-                        '& > .fc-button:not(:first-child)': {
+                        '& > .fc-button:not(:first-of-type)': {
                             borderTopLeftRadius: '12px !important',
                             borderBottomLeftRadius: '12px !important',
                         }

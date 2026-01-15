@@ -1,5 +1,9 @@
 import { create } from 'zustand';
-import type { AuditLog } from '@/services/auditService';
+import auditService, { type AuditLog } from '@/services/auditService';
+import authService from '@/services/authService';
+import * as cryptoUtils from '@/lib/cryptoUtils';
+// @ts-ignore
+import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 
 export interface UserPreferences {
     sessionTimeout: number; // minutes
@@ -12,6 +16,7 @@ interface User {
     username: string;
     publicKey?: string; // Hex encoded ML-KEM-768 public key
     privateKey?: string; // Hex encoded ML-KEM-768 private key (stored only in memory, never sent to server)
+    vaultKey?: CryptoKey | null; // AES-GCM vault key for file encryption (in-memory only)
     preferences?: UserPreferences;
     hasPassword?: boolean;
     webauthnCredentials?: Array<{
@@ -32,6 +37,8 @@ interface SessionState {
     cryptoOpsCount: number;
     // Ephemeral session keys - stored only in memory
     sessionKey: string | null;
+    // AES-CTR key for Eco-Mode encryption (memory only)
+    vaultCtrKey: CryptoKey | null;
     // Recent activity for dashboard widget
     recentActivity: AuditLog[];
 
@@ -59,6 +66,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     cryptoStatus: 'idle',
     cryptoOpsCount: 0,
     sessionKey: null,
+    vaultCtrKey: null,
     recentActivity: [],
 
     setUser: (user) => {
@@ -79,10 +87,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         user: null,
         isAuthenticated: false,
         sessionKey: null,
+        vaultCtrKey: null,
         pqcEngineStatus: 'initializing',
         cryptoStatus: 'idle',
         cryptoOpsCount: 0,
         recentActivity: []
+        // Note: vaultKey is on user object, so cleared when user is set to null
     }),
 
     setPqcEngineStatus: (status) => set({ pqcEngineStatus: status }),
@@ -130,8 +140,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         // Run async initialization without blocking
         (async () => {
             try {
-                // Dynamic import to handle WASM loading issues
-                const { ml_kem768 } = await import('@noble/post-quantum/ml-kem.js');
+                // WASM loading issues handled by @noble/post-quantum pure JS
+                // const { ml_kem768 } = await import('@noble/post-quantum/ml-kem.js');
 
                 // Generate keys - use seed if provided for persistence
                 const { publicKey, secretKey } = seed ? ml_kem768.keygen(seed) : ml_kem768.keygen();
@@ -143,17 +153,29 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 const pubHex = bytesToHex(publicKey);
                 const privHex = bytesToHex(secretKey);
 
+                // Derive vault key for high-performance symmetric encryption
+                let vaultKey: CryptoKey | null = null;
+                if (seed) {
+                    const { deriveVaultKey, deriveGlobalCtrKey } = cryptoUtils;
+                    vaultKey = await deriveVaultKey(seed);
+
+                    // Derive CTR key for Eco-Mode encryption
+                    const ctrKey = await deriveGlobalCtrKey(seed);
+                    set({ vaultCtrKey: ctrKey });
+                }
+
                 const currentState = get();
                 if (currentState.user) {
                     set({
                         user: {
                             ...currentState.user,
                             publicKey: pubHex,
-                            privateKey: privHex
+                            privateKey: privHex,
+                            vaultKey
                         },
                         pqcEngineStatus: 'operational'
                     });
-                    console.log(`Quantum Keys Initialized for Session ${seed ? '(Persistent)' : '(Ephemeral)'}`);
+                    console.log(`Quantum Keys Initialized for Session ${seed ? '(Persistent)' : '(Ephemeral)'}, Vault Key: ${vaultKey ? 'Yes' : 'No'}`);
                 } else {
                     // If no user, we still set it as operational for the engine itself
                     set({ pqcEngineStatus: 'operational' });
@@ -194,7 +216,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         try {
             // First check if there's a stored seed - if not, don't bother checking auth
             // This prevents unnecessary 401 requests on the homepage for non-logged-in users
-            const { getStoredSeed } = await import('../lib/cryptoUtils');
+            const { getStoredSeed } = cryptoUtils;
             const seed = getStoredSeed();
 
             if (!seed) {
@@ -208,8 +230,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 return;
             }
 
-            // Dynamically import authService to avoid circular dependencies if any
-            const { default: authService } = await import('../services/authService');
+            // Use static import
+            // const { default: authService } = await import('../services/authService');
             const user = await authService.validateSession();
 
             if (user) {
@@ -224,7 +246,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 currentState.initializeQuantumKeys(seed);
             } else {
                 // Server says not authenticated but we have a seed - clear it
-                const { clearStoredSeed } = await import('../lib/cryptoUtils');
+                const { clearStoredSeed } = cryptoUtils;
                 clearStoredSeed();
                 set({
                     user: null,
@@ -253,7 +275,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         if (!currentState.isAuthenticated) return;
 
         try {
-            const { default: auditService } = await import('../services/auditService');
             const logs = await auditService.getRecentActivity();
             set({ recentActivity: logs });
         } catch (error) {

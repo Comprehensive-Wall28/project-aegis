@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { SystemStatusBar } from './SystemStatusBar';
 import { motion } from 'framer-motion';
-import { Box, alpha, useTheme, Paper } from '@mui/material';
+import { Box, alpha, useTheme, Paper, Snackbar, Alert } from '@mui/material';
 import { refreshCsrfToken } from '@/services/api';
+import UploadManager from '@/components/vault/UploadManager';
+import { useSocialStore, importRoomKeyFromBase64 } from '@/stores/useSocialStore';
 
 export function DashboardLayout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const theme = useTheme();
 
     // Fetch CSRF token when dashboard loads
@@ -16,42 +19,88 @@ export function DashboardLayout() {
         refreshCsrfToken();
     }, []);
 
+    const navigate = useNavigate();
+    const joinRoom = useSocialStore((state) => state.joinRoom);
+    const [joinMessage, setJoinMessage] = useState<string | null>(null);
+
+    // Handle pending invite after login
+    // ... (rest of the checkPendingInvite logic)
+    useEffect(() => {
+        const checkPendingInvite = async () => {
+            const pendingInvite = sessionStorage.getItem('pendingInvite');
+            if (!pendingInvite) return;
+
+            try {
+                const { inviteCode, keyBase64 } = JSON.parse(pendingInvite);
+                if (inviteCode && keyBase64) {
+                    const key = await importRoomKeyFromBase64(keyBase64);
+                    await joinRoom(inviteCode, key);
+                    setJoinMessage('Successfully joined room from invite');
+
+                    // Clear pending invite
+                    sessionStorage.removeItem('pendingInvite');
+
+                    // Navigate to social page after a brief delay
+                    setTimeout(() => {
+                        navigate(`/dashboard/social`);
+                    }, 1000);
+                }
+            } catch (err) {
+                console.error('Failed to process pending invite:', err);
+                sessionStorage.removeItem('pendingInvite');
+            }
+        };
+
+        checkPendingInvite();
+    }, [joinRoom, navigate]);
+
+    // Swipe to open sidebar (left swipe on mobile)
+    const handlePanEnd = (_: any, info: any) => {
+        // Detect swipe to left (negative velocity or offset) from the right side
+        if (info.offset.x < -50 && info.velocity.x < -100) {
+            setIsMobileMenuOpen(true);
+        }
+    };
+
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}>
-            {/* Animated Background */}
-            <Box sx={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-                <Box
-                    sx={{
-                        position: 'absolute',
-                        top: '-25%',
-                        left: '-25%',
-                        width: '50%',
-                        height: '50%',
-                        bgcolor: alpha(theme.palette.primary.main, 0.05),
-                        borderRadius: '50%',
-                        filter: 'blur(100px)',
-                        animation: 'mesh 20s infinite alternate'
-                    }}
-                />
-                <Box
-                    sx={{
-                        position: 'absolute',
-                        bottom: '-25%',
-                        right: '-25%',
-                        width: '50%',
-                        height: '50%',
-                        bgcolor: alpha(theme.palette.info.main, 0.05),
-                        borderRadius: '50%',
-                        filter: 'blur(100px)',
-                        animation: 'mesh-delayed 25s infinite alternate'
-                    }}
-                />
-            </Box>
+        <Box
+            sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}
+        >
+            {/* Solid Thematic Background */}
+            <Box
+                sx={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 0,
+                    background: `radial-gradient(circle at 50% -20%, ${alpha(theme.palette.primary.main, 0.4)} 0%, ${theme.palette.background.default} 100%)`,
+                    opacity: 0.1, // Deeper, more immersive
+                    pointerEvents: 'none'
+                }}
+            />
+
+            {/* Gesture Strip for Swipe-to-Open (Mobile Only) */}
+            <Box
+                component={motion.div}
+                onPanEnd={handlePanEnd}
+                sx={{
+                    position: 'fixed',
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: 30, // Narrow strip on the right edge
+                    zIndex: 100, // Above content (1) but below modals (1300) and header actions
+                    display: { lg: 'none' },
+                    touchAction: 'none',
+                    bgcolor: 'transparent'
+                }}
+            />
 
             {/* Sidebar */}
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
                 onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                isMobileOpen={isMobileMenuOpen}
+                onMobileClose={() => setIsMobileMenuOpen(false)}
             />
 
             {/* Main Content Wrapper */}
@@ -60,7 +109,7 @@ export function DashboardLayout() {
                 sx={{
                     flexGrow: 1,
                     ml: { lg: isSidebarCollapsed ? '64px' : '224px' },
-                    transition: theme.transitions.create('margin', {
+                    transition: theme.transitions.create(['margin', 'padding'], {
                         easing: theme.transitions.easing.sharp,
                         duration: theme.transitions.duration.shorter,
                     }),
@@ -74,32 +123,34 @@ export function DashboardLayout() {
             >
                 {/* Headers Section */}
                 <Box sx={{ zIndex: 10, flexShrink: 0 }}>
-                    <TopHeader />
+                    <TopHeader onMobileMenuOpen={() => setIsMobileMenuOpen(true)} />
                     <SystemStatusBar />
                 </Box>
 
                 {/* Content Area ('The Stage') */}
-                <Box sx={{ flexGrow: 1, m: { xs: 1, sm: 2 }, mt: { xs: 0, sm: 1 }, overflow: 'hidden' }}>
+                <Box sx={{ flexGrow: 1, m: { xs: 1, sm: 2 }, mt: { xs: 0, sm: 0 }, overflow: 'hidden' }}>
                     <Paper
-                        variant="glass"
+                        elevation={0}
                         component={motion.div}
-                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
                         sx={{
                             height: '100%',
                             display: 'flex',
                             flexDirection: 'column',
                             borderRadius: '16px',
                             overflow: 'hidden',
-                            bgcolor: alpha(theme.palette.background.paper, 0.2),
-                            backdropFilter: 'blur(32px)',
-                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                            boxShadow: theme.shadows[10]
+                            // Solid stage for professionalism and performance
+                            bgcolor: theme.palette.background.paper,
+                            border: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
+                            boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`,
                         }}
                     >
                         <Box
                             sx={{
                                 flexGrow: 1,
-                                p: { xs: 1.5, sm: 3, md: 6 },
+                                p: { xs: 2, sm: 3, md: 6 },
                                 overflowY: 'auto',
                                 '&::-webkit-scrollbar': { width: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: 3 }
@@ -113,6 +164,9 @@ export function DashboardLayout() {
                 </Box>
             </Box>
 
+            {/* Persistent Upload Manager */}
+            <UploadManager />
+
             <style>{`
                 @keyframes mesh {
                     0% { transform: translate(0, 0) scale(1); }
@@ -123,6 +177,17 @@ export function DashboardLayout() {
                     100% { transform: translate(-10%, -10%) scale(1); }
                 }
             `}</style>
+
+            <Snackbar
+                open={!!joinMessage}
+                autoHideDuration={4000}
+                onClose={() => setJoinMessage(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+                <Alert severity="success" variant="filled" onClose={() => setJoinMessage(null)}>
+                    {joinMessage}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

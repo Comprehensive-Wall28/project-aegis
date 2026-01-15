@@ -74,7 +74,13 @@ export function DashboardHeader() {
                             <div className="relative">
                                 <Shield className="h-5 w-5 text-primary" />
                                 {pqcEngineStatus === 'operational' && (
-                                    <div className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[oklch(75%_0.18_210)] animate-ping-glow" />
+                                    <>
+                                        <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[oklch(75%_0.18_210)] shadow-[0_0_8px_oklch(75%_0.18_210)]" />
+                                        <div
+                                            className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[oklch(75%_0.18_210)]"
+                                            style={{ animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' }}
+                                        />
+                                    </>
                                 )}
                             </div>
                             <div className="flex flex-col">
@@ -89,24 +95,34 @@ export function DashboardHeader() {
 
                         <div className="h-8 w-px bg-white/10" />
 
-                        {/* Status Section */}
-                        <div className="flex items-center gap-2">
-                            <div className={`flex items-center gap-1.5 ${getStatusColor()}`}>
+
+                        {/* Status Section - Fixed Width */}
+                        <div className="w-36 flex items-center justify-center gap-2">
+                            <div className={`flex items-center gap-2 ${getStatusColor()}`}>
                                 {getStatusIcon()}
                                 <span className="text-sm font-medium">
                                     {getStatusText()}
                                 </span>
                             </div>
                             {pqcEngineStatus === 'operational' && (
-                                <div className="relative">
-                                    <div className="h-2.5 w-2.5 rounded-full bg-[oklch(75%_0.18_210)]" />
-                                    <div className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-[oklch(75%_0.18_210)] animate-ping-glow" />
-                                </div>
+                                <div className="h-2 w-2 rounded-full bg-[oklch(75%_0.18_210)] shadow-[0_0_8px_oklch(75%_0.18_210)]" />
                             )}
                         </div>
                     </div>
                 </motion.div>
             </div>
+            <style>{`
+                @keyframes ping {
+                    0% {
+                        transform: scale(1);
+                        opacity: 0.8;
+                    }
+                    100% {
+                        transform: scale(4);
+                        opacity: 0;
+                    }
+                }
+            `}</style>
         </header>
     );
 }

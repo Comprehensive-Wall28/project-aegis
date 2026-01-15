@@ -18,7 +18,7 @@ import {
     ViewList as ListIcon,
     Add as AddIcon,
 } from '@mui/icons-material';
-import { motion } from 'framer-motion';
+// No framer-motion imports needed here anymore
 import { useSessionStore } from '@/stores/sessionStore';
 import { useTaskStore } from '@/stores/useTaskStore';
 import { useTaskEncryption } from '@/hooks/useTaskEncryption';
@@ -203,9 +203,6 @@ export function TasksPage() {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Header */}
             <Box
-                component={motion.div}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
                 sx={{
                     display: 'flex',
                     flexDirection: { xs: 'column', md: 'row' },
@@ -245,7 +242,7 @@ export function TasksPage() {
                                 p: 0.5,
                                 borderRadius: '14px',
                                 bgcolor: alpha(theme.palette.background.paper, 0.3),
-                                backdropFilter: 'blur(12px)',
+                                backdropFilter: 'blur(8px)',
                                 border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
                             }}
                         >
@@ -293,7 +290,10 @@ export function TasksPage() {
                         <Button
                             variant="contained"
                             startIcon={<AddIcon />}
-                            onClick={() => handleAddTask('todo')}
+                            onClick={(e) => {
+                                e.currentTarget.blur();
+                                handleAddTask('todo');
+                            }}
                             sx={{
                                 borderRadius: '12px',
                                 textTransform: 'none',
@@ -344,7 +344,7 @@ export function TasksPage() {
                                 p: 3,
                                 borderRadius: '20px',
                                 bgcolor: alpha(theme.palette.background.paper, 0.4),
-                                backdropFilter: 'blur(12px)',
+                                backdropFilter: 'blur(8px)',
                                 border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
                             }}
                         >

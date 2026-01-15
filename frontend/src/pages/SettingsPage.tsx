@@ -8,18 +8,23 @@ import {
     Tab,
     alpha,
     useTheme,
+    useMediaQuery,
 } from '@mui/material';
 import {
     Settings as SettingsIcon,
     Person as PersonIcon,
     Security as SecurityIcon,
     History as HistoryIcon,
+    Palette as PaletteIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { AccountSettings } from '@/components/settings/AccountSettings';
 import { SecuritySettings } from '@/components/settings/SecuritySettings';
+import { AppearanceSettings } from '@/components/settings/AppearanceSettings';
 import { AuditTrailView } from '@/components/security/AuditTrailView';
+
+const TAB_MAP = ['account', 'security', 'appearance', 'activity'];
 
 interface NotificationState {
     type: 'success' | 'error';
@@ -46,19 +51,36 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 
 export function SettingsPage() {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const location = useLocation();
-    const [activeTab, setActiveTab] = useState(0);
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // Sanitize initial tab from URL
+    const getInitialTab = () => {
+        const tabParam = searchParams.get('tab');
+        if (tabParam) {
+            const index = TAB_MAP.indexOf(tabParam.toLowerCase());
+            if (index !== -1) return index;
+        }
+        return 0;
+    };
+
+    const [activeTab, setActiveTab] = useState(getInitialTab);
     const [notification, setNotification] = useState<NotificationState | null>(null);
 
     // Handle navigation state (e.g., from LiveActivityWidget "View All" button)
     useEffect(() => {
         if (location.state?.activeTab !== undefined) {
-            setActiveTab(location.state.activeTab);
+            const newTab = location.state.activeTab;
+            setActiveTab(newTab);
+            // Also sync search params if navigated via state
+            setSearchParams({ tab: TAB_MAP[newTab] }, { replace: true });
         }
-    }, [location.state]);
+    }, [location.state, setSearchParams]);
 
     const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
         setActiveTab(newValue);
+        setSearchParams({ tab: TAB_MAP[newValue] }, { replace: true });
     };
 
     const handleNotification = (type: 'success' | 'error', message: string) => {
@@ -91,9 +113,9 @@ export function SettingsPage() {
                     <SettingsIcon sx={{ fontSize: 32, color: theme.palette.primary.main }} />
                     Settings
                 </Typography>
-                <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {/* <Typography variant="body1" sx={{ color: 'text.secondary' }}>
                     Manage your account, security preferences, and activity
-                </Typography>
+                </Typography> */}
             </Box>
 
             {/* Snackbar Notification */}
@@ -113,6 +135,9 @@ export function SettingsPage() {
                 <Tabs
                     value={activeTab}
                     onChange={handleTabChange}
+                    variant={isMobile ? 'scrollable' : 'standard'}
+                    scrollButtons={isMobile ? 'auto' : false}
+                    allowScrollButtonsMobile
                     sx={{
                         mb: 1,
                         '& .MuiTabs-indicator': {
@@ -123,10 +148,11 @@ export function SettingsPage() {
                         '& .MuiTab-root': {
                             textTransform: 'none',
                             fontWeight: 600,
-                            fontSize: '14px',
+                            fontSize: { xs: '12px', sm: '14px' },
                             color: 'text.secondary',
                             minHeight: 48,
-                            px: 2,
+                            px: { xs: 1.5, sm: 2 },
+                            minWidth: { xs: 'auto', sm: 90 },
                             '&.Mui-selected': {
                                 color: theme.palette.primary.main,
                             },
@@ -136,19 +162,25 @@ export function SettingsPage() {
                     <Tab
                         icon={<PersonIcon sx={{ fontSize: 18 }} />}
                         iconPosition="start"
-                        label="Account"
+                        label={isMobile ? undefined : 'Account'}
                         sx={{ gap: 1 }}
                     />
                     <Tab
                         icon={<SecurityIcon sx={{ fontSize: 18 }} />}
                         iconPosition="start"
-                        label="Security"
+                        label={isMobile ? undefined : 'Security'}
+                        sx={{ gap: 1 }}
+                    />
+                    <Tab
+                        icon={<PaletteIcon sx={{ fontSize: 18 }} />}
+                        iconPosition="start"
+                        label={isMobile ? undefined : 'Appearance'}
                         sx={{ gap: 1 }}
                     />
                     <Tab
                         icon={<HistoryIcon sx={{ fontSize: 18 }} />}
                         iconPosition="start"
-                        label="Activity"
+                        label={isMobile ? undefined : 'Activity'}
                         sx={{ gap: 1 }}
                     />
                 </Tabs>
@@ -172,6 +204,10 @@ export function SettingsPage() {
                 </TabPanel>
 
                 <TabPanel value={activeTab} index={2}>
+                    <AppearanceSettings onNotification={handleNotification} />
+                </TabPanel>
+
+                <TabPanel value={activeTab} index={3}>
                     <AuditTrailView maxHeight={600} />
                 </TabPanel>
             </Box>

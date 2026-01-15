@@ -3,6 +3,8 @@ import { createTheme, alpha } from '@mui/material/styles';
 declare module '@mui/material/Paper' {
     interface PaperPropsVariantOverrides {
         glass: true;
+        translucent: true;
+        solid: true;
     }
 }
 
@@ -10,7 +12,7 @@ declare module '@mui/material/Paper' {
 const FONT_PRIMARY = 'Outfit, sans-serif';
 const FONT_SECONDARY = 'Inter, sans-serif';
 
-export type ThemeMode = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'light';
+export type ThemeMode = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'grey' | 'ocean' | 'light';
 
 export const getTheme = (mode: ThemeMode) => {
 
@@ -19,7 +21,7 @@ export const getTheme = (mode: ThemeMode) => {
         default: {
             background: {
                 default: '#020617', // Slate 950 (Deep Cosmos)
-                paper: '#0f172a',   // Slate 900
+                paper: '#0a1122',   // Refined middle ground (Adjusted from #0c1425)
             },
             primary: {
                 main: '#0ea5e9',    // Sky 500
@@ -54,21 +56,21 @@ export const getTheme = (mode: ThemeMode) => {
         },
         purple: {
             background: {
-                default: '#0d0015', // Deep Purple/Black
-                paper: '#1a0a2e',   // Dark Purple
+                default: '#07000d', // Deepest Purple/Black
+                paper: '#0e041b',   // Slightly Lighter Refined Purple
             },
             primary: {
-                main: '#a855f7',    // Purple 500
-                contrastText: '#0d0015',
+                main: '#9333ea',    // Purple 600 (Darker than 500)
+                contrastText: '#faf5ff',
             },
             secondary: {
-                main: '#7c3aed',    // Violet 600
+                main: '#6d28d9',    // Violet 700 (Darker than 600)
             },
             text: {
                 primary: '#faf5ff', // Purple 50
-                secondary: '#c4b5fd', // Violet 300
+                secondary: '#a78bfa', // Violet 400 (Darker than 300)
             },
-            divider: 'rgba(168, 85, 247, 0.15)',
+            divider: 'rgba(147, 51, 234, 0.12)',
         },
         amoled: {
             background: {
@@ -104,7 +106,43 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#0f172a', // Slate 900
                 secondary: '#475569', // Slate 600
             },
-            divider: 'rgba(15, 23, 42, 0.1)',
+            divider: '#e2e8f0', // Slate 200 (More visible border)
+        },
+        grey: {
+            background: {
+                default: '#0c0c0c',
+                paper: '#141414',
+            },
+            primary: {
+                main: '#ffffff',
+                contrastText: '#000000',
+            },
+            secondary: {
+                main: '#27272a',
+            },
+            text: {
+                primary: '#ededed',
+                secondary: '#a1a1aa',
+            },
+            divider: 'rgba(255, 255, 255, 0.08)',
+        },
+        ocean: {
+            background: {
+                default: '#0a0c12',
+                paper: '#0d111a',
+            },
+            primary: {
+                main: '#ffffff',
+                contrastText: '#000000',
+            },
+            secondary: {
+                main: '#1e293b',
+            },
+            text: {
+                primary: '#f1f5f9',
+                secondary: '#94a3b8',
+            },
+            divider: 'rgba(148, 163, 184, 0.08)',
         },
     };
 
@@ -178,10 +216,29 @@ export const getTheme = (mode: ThemeMode) => {
                     {
                         props: { variant: 'glass' as any },
                         style: {
-                            background: alpha(selectedPalette.background.paper, 0.4),
-                            backdropFilter: 'blur(24px)',
-                            WebkitBackdropFilter: 'blur(24px)',
-                            border: `1px solid ${alpha(selectedPalette.primary.main || '#ffffff', 0.1)}`,
+                            background: alpha(selectedPalette.background.paper, 0.5),
+                            backdropFilter: 'blur(16px)',
+                            WebkitBackdropFilter: 'blur(16px)',
+                            border: `1px solid ${selectedPalette.divider}`,
+                        },
+                    },
+                    {
+                        props: { variant: 'solid' as any },
+                        style: {
+                            background: selectedPalette.background.paper,
+                            backgroundImage: 'none',
+                            backdropFilter: 'none',
+                            WebkitBackdropFilter: 'none',
+                            border: `1px solid ${selectedPalette.divider}`,
+                        },
+                    },
+                    {
+                        props: { variant: 'translucent' as any },
+                        style: {
+                            background: alpha(selectedPalette.background.paper, 0.75), // Increased from 0.7
+                            border: `1px solid ${alpha(selectedPalette.divider, 0.1)}`,
+                            backdropFilter: 'blur(6px)', // Reduced from 10px
+                            WebkitBackdropFilter: 'blur(6px)',
                         },
                     },
                 ],

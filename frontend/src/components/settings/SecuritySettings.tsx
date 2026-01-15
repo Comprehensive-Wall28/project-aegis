@@ -28,9 +28,12 @@ import {
     ExpandLess as ExpandLessIcon,
     Fingerprint as FingerprintIcon,
     Add as AddIcon,
+    Delete as DeleteIcon,
+    Link as LinkIcon,
 } from '@mui/icons-material';
 import { useSessionStore, type UserPreferences } from '@/stores/sessionStore';
 import authService from '@/services/authService';
+import { PublicLinkSettings } from './PublicLinkSettings';
 
 const SESSION_TIMEOUT_OPTIONS = [
     { value: 15, label: '15 minutes' },
@@ -63,6 +66,7 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
     const [isPreferencesLoading, setIsPreferencesLoading] = useState(false);
 
     const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
+    const [removingPasskeyId, setRemovingPasskeyId] = useState<string | null>(null);
 
     // Copy state
     const [copied, setCopied] = useState(false);
@@ -122,6 +126,11 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
         try {
             const success = await authService.registerPasskey();
             if (success) {
+                // Refresh user data to update credentials list
+                const updatedUser = await authService.validateSession();
+                if (updatedUser) {
+                    updateUser(updatedUser as any);
+                }
                 onNotification('success', 'Passkey registered successfully! It will now be used as 2FA for your next login.');
             }
         } catch (error: any) {
@@ -129,6 +138,28 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
             onNotification('error', error.response?.data?.message || 'Failed to register passkey.');
         } finally {
             setIsPasskeyLoading(false);
+        }
+    };
+
+    const handleRemovePasskey = async (credentialID: string) => {
+        if (!confirm('Are you sure you want to remove this passkey? You will no longer be able to use it for 2FA.')) {
+            return;
+        }
+
+        setRemovingPasskeyId(credentialID);
+        try {
+            await authService.removePasskey(credentialID);
+            // Refresh user data to update credentials list
+            const updatedUser = await authService.validateSession();
+            if (updatedUser) {
+                updateUser(updatedUser as any);
+            }
+            onNotification('success', 'Passkey removed successfully.');
+        } catch (error: any) {
+            console.error(error);
+            onNotification('error', error.response?.data?.message || 'Failed to remove passkey.');
+        } finally {
+            setRemovingPasskeyId(null);
         }
     };
 
@@ -148,6 +179,15 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Public Link Management */}
+            <Paper sx={sharedPaperStyles}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: '0.1em', fontSize: '10px', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <LinkIcon sx={{ fontSize: 14 }} />
+                    PUBLIC LINKS MANAGEMENT
+                </Typography>
+                <PublicLinkSettings onNotification={onNotification} />
+            </Paper>
+
             {/* Security Preferences */}
             <Paper sx={sharedPaperStyles}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: '0.1em', fontSize: '10px', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -285,17 +325,19 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                                 {truncatedKey}
                             </Typography>
                             <Tooltip title={copied ? 'Copied!' : 'Copy to clipboard'}>
-                                <IconButton
-                                    onClick={handleCopyPublicKey}
-                                    disabled={!user?.publicKey}
-                                    sx={{
-                                        bgcolor: copied ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.primary.main, 0.1),
-                                        color: copied ? theme.palette.success.main : theme.palette.primary.main,
-                                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) },
-                                    }}
-                                >
-                                    {copied ? <CheckIcon fontSize="small" /> : <CopyIcon fontSize="small" />}
-                                </IconButton>
+                                <Box component="span">
+                                    <IconButton
+                                        onClick={handleCopyPublicKey}
+                                        disabled={!user?.publicKey}
+                                        sx={{
+                                            bgcolor: copied ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.primary.main, 0.1),
+                                            color: copied ? theme.palette.success.main : theme.palette.primary.main,
+                                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) },
+                                        }}
+                                    >
+                                        {copied ? <CheckIcon fontSize="small" /> : <CopyIcon fontSize="small" />}
+                                    </IconButton>
+                                </Box>
                             </Tooltip>
                         </Box>
                         <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block', opacity: 0.7 }}>
@@ -368,11 +410,33 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                                 <Typography variant="caption" sx={{ color: 'text.secondary', bgcolor: alpha(theme.palette.common.white, 0.05), px: 1, py: 0.5, borderRadius: '4px' }}>
                                     Counter: {cred.counter}
                                 </Typography>
+                                <Tooltip title="Remove Passkey">
+                                    <Box component="span">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleRemovePasskey(cred.credentialID)}
+                                            disabled={removingPasskeyId === cred.credentialID}
+                                            sx={{
+                                                color: theme.palette.error.main,
+                                                opacity: 0.7,
+                                                '&:hover': {
+                                                    opacity: 1,
+                                                    bgcolor: alpha(theme.palette.error.main, 0.1)
+                                                }
+                                            }}
+                                        >
+                                            {removingPasskeyId === cred.credentialID ? (
+                                                <CircularProgress size={16} color="error" />
+                                            ) : (
+                                                <DeleteIcon fontSize="small" />
+                                            )}
+                                        </IconButton>
+                                    </Box>
+                                </Tooltip>
                             </Box>
                         ))}
                     </Box>
                 )}
-
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <Button
                         variant="outlined"

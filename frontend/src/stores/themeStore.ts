@@ -1,9 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-type Theme = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'light';
+export type Theme = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'grey' | 'ocean' | 'light';
 
-const THEME_ORDER: Theme[] = ['default', 'purple', 'catppuccin', 'amoled', 'light'];
+export const THEME_ORDER: Theme[] = ['default', 'purple', 'catppuccin', 'amoled', 'grey', 'ocean', 'light'];
+
+export const THEME_DISPLAY_NAMES: Record<Theme, string> = {
+    default: 'Default',
+    purple: 'Purple',
+    catppuccin: 'Catppuccin',
+    amoled: 'AMOLED',
+    grey: 'Grey',
+    ocean: 'Ocean',
+    light: 'Light',
+};
 
 interface ThemeState {
     theme: Theme;
@@ -14,7 +24,7 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
     persist(
         (set) => ({
-            theme: 'default',
+            theme: 'ocean',
             setTheme: (theme) => {
                 set({ theme });
                 document.documentElement.setAttribute('data-theme', theme);

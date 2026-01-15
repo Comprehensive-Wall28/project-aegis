@@ -5,8 +5,7 @@ import {
     Typography,
     alpha,
     useTheme,
-    CircularProgress,
-    Button,
+    useMediaQuery,
     IconButton,
     Tooltip,
     Collapse,
@@ -17,6 +16,8 @@ import {
     TableContainer,
     TableHead,
     TableRow,
+    Pagination,
+    Skeleton,
 } from '@mui/material';
 import {
     History as HistoryIcon,
@@ -35,59 +36,44 @@ interface AuditTrailViewProps {
 
 export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [total, setTotal] = useState(0);
-    const [hasMore, setHasMore] = useState(false);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
-    const [offset, setOffset] = useState(0);
-    const limit = 20;
+    const limit = 5;
 
-    const fetchLogs = useCallback(async (reset = false) => {
-        const currentOffset = reset ? 0 : offset;
-
-        if (reset) {
-            setIsLoading(true);
-        } else {
-            setIsLoadingMore(true);
-        }
-
+    const fetchLogs = useCallback(async () => {
+        setIsLoading(true);
         try {
-            const response = await auditService.getAuditLogs(limit, currentOffset);
-
-            if (reset) {
-                setLogs(response.logs);
-            } else {
-                setLogs(prev => [...prev, ...response.logs]);
-            }
-
+            const offset = (page - 1) * limit;
+            const response = await auditService.getAuditLogs(limit, offset);
+            setLogs(response.logs);
             setTotal(response.total);
-            setHasMore(response.hasMore);
-            setOffset(currentOffset + response.logs.length);
+            setTotalPages(Math.ceil(response.total / limit));
         } catch (error) {
             console.error('Failed to fetch audit logs:', error);
         } finally {
             setIsLoading(false);
-            setIsLoadingMore(false);
         }
-    }, [offset]);
+    }, [page, limit]);
 
     useEffect(() => {
-        fetchLogs(true);
-    }, []);
+        fetchLogs();
+    }, [fetchLogs]);
 
     const handleRefresh = () => {
-        setOffset(0);
-        fetchLogs(true);
+        if (page === 1) {
+            fetchLogs();
+        } else {
+            setPage(1);
+        }
     };
 
-    const handleLoadMore = () => {
-        fetchLogs(false);
-    };
-
-    const toggleRowExpand = (logId: string) => {
-        setExpandedRow(prev => prev === logId ? null : logId);
+    const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
+        setPage(value);
     };
 
     const getStatusColor = (status: 'SUCCESS' | 'FAILURE') => {
@@ -125,216 +111,269 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
                     />
                 </Box>
                 <Tooltip title="Refresh">
-                    <IconButton
-                        onClick={handleRefresh}
-                        disabled={isLoading}
-                        sx={{
-                            color: 'text.secondary',
-                            '&:hover': { color: theme.palette.primary.main }
-                        }}
-                    >
-                        <RefreshIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
+                    <Box component="span">
+                        <IconButton
+                            onClick={handleRefresh}
+                            disabled={isLoading}
+                            sx={{
+                                color: 'text.secondary',
+                                '&:hover': { color: theme.palette.primary.main }
+                            }}
+                        >
+                            <RefreshIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                    </Box>
                 </Tooltip>
             </Box>
 
-            {/* Loading State */}
-            {isLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-                    <CircularProgress size={32} />
-                </Box>
-            ) : logs.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 6 }}>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        No activity recorded yet
-                    </Typography>
-                </Box>
-            ) : (
-                <>
-                    {/* Table */}
-                    <TableContainer sx={{ maxHeight }}>
-                        <Table stickyHeader size="small">
-                            <TableHead>
-                                <TableRow>
-                                    <TableCell sx={{ bgcolor: 'transparent', borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
-                                        ACTION
-                                    </TableCell>
-                                    <TableCell sx={{ bgcolor: 'transparent', borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
-                                        STATUS
-                                    </TableCell>
-                                    <TableCell sx={{ bgcolor: 'transparent', borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
+            {/* Content Section */}
+            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                <TableContainer sx={{ maxHeight }}>
+                    <Table stickyHeader size="small">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)' }}>
+                                    ACTION
+                                </TableCell>
+                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)' }}>
+                                    STATUS
+                                </TableCell>
+                                {!isMobile && (
+                                    <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)' }}>
                                         IP ADDRESS
                                     </TableCell>
-                                    <TableCell sx={{ bgcolor: 'transparent', borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em' }}>
-                                        TIME
-                                    </TableCell>
-                                    <TableCell sx={{ bgcolor: 'transparent', borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, width: 40 }} />
-                                </TableRow>
-                            </TableHead>
+                                )}
+                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)' }}>
+                                    TIME
+                                </TableCell>
+                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, width: 40, backdropFilter: 'blur(8px)' }} />
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {/* Header row is already handled in TableHead */}
+                        </TableBody>
+                        {isLoading ? (
                             <TableBody>
-                                <AnimatePresence>
-                                    {logs.map((log, index) => (
-                                        <motion.tr
-                                            key={log._id}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.03 }}
-                                            style={{ display: 'contents' }}
-                                        >
-                                            <>
-                                                <TableRow
-                                                    hover
-                                                    onClick={() => toggleRowExpand(log._id)}
-                                                    sx={{
-                                                        cursor: 'pointer',
-                                                        '&:hover': { bgcolor: alpha(theme.palette.common.white, 0.03) }
-                                                    }}
-                                                >
-                                                    <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
-                                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                            {auditService.getActionLabel(log.action)}
-                                                        </Typography>
-                                                    </TableCell>
-                                                    <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                            {log.status === 'SUCCESS' ? (
-                                                                <SuccessIcon sx={{ fontSize: 14, color: getStatusColor(log.status) }} />
-                                                            ) : (
-                                                                <FailureIcon sx={{ fontSize: 14, color: getStatusColor(log.status) }} />
-                                                            )}
-                                                            <Typography
-                                                                variant="caption"
-                                                                sx={{
-                                                                    fontWeight: 600,
-                                                                    color: getStatusColor(log.status),
-                                                                    fontSize: '11px'
-                                                                }}
-                                                            >
-                                                                {log.status}
-                                                            </Typography>
-                                                        </Box>
-                                                    </TableCell>
-                                                    <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
-                                                        <Tooltip title={log.ipAddress}>
-                                                            <Typography
-                                                                variant="caption"
-                                                                sx={{
-                                                                    fontFamily: '"JetBrains Mono", monospace',
-                                                                    fontSize: '11px',
-                                                                    color: 'text.secondary',
-                                                                }}
-                                                            >
-                                                                {auditService.maskIpAddress(log.ipAddress)}
-                                                            </Typography>
-                                                        </Tooltip>
-                                                    </TableCell>
-                                                    <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
-                                                        <Tooltip title={new Date(log.timestamp).toLocaleString()}>
-                                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '11px' }}>
-                                                                {auditService.formatTimestamp(log.timestamp)}
-                                                            </Typography>
-                                                        </Tooltip>
-                                                    </TableCell>
-                                                    <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
-                                                        <IconButton size="small" sx={{ color: 'text.secondary' }}>
-                                                            {expandedRow === log._id ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                                                        </IconButton>
-                                                    </TableCell>
-                                                </TableRow>
-
-                                                {/* Expanded Details Row */}
-                                                <TableRow>
-                                                    <TableCell colSpan={5} sx={{ py: 0, borderBottom: expandedRow === log._id ? `1px solid ${alpha(theme.palette.common.white, 0.05)}` : 'none' }}>
-                                                        <Collapse in={expandedRow === log._id} timeout="auto" unmountOnExit>
-                                                            <Box sx={{ py: 2, px: 1 }}>
-                                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                                                                    <Box>
-                                                                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '10px', letterSpacing: '0.05em' }}>
-                                                                            RECORD HASH
-                                                                        </Typography>
-                                                                        <Typography
-                                                                            variant="caption"
-                                                                            sx={{
-                                                                                display: 'block',
-                                                                                fontFamily: '"JetBrains Mono", monospace',
-                                                                                fontSize: '10px',
-                                                                                color: 'text.primary',
-                                                                                mt: 0.5,
-                                                                            }}
-                                                                        >
-                                                                            {log.recordHash.slice(0, 32)}...
-                                                                        </Typography>
-                                                                    </Box>
-                                                                    <Box>
-                                                                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '10px', letterSpacing: '0.05em' }}>
-                                                                            FULL TIMESTAMP
-                                                                        </Typography>
-                                                                        <Typography
-                                                                            variant="caption"
-                                                                            sx={{
-                                                                                display: 'block',
-                                                                                fontSize: '11px',
-                                                                                color: 'text.primary',
-                                                                                mt: 0.5,
-                                                                            }}
-                                                                        >
-                                                                            {new Date(log.timestamp).toLocaleString()}
-                                                                        </Typography>
-                                                                    </Box>
-                                                                    {Object.keys(log.metadata).length > 0 && (
-                                                                        <Box>
-                                                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '10px', letterSpacing: '0.05em' }}>
-                                                                                METADATA
-                                                                            </Typography>
-                                                                            <Typography
-                                                                                component="pre"
-                                                                                sx={{
-                                                                                    fontFamily: '"JetBrains Mono", monospace',
-                                                                                    fontSize: '10px',
-                                                                                    color: 'text.primary',
-                                                                                    mt: 0.5,
-                                                                                    m: 0,
-                                                                                    whiteSpace: 'pre-wrap',
-                                                                                }}
-                                                                            >
-                                                                                {JSON.stringify(log.metadata, null, 2)}
-                                                                            </Typography>
-                                                                        </Box>
-                                                                    )}
-                                                                </Box>
-                                                            </Box>
-                                                        </Collapse>
-                                                    </TableCell>
-                                                </TableRow>
-                                            </>
-                                        </motion.tr>
-                                    ))}
-                                </AnimatePresence>
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <TableRow key={`skeleton-${i}`}>
+                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, py: 2 }}>
+                                            <Skeleton width="120px" sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
+                                        </TableCell>
+                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, py: 2 }}>
+                                            <Skeleton width="60px" sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
+                                        </TableCell>
+                                        {!isMobile && (
+                                            <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, py: 2 }}>
+                                                <Skeleton width="100px" sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
+                                            </TableCell>
+                                        )}
+                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, py: 2 }}>
+                                            <Skeleton width="80px" sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
+                                        </TableCell>
+                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, py: 2 }}>
+                                            <Skeleton variant="circular" width={24} height={24} sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
                             </TableBody>
-                        </Table>
-                    </TableContainer>
+                        ) : logs.length === 0 ? (
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell colSpan={isMobile ? 4 : 5} sx={{ textAlign: 'center', py: 6, border: 'none' }}>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                            No activity recorded yet
+                                        </Typography>
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        ) : (
+                            <AnimatePresence mode="popLayout">
+                                {logs.map((log, index) => (
+                                    <TableBody
+                                        key={log._id}
+                                        component={motion.tbody}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        transition={{ delay: index * 0.03 }}
+                                    >
+                                        <AuditLogRow
+                                            log={log}
+                                            isMobile={isMobile}
+                                            expanded={expandedRow === log._id}
+                                            onToggle={() => setExpandedRow(prev => prev === log._id ? null : log._id)}
+                                            theme={theme}
+                                            getStatusColor={getStatusColor}
+                                        />
+                                    </TableBody>
+                                ))}
+                            </AnimatePresence>
+                        )}
+                    </Table>
+                </TableContainer>
 
-                    {/* Load More */}
-                    {hasMore && (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                            <Button
-                                variant="text"
-                                onClick={handleLoadMore}
-                                disabled={isLoadingMore}
+                {/* Pagination */}
+                {!isLoading && total > limit && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, pb: 1 }}>
+                        <Pagination
+                            count={totalPages}
+                            page={page}
+                            onChange={handlePageChange}
+                            size="small"
+                            color="primary"
+                            sx={{
+                                '& .MuiPaginationItem-root': {
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    color: 'text.secondary',
+                                    '&.Mui-selected': {
+                                        bgcolor: alpha(theme.palette.primary.main, 0.15),
+                                        color: theme.palette.primary.main,
+                                        '&:hover': {
+                                            bgcolor: alpha(theme.palette.primary.main, 0.25),
+                                        }
+                                    }
+                                }
+                            }}
+                        />
+                    </Box>
+                )}
+            </Box>
+        </Paper>
+    );
+}
+
+// Sub-component for a cleaner main component
+function AuditLogRow({ log, isMobile, expanded, onToggle, theme, getStatusColor }: any) {
+    return (
+        <>
+            <TableRow
+                hover
+                onClick={onToggle}
+                sx={{
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: alpha(theme.palette.common.white, 0.03) }
+                }}
+            >
+                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {auditService.getActionLabel(log.action)}
+                    </Typography>
+                </TableCell>
+                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {log.status === 'SUCCESS' ? (
+                            <SuccessIcon sx={{ fontSize: 14, color: getStatusColor(log.status) }} />
+                        ) : (
+                            <FailureIcon sx={{ fontSize: 14, color: getStatusColor(log.status) }} />
+                        )}
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                fontWeight: 600,
+                                color: getStatusColor(log.status),
+                                fontSize: '11px'
+                            }}
+                        >
+                            {log.status}
+                        </Typography>
+                    </Box>
+                </TableCell>
+                {!isMobile && (
+                    <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
+                        <Tooltip title={log.ipAddress}>
+                            <Typography
+                                variant="caption"
                                 sx={{
-                                    textTransform: 'none',
-                                    fontWeight: 600,
-                                    color: theme.palette.primary.main,
+                                    fontFamily: '"JetBrains Mono", monospace',
+                                    fontSize: '11px',
+                                    color: 'text.secondary',
                                 }}
                             >
-                                {isLoadingMore ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
-                                Load More ({total - logs.length} remaining)
-                            </Button>
+                                {auditService.maskIpAddress(log.ipAddress)}
+                            </Typography>
+                        </Tooltip>
+                    </TableCell>
+                )}
+                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
+                    <Tooltip title={new Date(log.timestamp).toLocaleString()}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '11px' }}>
+                            {auditService.formatTimestamp(log.timestamp)}
+                        </Typography>
+                    </Tooltip>
+                </TableCell>
+                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
+                    <IconButton size="small" sx={{ color: 'text.secondary' }}>
+                        {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                    </IconButton>
+                </TableCell>
+            </TableRow>
+
+            {/* Expanded Details Row */}
+            <TableRow>
+                <TableCell colSpan={isMobile ? 4 : 5} sx={{ py: 0, borderBottom: expanded ? `1px solid ${alpha(theme.palette.common.white, 0.05)}` : 'none' }}>
+                    <Collapse in={expanded} timeout="auto" unmountOnExit>
+                        <Box sx={{ py: 2, px: 1 }}>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                                <Box>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '10px', letterSpacing: '0.05em' }}>
+                                        RECORD HASH
+                                    </Typography>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            display: 'block',
+                                            fontFamily: '"JetBrains Mono", monospace',
+                                            fontSize: '10px',
+                                            color: 'text.primary',
+                                            mt: 0.5,
+                                        }}
+                                    >
+                                        {log.recordHash.slice(0, 32)}...
+                                    </Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '10px', letterSpacing: '0.05em' }}>
+                                        FULL TIMESTAMP
+                                    </Typography>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            display: 'block',
+                                            fontSize: '11px',
+                                            color: 'text.primary',
+                                            mt: 0.5,
+                                        }}
+                                    >
+                                        {new Date(log.timestamp).toLocaleString()}
+                                    </Typography>
+                                </Box>
+                                {Object.keys(log.metadata).length > 0 && (
+                                    <Box>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '10px', letterSpacing: '0.05em' }}>
+                                            METADATA
+                                        </Typography>
+                                        <Typography
+                                            component="pre"
+                                            sx={{
+                                                fontFamily: '"JetBrains Mono", monospace',
+                                                fontSize: '10px',
+                                                color: 'text.primary',
+                                                mt: 0.5,
+                                                m: 0,
+                                                whiteSpace: 'pre-wrap',
+                                            }}
+                                        >
+                                            {JSON.stringify(log.metadata, null, 2)}
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Box>
                         </Box>
-                    )}
-                </>
-            )}
-        </Paper>
+                    </Collapse>
+                </TableCell>
+            </TableRow>
+        </>
     );
 }
 

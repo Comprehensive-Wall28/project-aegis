@@ -42,16 +42,13 @@ export function ContextMenu({ open, anchorPosition, onClose, items }: ContextMen
             onClose={onClose}
             anchorReference="anchorPosition"
             anchorPosition={{ top: anchorPosition.y, left: anchorPosition.x }}
-            slotProps={{
-                paper: {
-                    sx: {
-                        minWidth: 180,
-                        borderRadius: '12px',
-                        bgcolor: alpha(theme.palette.background.paper, 0.95),
-                        backdropFilter: 'blur(16px)',
-                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                        boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
-                    }
+            PaperProps={{
+                sx: {
+                    borderRadius: '16px',
+                    bgcolor: theme.palette.background.paper,
+                    backgroundImage: 'none',
+                    boxShadow: theme.shadows[20],
+                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                 }
             }}
         >
@@ -76,9 +73,11 @@ export function ContextMenu({ open, anchorPosition, onClose, items }: ContextMen
                         </ListItemIcon>
                         <ListItemText
                             primary={item.label}
-                            primaryTypographyProps={{
-                                fontSize: '13px',
-                                fontWeight: 600
+                            slotProps={{
+                                primary: {
+                                    fontSize: '13px',
+                                    fontWeight: 600
+                                }
                             }}
                         />
                     </MenuItem>
