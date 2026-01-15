@@ -330,7 +330,8 @@ export const postLink = async (req: AuthRequest, res: Response, next: NextFuncti
         };
 
         const cachedMetadata = await LinkMetadata.findOne({ url: targetUrl });
-        if (cachedMetadata) {
+        // Only use cache if it was NOT a failure
+        if (cachedMetadata && cachedMetadata.scrapeStatus !== 'failed') {
             previewData = {
                 title: cachedMetadata.title,
                 description: cachedMetadata.description,
@@ -383,12 +384,15 @@ export const postLink = async (req: AuthRequest, res: Response, next: NextFuncti
                 previewData.image = normalize(previewData.image);
                 previewData.favicon = normalize(previewData.favicon);
 
-                // Save to global cache
-                await LinkMetadata.create({
-                    url: targetUrl,
-                    ...previewData,
-                    lastFetched: new Date()
-                });
+                // Save or Update global cache
+                await LinkMetadata.findOneAndUpdate(
+                    { url: targetUrl },
+                    {
+                        ...previewData,
+                        lastFetched: new Date()
+                    },
+                    { upsert: true, new: true }
+                );
             } catch (error) {
                 logger.error(`Error in advanced scraping flow for ${targetUrl}:`, error);
 
