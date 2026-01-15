@@ -48,7 +48,17 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
     try {
         browser = await puppeteer.launch({
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage', // Critical for Docker/limited memory environments
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process', // Sometimes helps in strict environments
+                '--disable-gpu'
+            ],
+            // executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null, // Optional: Allow external override
         });
 
         const page = await browser.newPage();
