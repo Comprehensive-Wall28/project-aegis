@@ -34,6 +34,46 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                     onDragStart?.(link._id);
                     e.dataTransfer.setData('text/plain', link._id);
                     e.dataTransfer.effectAllowed = 'move';
+
+                    const el = e.currentTarget as HTMLElement;
+                    const rect = el.getBoundingClientRect();
+                    const scale = 0.4;
+
+                    // Create a wrapper to constrain the drag image size
+                    const wrapper = document.createElement('div');
+                    wrapper.style.width = `${rect.width * scale}px`;
+                    wrapper.style.height = `${rect.height * scale}px`;
+                    wrapper.style.position = 'absolute';
+                    wrapper.style.top = '-9999px';
+                    wrapper.style.left = '-9999px';
+                    wrapper.style.zIndex = '9999';
+                    wrapper.style.overflow = 'hidden'; // Ensure clean edges
+
+                    const clone = el.cloneNode(true) as HTMLElement;
+                    // Reset styles that might interfere
+                    clone.style.width = `${rect.width}px`;
+                    clone.style.height = `${rect.height}px`;
+                    clone.style.transform = `scale(${scale})`;
+                    clone.style.transformOrigin = 'top left';
+                    clone.style.position = 'absolute';
+                    clone.style.top = '0';
+                    clone.style.left = '0';
+                    clone.style.opacity = '1';
+                    clone.style.transition = 'none'; // distinct from original
+
+                    wrapper.appendChild(clone);
+                    document.body.appendChild(wrapper);
+
+                    // Calculate offset so the ghost is grabbed continuously relative to cursor
+                    const clickX = e.clientX - rect.left;
+                    const clickY = e.clientY - rect.top;
+
+                    e.dataTransfer.setDragImage(wrapper, clickX * scale, clickY * scale);
+
+                    // Clean up
+                    setTimeout(() => {
+                        document.body.removeChild(wrapper);
+                    }, 0);
                 }}
                 onDragEnd={() => setIsDragging(false)}
                 style={{
