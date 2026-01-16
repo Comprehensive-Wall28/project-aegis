@@ -7,6 +7,7 @@ import type {
     RoomContent,
 } from '@/services/socialService';
 import { useSessionStore } from './sessionStore';
+import socketService from '@/services/socketService';
 
 // @ts-ignore - Module likely exists but types are missing in environment
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
@@ -20,10 +21,16 @@ interface SocialState {
     links: LinkPost[];
     viewedLinkIds: Set<string>;
     commentCounts: Record<string, number>;
+    unviewedCounts: Record<string, number>;
 
     // Loading states
     isLoadingRooms: boolean;
     isLoadingContent: boolean;
+    isLoadingLinks: boolean;
+
+    // Pagination state
+    hasMoreLinks: boolean;
+    currentPage: number;
 
     // Pending invite for join flow
     pendingInvite: {
@@ -40,7 +47,9 @@ interface SocialState {
 
     selectRoom: (roomId: string) => Promise<void>;
     refreshCurrentRoom: () => Promise<void>;
-    selectCollection: (collectionId: string) => void;
+    selectCollection: (collectionId: string) => Promise<void>;
+    fetchCollectionLinks: (collectionId: string, page?: number, silent?: boolean) => Promise<void>;
+    loadMoreLinks: () => Promise<void>;
     createRoom: (name: string, description: string, icon?: string) => Promise<Room>;
     joinRoom: (inviteCode: string, roomKey: CryptoKey) => Promise<void>;
     postLink: (url: string) => Promise<LinkPost>;
@@ -56,6 +65,8 @@ interface SocialState {
     decryptRoomMetadata: (room: Room) => Promise<{ name: string; description: string }>;
     decryptCollectionMetadata: (collection: Collection) => Promise<{ name: string }>;
     clearSocial: () => void;
+    // Real-time setup
+    setupSocketListeners: () => void;
 }
 
 // Helper: Convert hex string to Uint8Array
@@ -205,6 +216,10 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     commentCounts: {},
     isLoadingRooms: false,
     isLoadingContent: false,
+    isLoadingLinks: false,
+    hasMoreLinks: false,
+    currentPage: 1,
+    unviewedCounts: {},
     pendingInvite: null,
     roomKeys: new Map(),
 
@@ -279,16 +294,31 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 ? state.rooms
                 : [...state.rooms, content.room];
 
+            const firstCollectionId = content.collections[0]?._id || null;
+
             set({
                 currentRoom: content.room,
                 collections: content.collections,
-                links: content.links,
-                viewedLinkIds: new Set(content.viewedLinkIds || []),
-                commentCounts: content.commentCounts || {},
+                unviewedCounts: content.unviewedCounts,
+                links: [], // Links will be loaded by fetchCollectionLinks
+                viewedLinkIds: new Set(),
+                commentCounts: {},
                 rooms: updatedRooms,
-                currentCollectionId: content.collections[0]?._id || null,
-                isLoadingContent: false,
+                currentCollectionId: firstCollectionId,
+                currentPage: 1,
+                hasMoreLinks: false
             });
+
+            // Join socket room
+            socketService.joinRoom(roomId);
+            get().setupSocketListeners();
+
+            // Auto-load first collection links if available
+            if (firstCollectionId) {
+                await get().fetchCollectionLinks(firstCollectionId, 1);
+            }
+
+            set({ isLoadingContent: false });
         } catch (error) {
             console.error('Failed to select room:', error);
             setCryptoStatus('idle');
@@ -326,9 +356,9 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             set({
                 // currentRoom: content.room, // Keep existing room obj to prevent full re-render flickering
                 collections: content.collections,
-                links: content.links,
-                viewedLinkIds: new Set(content.viewedLinkIds || []),
-                commentCounts: content.commentCounts || {},
+                unviewedCounts: content.unviewedCounts,
+                // Do NOT overwrite links, viewedLinkIds or commentCounts here 
+                // as they are handled by fetchCollectionLinks now
                 // Do NOT reset currentCollectionId or loading state
             });
         } catch (error) {
@@ -336,8 +366,88 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         }
     },
 
-    selectCollection: (collectionId: string) => {
-        set({ currentCollectionId: collectionId });
+    selectCollection: async (collectionId: string) => {
+        const state = get();
+        if (state.currentCollectionId === collectionId) return;
+
+        set({
+            currentCollectionId: collectionId,
+            links: [], // Clear existing links when switching
+            currentPage: 1,
+            hasMoreLinks: false
+        });
+
+        await get().fetchCollectionLinks(collectionId, 1);
+    },
+
+    fetchCollectionLinks: async (collectionId: string, page: number = 1, silent: boolean = false) => {
+        const state = get();
+        if (!state.currentRoom) return;
+
+        if (!silent) {
+            set({ isLoadingLinks: true });
+        }
+
+        try {
+            const result = await socialService.getCollectionLinks(
+                state.currentRoom._id,
+                collectionId,
+                page,
+                30
+            );
+
+            set((prev) => {
+                let newLinks = prev.links;
+
+                if (page === 1) {
+                    // Update current list with new first page links
+                    // We merge to avoid duplicates and preserve links loaded from subsequent pages
+                    const existingLinkIds = new Set(prev.links.map(l => l._id));
+                    const refreshedLinks = result.links;
+
+                    if (silent) {
+                        // For silent refresh, we want to prepend new items and update counts for existing items
+                        const newItems = refreshedLinks.filter(l => !existingLinkIds.has(l._id));
+                        // Create a map for quick lookup of existing items to update them if they are in the refreshed list
+                        const refreshedMap = new Map(refreshedLinks.map(l => [l._id, l]));
+
+                        newLinks = prev.links.map(l => refreshedMap.get(l._id) || l);
+                        newLinks = [...newItems, ...newLinks];
+                    } else {
+                        // For manual fetch (like switching rooms), we just use the new list
+                        newLinks = refreshedLinks;
+                    }
+                } else {
+                    // Just append for subsequent pages
+                    const existingIds = new Set(prev.links.map(l => l._id));
+                    const uniqueNewLinks = result.links.filter(l => !existingIds.has(l._id));
+                    newLinks = [...prev.links, ...uniqueNewLinks];
+                }
+
+                return {
+                    links: newLinks,
+                    viewedLinkIds: (page === 1 && !silent)
+                        ? new Set(result.viewedLinkIds)
+                        : new Set([...prev.viewedLinkIds, ...result.viewedLinkIds]),
+                    commentCounts: (page === 1 && !silent)
+                        ? result.commentCounts
+                        : { ...prev.commentCounts, ...result.commentCounts },
+                    hasMoreLinks: result.hasMore,
+                    currentPage: Math.max(prev.currentPage, page),
+                    isLoadingLinks: false
+                };
+            });
+        } catch (error) {
+            console.error('Failed to fetch collection links:', error);
+            set({ isLoadingLinks: false });
+        }
+    },
+
+    loadMoreLinks: async () => {
+        const state = get();
+        if (!state.currentCollectionId || !state.hasMoreLinks || state.isLoadingLinks) return;
+
+        await get().fetchCollectionLinks(state.currentCollectionId, state.currentPage + 1);
     },
 
     createRoom: async (name: string, description: string, icon?: string) => {
@@ -466,45 +576,74 @@ export const useSocialStore = create<SocialState>((set, get) => ({
 
     markLinkViewed: async (linkId: string) => {
         const state = get();
+        if (state.viewedLinkIds.has(linkId)) return;
 
         // Optimistically update the UI
         const newViewedIds = new Set(state.viewedLinkIds);
         newViewedIds.add(linkId);
-        set({ viewedLinkIds: newViewedIds });
+
+        // Find the link to get its collectionId
+        const link = state.links.find(l => l._id === linkId);
+        const newUnviewedCounts = { ...state.unviewedCounts };
+        if (link && newUnviewedCounts[link.collectionId]) {
+            newUnviewedCounts[link.collectionId] = Math.max(0, newUnviewedCounts[link.collectionId] - 1);
+        }
+
+        set({
+            viewedLinkIds: newViewedIds,
+            unviewedCounts: newUnviewedCounts
+        });
 
         try {
             await socialService.markLinkViewed(linkId);
         } catch (error) {
             // Revert on error
             console.error('Failed to mark link as viewed:', error);
-            newViewedIds.delete(linkId);
-            set({ viewedLinkIds: new Set(newViewedIds) });
+            const revertedViewed = new Set(state.viewedLinkIds);
+            set({
+                viewedLinkIds: revertedViewed,
+                unviewedCounts: state.unviewedCounts
+            });
         }
     },
 
     unmarkLinkViewed: async (linkId: string) => {
         const state = get();
+        if (!state.viewedLinkIds.has(linkId)) return;
 
         // Optimistically update the UI
         const newViewedIds = new Set(state.viewedLinkIds);
         newViewedIds.delete(linkId);
-        set({ viewedLinkIds: newViewedIds });
+
+        // Find the link to get its collectionId
+        const link = state.links.find(l => l._id === linkId);
+        const newUnviewedCounts = { ...state.unviewedCounts };
+        if (link) {
+            newUnviewedCounts[link.collectionId] = (newUnviewedCounts[link.collectionId] || 0) + 1;
+        }
+
+        set({
+            viewedLinkIds: newViewedIds,
+            unviewedCounts: newUnviewedCounts
+        });
 
         try {
             await socialService.unmarkLinkViewed(linkId);
         } catch (error) {
             // Revert on error
             console.error('Failed to unmark link as viewed:', error);
-            newViewedIds.add(linkId);
-            set({ viewedLinkIds: new Set(newViewedIds) });
+            const revertedViewed = new Set(state.viewedLinkIds);
+            revertedViewed.add(linkId);
+            set({
+                viewedLinkIds: revertedViewed,
+                unviewedCounts: state.unviewedCounts
+            });
         }
     },
 
     getUnviewedCountByCollection: (collectionId: string) => {
         const state = get();
-        return state.links.filter(
-            l => l.collectionId === collectionId && !state.viewedLinkIds.has(l._id)
-        ).length;
+        return state.unviewedCounts[collectionId] || 0;
     },
 
     deleteCollection: async (collectionId: string) => {
@@ -584,6 +723,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     },
 
     clearSocial: () => {
+        socketService.disconnect();
         set({
             rooms: [],
             currentRoom: null,
@@ -592,8 +732,78 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             links: [],
             viewedLinkIds: new Set(),
             commentCounts: {},
+            unviewedCounts: {},
+            isLoadingRooms: false,
+            isLoadingContent: false,
+            isLoadingLinks: false,
+            hasMoreLinks: false,
+            currentPage: 1,
             pendingInvite: null,
             roomKeys: new Map(),
         });
     },
+
+    setupSocketListeners: () => {
+        // Remove existing listeners to avoid duplicates
+        socketService.off('NEW_LINK', () => { });
+        socketService.off('NEW_COMMENT', () => { });
+
+        socketService.on('NEW_LINK', (data: { link: LinkPost, collectionId: string }) => {
+            const currentState = get();
+
+            if (currentState.currentCollectionId === data.collectionId) {
+                // If we are looking at this collection, prepend the new link
+                const exists = currentState.links.some(l => l._id === data.link._id);
+                if (!exists) {
+                    set((prev) => ({
+                        links: [data.link, ...prev.links]
+                    }));
+                }
+            }
+        });
+
+        socketService.on('NEW_COMMENT', (data: { linkId: string, commentCount: number }) => {
+            set((prev) => ({
+                commentCounts: {
+                    ...prev.commentCounts,
+                    [data.linkId]: data.commentCount
+                }
+            }));
+        });
+
+        socketService.on('LINK_UPDATED', (data: { link: LinkPost }) => {
+            set((prev) => ({
+                links: prev.links.map(l => l._id === data.link._id ? data.link : l)
+            }));
+        });
+
+        socketService.on('LINK_DELETED', (data: { linkId: string, collectionId: string }) => {
+            set((prev) => ({
+                links: prev.links.filter(l => l._id !== data.linkId)
+            }));
+        });
+
+        socketService.on('LINK_MOVED', (data: { linkId: string, newCollectionId: string, link: LinkPost }) => {
+            const currentState = get();
+
+            if (currentState.currentCollectionId === data.newCollectionId) {
+                // If moved TO the current collection, add it (or update if exists)
+                const exists = currentState.links.some(l => l._id === data.linkId);
+                if (!exists) {
+                    set((prev) => ({
+                        links: [data.link, ...prev.links]
+                    }));
+                } else {
+                    set((prev) => ({
+                        links: prev.links.map(l => l._id === data.linkId ? data.link : l)
+                    }));
+                }
+            } else {
+                // If moved AWAY from current collection, remove it
+                set((prev) => ({
+                    links: prev.links.filter(l => l._id !== data.linkId)
+                }));
+            }
+        });
+    }
 }));

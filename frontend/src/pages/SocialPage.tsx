@@ -44,6 +44,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { LinkCard } from '@/components/social/LinkCard';
 import { CommentsOverlay } from '@/components/social/CommentsOverlay';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import socketService from '@/services/socketService';
 import type { Room, LinkPost } from '@/services/socialService';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -562,7 +563,6 @@ export function SocialPage() {
 
     const fetchRooms = useSocialStore((state) => state.fetchRooms);
     const selectRoom = useSocialStore((state) => state.selectRoom);
-    const refreshCurrentRoom = useSocialStore((state) => state.refreshCurrentRoom);
     const selectCollection = useSocialStore((state) => state.selectCollection);
     const createRoom = useSocialStore((state) => state.createRoom);
     const postLink = useSocialStore((state) => state.postLink);
@@ -579,6 +579,9 @@ export function SocialPage() {
     const viewedLinkIds = useSocialStore((state) => state.viewedLinkIds);
     const roomKeys = useSocialStore((state) => state.roomKeys);
     const commentCounts = useSocialStore((state) => state.commentCounts);
+    const hasMoreLinks = useSocialStore((state) => state.hasMoreLinks);
+    const isLoadingLinks = useSocialStore((state) => state.isLoadingLinks);
+    const loadMoreLinks = useSocialStore((state) => state.loadMoreLinks);
 
     // Get current user ID for delete permissions
     const currentUserId = useSessionStore((state) => state.user?._id);
@@ -626,6 +629,15 @@ export function SocialPage() {
     // Comments overlay state
     const [commentsLink, setCommentsLink] = useState<LinkPost | null>(null);
 
+    // Socket room management cleanup
+    useEffect(() => {
+        return () => {
+            if (currentRoom) {
+                socketService.leaveRoom(currentRoom._id);
+            }
+        };
+    }, [currentRoom]);
+
     // Fetch rooms on mount
     useEffect(() => {
         if (pqcEngineStatus === 'operational') {
@@ -643,16 +655,7 @@ export function SocialPage() {
     // Switch to room-content view when a room is selected
 
 
-    // Auto-refresh content every 5 seconds (paused when comments overlay is open)
-    useEffect(() => {
-        if (!currentRoom || commentsLink) return;
-
-        const interval = setInterval(() => {
-            refreshCurrentRoom();
-        }, 5000);
-
-        return () => clearInterval(interval);
-    }, [currentRoom, refreshCurrentRoom, commentsLink]);
+    // Auto-refresh removed in favor of real-time socket updates
 
     // Decrypt room names when rooms change
     useEffect(() => {
@@ -691,6 +694,11 @@ export function SocialPage() {
             decryptNames();
         }
     }, [collections, decryptCollectionMetadata]);
+
+    // Scroll links to top when collection changes
+    useEffect(() => {
+        linksContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [currentCollectionId]);
 
     const showSnackbar = (message: string, severity: SnackbarState['severity']) => {
         setSnackbar({ open: true, message, severity });
@@ -785,6 +793,9 @@ export function SocialPage() {
 
     // Long press for mobile delete
     const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Ref for links container to scroll to top on collection change
+    const linksContainerRef = useRef<HTMLDivElement>(null);
 
     const handleCollectionTouchStart = (collectionId: string) => {
         longPressTimerRef.current = setTimeout(() => {
@@ -1371,17 +1382,19 @@ export function SocialPage() {
                                 </Drawer>
 
                                 {/* Links Content */}
-                                <Box sx={{
-                                    flex: 1,
-                                    minWidth: 0,
-                                    height: '100%',
-                                    overflowX: 'hidden',
-                                    overflowY: 'auto',
-                                    pr: 1,
-                                    pt: 1, // 8px padding to prevent any clipping
-                                    px: 1, // 8px side padding
-                                    pb: isMobile ? 12 : 2,
-                                }}>
+                                <Box
+                                    ref={linksContainerRef}
+                                    sx={{
+                                        flex: 1,
+                                        minWidth: 0,
+                                        height: '100%',
+                                        overflowX: 'hidden',
+                                        overflowY: 'auto',
+                                        pr: 1,
+                                        pt: 1, // 8px padding to prevent any clipping
+                                        px: 1, // 8px side padding
+                                        pb: isMobile ? 12 : 2,
+                                    }}>
                                     {/* Mobile collections button and search */}
                                     {isMobile && (
                                         <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
@@ -1446,7 +1459,7 @@ export function SocialPage() {
                                         </Box>
                                     )}
 
-                                    {isLoadingContent ? (
+                                    {(isLoadingContent || (isLoadingLinks && filteredLinks.length === 0)) ? (
                                         <Box
                                             sx={{
                                                 display: 'grid',
@@ -1459,30 +1472,54 @@ export function SocialPage() {
                                             ))}
                                         </Box>
                                     ) : filteredLinks.length > 0 ? (
-                                        <Box
-                                            sx={{
-                                                display: 'grid',
-                                                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                                                gap: 2,
-                                            }}
-                                        >
-                                            {filteredLinks.map((link: LinkPost) => (
-                                                <LinkCard
-                                                    key={link._id}
-                                                    link={link}
-                                                    onDelete={() => deleteLink(link._id)}
-                                                    onDragStart={(id) => setDraggedLinkId(id)}
-                                                    onView={(id) => markLinkViewed(id)}
-                                                    onUnview={(id) => unmarkLinkViewed(id)}
-                                                    onCommentsClick={(l) => setCommentsLink(l)}
-                                                    isViewed={viewedLinkIds.has(link._id)}
-                                                    commentCount={commentCounts[link._id] || 0}
-                                                    canDelete={
-                                                        currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
-                                                    }
-                                                />
-                                            ))}
-                                        </Box>
+                                        <>
+                                            <Box
+                                                sx={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                                    gap: 2,
+                                                }}
+                                            >
+                                                {filteredLinks.map((link: LinkPost) => (
+                                                    <LinkCard
+                                                        key={link._id}
+                                                        link={link}
+                                                        onDelete={() => deleteLink(link._id)}
+                                                        onDragStart={(id) => setDraggedLinkId(id)}
+                                                        onView={(id) => markLinkViewed(id)}
+                                                        onUnview={(id) => unmarkLinkViewed(id)}
+                                                        onCommentsClick={(l) => setCommentsLink(l)}
+                                                        isViewed={viewedLinkIds.has(link._id)}
+                                                        commentCount={commentCounts[link._id] || 0}
+                                                        canDelete={
+                                                            currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
+                                                        }
+                                                    />
+                                                ))}
+                                            </Box>
+
+                                            {hasMoreLinks && (
+                                                <Box sx={{ mt: 3, mb: 2, display: 'flex', justifyContent: 'center' }}>
+                                                    <Button
+                                                        variant="outlined"
+                                                        onClick={() => loadMoreLinks()}
+                                                        disabled={isLoadingLinks}
+                                                        startIcon={isLoadingLinks ? <CircularProgress size={20} /> : null}
+                                                        sx={{
+                                                            borderRadius: '12px',
+                                                            px: 4,
+                                                            borderColor: alpha(theme.palette.primary.main, 0.3),
+                                                            '&:hover': {
+                                                                borderColor: theme.palette.primary.main,
+                                                                bgcolor: alpha(theme.palette.primary.main, 0.05),
+                                                            }
+                                                        }}
+                                                    >
+                                                        {isLoadingLinks ? 'Loading...' : 'Load More'}
+                                                    </Button>
+                                                </Box>
+                                            )}
+                                        </>
                                     ) : (
                                         <Box
                                             sx={{
@@ -1628,7 +1665,7 @@ export function SocialPage() {
                         />
                     )
                 }
-            </Box>
-        </Box>
+            </Box >
+        </Box >
     );
 }

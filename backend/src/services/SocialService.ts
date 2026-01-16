@@ -13,6 +13,7 @@ import { ICollection } from '../models/Collection';
 import { ILinkPost, IPreviewData } from '../models/LinkPost';
 import { advancedScrape } from '../utils/scraper';
 import logger from '../utils/logger';
+import SocketManager from '../utils/SocketManager';
 
 // DTOs
 export interface CreateRoomDTO {
@@ -47,6 +48,7 @@ export interface RoomContent {
     links: ILinkPost[];
     viewedLinkIds: string[];
     commentCounts: Record<string, number>;
+    unviewedCounts: Record<string, number>;
 }
 
 /**
@@ -222,15 +224,26 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
 
             const member = room.members.find(m => m.userId.toString() === userId);
             const collections = await this.collectionRepo.findByRoom(roomId);
-            const collectionIds = collections.map(c => c._id.toString());
-            const links = await this.linkPostRepo.findByCollections(collectionIds);
 
-            // Get viewed links
-            const linkIds = links.map(l => l._id.toString());
-            const viewedLinkIds = await this.linkViewRepo.findViewedLinkIds(userId, linkIds);
+            // High-performance unviewed count calculation
+            // 1. Fetch all links in the room with their IDs and collection IDs
+            const allLinks = await this.linkPostRepo.findByCollections(collections.map(c => c._id.toString()));
+            const allLinkIds = allLinks.map(l => l._id.toString());
 
-            // Get comment counts
-            const commentCountMap = await this.linkCommentRepo.countByLinkIds(linkIds);
+            // 2. Fetch viewed link IDs for the user
+            const viewedLinkIds = await this.linkViewRepo.findViewedLinkIds(userId, allLinkIds);
+            const viewedSet = new Set(viewedLinkIds);
+
+            // 3. Aggregate unviewed counts per collection
+            const unviewedCounts: Record<string, number> = {};
+            collections.forEach(c => unviewedCounts[c._id.toString()] = 0);
+
+            allLinks.forEach(link => {
+                if (!viewedSet.has(link._id.toString())) {
+                    const cid = link.collectionId.toString();
+                    unviewedCounts[cid] = (unviewedCounts[cid] || 0) + 1;
+                }
+            });
 
             return {
                 room: {
@@ -242,14 +255,72 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                     memberCount: room.members.length
                 },
                 collections,
-                links,
-                viewedLinkIds,
-                commentCounts: commentCountMap
+                links: [], // Empty - load via getCollectionLinks
+                viewedLinkIds: [], // Current view's viewed IDs will be fetched by getCollectionLinks
+                commentCounts: {},
+                unviewedCounts
             };
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Get room content error:', error);
             throw new ServiceError('Failed to get room content', 500);
+        }
+    }
+
+    /**
+     * Get links for a specific collection with pagination
+     */
+    async getCollectionLinks(
+        userId: string,
+        roomId: string,
+        collectionId: string,
+        page: number = 1,
+        limit: number = 30
+    ): Promise<{
+        links: any[];
+        totalCount: number;
+        hasMore: boolean;
+        viewedLinkIds: string[];
+        commentCounts: Record<string, number>;
+    }> {
+        try {
+            // Verify room access
+            const room = await this.repository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new ServiceError('Room not found or access denied', 404);
+            }
+
+            // Verify collection belongs to room
+            const collection = await this.collectionRepo.findById(collectionId);
+            if (!collection || collection.roomId.toString() !== roomId) {
+                throw new ServiceError('Collection not found', 404);
+            }
+
+            const skip = (page - 1) * limit;
+            const { links, totalCount } = await this.linkPostRepo.findByCollectionPaginated(
+                collectionId,
+                limit,
+                skip
+            );
+
+            // Get viewed links and comment counts for these links
+            const linkIds = links.map(l => l._id.toString());
+            const [viewedLinkIds, commentCounts] = await Promise.all([
+                this.linkViewRepo.findViewedLinkIds(userId, linkIds),
+                this.linkCommentRepo.countByLinkIds(linkIds)
+            ]);
+
+            return {
+                links,
+                totalCount,
+                hasMore: skip + links.length < totalCount,
+                viewedLinkIds,
+                commentCounts
+            };
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Get collection links error:', error);
+            throw new ServiceError('Failed to get collection links', 500);
         }
     }
 
@@ -300,17 +371,33 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Link already exists in this collection', 400);
             }
 
-            // Fetch metadata
-            const previewData = await this.fetchLinkPreview(targetUrl);
+            // Create link instantly with placeholder preview
+            const placeholderPreview: IPreviewData = {
+                title: targetUrl.split('://')[1] || targetUrl,
+                scrapeStatus: 'scraping'
+            };
 
             const linkPost = await this.linkPostRepo.create({
                 collectionId: targetCollectionId as any,
                 userId: userId as any,
                 url: targetUrl,
-                previewData
+                previewData: placeholderPreview
             } as any);
 
-            logger.info(`Link posted to room ${roomId} by user ${userId}`);
+            logger.info(`Link posted instantly to room ${roomId} by user ${userId}`);
+
+            // Populate user for the broadcast so the name doesn't show as 'Unknown'
+            await linkPost.populate('userId', 'username');
+
+            // Broadcast to room immediately
+            SocketManager.broadcastToRoom(roomId, 'NEW_LINK', {
+                link: linkPost,
+                collectionId: targetCollectionId
+            });
+
+            // Start background scraping (do not await)
+            this.backgroundScrapeAndBroadcast(linkPost._id.toString(), targetUrl, roomId);
+
             await this.logAction(userId, 'LINK_POST', 'SUCCESS', req, {
                 roomId,
                 linkPostId: linkPost._id.toString()
@@ -351,6 +438,15 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             }
 
             await this.linkPostRepo.deleteById(linkId);
+
+            // Also delete all comments for this link
+            await this.linkCommentRepo.deleteByLinkId(linkId);
+
+            // Broadcast deletion to room
+            SocketManager.broadcastToRoom(room._id.toString(), 'LINK_DELETED', {
+                linkId,
+                collectionId: collection._id.toString()
+            });
 
             await this.logAction(userId, 'FILE_DELETE', 'SUCCESS', req, {
                 action: 'delete_link_post',
@@ -435,6 +531,16 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             if (!updated) {
                 throw new ServiceError('Failed to move link', 500);
             }
+
+            // Populate user for the broadcast
+            await updated.populate('userId', 'username');
+
+            // Broadcast movement to room
+            SocketManager.broadcastToRoom(targetCollection.roomId.toString(), 'LINK_MOVED', {
+                linkId,
+                newCollectionId: collectionId,
+                link: updated
+            });
 
             return updated;
         } catch (error) {
@@ -564,6 +670,19 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             const comment = await this.linkCommentRepo.createComment(linkId, userId, encryptedContent);
 
             logger.info(`Comment posted on link ${linkId} by user ${userId}`);
+            // Broadcast to room (need roomId from collection)
+            const link = await this.linkPostRepo.findById(linkId);
+            if (link) {
+                const collection = await this.collectionRepo.findById(link.collectionId.toString());
+                if (collection) {
+                    const countMap = await this.linkCommentRepo.countByLinkIds([linkId]);
+                    SocketManager.broadcastToRoom(collection.roomId.toString(), 'NEW_COMMENT', {
+                        linkId,
+                        commentCount: countMap[linkId] || 0
+                    });
+                }
+            }
+
             return comment;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -604,6 +723,16 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             }
 
             await this.linkCommentRepo.deleteById(commentId);
+
+            // Re-calculate count and broadcast
+            const countMap = await this.linkCommentRepo.countByLinkIds([comment.linkId.toString()]);
+            const newCount = countMap[comment.linkId.toString()] || 0;
+
+            SocketManager.broadcastToRoom(room._id.toString(), 'NEW_COMMENT', {
+                linkId: comment.linkId.toString(),
+                commentCount: newCount
+            });
+
             logger.info(`Comment ${commentId} deleted by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -693,5 +822,24 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
         }
 
         return previewData;
+    }
+
+    private async backgroundScrapeAndBroadcast(linkId: string, url: string, roomId: string): Promise<void> {
+        try {
+            const previewData = await this.fetchLinkPreview(url);
+            const updatedLink = await this.linkPostRepo.updateById(linkId, { $set: { previewData } } as any);
+
+            if (updatedLink) {
+                // Populate user for the broadcast
+                await updatedLink.populate('userId', 'username');
+
+                SocketManager.broadcastToRoom(roomId, 'LINK_UPDATED', {
+                    link: updatedLink
+                });
+                logger.debug(`Background scrape complete for link ${linkId}`);
+            }
+        } catch (error) {
+            logger.error(`Background scraper failed for link ${linkId}:`, error);
+        }
     }
 }

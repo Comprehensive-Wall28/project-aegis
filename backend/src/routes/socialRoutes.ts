@@ -7,6 +7,7 @@ import {
     joinRoom,
     postLink,
     getRoomContent,
+    getCollectionLinks,
     deleteLink,
     createCollection,
     deleteCollection,
@@ -35,6 +36,7 @@ router.post('/rooms/join', protect, csrfProtection, joinRoom);
 router.post('/rooms/:roomId/links', protect, csrfProtection, postLink);
 router.post('/rooms/:roomId/collections', protect, csrfProtection, createCollection);
 router.get('/rooms/:roomId', protect, csrfProtection, getRoomContent);
+router.get('/rooms/:roomId/collections/:collectionId/links', protect, csrfProtection, getCollectionLinks);
 router.delete('/links/:linkId', protect, csrfProtection, deleteLink);
 router.delete('/collections/:collectionId', protect, csrfProtection, deleteCollection);
 router.patch('/links/:linkId/move', protect, csrfProtection, moveLink);

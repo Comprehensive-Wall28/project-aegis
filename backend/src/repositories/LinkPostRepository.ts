@@ -23,6 +23,30 @@ export class LinkPostRepository extends BaseRepository<ILinkPost> {
     }
 
     /**
+     * Find links by single collection with pagination
+     */
+    async findByCollectionPaginated(
+        collectionId: string,
+        limit: number = 30,
+        skip: number = 0
+    ): Promise<{ links: ILinkPost[]; totalCount: number }> {
+        const [links, totalCount] = await Promise.all([
+            this.findMany({
+                collectionId: { $eq: collectionId as any }
+            } as SafeFilter<ILinkPost>, {
+                sort: { createdAt: -1 },
+                populate: { path: 'userId', select: 'username' },
+                limit,
+                skip
+            }),
+            this.count({
+                collectionId: { $eq: collectionId as any }
+            } as SafeFilter<ILinkPost>)
+        ]);
+        return { links, totalCount };
+    }
+
+    /**
      * Find existing link in collection by URL
      */
     async findByCollectionAndUrl(collectionId: string, url: string): Promise<ILinkPost | null> {
