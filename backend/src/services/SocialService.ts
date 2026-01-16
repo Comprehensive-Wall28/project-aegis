@@ -11,7 +11,7 @@ import { LinkCommentRepository } from '../repositories/LinkCommentRepository';
 import { IRoom, IRoomMember } from '../models/Room';
 import { ICollection } from '../models/Collection';
 import { ILinkPost, IPreviewData } from '../models/LinkPost';
-import { advancedScrape } from '../utils/scraper';
+import { advancedScrape, smartScrape } from '../utils/scraper';
 import logger from '../utils/logger';
 import SocketManager from '../utils/SocketManager';
 
@@ -813,7 +813,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             }
 
             // Fetch fresh
-            const scrapeResult = await advancedScrape(targetUrl);
+            const scrapeResult = await smartScrape(targetUrl);
             previewData = {
                 ...scrapeResult,
                 title: scrapeResult.title || '',

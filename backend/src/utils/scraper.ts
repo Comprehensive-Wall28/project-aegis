@@ -12,6 +12,7 @@ import metascraperYoutube from 'metascraper-youtube';
 import metascraperTwitter from 'metascraper-twitter';
 import metascraperInstagram from 'metascraper-instagram';
 import metascraperAmazon from 'metascraper-amazon';
+import ogs from 'open-graph-scraper';
 import logger from './logger';
 
 // Setup Metascraper
@@ -41,11 +42,66 @@ export interface ScrapeResult {
 }
 
 /**
+ * Simple scraper using Open Graph data.
+ * Faster and lighter than Puppeteer, but may fail on complex sites.
+ */
+/**
+ * Simple scraper using Open Graph data.
+ * Faster and lighter than Puppeteer, but may fail on complex sites.
+ */
+const simpleScrape = async (targetUrl: string): Promise<{ data: ScrapeResult | null, reason?: string }> => {
+    try {
+        const { result, error } = await ogs({
+            url: targetUrl,
+            timeout: 5000, // 5s timeout
+        });
+
+        if (error) {
+            return { data: null, reason: 'OGS error' };
+        }
+        if (!result.success) {
+            return { data: null, reason: 'OGS returned false success' };
+        }
+
+        // Check if we have enough meaningful data to succeed
+        if (!result.ogTitle) {
+            return { data: null, reason: 'Missing ogTitle' };
+        }
+
+        let image = '';
+        if (result.ogImage && result.ogImage.length > 0) {
+            image = result.ogImage[0].url;
+        }
+
+        const data: ScrapeResult = {
+            title: result.ogTitle || '',
+            description: result.ogDescription || '',
+            image: image,
+            favicon: result.favicon || '',
+            scrapeStatus: 'success'
+        };
+
+        if (!data.image && !data.description) {
+            return { data: null, reason: 'Missing image AND description' };
+        }
+
+        return { data };
+    } catch (e: any) {
+        let msg = (e instanceof Error) ? e.message : JSON.stringify(e);
+        if (e && e.result && e.result.error) {
+            msg = `OGS Error: ${e.result.error}`;
+        }
+        return { data: null, reason: `Exception: ${msg}` };
+    }
+};
+
+/**
  * Advanced scraper using Puppeteer Stealth and Metascraper.
  */
 export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> => {
     let browser;
     try {
+        logger.info(`[Scraper] Starting Advanced Scrape (Puppeteer) for ${targetUrl}`);
         browser = await puppeteer.launch({
             headless: true,
             args: [
@@ -90,6 +146,7 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
 
         const status = response?.status();
         if (status === 403) {
+            logger.warn(`[Scraper] Advanced Scrape BLOCKED (403) for ${targetUrl}`);
             return {
                 title: '',
                 description: '',
@@ -112,6 +169,7 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
 
         await browser.close();
 
+        logger.info(`[Scraper] Advanced Scrape SUCCESS for ${targetUrl}`);
         return {
             title: metadata.title || '',
             description: metadata.description || '',
@@ -120,7 +178,7 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
             scrapeStatus: 'success'
         };
     } catch (error: any) {
-        logger.warn(`Advanced scrape failed for ${targetUrl}:`, error.message);
+        logger.error(`[Scraper] Advanced Scrape FAILED for ${targetUrl}: ${error.message}`);
         if (browser) await browser.close();
 
         return {
@@ -131,4 +189,24 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
             scrapeStatus: 'failed'
         };
     }
+};
+
+/**
+ * Smart scraper that orchestrates between simple and advanced scraping.
+ */
+export const smartScrape = async (targetUrl: string): Promise<ScrapeResult> => {
+    logger.info(`[Scraper] Starting Smart Scrape for: ${targetUrl}`);
+
+    // 1. Try fast path
+    const { data, reason } = await simpleScrape(targetUrl);
+
+    // If we got a good result (at least a title and (image or description)), return it
+    if (data) {
+        logger.info(`[Scraper] Simple Scrape SUCCESS for: ${targetUrl}`);
+        return data;
+    }
+
+    // 2. Fallback to heavy path
+    logger.info(`[Scraper] Simple Scrape SKIPPED for: ${targetUrl}. Reason: ${reason || 'Unknown'}. Switching to Advanced Scrape.`);
+    return advancedScrape(targetUrl);
 };
