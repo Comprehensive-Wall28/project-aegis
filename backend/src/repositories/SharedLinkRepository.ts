@@ -29,4 +29,15 @@ export class SharedLinkRepository extends BaseRepository<ISharedLink> {
             { returnNew: true }
         );
     }
+    /**
+     * Find links by creator with pagination and population
+     */
+    async findLinksByCreator(userId: string, skip: number, limit: number): Promise<any> {
+        const total = await this.model.countDocuments({ creatorId: userId });
+        const links = await this.model.find({ creatorId: userId })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+        return { links, total };
+    }
 }

@@ -17,3 +17,5 @@ export { CourseRepository } from './CourseRepository';
 export { GPALogRepository } from './GPALogRepository';
 export { MerkleRegistryRepository } from './MerkleRegistryRepository';
 export { SharedLinkRepository } from './SharedLinkRepository';
+export { SharedFolderRepository } from './SharedFolderRepository';
+export { SharedFileRepository } from './SharedFileRepository';
