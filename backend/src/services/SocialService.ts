@@ -5,33 +5,14 @@ import { BaseService, ServiceError } from './base/BaseService';
 import { RoomRepository } from '../repositories/RoomRepository';
 import { CollectionRepository } from '../repositories/CollectionRepository';
 import { LinkPostRepository } from '../repositories/LinkPostRepository';
+import { LinkViewRepository } from '../repositories/LinkViewRepository';
+import { LinkMetadataRepository } from '../repositories/LinkMetadataRepository';
+import { LinkCommentRepository } from '../repositories/LinkCommentRepository';
 import { IRoom, IRoomMember } from '../models/Room';
 import { ICollection } from '../models/Collection';
 import { ILinkPost, IPreviewData } from '../models/LinkPost';
-import { ILinkView, LinkViewSchema } from '../models/LinkView';
-import { ILinkMetadata, LinkMetadataSchema } from '../models/LinkMetadata';
-import LinkComment from '../models/LinkComment';
-import { DatabaseManager } from '../config/DatabaseManager';
 import { advancedScrape } from '../utils/scraper';
 import logger from '../utils/logger';
-
-/**
- * Get LinkView model from secondary connection
- */
-function getLinkViewModel() {
-    const dbManager = DatabaseManager.getInstance();
-    const connection = dbManager.getConnection('secondary');
-    return connection.models['LinkView'] || connection.model<ILinkView>('LinkView', LinkViewSchema);
-}
-
-/**
- * Get LinkMetadata model from secondary connection
- */
-function getLinkMetadataModel() {
-    const dbManager = DatabaseManager.getInstance();
-    const connection = dbManager.getConnection('secondary');
-    return connection.models['LinkMetadata'] || connection.model<ILinkMetadata>('LinkMetadata', LinkMetadataSchema);
-}
 
 // DTOs
 export interface CreateRoomDTO {
@@ -74,11 +55,17 @@ export interface RoomContent {
 export class SocialService extends BaseService<IRoom, RoomRepository> {
     private collectionRepo: CollectionRepository;
     private linkPostRepo: LinkPostRepository;
+    private linkViewRepo: LinkViewRepository;
+    private linkMetadataRepo: LinkMetadataRepository;
+    private linkCommentRepo: LinkCommentRepository;
 
     constructor() {
         super(new RoomRepository());
         this.collectionRepo = new CollectionRepository();
         this.linkPostRepo = new LinkPostRepository();
+        this.linkViewRepo = new LinkViewRepository();
+        this.linkMetadataRepo = new LinkMetadataRepository();
+        this.linkCommentRepo = new LinkCommentRepository();
     }
 
     // ============== Room Operations ==============
@@ -239,22 +226,11 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             const links = await this.linkPostRepo.findByCollections(collectionIds);
 
             // Get viewed links
-            const LinkView = getLinkViewModel();
-            const viewedLinks = await LinkView.find({
-                userId,
-                linkId: { $in: links.map(l => l._id) }
-            }).select('linkId');
-            const viewedLinkIds = viewedLinks.map((v: ILinkView) => v.linkId.toString());
+            const linkIds = links.map(l => l._id.toString());
+            const viewedLinkIds = await this.linkViewRepo.findViewedLinkIds(userId, linkIds);
 
             // Get comment counts
-            const commentCounts = await LinkComment.aggregate([
-                { $match: { linkId: { $in: links.map(l => l._id) } } },
-                { $group: { _id: '$linkId', count: { $sum: 1 } } }
-            ]);
-            const commentCountMap: Record<string, number> = {};
-            commentCounts.forEach((cc: { _id: string; count: number }) => {
-                commentCountMap[cc._id.toString()] = cc.count;
-            });
+            const commentCountMap = await this.linkCommentRepo.countByLinkIds(linkIds);
 
             return {
                 room: {
@@ -406,12 +382,8 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Not a member of this room', 403);
             }
 
-            const LinkView = getLinkViewModel();
-            await LinkView.findOneAndUpdate(
-                { linkId, userId },
-                { viewedAt: new Date() },
-                { upsert: true }
-            );
+            // Fire-and-forget: don't await the secondary DB write
+            this.linkViewRepo.markViewedAsync(userId, linkId);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Mark link viewed error:', error);
@@ -426,8 +398,8 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Link not found', 404);
             }
 
-            const LinkView = getLinkViewModel();
-            await LinkView.findOneAndDelete({ linkId, userId });
+            // Fire-and-forget: don't await the secondary DB write
+            this.linkViewRepo.unmarkViewedAsync(userId, linkId);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Unmark link viewed error:', error);
@@ -558,9 +530,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Not a member of this room', 403);
             }
 
-            const comments = await LinkComment.find({ linkId })
-                .populate('userId', 'username')
-                .sort({ createdAt: 1 });
+            const comments = await this.linkCommentRepo.findByLinkId(linkId);
 
             return comments;
         } catch (error) {
@@ -591,13 +561,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Not a member of this room', 403);
             }
 
-            const comment = await LinkComment.create({
-                linkId,
-                userId,
-                encryptedContent
-            });
-
-            await comment.populate('userId', 'username');
+            const comment = await this.linkCommentRepo.createComment(linkId, userId, encryptedContent);
 
             logger.info(`Comment posted on link ${linkId} by user ${userId}`);
             return comment;
@@ -610,7 +574,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
 
     async deleteComment(userId: string, commentId: string): Promise<void> {
         try {
-            const comment = await LinkComment.findById(commentId);
+            const comment = await this.linkCommentRepo.findById(commentId);
             if (!comment) {
                 throw new ServiceError('Comment not found', 404);
             }
@@ -639,7 +603,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Permission denied', 403);
             }
 
-            await LinkComment.findByIdAndDelete(commentId);
+            await this.linkCommentRepo.deleteById(commentId);
             logger.info(`Comment ${commentId} deleted by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -661,9 +625,8 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
 
         try {
             // Check cache (unless it was a failure)
-            const LinkMetadata = getLinkMetadataModel();
-            const cachedMetadata = await LinkMetadata.findOne({ url: targetUrl });
-            if (cachedMetadata && cachedMetadata.scrapeStatus !== 'failed') {
+            const cachedMetadata = await this.linkMetadataRepo.findValidByUrl(targetUrl);
+            if (cachedMetadata) {
                 return {
                     title: cachedMetadata.title,
                     description: cachedMetadata.description,
@@ -714,13 +677,8 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             previewData.image = normalize(previewData.image || '');
             previewData.favicon = normalize(previewData.favicon || '');
 
-            // Cache
-            const LinkMetadataForSave = getLinkMetadataModel();
-            await LinkMetadataForSave.findOneAndUpdate(
-                { url: targetUrl },
-                { ...previewData, lastFetched: new Date() },
-                { upsert: true, new: true }
-            );
+            // Cache (fire-and-forget: don't await)
+            this.linkMetadataRepo.upsertMetadataAsync(targetUrl, previewData);
         } catch (error) {
             logger.error(`Error fetching link preview for ${targetUrl}:`, error);
             try {

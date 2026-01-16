@@ -84,21 +84,20 @@ export abstract class BaseService<
     }
 
     /**
-     * Log an audit event
+     * Log an audit event (fire-and-forget for performance)
+     * Audit logs are written asynchronously without blocking the main request
      */
-    protected async logAction(
+    protected logAction(
         userId: string,
         action: AuditAction,
         status: AuditStatus,
         req: Request,
         details: Record<string, unknown> = {}
-    ): Promise<void> {
-        try {
-            await logAuditEvent(userId, action, status, req, details);
-        } catch (error) {
-            // Don't let audit logging failures break the main flow
+    ): void {
+        // Fire-and-forget: don't await, just catch errors
+        logAuditEvent(userId, action, status, req, details).catch(error => {
             logger.error('Audit logging failed:', error);
-        }
+        });
     }
 
     /**

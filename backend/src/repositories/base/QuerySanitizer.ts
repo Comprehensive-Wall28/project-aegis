@@ -128,9 +128,11 @@ export class QuerySanitizer {
                 if (key === '$and' || key === '$or') {
                     sanitized[key] = value.map(item => this.sanitizeQuery(item));
                 } else if (key === '$in' || key === '$nin') {
-                    // Filter out any objects in $in/$nin arrays (only primitives allowed)
+                    // Filter out dangerous objects - allow primitives and ObjectIds
                     sanitized[key] = value.filter(item =>
-                        typeof item !== 'object' || item === null
+                        typeof item !== 'object' ||
+                        item === null ||
+                        item instanceof mongoose.Types.ObjectId
                     );
                 } else {
                     sanitized[key] = value;

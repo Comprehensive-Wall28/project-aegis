@@ -210,6 +210,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
 
     fetchRooms: async () => {
         set({ isLoadingRooms: true });
+        const { setCryptoStatus } = useSessionStore.getState();
         try {
             const sessionUser = useSessionStore.getState().user;
             if (!sessionUser?.privateKey) {
@@ -221,6 +222,9 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             const state = get();
 
             // Decrypt room keys for each room
+            if (rooms.length > 0) {
+                setCryptoStatus('decrypting');
+            }
             for (const room of rooms) {
                 if (room.encryptedRoomKey && !state.roomKeys.has(room._id)) {
                     try {
@@ -234,16 +238,19 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                     }
                 }
             }
+            setCryptoStatus('idle');
 
             set({ rooms, isLoadingRooms: false });
         } catch (error) {
             console.error('Failed to fetch rooms:', error);
+            setCryptoStatus('idle');
             set({ isLoadingRooms: false });
         }
     },
 
     selectRoom: async (roomId: string) => {
         set({ isLoadingContent: true, currentCollectionId: null });
+        const { setCryptoStatus } = useSessionStore.getState();
         try {
             const content: RoomContent = await socialService.getRoomContent(roomId);
             const state = get();
@@ -253,13 +260,16 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             let roomKey: CryptoKey | undefined;
             if (content.room.encryptedRoomKey && sessionUser?.privateKey) {
                 try {
+                    setCryptoStatus('decrypting');
                     roomKey = await decryptRoomKeyWithPQC(
                         content.room.encryptedRoomKey,
                         sessionUser.privateKey
                     );
                     state.roomKeys.set(roomId, roomKey);
+                    setCryptoStatus('idle');
                 } catch (err) {
                     console.error('Failed to decrypt room key:', err);
+                    setCryptoStatus('idle');
                 }
             }
 
@@ -281,6 +291,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             });
         } catch (error) {
             console.error('Failed to select room:', error);
+            setCryptoStatus('idle');
             set({ isLoadingContent: false });
         }
     },
@@ -288,6 +299,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     refreshCurrentRoom: async () => {
         const state = get();
         if (!state.currentRoom) return;
+        const { setCryptoStatus } = useSessionStore.getState();
 
         try {
             const content: RoomContent = await socialService.getRoomContent(state.currentRoom._id);
@@ -297,13 +309,16 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             // But we can decrypt any new room keys if somehow missing
             if (content.room.encryptedRoomKey && sessionUser?.privateKey && !state.roomKeys.has(state.currentRoom._id)) {
                 try {
+                    setCryptoStatus('decrypting');
                     const roomKey = await decryptRoomKeyWithPQC(
                         content.room.encryptedRoomKey,
                         sessionUser.privateKey
                     );
                     state.roomKeys.set(state.currentRoom._id, roomKey);
+                    setCryptoStatus('idle');
                 } catch (err) {
                     console.error('Failed to decrypt room key during refresh:', err);
+                    setCryptoStatus('idle');
                 }
             }
 
@@ -326,10 +341,13 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     },
 
     createRoom: async (name: string, description: string, icon?: string) => {
+        const { setCryptoStatus } = useSessionStore.getState();
         const sessionUser = useSessionStore.getState().user;
         if (!sessionUser?.publicKey) {
             throw new Error('PQC keys not initialized');
         }
+
+        setCryptoStatus('encrypting');
 
         // Generate room key
         const roomKey = await generateRoomKey();
@@ -341,6 +359,8 @@ export const useSocialStore = create<SocialState>((set, get) => ({
 
         // Encrypt room key with user's PQC public key
         const encryptedRoomKey = await encryptRoomKeyWithPQC(roomKey, sessionUser.publicKey);
+
+        setCryptoStatus('idle');
 
         // Create room via API
         const room = await socialService.createRoom({
@@ -363,13 +383,18 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     },
 
     joinRoom: async (inviteCode: string, roomKey: CryptoKey) => {
+        const { setCryptoStatus } = useSessionStore.getState();
         const sessionUser = useSessionStore.getState().user;
         if (!sessionUser?.publicKey) {
             throw new Error('PQC keys not initialized');
         }
 
+        setCryptoStatus('encrypting');
+
         // Encrypt room key with user's PQC public key
         const encryptedRoomKey = await encryptRoomKeyWithPQC(roomKey, sessionUser.publicKey);
+
+        setCryptoStatus('idle');
 
         // Join via API
         const result = await socialService.joinRoom(inviteCode, encryptedRoomKey);
@@ -405,13 +430,18 @@ export const useSocialStore = create<SocialState>((set, get) => ({
 
     createCollection: async (name: string) => {
         const state = get();
+        const { setCryptoStatus } = useSessionStore.getState();
         if (!state.currentRoom) throw new Error('No room selected');
 
         const roomKey = state.roomKeys.get(state.currentRoom._id);
         if (!roomKey) throw new Error('Room key not available');
 
+        setCryptoStatus('encrypting');
+
         // Encrypt collection name
         const encryptedName = await encryptWithAES(roomKey, name);
+
+        setCryptoStatus('idle');
 
         const collection = await socialService.createCollection(
             state.currentRoom._id,
