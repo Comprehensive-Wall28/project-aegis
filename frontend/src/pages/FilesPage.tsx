@@ -26,7 +26,7 @@ import {
     FolderShared as SharedIcon,
     Palette as PaletteIcon
 } from '@mui/icons-material';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 
 import {
     Box,
@@ -50,7 +50,9 @@ import {
     DialogContent,
     DialogActions,
     Breadcrumbs,
-    Link
+    Link,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import vaultService, { type FileMetadata } from '@/services/vaultService';
 import folderService, { type Folder } from '@/services/folderService';
@@ -132,10 +134,14 @@ type ViewPreset = 'compact' | 'standard' | 'comfort' | 'detailed';
 
 export function FilesPage() {
     const [searchParams] = useSearchParams();
+    const { folderId } = useParams<{ folderId: string }>();
+    const navigate = useNavigate();
     const currentView = searchParams.get('view');
     const [files, setFiles] = useState<FileMetadata[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]);
-    const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+
+    // Derived state from URL, fallback to null for root
+    const currentFolderId = folderId || null;
 
     const [folderPath, setFolderPath] = useState<Folder[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -201,6 +207,19 @@ export function FilesPage() {
     const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
     const [pdfPreviewFile, setPdfPreviewFile] = useState<FileMetadata | null>(null);
 
+    // Error Notification State
+    const [errorSnackbar, setErrorSnackbar] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+
+    // Check for error param on mount/update
+    useEffect(() => {
+        const errorType = searchParams.get('error');
+        if (errorType === 'folder_not_found') {
+            setErrorSnackbar({ open: true, message: 'Folder not found or you do not have permission to access it.' });
+            // Clean up URL
+            navigate('/dashboard/files', { replace: true });
+        }
+    }, [searchParams, navigate]);
+
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
@@ -213,9 +232,42 @@ export function FilesPage() {
             setFiles(filesData);
             setFolders(foldersData);
 
+            // If we are deep linked (have a folder ID), we need to fetch the folder details to reconstruct path
+            if (currentFolderId) {
+                try {
+                    const currentFolder = await folderService.getFolder(currentFolderId);
+                    // If the backend returns the path (ancestors), use it
+                    if (currentFolder.path) {
+                        setFolderPath([...currentFolder.path, currentFolder]);
+                    } else {
+                        // Fallback or if already set
+                        if (folderPath.length === 0 || folderPath[folderPath.length - 1]._id !== currentFolderId) {
+                            // We might need to manually build it if backend didn't (though backend should now)
+                            // For now, at least show current
+                            setFolderPath([currentFolder]);
+                        }
+                    }
+                } catch (e: any) {
+                    console.error("Failed to fetch folder details for path", e);
+                    // If folder not found or invalid format, redirect to root
+                    if (e.response?.status === 404 || e.response?.status === 400) {
+                        setBackendError(false); // It's not a generic backend down, just invalid ID
+                        navigate('/dashboard/files?error=folder_not_found', { replace: true });
+                        return;
+                    }
+                }
+            } else {
+                setFolderPath([]);
+            }
+
             setError(null);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to fetch files:', err);
+            // Check if it was the main fetch that failed due to invalid folder ID which might bubble up
+            if (err.response?.status === 404 || err.response?.status === 400) {
+                navigate('/dashboard/files?error=folder_not_found', { replace: true });
+                return;
+            }
             setBackendError(true);
             setError('Failed to load files');
         } finally {
@@ -503,14 +555,12 @@ export function FilesPage() {
 
     const navigateToFolder = useCallback((folder: Folder | null) => {
         if (folder) {
-            setFolderPath(prev => [...prev, folder]);
-            setCurrentFolderId(folder._id);
+            navigate(`/dashboard/files/${folder._id}`);
         } else {
-            setFolderPath([]);
-            setCurrentFolderId(null);
+            navigate('/dashboard/files');
         }
         setSelectedIds(new Set());
-    }, []);
+    }, [navigate]);
 
     const handleMoveToFolder = async (targetFolderId: string | null, idsToOverride?: string[]) => {
         const ids = idsToOverride || filesToMove;
@@ -902,8 +952,8 @@ export function FilesPage() {
                             component="button"
                             underline="hover"
                             onClick={() => {
-                                setFolderPath(folderPath.slice(0, index + 1));
-                                setCurrentFolderId(folder._id);
+                                // Navigate to this specific ancestor
+                                navigate(`/dashboard/files/${folder._id}`);
                             }}
                             onDragOver={(e) => {
                                 // Don't allow dropping on the current folder (last in path)
@@ -1227,6 +1277,23 @@ export function FilesPage() {
                 isLoading={isDeleting}
                 variant="danger"
             />
+
+            {/* Error Notification */}
+            <Snackbar
+                open={errorSnackbar.open}
+                autoHideDuration={6000}
+                onClose={() => setErrorSnackbar({ ...errorSnackbar, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+                <Alert
+                    onClose={() => setErrorSnackbar({ ...errorSnackbar, open: false })}
+                    severity="error"
+                    variant="filled"
+                    sx={{ width: '100%', borderRadius: '12px', fontWeight: 600 }}
+                >
+                    {errorSnackbar.message}
+                </Alert>
+            </Snackbar>
         </Stack>
     );
 }

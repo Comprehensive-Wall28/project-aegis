@@ -1,5 +1,6 @@
 import { Request } from 'express';
 import { Readable } from 'stream';
+import mongoose from 'mongoose';
 import { BaseService, ServiceError } from './base/BaseService';
 import { FileMetadataRepository } from '../repositories/FileMetadataRepository';
 import { IFileMetadata } from '../models/FileMetadata';
@@ -219,6 +220,13 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
     ): Promise<IFileMetadata[]> {
         try {
             if (folderId && folderId !== 'null') {
+                // Validate folderId before usage to prevent verbose CastErrors
+                if (!mongoose.isValidObjectId(folderId)) {
+                    logger.warn(`Invalid folderId format in getUserFiles: ${folderId}`);
+                    // Return empty list or throw 400 - here throwing 400 is safer
+                    throw new ServiceError('Invalid folder ID format', 400);
+                }
+
                 const folder = await Folder.findById(folderId);
                 if (!folder) {
                     throw new ServiceError('Folder not found', 404);
@@ -264,8 +272,15 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
 
             // Root level files
             return await this.repository.findByOwnerAndFolder(userId, null);
-        } catch (error) {
+        } catch (error: any) {
             if (error instanceof ServiceError) throw error;
+
+            // Check for CastError explicitly if initial check somehow failed or for other fields
+            if (error.name === 'CastError') {
+                logger.warn(`CastError in getUserFiles: ${error.message}`);
+                throw new ServiceError('Invalid ID format', 400);
+            }
+
             logger.error('Get files error:', error);
             throw new ServiceError('Failed to get files', 500);
         }

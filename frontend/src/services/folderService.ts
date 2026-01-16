@@ -17,6 +17,7 @@ export interface Folder {
     ownerId?: string;
     encryptedSessionKey?: string;
     color?: string; // Custom folder color (hex)
+    path?: Folder[]; // Ancestor path for breadcrumbs
 }
 
 

@@ -1,4 +1,5 @@
 import { BaseService, ServiceError } from './base/BaseService';
+import mongoose from 'mongoose';
 import { FolderRepository } from '../repositories/FolderRepository';
 import { FileMetadataRepository } from '../repositories/FileMetadataRepository';
 import { IFolder } from '../models/Folder';
@@ -67,6 +68,12 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
                 return [...ownedFolders, ...sharedFolders];
             }
 
+            // Validate normalizedParentId before usage
+            if (!mongoose.isValidObjectId(normalizedParentId)) {
+                logger.warn(`Invalid parentId format in getFolders: ${normalizedParentId}`);
+                throw new ServiceError('Invalid folder ID format', 400);
+            }
+
             // Subfolder: verify access first
             const parentFolder = await Folder.findById(normalizedParentId);
             if (!parentFolder) {
@@ -99,8 +106,14 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             }
 
             return subfolders;
-        } catch (error) {
+        } catch (error: any) {
             if (error instanceof ServiceError) throw error;
+
+            if (error.name === 'CastError') {
+                logger.warn(`CastError in getFolders: ${error.message}`);
+                throw new ServiceError('Invalid ID format', 400);
+            }
+
             logger.error('Get folders error:', error);
             throw new ServiceError('Failed to get folders', 500);
         }
@@ -109,8 +122,13 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
     /**
      * Get a single folder by ID
      */
-    async getFolder(userId: string, folderId: string): Promise<IFolder> {
+    async getFolder(userId: string, folderId: string): Promise<IFolder & { path: any[] }> {
         try {
+            // Validate folderId
+            if (!folderId || !mongoose.isValidObjectId(folderId)) {
+                throw new ServiceError('Invalid folder ID', 400);
+            }
+
             let folder = await this.repository.findByIdAndOwner(folderId, userId);
 
             if (!folder) {
@@ -125,10 +143,40 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             }
 
             if (!folder) {
+                // Check ancestor shared access (if not directly shared)
+                // This covers the case where we are accessing a subfolder of a shared folder
+                const targetFolder = await Folder.findById(folderId);
+                if (targetFolder) {
+                    const hasAccess = await this.checkSharedAccess(folderId, userId, targetFolder);
+                    if (hasAccess) {
+                        folder = targetFolder;
+                    }
+                }
+            }
+
+            if (!folder) {
                 throw new ServiceError('Folder not found or access denied', 404);
             }
 
-            return folder;
+            // Build path
+            const path: any[] = [];
+            let current = folder;
+            while (current.parentId) {
+                const parent = await Folder.findById(current.parentId);
+                if (!parent) break;
+                // Prepend to path
+                path.unshift({
+                    _id: parent._id,
+                    name: parent.name,
+                    parentId: parent.parentId
+                });
+                current = parent;
+            }
+
+            return {
+                ...folder.toObject(),
+                path
+            };
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Get folder error:', error);

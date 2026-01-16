@@ -298,6 +298,16 @@ export function SocialPage() {
         setCollectionToDelete(null);
     };
 
+    const handleDeleteLink = async (linkId: string) => {
+        try {
+            await deleteLink(linkId);
+            showSnackbar('Link deleted successfully', 'success');
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.message || 'Failed to delete link';
+            showSnackbar(message, 'error');
+        }
+    };
+
     const handleCopyInvite = async () => {
         if (!currentRoom) return;
 
@@ -556,7 +566,7 @@ export function SocialPage() {
                                                 isLoadingContent={isLoadingContent}
                                                 isLoadingLinks={isLoadingLinks}
                                                 filteredLinks={filteredLinks}
-                                                deleteLink={deleteLink}
+                                                deleteLink={handleDeleteLink}
                                                 setDraggedLinkId={setDraggedLinkId}
                                                 markLinkViewed={markLinkViewed}
                                                 unmarkLinkViewed={unmarkLinkViewed}

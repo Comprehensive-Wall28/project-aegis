@@ -69,6 +69,10 @@ const router = createBrowserRouter([
                 element: <FilesPage />,
             },
             {
+                path: 'files/:folderId',
+                element: <FilesPage />,
+            },
+            {
                 path: 'gpa',
                 element: <GPAPage />,
             },
