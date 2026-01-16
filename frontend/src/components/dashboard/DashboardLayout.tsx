@@ -9,8 +9,11 @@ import { refreshCsrfToken } from '@/services/api';
 import UploadManager from '@/components/vault/UploadManager';
 import { useSocialStore, importRoomKeyFromBase64 } from '@/stores/useSocialStore';
 
+import { usePreferenceStore } from '@/stores/preferenceStore';
+
 export function DashboardLayout() {
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const isSidebarCollapsed = usePreferenceStore((state) => state.isSidebarCollapsed);
+    const toggleSidebar = usePreferenceStore((state) => state.toggleSidebar);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const theme = useTheme();
 
@@ -98,7 +101,7 @@ export function DashboardLayout() {
             {/* Sidebar */}
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
-                onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                onToggle={toggleSidebar}
                 isMobileOpen={isMobileMenuOpen}
                 onMobileClose={() => setIsMobileMenuOpen(false)}
             />

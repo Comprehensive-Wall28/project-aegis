@@ -60,7 +60,7 @@ export function VaultQuickView() {
                         Secure Vault
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mt: 0.5 }}>
-                        Drag & drop to encrypt with ML-KEM-1024
+                        Drag & drop to encrypt with AES-CTR
                     </Typography>
                 </Box>
                 <Button

@@ -27,6 +27,7 @@ export function GPASnapshot() {
     const theme = useTheme();
     const navigate = useNavigate();
     const gpaSystem = usePreferenceStore((state) => state.gpaSystem);
+    const isSidebarCollapsed = usePreferenceStore((state) => state.isSidebarCollapsed);
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
     const { decryptCourses } = useCourseEncryption();
 
@@ -155,39 +156,40 @@ export function GPASnapshot() {
             <Box sx={{
                 flex: 1,
                 display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: { xs: 'center', sm: 'center' },
+                flexDirection: { xs: 'column', md: 'row' },
+                alignItems: { xs: 'center', md: 'center' },
                 justifyContent: 'space-between',
-                gap: { xs: 3, sm: 0 }
+                gap: { xs: 3, md: 0, lg: isSidebarCollapsed ? 2 : 1, xl: 2 }
             }}>
                 {/* Left Side: Info & Button */}
                 <Box sx={{
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: { xs: 'center', sm: 'flex-start' },
+                    alignItems: { xs: 'center', md: 'flex-start' },
                     justifyContent: 'center',
                     height: '100%',
-                    maxWidth: { xs: '100%', sm: '55%' },
-                    textAlign: { xs: 'center', sm: 'left' }
+                    flex: 1,
+                    textAlign: { xs: 'center', md: 'left' }
                 }}>
                     <Box sx={{ mb: 3 }}>
                         <Typography variant="subtitle2" sx={{
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: { xs: 'center', sm: 'flex-start' },
+                            justifyContent: { xs: 'center', md: 'flex-start' },
                             gap: 1.5,
                             fontWeight: 800,
                             color: 'text.primary',
                             mb: 0.5,
-                            letterSpacing: '0.02em'
+                            letterSpacing: '0.02em',
+                            fontSize: { lg: isSidebarCollapsed ? '0.875rem' : '0.75rem', xl: '0.875rem' }
                         }}>
-                            <GraduationCapIcon sx={{ fontSize: 20, color: statusColor }} />
+                            <GraduationCapIcon sx={{ fontSize: { xs: 20, lg: isSidebarCollapsed ? 20 : 16, xl: 20 }, color: statusColor }} />
                             GPA SNAPSHOT
                         </Typography>
                         <Typography variant="caption" sx={{
                             color: 'text.secondary',
                             fontWeight: 600,
-                            fontSize: '0.75rem',
+                            fontSize: { xs: '0.75rem', lg: isSidebarCollapsed ? '0.75rem' : '0.65rem', xl: '0.75rem' },
                             opacity: 0.7
                         }}>
                             {hasError ? 'Sync failed. Retry required.' : 'Secure Academic Overview'}
@@ -202,9 +204,9 @@ export function GPASnapshot() {
                             borderRadius: '14px',
                             textTransform: 'none',
                             fontWeight: 800,
-                            fontSize: '0.8rem',
-                            px: 3,
-                            py: 1,
+                            fontSize: { xs: '0.8rem', lg: isSidebarCollapsed ? '0.8rem' : '0.7rem', xl: '0.8rem' },
+                            px: { xs: 3, lg: isSidebarCollapsed ? 3 : 1.5, xl: 3 },
+                            py: { xs: 1, lg: isSidebarCollapsed ? 1 : 0.5, xl: 1 },
                             bgcolor: alpha(theme.palette.text.primary, 0.05),
                             color: theme.palette.text.primary,
                             border: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
@@ -224,18 +226,19 @@ export function GPASnapshot() {
                 {/* Right Side: Gauge */}
                 <Box sx={{
                     position: 'relative',
-                    width: 180,
-                    height: 110,
+                    width: { xs: 180, lg: isSidebarCollapsed ? 180 : 150, xl: 180 },
+                    height: { xs: 110, lg: isSidebarCollapsed ? 110 : 90, xl: 110 },
+                    flexShrink: 0,
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'flex-end',
-                    mb: { xs: 1, sm: 0 }
+                    mb: { xs: 1, md: 0 }
                 }}>
                     {isLoading ? (
                         <CircularProgress size={32} thickness={5} sx={{ color: statusColor }} />
                     ) : (
                         <>
-                            <svg width="180" height="110" viewBox="0 0 180 110">
+                            <svg width="100%" height="100%" viewBox="0 0 180 110">
                                 <defs>
                                     <linearGradient id="snapshot-gauge-gradient" x1="0" y1="0" x2="1" y2="0">
                                         <stop offset="0%" stopColor={statusColor} stopOpacity={0.7} />
@@ -283,7 +286,7 @@ export function GPASnapshot() {
                                     fontWeight: 900,
                                     lineHeight: 1,
                                     letterSpacing: '-0.04em',
-                                    fontSize: '2.4rem',
+                                    fontSize: { xs: '2.4rem', lg: isSidebarCollapsed ? '2.4rem' : '2.0rem', xl: '2.4rem' },
                                     color: theme.palette.text.primary,
                                     mb: 0.5,
                                     textShadow: `0 0 20px ${alpha(statusColor, 0.4)}`

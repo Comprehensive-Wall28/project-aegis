@@ -12,11 +12,13 @@ interface PreferenceState {
     gpaSystem: GPASystem;
     germanScaleConfig: GermanScaleConfig;
     isLoading: boolean;
+    isSidebarCollapsed: boolean;
 
     // Actions
     setGPASystem: (system: GPASystem) => void;
     setGermanConfig: (config: Partial<GermanScaleConfig>) => void;
     setLoading: (loading: boolean) => void;
+    toggleSidebar: () => void;
     reset: () => void;
 }
 
@@ -31,6 +33,7 @@ export const usePreferenceStore = create<PreferenceState>()(
             gpaSystem: 'NORMAL',
             germanScaleConfig: defaultGermanConfig,
             isLoading: false,
+            isSidebarCollapsed: true,
 
             setGPASystem: (system) => set({ gpaSystem: system }),
 
@@ -40,12 +43,14 @@ export const usePreferenceStore = create<PreferenceState>()(
                 })),
 
             setLoading: (loading) => set({ isLoading: loading }),
+            toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
 
             reset: () =>
                 set({
                     gpaSystem: 'NORMAL',
                     germanScaleConfig: defaultGermanConfig,
                     isLoading: false,
+                    isSidebarCollapsed: true,
                 }),
         }),
         {
