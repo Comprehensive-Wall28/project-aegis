@@ -54,6 +54,14 @@ class SocketService {
         this.socket?.off(event, callback);
     }
 
+    /**
+     * Remove all listeners for a specific event.
+     * Use this when you don't have a reference to the original callback.
+     */
+    public removeAllListeners(event: string): void {
+        this.socket?.removeAllListeners(event);
+    }
+
     public disconnect(): void {
         this.socket?.disconnect();
         this.socket = null;

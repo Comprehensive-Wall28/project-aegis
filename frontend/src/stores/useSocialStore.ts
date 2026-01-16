@@ -808,19 +808,22 @@ export const useSocialStore = create<SocialState>((set, get) => ({
 
     setupSocketListeners: () => {
         // Remove existing listeners to avoid duplicates
-        socketService.off('NEW_LINK', () => { });
-        socketService.off('NEW_COMMENT', () => { });
-        socketService.off('LINK_UPDATED', () => { });
-        socketService.off('LINK_DELETED', () => { });
-        socketService.off('LINK_MOVED', () => { });
-        socketService.off('connect', () => { });
+        // Use removeAllListeners instead of off() since we don't have references to the callbacks
+        socketService.removeAllListeners('NEW_LINK');
+        socketService.removeAllListeners('NEW_COMMENT');
+        socketService.removeAllListeners('LINK_UPDATED');
+        socketService.removeAllListeners('LINK_DELETED');
+        socketService.removeAllListeners('LINK_MOVED');
+        // Note: Don't remove 'connect' - it's set up in socketService.connect() and we add our own
 
         socketService.on('NEW_LINK', (data: { link: LinkPost, collectionId: string }) => {
+            console.log('[Socket] NEW_LINK received:', data.link._id, 'scrapeStatus:', data.link.previewData?.scrapeStatus);
             const currentState = get();
 
             if (currentState.currentCollectionId === data.collectionId) {
                 // If we are looking at this collection, prepend the new link
                 const exists = currentState.links.some(l => l._id === data.link._id);
+                console.log('[Socket] NEW_LINK - checking current view, exists:', exists);
                 if (!exists) {
                     set((prev) => ({
                         links: [data.link, ...prev.links]
@@ -831,18 +834,18 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             // Update cache regardless of current view
             const cache = currentState.linksCache[data.collectionId];
             if (cache) {
-                 const exists = cache.links.some(l => l._id === data.link._id);
-                 if (!exists) {
-                     set((prev) => ({
-                         linksCache: {
-                             ...prev.linksCache,
-                             [data.collectionId]: {
-                                 ...cache,
-                                 links: [data.link, ...cache.links]
-                             }
-                         }
-                     }));
-                 }
+                const exists = cache.links.some(l => l._id === data.link._id);
+                if (!exists) {
+                    set((prev) => ({
+                        linksCache: {
+                            ...prev.linksCache,
+                            [data.collectionId]: {
+                                ...cache,
+                                links: [data.link, ...cache.links]
+                            }
+                        }
+                    }));
+                }
             }
         });
 
@@ -856,12 +859,17 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         });
 
         socketService.on('LINK_UPDATED', (data: { link: LinkPost }) => {
+            console.log('[Socket] LINK_UPDATED received:', data.link._id, 'scrapeStatus:', data.link.previewData?.scrapeStatus);
+
             set((prev) => {
+                const linkExists = prev.links.some(l => l._id === data.link._id);
+                console.log('[Socket] LINK_UPDATED - link exists in state:', linkExists, 'total links:', prev.links.length);
+
                 const updatedLinks = prev.links.map(l => l._id === data.link._id ? data.link : l);
-                
+
                 const collectionId = data.link.collectionId;
                 const cache = prev.linksCache[collectionId];
-                
+
                 let newCache = prev.linksCache;
                 if (cache) {
                     newCache = {
@@ -883,10 +891,10 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         socketService.on('LINK_DELETED', (data: { linkId: string, collectionId: string }) => {
             set((prev) => {
                 const updatedLinks = prev.links.filter(l => l._id !== data.linkId);
-                
+
                 const cache = prev.linksCache[data.collectionId];
                 let newCache = prev.linksCache;
-                
+
                 if (cache) {
                     newCache = {
                         ...prev.linksCache,
@@ -896,7 +904,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                         }
                     };
                 }
-                
+
                 return {
                     links: updatedLinks,
                     linksCache: newCache
@@ -929,28 +937,28 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             // Update Cache
             set((prev) => {
                 let newCache = { ...prev.linksCache };
-                
+
                 // Remove from all potential old locations in cache
                 Object.keys(newCache).forEach(cId => {
                     const cache = newCache[cId];
-                    
+
                     if (cId === data.newCollectionId) {
-                         // Add to new
-                         const exists = cache.links.some(l => l._id === data.linkId);
-                         if (!exists) {
-                             newCache[cId] = {
-                                 ...cache,
-                                 links: [data.link, ...cache.links]
-                             };
-                         }
+                        // Add to new
+                        const exists = cache.links.some(l => l._id === data.linkId);
+                        if (!exists) {
+                            newCache[cId] = {
+                                ...cache,
+                                links: [data.link, ...cache.links]
+                            };
+                        }
                     } else {
                         // Remove from others
-                         if (cache.links.some(l => l._id === data.linkId)) {
-                             newCache[cId] = {
-                                 ...cache,
-                                 links: cache.links.filter(l => l._id !== data.linkId)
-                             };
-                         }
+                        if (cache.links.some(l => l._id === data.linkId)) {
+                            newCache[cId] = {
+                                ...cache,
+                                links: cache.links.filter(l => l._id !== data.linkId)
+                            };
+                        }
                     }
                 });
 
@@ -962,15 +970,15 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         socketService.on('connect', () => {
             const state = get();
             console.log('Socket Connected/Reconnected');
-            
+
             // If we are in a room, we must re-join it because the new socket doesn't know about it.
             if (state.currentRoom) {
                 console.log('Re-joining room:', state.currentRoom._id);
                 socketService.joinRoom(state.currentRoom._id);
-                
+
                 // Invalidate cache to ensure we fetch fresh data, as we might have missed events while disconnected.
                 set({ linksCache: {} });
-                
+
                 // Refresh the current view immediately so the user sees correct data
                 if (state.currentCollectionId) {
                     get().fetchCollectionLinks(state.currentCollectionId, false, true); // silent refresh
