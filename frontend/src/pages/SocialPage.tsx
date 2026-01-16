@@ -336,6 +336,7 @@ export function SocialPage() {
     const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
     const decryptCollectionMetadata = useSocialStore((state) => state.decryptCollectionMetadata);
     const markLinkViewed = useSocialStore((state) => state.markLinkViewed);
+    const unmarkLinkViewed = useSocialStore((state) => state.unmarkLinkViewed);
     const getUnviewedCountByCollection = useSocialStore((state) => state.getUnviewedCountByCollection);
     const viewedLinkIds = useSocialStore((state) => state.viewedLinkIds);
     const roomKeys = useSocialStore((state) => state.roomKeys);
@@ -1097,6 +1098,7 @@ export function SocialPage() {
                                             onDelete={() => deleteLink(link._id)}
                                             onDragStart={(id) => setDraggedLinkId(id)}
                                             onView={(id) => markLinkViewed(id)}
+                                            onUnview={(id) => unmarkLinkViewed(id)}
                                             onCommentsClick={(l) => setCommentsLink(l)}
                                             isViewed={viewedLinkIds.has(link._id)}
                                             commentCount={commentCounts[link._id] || 0}

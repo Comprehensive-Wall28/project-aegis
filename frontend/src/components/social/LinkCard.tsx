@@ -11,12 +11,13 @@ interface LinkCardProps {
     onDelete?: (linkId: string) => void;
     onDragStart?: (linkId: string) => void;
     onView?: (linkId: string) => void;
+    onUnview?: (linkId: string) => void;
     isViewed?: boolean;
     commentCount?: number;
     canDelete?: boolean;
 }
 
-export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, isViewed = true, commentCount = 0, canDelete }: LinkCardProps) => {
+export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
@@ -244,22 +245,29 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                             </Typography>
 
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                {!isViewed && (
-                                    <IconButton
-                                        size="small"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isViewed) {
+                                            onUnview?.(link._id);
+                                        } else {
                                             onView?.(link._id);
-                                        }}
-                                        sx={{
-                                            color: 'primary.main',
-                                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
-                                        }}
-                                        title="Mark as Viewed"
-                                    >
-                                        <MarkViewedIcon fontSize="small" />
-                                    </IconButton>
-                                )}
+                                        }
+                                    }}
+                                    sx={{
+                                        color: isViewed ? '#0ea5e9' : '#ffffff',
+                                        opacity: isViewed ? 1 : 0.6,
+                                        '&:hover': {
+                                            color: isViewed ? alpha('#0ea5e9', 0.8) : '#ffffff',
+                                            opacity: 1,
+                                            bgcolor: isViewed ? alpha('#0ea5e9', 0.1) : alpha('#ffffff', 0.1)
+                                        }
+                                    }}
+                                    title={isViewed ? "Mark as Unread" : "Mark as Viewed"}
+                                >
+                                    <MarkViewedIcon fontSize="small" />
+                                </IconButton>
                                 <IconButton
                                     size="small"
                                     onClick={(e) => {

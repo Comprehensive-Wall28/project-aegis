@@ -49,6 +49,7 @@ interface SocialState {
     deleteCollection: (collectionId: string) => Promise<void>;
     moveLink: (linkId: string, collectionId: string) => Promise<void>;
     markLinkViewed: (linkId: string) => Promise<void>;
+    unmarkLinkViewed: (linkId: string) => Promise<void>;
     getUnviewedCountByCollection: (collectionId: string) => number;
     createInvite: (roomId: string) => Promise<string>;
     setPendingInvite: (invite: SocialState['pendingInvite']) => void;
@@ -447,6 +448,24 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             // Revert on error
             console.error('Failed to mark link as viewed:', error);
             newViewedIds.delete(linkId);
+            set({ viewedLinkIds: new Set(newViewedIds) });
+        }
+    },
+
+    unmarkLinkViewed: async (linkId: string) => {
+        const state = get();
+
+        // Optimistically update the UI
+        const newViewedIds = new Set(state.viewedLinkIds);
+        newViewedIds.delete(linkId);
+        set({ viewedLinkIds: newViewedIds });
+
+        try {
+            await socialService.unmarkLinkViewed(linkId);
+        } catch (error) {
+            // Revert on error
+            console.error('Failed to unmark link as viewed:', error);
+            newViewedIds.add(linkId);
             set({ viewedLinkIds: new Set(newViewedIds) });
         }
     },

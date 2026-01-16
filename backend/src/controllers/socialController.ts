@@ -614,6 +614,33 @@ export const markLinkViewed = async (req: AuthRequest, res: Response, next: Next
     }
 };
 
+/**
+ * Unmark a link as viewed by the current user.
+ */
+export const unmarkLinkViewed = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const { linkId } = req.params;
+
+        // Verify the link exists
+        const linkPost = await LinkPost.findById(linkId);
+        if (!linkPost) {
+            return res.status(404).json({ message: 'Link not found' });
+        }
+
+        // Delete the view record
+        await LinkView.findOneAndDelete({ linkId, userId: req.user.id });
+
+        res.status(200).json({ message: 'Link unmarked as viewed' });
+    } catch (error) {
+        logger.error('Error unmarking link as viewed:', error);
+        next(error);
+    }
+};
+
 // Create a new collection in a room.
 // Requires room membership.
 export const createCollection = async (req: AuthRequest, res: Response, next: NextFunction) => {

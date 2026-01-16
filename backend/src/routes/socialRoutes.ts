@@ -12,6 +12,7 @@ import {
     deleteCollection,
     moveLink,
     markLinkViewed,
+    unmarkLinkViewed,
     getComments,
     postComment,
     deleteComment
@@ -38,6 +39,7 @@ router.delete('/links/:linkId', protect, csrfProtection, deleteLink);
 router.delete('/collections/:collectionId', protect, csrfProtection, deleteCollection);
 router.patch('/links/:linkId/move', protect, csrfProtection, moveLink);
 router.post('/links/:linkId/view', protect, csrfProtection, markLinkViewed);
+router.delete('/links/:linkId/view', protect, csrfProtection, unmarkLinkViewed);
 router.get('/links/:linkId/comments', protect, csrfProtection, getComments);
 router.post('/links/:linkId/comments', protect, csrfProtection, postComment);
 router.delete('/comments/:commentId', protect, csrfProtection, deleteComment);

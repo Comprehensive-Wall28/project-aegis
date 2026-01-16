@@ -180,6 +180,13 @@ const socialService = {
     },
 
     /**
+     * Unmark a link as viewed by the current user
+     */
+    unmarkLinkViewed: async (linkId: string): Promise<void> => {
+        await apiClient.delete(`/social/links/${linkId}/view`);
+    },
+
+    /**
      * Get all comments for a link
      */
     getComments: async (linkId: string): Promise<LinkComment[]> => {
