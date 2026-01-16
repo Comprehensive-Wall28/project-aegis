@@ -1,13 +1,17 @@
 import { BaseRepository } from './base/BaseRepository';
-import GPALog, { IGPALog } from '../models/GPALog';
+import { IGPALog, GPALogSchema } from '../models/GPALog';
 import { SafeFilter } from './base/types';
+import { DatabaseManager } from '../config/DatabaseManager';
 
 /**
  * GPALogRepository handles GPALog database operations
  */
 export class GPALogRepository extends BaseRepository<IGPALog> {
     constructor() {
-        super(GPALog);
+        const dbManager = DatabaseManager.getInstance();
+        const connection = dbManager.getConnection('secondary');
+        const model = connection.model<IGPALog>('GPALog', GPALogSchema);
+        super(model, 'secondary');
     }
 
     /**

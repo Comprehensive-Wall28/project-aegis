@@ -23,71 +23,57 @@ export class DatabaseManager {
     }
 
     /**
-     * Register a new database connection
+     * Register a new database connection (Synchronous/Fire-and-forget for buffering)
      * @param name - Connection name (e.g., 'primary', 'replica', 'audit')
      * @param uri - MongoDB connection URI
      */
-    async registerConnection(name: string, uri: string): Promise<Connection> {
-        // Return existing connection if available
+    connect(name: string, uri: string): Connection {
         if (this.connections.has(name)) {
             return this.connections.get(name)!;
         }
 
-        // Return pending connection promise if registration is in progress
-        if (this.connectionPromises.has(name)) {
-            return this.connectionPromises.get(name)!;
-        }
+        let connection: Connection;
 
-        // Create new connection
-        const connectionPromise = this.createConnection(name, uri);
-        this.connectionPromises.set(name, connectionPromise);
-
-        try {
-            const connection = await connectionPromise;
-            this.connections.set(name, connection);
-            this.connectionPromises.delete(name);
-            return connection;
-        } catch (error) {
-            this.connectionPromises.delete(name);
-            throw error;
-        }
-    }
-
-    /**
-     * Create a new database connection with optimal settings
-     */
-    private async createConnection(name: string, uri: string): Promise<Connection> {
-        try {
-            // For primary connection, use default mongoose connection
-            if (name === 'primary') {
-                await mongoose.connect(uri, {
-                    // Connection pool settings for performance
-                    maxPoolSize: 10,
-                    minPoolSize: 2,
-                    // Timeouts
-                    serverSelectionTimeoutMS: 5000,
-                    socketTimeoutMS: 45000,
-                });
-
-                logger.info(`MongoDB Connected (${name}): ${mongoose.connection.host}`);
-                return mongoose.connection;
-            }
-
-            // For additional connections, create separate connection
-            const connection = await mongoose.createConnection(uri, {
+        if (name === 'primary') {
+            // Initiate primary connection
+            mongoose.connect(uri, {
                 maxPoolSize: 10,
                 minPoolSize: 2,
                 serverSelectionTimeoutMS: 5000,
                 socketTimeoutMS: 45000,
-            }).asPromise();
+            }).catch(err => logger.error(`Failed to connect to primary DB:`, err));
 
-            logger.info(`MongoDB Connected (${name}): ${connection.host}`);
-            return connection;
-        } catch (error) {
-            logger.error(`Failed to connect to database (${name}):`, error);
-            throw error;
+            connection = mongoose.connection;
+        } else {
+            // Create secondary connection
+            connection = mongoose.createConnection(uri, {
+                maxPoolSize: 10,
+                minPoolSize: 2,
+                serverSelectionTimeoutMS: 5000,
+                socketTimeoutMS: 45000,
+            });
         }
+
+        connection.on('connected', () => {
+            logger.info(`MongoDB Connected (${name}): ${connection.host}`);
+        });
+
+        connection.on('error', (err) => {
+            logger.error(`MongoDB Connection Error (${name}):`, err);
+        });
+
+        this.connections.set(name, connection);
+        return connection;
     }
+
+    /**
+     * @deprecated Use connect() instead for easier startup
+     */
+    async registerConnection(name: string, uri: string): Promise<Connection> {
+        return this.connect(name, uri);
+    }
+
+
 
     /**
      * Get a registered connection by name

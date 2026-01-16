@@ -1,13 +1,17 @@
 import { BaseRepository } from './base/BaseRepository';
-import AuditLog, { IAuditLog } from '../models/AuditLog';
+import { IAuditLog, AuditLogSchema } from '../models/AuditLog';
 import { SafeFilter, QueryOptions } from './base/types';
+import { DatabaseManager } from '../config/DatabaseManager';
 
 /**
  * AuditLogRepository handles AuditLog database operations
  */
 export class AuditLogRepository extends BaseRepository<IAuditLog> {
     constructor() {
-        super(AuditLog);
+        const dbManager = DatabaseManager.getInstance();
+        const connection = dbManager.getConnection('secondary');
+        const model = connection.model<IAuditLog>('AuditLog', AuditLogSchema);
+        super(model, 'secondary');
     }
 
     /**

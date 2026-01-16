@@ -10,7 +10,7 @@ export interface ILinkMetadata extends Document {
     lastFetched: Date;
 }
 
-const LinkMetadataSchema: Schema = new Schema({
+export const LinkMetadataSchema: Schema = new Schema({
     url: { type: String, required: true, unique: true, index: true },
     title: { type: String, default: '' },
     description: { type: String, default: '' },

@@ -8,11 +8,30 @@ import { LinkPostRepository } from '../repositories/LinkPostRepository';
 import { IRoom, IRoomMember } from '../models/Room';
 import { ICollection } from '../models/Collection';
 import { ILinkPost, IPreviewData } from '../models/LinkPost';
-import LinkView from '../models/LinkView';
-import LinkMetadata from '../models/LinkMetadata';
+import { ILinkView, LinkViewSchema } from '../models/LinkView';
+import { ILinkMetadata, LinkMetadataSchema } from '../models/LinkMetadata';
 import LinkComment from '../models/LinkComment';
+import { DatabaseManager } from '../config/DatabaseManager';
 import { advancedScrape } from '../utils/scraper';
 import logger from '../utils/logger';
+
+/**
+ * Get LinkView model from secondary connection
+ */
+function getLinkViewModel() {
+    const dbManager = DatabaseManager.getInstance();
+    const connection = dbManager.getConnection('secondary');
+    return connection.models['LinkView'] || connection.model<ILinkView>('LinkView', LinkViewSchema);
+}
+
+/**
+ * Get LinkMetadata model from secondary connection
+ */
+function getLinkMetadataModel() {
+    const dbManager = DatabaseManager.getInstance();
+    const connection = dbManager.getConnection('secondary');
+    return connection.models['LinkMetadata'] || connection.model<ILinkMetadata>('LinkMetadata', LinkMetadataSchema);
+}
 
 // DTOs
 export interface CreateRoomDTO {
@@ -220,11 +239,12 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             const links = await this.linkPostRepo.findByCollections(collectionIds);
 
             // Get viewed links
+            const LinkView = getLinkViewModel();
             const viewedLinks = await LinkView.find({
                 userId,
                 linkId: { $in: links.map(l => l._id) }
             }).select('linkId');
-            const viewedLinkIds = viewedLinks.map(v => v.linkId.toString());
+            const viewedLinkIds = viewedLinks.map((v: ILinkView) => v.linkId.toString());
 
             // Get comment counts
             const commentCounts = await LinkComment.aggregate([
@@ -386,6 +406,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Not a member of this room', 403);
             }
 
+            const LinkView = getLinkViewModel();
             await LinkView.findOneAndUpdate(
                 { linkId, userId },
                 { viewedAt: new Date() },
@@ -405,6 +426,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Link not found', 404);
             }
 
+            const LinkView = getLinkViewModel();
             await LinkView.findOneAndDelete({ linkId, userId });
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -639,6 +661,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
 
         try {
             // Check cache (unless it was a failure)
+            const LinkMetadata = getLinkMetadataModel();
             const cachedMetadata = await LinkMetadata.findOne({ url: targetUrl });
             if (cachedMetadata && cachedMetadata.scrapeStatus !== 'failed') {
                 return {
@@ -692,7 +715,8 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             previewData.favicon = normalize(previewData.favicon || '');
 
             // Cache
-            await LinkMetadata.findOneAndUpdate(
+            const LinkMetadataForSave = getLinkMetadataModel();
+            await LinkMetadataForSave.findOneAndUpdate(
                 { url: targetUrl },
                 { ...previewData, lastFetched: new Date() },
                 { upsert: true, new: true }
