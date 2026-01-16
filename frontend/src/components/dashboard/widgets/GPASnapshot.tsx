@@ -273,7 +273,7 @@ export function GPASnapshot() {
                             </svg>
                             <Box sx={{
                                 position: 'absolute',
-                                bottom: 12,
+                                bottom: 1,
                                 textAlign: 'center',
                                 display: 'flex',
                                 flexDirection: 'column',

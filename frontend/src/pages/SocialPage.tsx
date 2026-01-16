@@ -1065,6 +1065,7 @@ export function SocialPage() {
                         flex: 1,
                         overflowY: 'auto',
                         pr: 1,
+                        pb: isMobile ? 12 : 0,
                     }}
                 >
                     {currentRoom ? (
