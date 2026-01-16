@@ -185,8 +185,8 @@ export function SocialPage() {
     const handleSelectRoom = useCallback(async (selectedRoomId: string) => {
         setOptimisticRoomId(selectedRoomId);
         navigate(`/dashboard/social/${selectedRoomId}`);
-        await selectRoom(selectedRoomId);
-    }, [selectRoom, navigate]);
+        // selectRoom is handled by useEffect when roomId changes
+    }, [navigate]);
 
     const handleCreateRoom = async (name: string, description: string) => {
         try {

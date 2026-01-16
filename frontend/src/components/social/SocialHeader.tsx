@@ -71,6 +71,7 @@ export const SocialHeader = memo(({
 }: SocialHeaderProps) => {
     const theme = useTheme();
     const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
+    const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
     const [decryptedName, setDecryptedName] = useState<string | null>(null);
     const [isDecrypting, setIsDecrypting] = useState(false);
 
@@ -119,13 +120,19 @@ export const SocialHeader = memo(({
                 <Box>
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
                         {viewMode === 'room-content' && (optimisticRoomId || currentRoom)
-                            ? (isDecrypting ? <Skeleton width={120} /> : (decryptedName || '...'))
+                            ? (isLoadingContent || isDecrypting || (optimisticRoomId && currentRoom && optimisticRoomId !== currentRoom._id)
+                                ? <Skeleton width={120} />
+                                : (decryptedName || '...'))
                             : 'Social Rooms'}
                     </Typography>
-                    {viewMode === 'room-content' && currentRoom && (
-                        <Typography variant="caption" color="text.secondary">
-                            {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
-                        </Typography>
+                    {viewMode === 'room-content' && (optimisticRoomId || currentRoom) && (
+                        isLoadingContent || (optimisticRoomId && currentRoom && optimisticRoomId !== currentRoom._id) ? (
+                            <Skeleton width={80} height={20} />
+                        ) : currentRoom && (
+                            <Typography variant="caption" color="text.secondary">
+                                {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
+                            </Typography>
+                        )
                     )}
                 </Box>
             </Box>
