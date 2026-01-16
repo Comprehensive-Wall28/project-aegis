@@ -689,7 +689,10 @@ export function FilesPage() {
                                 color="error"
                                 size="small"
                                 startIcon={<TrashIcon />}
-                                onClick={handleMassDelete}
+                                onClick={(e) => {
+                                    e.currentTarget.blur();
+                                    handleMassDelete();
+                                }}
                                 sx={{ fontWeight: 700, borderRadius: '8px', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                             >
                                 Delete ({selectedIds.size})
@@ -700,7 +703,10 @@ export function FilesPage() {
                         variant="outlined"
                         size="small"
                         startIcon={<CreateFolderIcon />}
-                        onClick={() => setNewFolderDialog(true)}
+                        onClick={(e) => {
+                            e.currentTarget.blur();
+                            setNewFolderDialog(true);
+                        }}
                         sx={{
                             fontWeight: 700,
                             borderRadius: '8px',
@@ -718,7 +724,10 @@ export function FilesPage() {
                         variant="outlined"
                         size="small"
                         startIcon={<UploadIcon />}
-                        onClick={() => setShowUpload(!showUpload)}
+                        onClick={(e) => {
+                            e.currentTarget.blur();
+                            setShowUpload(!showUpload);
+                        }}
                         sx={{
                             fontWeight: 700,
                             borderRadius: '8px',
@@ -1028,7 +1037,7 @@ export function FilesPage() {
                 onClose={() => setNewFolderDialog(false)}
                 maxWidth="xs"
                 fullWidth
-                PaperProps={{ variant: 'translucent' }}
+                PaperProps={{ variant: 'solid', sx: { borderRadius: '24px' } }}
             >
                 <DialogTitle sx={{ fontWeight: 700 }}>Create New Folder</DialogTitle>
                 <DialogContent>
