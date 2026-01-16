@@ -11,3 +11,5 @@ export { RoomRepository } from './RoomRepository';
 export { CollectionRepository } from './CollectionRepository';
 export { LinkPostRepository } from './LinkPostRepository';
 export { UserRepository } from './UserRepository';
+export { AuditLogRepository } from './AuditLogRepository';
+export { CalendarEventRepository } from './CalendarEventRepository';

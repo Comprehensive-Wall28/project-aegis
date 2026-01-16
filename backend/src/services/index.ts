@@ -7,3 +7,5 @@ export { VaultService } from './VaultService';
 export { FolderService } from './FolderService';
 export { SocialService } from './SocialService';
 export { AuthService } from './AuthService';
+export { AuditService } from './AuditService';
+export { CalendarService } from './CalendarService';
