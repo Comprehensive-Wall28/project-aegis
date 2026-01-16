@@ -10,3 +10,4 @@ export { AuthService } from './AuthService';
 export { AuditService } from './AuditService';
 export { CalendarService } from './CalendarService';
 export { GPAService } from './GPAService';
+export { IntegrityService } from './IntegrityService';
