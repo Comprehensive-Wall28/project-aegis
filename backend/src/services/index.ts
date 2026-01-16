@@ -12,3 +12,4 @@ export { CalendarService } from './CalendarService';
 export { GPAService } from './GPAService';
 export { IntegrityService } from './IntegrityService';
 export { LinkPreviewService } from './LinkPreviewService';
+export { PublicShareService } from './PublicShareService';

@@ -16,3 +16,4 @@ export { CalendarEventRepository } from './CalendarEventRepository';
 export { CourseRepository } from './CourseRepository';
 export { GPALogRepository } from './GPALogRepository';
 export { MerkleRegistryRepository } from './MerkleRegistryRepository';
+export { SharedLinkRepository } from './SharedLinkRepository';
