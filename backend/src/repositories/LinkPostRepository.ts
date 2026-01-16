@@ -23,6 +23,18 @@ export class LinkPostRepository extends BaseRepository<ILinkPost> {
     }
 
     /**
+     * Lightweight fetch of link IDs and collection IDs for unviewed count calculation
+     */
+    async findIdsAndCollectionsByCollections(collectionIds: string[]): Promise<{ _id: string; collectionId: string }[]> {
+        return this.findMany({
+            collectionId: { $in: collectionIds as any }
+        } as SafeFilter<ILinkPost>, {
+            select: '_id collectionId',
+            lean: true
+        }) as any;
+    }
+
+    /**
      * Find links by single collection with pagination
      */
     async findByCollectionPaginated(

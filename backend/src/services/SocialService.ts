@@ -216,6 +216,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
     }
 
     async getRoomContent(userId: string, roomId: string): Promise<RoomContent> {
+        const startTime = Date.now();
         try {
             const room = await this.repository.findByIdAndMember(roomId, userId);
             if (!room) {
@@ -225,25 +226,49 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             const member = room.members.find(m => m.userId.toString() === userId);
             const collections = await this.collectionRepo.findByRoom(roomId);
 
-            // High-performance unviewed count calculation
-            // 1. Fetch all links in the room with their IDs and collection IDs
-            const allLinks = await this.linkPostRepo.findByCollections(collections.map(c => c._id.toString()));
-            const allLinkIds = allLinks.map(l => l._id.toString());
+            // High-performance unviewed count calculation using lightweight query
+            const collectionIds = collections.map(c => c._id.toString());
+            const allLinksLight = await this.linkPostRepo.findIdsAndCollectionsByCollections(collectionIds);
+            const allLinkIds = allLinksLight.map(l => l._id.toString());
 
-            // 2. Fetch viewed link IDs for the user
+            // Fetch viewed link IDs for the user
             const viewedLinkIds = await this.linkViewRepo.findViewedLinkIds(userId, allLinkIds);
             const viewedSet = new Set(viewedLinkIds);
 
-            // 3. Aggregate unviewed counts per collection
+            // Aggregate unviewed counts per collection
             const unviewedCounts: Record<string, number> = {};
             collections.forEach(c => unviewedCounts[c._id.toString()] = 0);
 
-            allLinks.forEach(link => {
+            allLinksLight.forEach(link => {
                 if (!viewedSet.has(link._id.toString())) {
                     const cid = link.collectionId.toString();
                     unviewedCounts[cid] = (unviewedCounts[cid] || 0) + 1;
                 }
             });
+
+            // Reduce API roundtrips: Include initial links for the first collection if it exists
+            let initialLinks: ILinkPost[] = [];
+            let initialViewedLinkIds: string[] = [];
+            let initialCommentCounts: Record<string, number> = {};
+
+            if (collections.length > 0) {
+                const firstCollectionId = collections[0]._id.toString();
+                const limit = 30; // Matches fetchCollectionLinks default
+                const { links } = await this.linkPostRepo.findByCollectionPaginated(firstCollectionId, limit, 0);
+                initialLinks = links;
+
+                // Get viewed status and comments for these initial links
+                const initialIds = links.map(l => l._id.toString());
+                const [viewed, comments] = await Promise.all([
+                    this.linkViewRepo.findViewedLinkIds(userId, initialIds),
+                    this.linkCommentRepo.countByLinkIds(initialIds)
+                ]);
+                initialViewedLinkIds = viewed;
+                initialCommentCounts = comments;
+            }
+
+            const duration = Date.now() - startTime;
+            logger.info(`[Performance] getRoomContent for room ${roomId} took ${duration}ms (optimized)`);
 
             return {
                 room: {
@@ -255,9 +280,9 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                     memberCount: room.members.length
                 },
                 collections,
-                links: [], // Empty - load via getCollectionLinks
-                viewedLinkIds: [], // Current view's viewed IDs will be fetched by getCollectionLinks
-                commentCounts: {},
+                links: initialLinks,
+                viewedLinkIds: initialViewedLinkIds,
+                commentCounts: initialCommentCounts,
                 unviewedCounts
             };
         } catch (error) {

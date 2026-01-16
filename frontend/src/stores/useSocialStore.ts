@@ -303,21 +303,22 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 currentRoom: content.room,
                 collections: content.collections,
                 unviewedCounts: content.unviewedCounts,
-                links: [], // Links will be loaded by fetchCollectionLinks
-                viewedLinkIds: new Set(),
-                commentCounts: {},
+                links: content.links || [],
+                viewedLinkIds: new Set(content.viewedLinkIds || []),
+                commentCounts: content.commentCounts || {},
                 rooms: updatedRooms,
                 currentCollectionId: firstCollectionId,
                 currentPage: 1,
-                hasMoreLinks: false
+                hasMoreLinks: (content.links?.length || 0) === 30 // Assume more if first page is full
             });
 
             // Join socket room
             socketService.joinRoom(roomId);
             get().setupSocketListeners();
 
-            // Auto-load first collection links if available
-            if (firstCollectionId) {
+            // Auto-load first collection links if NOT already provided in content
+            // (In the optimized version, content.links should already have the first page)
+            if (firstCollectionId && (!content.links || content.links.length === 0)) {
                 await get().fetchCollectionLinks(firstCollectionId, 1);
             }
 
