@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
     Box,
     Typography,
@@ -109,6 +109,10 @@ export function SocialPage() {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
+    // Share Intent State
+    const [pendingShareUrl, setPendingShareUrl] = useState<string | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+
     // View mode: 'rooms' shows room cards, 'room-content' shows collections/links
     const viewMode = roomId ? 'room-content' : 'rooms';
 
@@ -133,6 +137,58 @@ export function SocialPage() {
             }
         };
     }, [currentRoom]);
+
+    // Hot Share Listener: Listen for AEGIS_SHARE_INTENT events from browser extension
+    useEffect(() => {
+        const handleShareIntent = (event: CustomEvent<{ url: string }>) => {
+            const { url } = event.detail;
+            if (!url) return;
+
+            if (currentRoom) {
+                // Room is active, open the dialog immediately
+                setNewLinkUrl(url);
+                setShowPostLinkDialog(true);
+            } else {
+                // No room selected, save for later
+                setPendingShareUrl(url);
+                showSnackbar('Select a room to share this link', 'info');
+            }
+        };
+
+        window.addEventListener('AEGIS_SHARE_INTENT', handleShareIntent as EventListener);
+        return () => {
+            window.removeEventListener('AEGIS_SHARE_INTENT', handleShareIntent as EventListener);
+        };
+    }, [currentRoom]);
+
+    // Cold Share Logic: Check for share_url query parameter on load
+    useEffect(() => {
+        const shareUrl = searchParams.get('share_url');
+        if (shareUrl) {
+            // Clean the URL to prevent re-triggering on refresh
+            searchParams.delete('share_url');
+            setSearchParams(searchParams, { replace: true });
+
+            if (currentRoom) {
+                // Room is already active (e.g., via deep link), open dialog immediately
+                setNewLinkUrl(shareUrl);
+                setShowPostLinkDialog(true);
+            } else {
+                // Save for when user enters a room
+                setPendingShareUrl(shareUrl);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run on mount
+
+    // Room Entry Logic: Open dialog when user enters a room with pending share URL
+    useEffect(() => {
+        if (currentRoom && pendingShareUrl) {
+            setNewLinkUrl(pendingShareUrl);
+            setShowPostLinkDialog(true);
+            setPendingShareUrl(null);
+        }
+    }, [currentRoom, pendingShareUrl]);
 
     // Fetch rooms on mount
     useEffect(() => {
