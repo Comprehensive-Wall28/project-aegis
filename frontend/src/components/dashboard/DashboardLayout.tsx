@@ -66,14 +66,14 @@ export function DashboardLayout() {
         <Box
             sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}
         >
-            {/* Solid Thematic Background */}
+            {/* Soft Ambient Background Glow - Fixed 'Orb' issue by using wide ellipse */}
             <Box
                 sx={{
                     position: 'fixed',
                     inset: 0,
                     zIndex: 0,
-                    background: `radial-gradient(circle at 50% -20%, ${alpha(theme.palette.primary.main, 0.4)} 0%, ${theme.palette.background.default} 100%)`,
-                    opacity: 0.1, // Deeper, more immersive
+                    background: `radial-gradient(ellipse 120% 50% at 50% -20%, ${alpha(theme.palette.primary.main, 0.2)} 0%, transparent 100%)`,
+                    opacity: 0.12, // Subtle, well-integrated glow
                     pointerEvents: 'none'
                 }}
             />

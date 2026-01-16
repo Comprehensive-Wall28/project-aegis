@@ -353,25 +353,31 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                 sx={{
                                     width: '100%',
                                     maxWidth: 800,
-                                    maxHeight: '90vh',
+                                    height: { xs: '100dvh', sm: 'auto' },
+                                    maxHeight: { xs: '100dvh', sm: '90vh' },
                                     overflow: 'hidden',
-                                    borderRadius: '24px',
+                                    borderRadius: { xs: 0, sm: '24px' },
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    bgcolor: alpha(theme.palette.background.paper, 0.6),
+                                    bgcolor: alpha(theme.palette.background.paper, 0.8),
+                                    backdropFilter: 'blur(20px)',
                                     boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
                                 }}
                             >
-                                {/* Large Image Header */}
+                                {/* Large Image Header - Now Dynamic */}
                                 <Box
                                     sx={{
                                         width: '100%',
-                                        height: 400,
+                                        height: 'auto',
+                                        maxHeight: { xs: '35vh', sm: 'min(50vh, 500px)' },
+                                        minHeight: { xs: 150, sm: 200 },
+                                        flexShrink: 1,
                                         bgcolor: '#000',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         position: 'relative',
+                                        overflow: 'hidden',
                                     }}
                                 >
                                     {previewImage ? (
@@ -380,7 +386,8 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                             alt={previewData.title}
                                             style={{
                                                 width: '100%',
-                                                height: '100%',
+                                                height: 'auto',
+                                                maxHeight: 'inherit',
                                                 objectFit: 'contain',
                                             }}
                                         />
@@ -413,6 +420,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                             bgcolor: 'rgba(0,0,0,0.5)',
                                             color: '#fff',
                                             '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                                            zIndex: 2,
                                         }}
                                     >
                                         <CloseIcon />
@@ -420,12 +428,31 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                 </Box>
 
                                 {/* Details Content */}
-                                <Box sx={{ p: 4, overflowY: 'auto' }}>
-                                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+                                <Box
+                                    sx={{
+                                        p: { xs: 2.5, sm: 4 },
+                                        overflowY: 'auto',
+                                        flex: 1,
+                                        minHeight: 0,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        '&::-webkit-scrollbar': {
+                                            width: '6px',
+                                        },
+                                        '&::-webkit-scrollbar-thumb': {
+                                            backgroundColor: alpha(theme.palette.text.secondary, 0.2),
+                                            borderRadius: '3px',
+                                        },
+                                        '&::-webkit-scrollbar-thumb:hover': {
+                                            backgroundColor: alpha(theme.palette.text.secondary, 0.3),
+                                        },
+                                    }}
+                                >
+                                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                                         {previewData.title || 'Untitled Link'}
                                     </Typography>
 
-                                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3, whiteSpace: 'pre-wrap' }}>
+                                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3, whiteSpace: 'pre-wrap', flexGrow: 1 }}>
                                         {previewData.description || 'No description available for this link.'}
                                     </Typography>
 

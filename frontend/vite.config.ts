@@ -20,10 +20,13 @@ export default defineConfig({
     },
   },
   build: {
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
+            if (id.includes('react-pdf') || id.includes('@react-pdf')) return 'pdf-vendor';
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || id.includes('zustand')) return 'react-vendor';
             if (id.includes('@mui/material') || id.includes('@emotion')) return 'mui-base';
             if (id.includes('@mui/icons-material')) return 'mui-icons';
             if (id.includes('@mui/x-charts')) return 'mui-charts';
@@ -31,6 +34,7 @@ export default defineConfig({
             if (id.includes('framer-motion')) return 'motion-vendor';
             if (id.includes('@noble') || id.includes('@simplewebauthn')) return 'crypto-vendor';
             if (id.includes('lucide-react')) return 'lucide-vendor';
+            if (id.includes('axios') || id.includes('crypto-js')) return 'shared-utils';
             return 'vendor';
           }
         }

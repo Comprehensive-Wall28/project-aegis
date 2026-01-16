@@ -395,6 +395,54 @@
   --color-primary-fg-aegis: #000000;
 }
 
+[data-theme="tokyonight"] {
+  /* Tokyo Night Refined (Darker Center, Better Readability) */
+  --background: 240 16% 10%;
+  /* #16161e */
+  --foreground: 230 75% 85%;
+  /* #c0caf5 */
+
+  --card: 235 19% 13%;
+  /* #1a1b26 - Darker Center area (Paper) */
+  --card-foreground: 230 75% 85%;
+
+  --popover: 240 16% 8%;
+  --popover-foreground: 230 75% 85%;
+
+  --primary: 221 91% 72%;
+  /* #7aa2f7 */
+  --primary-foreground: 240 16% 10%;
+
+  --secondary: 261 81% 79%;
+  /* #bb9af7 */
+  --secondary-foreground: 230 75% 85%;
+
+  --muted: 235 19% 13%;
+  --muted-foreground: 228 39% 71%;
+  /* #9aa5ce - Better Readability (Markdown Text) */
+
+  --accent: 221 91% 72%;
+  --accent-foreground: 240 16% 10%;
+
+  --destructive: 349 89% 72%;
+  /* #f7768e */
+  --destructive-foreground: 240 16% 10%;
+
+  --border: 228 24% 28%;
+  /* #343b59 - More visible border */
+  --input: 228 24% 28%;
+  --ring: 221 91% 72%;
+
+  /* Aegis Custom Variables (Tokyo Night) */
+  --color-background-aegis: #16161e;
+  --color-card-aegis: #1a1b26;
+  --color-text-primary: #c0caf5;
+  --color-text-secondary: #9aa5ce;
+  --color-accent-blue: #7aa2f7;
+  --color-accent-lime: #9ece6a;
+  --color-primary-fg-aegis: #16161e;
+}
+
 body {
   background-color: var(--color-background-aegis);
   color: var(--color-text-primary);

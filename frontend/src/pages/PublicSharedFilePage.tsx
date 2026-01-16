@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
     Container,
@@ -113,6 +113,8 @@ export const PublicSharedFilePage = () => {
     const [previewLoading, setPreviewLoading] = useState(false);
     const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
     const [pdfNumPages, setPdfNumPages] = useState<number | null>(null);
+    const [pdfContainerWidth, setPdfContainerWidth] = useState<number>(400);
+    const pdfContainerRef = useRef<HTMLDivElement>(null);
 
     const decryptChunk = async (chunk: Uint8Array, key: CryptoKey) => {
         const iv = chunk.slice(0, 16);
@@ -231,6 +233,21 @@ export const PublicSharedFilePage = () => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
+
+    useEffect(() => {
+        const updateWidth = () => {
+            if (pdfContainerRef.current) {
+                const width = pdfContainerRef.current.offsetWidth;
+                // Use ZERO padding on mobile (down md) to ensure edge-to-edge
+                const padding = window.innerWidth < 900 ? 0 : 32;
+                setPdfContainerWidth(Math.max(width - padding, 200));
+            }
+        };
+
+        updateWidth();
+        window.addEventListener('resize', updateWidth);
+        return () => window.removeEventListener('resize', updateWidth);
+    }, [loading, metadata]);
 
     const handleDownload = async () => {
         if (!metadata || !decryptedKey) return;
@@ -427,7 +444,7 @@ export const PublicSharedFilePage = () => {
                     transition={{ duration: 0.5, delay: 0.1 }}
                 >
                     <Paper sx={{
-                        borderRadius: 6,
+                        borderRadius: { xs: 1, md: 6 }, // Smaller radius on mobile to prevent clipping
                         overflow: 'hidden',
                         border: '1px solid #1a1a1a',
                         bgcolor: '#0a0a0a',
@@ -436,14 +453,18 @@ export const PublicSharedFilePage = () => {
                         <Grid container>
                             {/* Left Side - Preview */}
                             <Grid size={{ xs: 12, md: 7 }} sx={{ p: 0, borderRight: { md: '1px solid #1a1a1a' } }}>
-                                <Box sx={{
-                                    height: { xs: 300, sm: 400, md: 500 },
-                                    bgcolor: '#050505',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    position: 'relative',
-                                }}>
+                                <Box
+                                    ref={pdfContainerRef}
+                                    sx={{
+                                        height: { xs: 'auto', sm: 400, md: 500 },
+                                        minHeight: { xs: 300 },
+                                        bgcolor: '#050505',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        position: 'relative',
+                                        overflow: 'hidden'
+                                    }}>
                                     {previewLoading ? (
                                         <Stack alignItems="center" spacing={2}>
                                             <CircularProgress size={40} sx={{ color: 'primary.main' }} />
@@ -454,36 +475,71 @@ export const PublicSharedFilePage = () => {
                                     ) : (metadata.mimeType.startsWith('image/') && previewUrl) ? (
                                         <img src={previewUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', padding: '24px' }} />
                                     ) : (metadata.mimeType === 'application/pdf' && previewUrl) ? (
-                                        <Box sx={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            width: '100%',
-                                            height: '100%',
-                                            p: 2,
-                                            overflow: 'auto'
-                                        }}>
-                                            <Document
-                                                file={previewUrl}
-                                                onLoadSuccess={({ numPages }) => setPdfNumPages(numPages)}
-                                                loading={
-                                                    <Stack alignItems="center" spacing={2} sx={{ py: 4 }}>
-                                                        <CircularProgress size={32} sx={{ color: 'primary.main' }} />
-                                                        <Typography variant="caption" sx={{ color: alpha('#fff', 0.5) }}>
-                                                            Rendering PDF...
-                                                        </Typography>
-                                                    </Stack>
+                                        <>
+                                            <Box sx={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                width: '100%',
+                                                height: '100%',
+                                                p: { xs: 0, sm: 2 },
+                                                overflow: 'auto',
+                                                '& .react-pdf__Page': {
+                                                    boxShadow: { xs: 'none', sm: `0 20px 60px ${alpha('#000', 0.5)}` },
+                                                    borderRadius: { xs: 0, sm: '8px' },
+                                                    overflow: 'hidden',
+                                                    maxWidth: '100vw',
+                                                },
+                                                '& .react-pdf__Page__canvas': {
+                                                    borderRadius: { xs: 0, sm: '8px' },
+                                                    maxWidth: '100% !important',
+                                                    height: 'auto !important',
                                                 }
-                                            >
-                                                <Page
-                                                    pageNumber={pdfCurrentPage}
-                                                    height={410}
-                                                    renderTextLayer={false}
-                                                    renderAnnotationLayer={false}
-                                                />
-                                            </Document>
+                                            }}>
+                                                <Document
+                                                    file={previewUrl}
+                                                    onLoadSuccess={({ numPages }) => setPdfNumPages(numPages)}
+                                                    loading={
+                                                        <Stack alignItems="center" spacing={2} sx={{ py: 4 }}>
+                                                            <CircularProgress size={32} sx={{ color: 'primary.main' }} />
+                                                            <Typography variant="caption" sx={{ color: alpha('#fff', 0.5) }}>
+                                                                Rendering PDF...
+                                                            </Typography>
+                                                        </Stack>
+                                                    }
+                                                >
+                                                    <Page
+                                                        pageNumber={pdfCurrentPage}
+                                                        width={pdfContainerWidth}
+                                                        renderTextLayer={false}
+                                                        renderAnnotationLayer={false}
+                                                    />
+                                                </Document>
+                                                {/* Spacer to push content above floating controls */}
+                                                <Box sx={{ height: 60, flexShrink: 0 }} />
+                                            </Box>
+
+                                            {/* Floating Navigation Controls */}
                                             {pdfNumPages && pdfNumPages > 1 && (
-                                                <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 2 }}>
+                                                <Stack
+                                                    direction="row"
+                                                    alignItems="center"
+                                                    spacing={2}
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        bottom: 16,
+                                                        left: '50%',
+                                                        transform: 'translateX(-50%)',
+                                                        bgcolor: alpha('#000', 0.6),
+                                                        backdropFilter: 'blur(12px)',
+                                                        px: 3,
+                                                        py: 1.2,
+                                                        borderRadius: '24px',
+                                                        border: '1px solid #333',
+                                                        zIndex: 5,
+                                                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                                                    }}
+                                                >
                                                     <IconButton
                                                         onClick={() => setPdfCurrentPage(p => Math.max(1, p - 1))}
                                                         disabled={pdfCurrentPage <= 1}
@@ -492,7 +548,7 @@ export const PublicSharedFilePage = () => {
                                                     >
                                                         <ChevronLeft />
                                                     </IconButton>
-                                                    <Typography sx={{ color: 'white', fontSize: '0.8rem', fontWeight: 600 }}>
+                                                    <Typography sx={{ color: 'white', fontSize: '0.9rem', fontWeight: 700, minWidth: 60, textAlign: 'center' }}>
                                                         {pdfCurrentPage} / {pdfNumPages}
                                                     </Typography>
                                                     <IconButton
@@ -505,7 +561,7 @@ export const PublicSharedFilePage = () => {
                                                     </IconButton>
                                                 </Stack>
                                             )}
-                                        </Box>
+                                        </>
                                     ) : (
                                         <Box sx={{ textAlign: 'center', color: alpha('#fff', 0.2) }}>
                                             <motion.div animate={{ y: [0, -15, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
@@ -681,7 +737,7 @@ export const PublicSharedFilePage = () => {
                         Aegis Quantum-Safe Infrastructure • Protected by Open-Source Cryptography
                     </Typography>
                 </Box>
-            </Container>
-        </Box>
+            </Container >
+        </Box >
     );
 };

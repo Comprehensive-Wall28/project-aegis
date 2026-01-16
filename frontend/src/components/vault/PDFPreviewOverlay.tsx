@@ -67,8 +67,10 @@ export const PDFPreviewOverlay = ({
         const updateWidth = () => {
             if (containerRef.current) {
                 const width = containerRef.current.offsetWidth;
-                // Leave some padding
-                setContainerWidth(Math.min(width - 48, 1000));
+                // Use ZERO padding on mobile (xs) to ensure edge-to-edge spanning
+                const isMobile = window.innerWidth < 600;
+                const padding = isMobile ? 0 : 48;
+                setContainerWidth(Math.min(width - padding, 1000));
             }
         };
 
@@ -273,11 +275,12 @@ export const PDFPreviewOverlay = ({
                     justifyContent: 'center',
                     width: '100%',
                     height: '100%',
-                    px: { xs: 1, sm: 2, md: 4 },
-                    pt: { xs: 6, sm: 6 },
-                    pb: { xs: 1, sm: 1 },
+                    px: { xs: 0, sm: 2, md: 4 },
+                    pt: { xs: 8, sm: 8 }, // More space for the toolbar on mobile
+                    pb: { xs: 10, sm: 2 }, // Extra bottom padding for mobile navigation bar
                     userSelect: 'none',
                     overflow: 'auto',
+                    WebkitOverflowScrolling: 'touch',
                 }}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
@@ -351,12 +354,15 @@ export const PDFPreviewOverlay = ({
                                     alignItems: 'center',
                                 },
                                 '& .react-pdf__Page': {
-                                    boxShadow: `0 20px 60px ${alpha('#000', 0.5)}`,
-                                    borderRadius: '8px',
+                                    boxShadow: { xs: 'none', sm: `0 20px 60px ${alpha('#000', 0.5)}` },
+                                    borderRadius: { xs: 0, sm: '8px' },
                                     overflow: 'hidden',
+                                    maxWidth: '100vw',
                                 },
                                 '& .react-pdf__Page__canvas': {
-                                    borderRadius: '8px',
+                                    borderRadius: { xs: 0, sm: '8px' },
+                                    maxWidth: '100% !important',
+                                    height: 'auto !important',
                                 }
                             }}
                         >

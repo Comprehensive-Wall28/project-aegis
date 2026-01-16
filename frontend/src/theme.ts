@@ -146,21 +146,33 @@ export const getTheme = (mode: ThemeMode) => {
         },
         tokyonight: {
             background: {
-                default: '#1a1b26', // Tokyo Night Storm background
-                paper: '#24283b',   // Tokyo Night Storm surface
+                default: '#16161e', // Even darker for outer depth
+                paper: '#1a1b26',   // Tokyo Night (Night) - Darker center area
             },
             primary: {
-                main: '#7aa2f7',    // Tokyo Night blue
+                main: '#7aa2f7',    // Tokyo Night Blue
                 contrastText: '#1a1b26',
             },
             secondary: {
-                main: '#bb9af7',    // Tokyo Night purple
+                main: '#bb9af7',    // Tokyo Night Magenta
             },
             text: {
-                primary: '#c0caf5', // Tokyo Night foreground
-                secondary: '#565f89', // Tokyo Night comment
+                primary: '#c0caf5', // Tokyo Night (Terminal White)
+                secondary: '#9aa5ce', // Improved readability (Markdown Text/Gray-Blue)
             },
-            divider: 'rgba(86, 95, 137, 0.3)',
+            error: {
+                main: '#f7768e',
+            },
+            warning: {
+                main: '#ff9e64',
+            },
+            info: {
+                main: '#7dcfff',
+            },
+            success: {
+                main: '#9ece6a',
+            },
+            divider: 'rgba(56, 62, 90, 0.6)', // Higher contrast Storm blue-gray for better definition
         },
     };
 
