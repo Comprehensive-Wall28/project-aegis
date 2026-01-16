@@ -5,3 +5,4 @@ export { BaseService, ServiceError } from './base/BaseService';
 export { TaskService } from './TaskService';
 export { VaultService } from './VaultService';
 export { FolderService } from './FolderService';
+export { SocialService } from './SocialService';
