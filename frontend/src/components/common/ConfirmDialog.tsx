@@ -8,6 +8,7 @@ import {
     Box,
     alpha,
     useTheme,
+    useMediaQuery,
 } from '@mui/material';
 import { Warning as WarningIcon } from '@mui/icons-material';
 
@@ -44,6 +45,8 @@ export function ConfirmDialog({
 
     const color = variantColors[variant];
 
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
     return (
         <Dialog
             open={open}
@@ -56,6 +59,15 @@ export function ConfirmDialog({
                     maxWidth: 400,
                     width: '100%',
                 },
+            }}
+            slotProps={{
+                backdrop: {
+                    sx: {
+                        backdropFilter: isMobile ? 'none' : 'blur(4px)',
+                        WebkitBackdropFilter: isMobile ? 'none' : 'blur(4px)',
+                        bgcolor: alpha(theme.palette.background.default, 0.8)
+                    }
+                }
             }}
         >
             <DialogTitle sx={{ pb: 1 }}>

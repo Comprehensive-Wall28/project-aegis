@@ -129,24 +129,26 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
 
             {/* Right: Actions & User Profile */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
-                {/* Theme Toggle */}
+                {/* Theme Toggle - Desktop only */}
                 <Tooltip title={`Theme: ${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}`}>
-                    <IconButton
-                        onClick={toggleTheme}
-                        sx={{
-                            color: theme.palette.text.secondary,
-                            '&:hover': {
-                                color: theme.palette.primary.main,
-                                bgcolor: alpha(theme.palette.primary.main, 0.05)
-                            }
-                        }}
-                    >
-                        <PaletteIcon />
-                    </IconButton>
+                    <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
+                        <IconButton
+                            onClick={toggleTheme}
+                            sx={{
+                                color: theme.palette.text.secondary,
+                                '&:hover': {
+                                    color: theme.palette.primary.main,
+                                    bgcolor: alpha(theme.palette.primary.main, 0.05)
+                                }
+                            }}
+                        >
+                            <PaletteIcon />
+                        </IconButton>
+                    </Box>
                 </Tooltip>
 
-                {/* User Profile Dropdown */}
-                <Box>
+                {/* User Profile Dropdown - Desktop only */}
+                <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
                     <IconButton
                         onClick={handleOpenMenu}
                         sx={{

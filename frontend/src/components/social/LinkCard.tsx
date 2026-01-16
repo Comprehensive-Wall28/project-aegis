@@ -97,6 +97,8 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                     transition: 'opacity 0.2s ease',
                     position: 'relative',
                     willChange: 'transform, opacity',
+                    padding: '3px', // Increased safe margin
+                    boxSizing: 'border-box', // Crucial to prevent overflow
                 }}
             >
                 <Paper
@@ -107,16 +109,14 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
-                        transition: 'border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease',
+                        transition: 'border-color 0.2s ease, background-color 0.2s ease',
                         border: isViewed
-                            ? `1px solid ${alpha('#0ea5e9', 0.5)}` // Sky 500 (Blue) 
-                            : `1px solid ${alpha('#ffffff', 0.6)}`, // White
-                        boxShadow: isViewed
-                            ? `0 0 12px ${alpha('#0ea5e9', 0.2)}`
-                            : `0 0 12px ${alpha('#ffffff', 0.15)}`,
+                            ? `1px solid ${alpha('#0ea5e9', 0.3)}` // Thin, clean blue border
+                            : `1px solid ${alpha(theme.palette.divider, 0.15)}`, // Minimal clean border
+                        boxShadow: 'none',
                         '&:hover': {
-                            borderColor: alpha(theme.palette.primary.main, 0.2),
-                            bgcolor: alpha(theme.palette.primary.main, 0.03),
+                            borderColor: isViewed ? alpha('#0ea5e9', 0.5) : alpha(theme.palette.primary.main, 0.25),
+                            bgcolor: alpha(theme.palette.primary.main, 0.02),
                         },
                     }}
                     onClick={() => {

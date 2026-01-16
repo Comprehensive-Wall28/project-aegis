@@ -11,6 +11,7 @@ import {
     CalendarMonth as CalendarIcon,
     CheckCircle as TasksIcon,
     Share as ShareIcon,
+    Palette as PaletteIcon,
 } from '@mui/icons-material';
 import {
     Box,
@@ -23,11 +24,13 @@ import {
     ListItemText,
     alpha,
     useTheme,
-    Tooltip
+    Tooltip,
+    Divider
 } from '@mui/material';
 import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useThemeStore } from '@/stores/themeStore';
 import { AegisLogo } from '@/components/AegisLogo';
 import authService from '@/services/authService';
 import { clearStoredSeed } from '@/lib/cryptoUtils';
@@ -63,6 +66,7 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
     const location = useLocation();
     const navigate = useNavigate();
     const { clearSession } = useSessionStore();
+    const { theme: currentTheme, toggleTheme } = useThemeStore();
 
     const handleLogout = async () => {
         await authService.logout();
@@ -179,6 +183,35 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
             {/* Bottom Section */}
             <Box sx={{ p: 1, borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
                 <List disablePadding>
+                    {isMobile && (
+                        <>
+                            <ListItem disablePadding>
+                                <ListItemButton
+                                    onClick={toggleTheme}
+                                    sx={{
+                                        minHeight: 44,
+                                        px: 2.5,
+                                        borderRadius: 3,
+                                        color: theme.palette.text.secondary,
+                                        '&:hover': {
+                                            color: theme.palette.primary.main,
+                                            bgcolor: alpha(theme.palette.primary.main, 0.05)
+                                        }
+                                    }}
+                                >
+                                    <ListItemIcon sx={{ minWidth: 0, mr: 2, justifyContent: 'center', color: 'inherit' }}>
+                                        <PaletteIcon sx={{ fontSize: 20 }} />
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary={currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}
+                                        primaryTypographyProps={{ fontSize: '14px', fontWeight: 500 }}
+                                    />
+                                </ListItemButton>
+                            </ListItem>
+                            <Divider sx={{ my: 1, mx: 2, opacity: 0.3 }} />
+                        </>
+                    )}
+
                     <ListItem disablePadding>
                         <ListItemButton
                             onClick={handleLogout}

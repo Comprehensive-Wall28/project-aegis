@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, memo, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import {
     Box,
@@ -31,8 +32,8 @@ import {
     FilterList as FilterListIcon,
     Search as SearchIcon,
     Close as CloseIcon,
-    Menu as MenuIcon,
     Share as ShareIcon,
+    ArrowBack as ArrowBackIcon,
     Delete as DeleteIcon,
     FiberManualRecord as DotIcon,
 } from '@mui/icons-material';
@@ -42,7 +43,8 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { LinkCard } from '@/components/social/LinkCard';
 import { CommentsOverlay } from '@/components/social/CommentsOverlay';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import type { Room, LinkPost, Collection } from '@/services/socialService';
+import type { Room, LinkPost } from '@/services/socialService';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type SnackbarState = {
     open: boolean;
@@ -64,6 +66,8 @@ const CreateRoomDialog = memo(({
 }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const handleSubmit = () => {
         if (name.trim()) {
@@ -71,69 +75,90 @@ const CreateRoomDialog = memo(({
         }
     };
 
-    if (!open) return null;
-
-    return (
-        <Box
-            sx={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 1300,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(2px)',
-            }}
-            onClick={onClose}
-        >
-            <Paper
-                variant="solid"
-                sx={{
-                    p: 3,
-                    width: '100%',
-                    maxWidth: 400,
-                    borderRadius: '24px',
-                }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    Create New Room
-                </Typography>
-
-                <TextField
-                    fullWidth
-                    label="Room Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    sx={{ mb: 2 }}
-                    autoFocus
-                />
-
-                <TextField
-                    fullWidth
-                    label="Description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    multiline
-                    rows={2}
-                    sx={{ mb: 3 }}
-                />
-
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                    <Button onClick={onClose} disabled={isLoading}>
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleSubmit}
-                        disabled={!name.trim() || isLoading}
+    return createPortal(
+        <AnimatePresence>
+            {open && (
+                <Box
+                    component={motion.div}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={onClose}
+                    sx={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 9999,
+                        bgcolor: 'rgba(0,0,0,0.8)',
+                        backdropFilter: isMobile ? 'none' : 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        p: isMobile ? 0 : 4,
+                    }}
+                >
+                    <Paper
+                        variant={isMobile ? "solid" : "glass"}
+                        component={motion.div}
+                        initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                        animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+                        exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                        transition={isMobile ? { type: 'spring', damping: 25, stiffness: 300 } : {}}
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{
+                            width: '100%',
+                            maxWidth: isMobile ? '100%' : 450,
+                            height: isMobile ? '100%' : 'auto',
+                            maxHeight: isMobile ? '100%' : '90vh',
+                            overflow: 'hidden',
+                            borderRadius: isMobile ? 0 : '24px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                        }}
                     >
-                        {isLoading ? <CircularProgress size={20} /> : 'Create'}
-                    </Button>
+                        {/* Header */}
+                        <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>Create New Room</Typography>
+                            <IconButton onClick={onClose}><CloseIcon /></IconButton>
+                        </Box>
+
+                        <Box sx={{ p: 3, flex: 1, overflowY: 'auto' }}>
+                            <TextField
+                                fullWidth
+                                label="Room Name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                sx={{ mb: 2 }}
+                                autoFocus
+                            />
+
+                            <TextField
+                                fullWidth
+                                label="Description"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                multiline
+                                rows={2}
+                                sx={{ mb: 1 }}
+                            />
+                        </Box>
+
+                        <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                            <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
+                            <Button
+                                variant="contained"
+                                onClick={handleSubmit}
+                                disabled={!name.trim() || isLoading}
+                                sx={{ borderRadius: '12px', px: 4 }}
+                            >
+                                {isLoading ? <CircularProgress size={20} /> : 'Create'}
+                            </Button>
+                        </Box>
+                    </Paper>
                 </Box>
-            </Paper>
-        </Box>
+            )}
+        </AnimatePresence>,
+        document.body
     );
 });
 
@@ -150,6 +175,8 @@ const CreateCollectionDialog = memo(({
     isLoading: boolean;
 }) => {
     const [name, setName] = useState('');
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const handleSubmit = () => {
         if (name.trim()) {
@@ -162,60 +189,81 @@ const CreateCollectionDialog = memo(({
         if (!open) setName('');
     }, [open]);
 
-    if (!open) return null;
-
-    return (
-        <Box
-            sx={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 1300,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(2px)',
-            }}
-            onClick={onClose}
-        >
-            <Paper
-                variant="solid"
-                sx={{
-                    p: 3,
-                    width: '100%',
-                    maxWidth: 400,
-                    borderRadius: '24px',
-                }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    New Collection
-                </Typography>
-
-                <TextField
-                    fullWidth
-                    label="Collection Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    sx={{ mb: 3 }}
-                    autoFocus
-                    onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                />
-
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                    <Button onClick={onClose} disabled={isLoading}>
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleSubmit}
-                        disabled={!name.trim() || isLoading}
+    return createPortal(
+        <AnimatePresence>
+            {open && (
+                <Box
+                    component={motion.div}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={onClose}
+                    sx={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 9999,
+                        bgcolor: 'rgba(0,0,0,0.8)',
+                        backdropFilter: isMobile ? 'none' : 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        p: isMobile ? 0 : 4,
+                    }}
+                >
+                    <Paper
+                        variant={isMobile ? "solid" : "glass"}
+                        component={motion.div}
+                        initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                        animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+                        exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                        transition={isMobile ? { type: 'spring', damping: 25, stiffness: 300 } : {}}
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{
+                            width: '100%',
+                            maxWidth: isMobile ? '100%' : 400,
+                            height: isMobile ? '100%' : 'auto',
+                            maxHeight: isMobile ? '100%' : '90vh',
+                            overflow: 'hidden',
+                            borderRadius: isMobile ? 0 : '24px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                        }}
                     >
-                        {isLoading ? <CircularProgress size={20} /> : 'Create'}
-                    </Button>
+                        {/* Header */}
+                        <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>New Collection</Typography>
+                            <IconButton onClick={onClose}><CloseIcon /></IconButton>
+                        </Box>
+
+                        <Box sx={{ p: 3, flex: 1 }}>
+                            <TextField
+                                fullWidth
+                                label="Collection Name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                sx={{ mb: 1 }}
+                                autoFocus
+                                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                            />
+                        </Box>
+
+                        <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                            <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
+                            <Button
+                                variant="contained"
+                                onClick={handleSubmit}
+                                disabled={!name.trim() || isLoading}
+                                sx={{ borderRadius: '12px', px: 4 }}
+                            >
+                                {isLoading ? <CircularProgress size={20} /> : 'Create'}
+                            </Button>
+                        </Box>
+                    </Paper>
                 </Box>
-            </Paper>
-        </Box>
+            )}
+        </AnimatePresence>,
+        document.body
     );
 });
 
@@ -232,6 +280,8 @@ const PostLinkDialog = memo(({
     isLoading: boolean;
 }) => {
     const [url, setUrl] = useState('');
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const handleSubmit = () => {
         if (url.trim()) {
@@ -240,69 +290,208 @@ const PostLinkDialog = memo(({
         }
     };
 
-    if (!open) return null;
+    return createPortal(
+        <AnimatePresence>
+            {open && (
+                <Box
+                    component={motion.div}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={onClose}
+                    sx={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 9999,
+                        bgcolor: 'rgba(0,0,0,0.8)',
+                        backdropFilter: isMobile ? 'none' : 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        p: isMobile ? 0 : 4,
+                    }}
+                >
+                    <Paper
+                        variant={isMobile ? "solid" : "glass"}
+                        component={motion.div}
+                        initial={isMobile ? { y: '100%' } : { scale: 0.8, opacity: 0 }}
+                        animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+                        exit={isMobile ? { y: '100%' } : { scale: 0.8, opacity: 0 }}
+                        transition={isMobile ? { type: 'spring', damping: 30, stiffness: 350 } : {}}
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{
+                            width: '100%',
+                            maxWidth: isMobile ? '100%' : 450,
+                            height: isMobile ? '100%' : 'auto',
+                            maxHeight: isMobile ? '100%' : '90vh',
+                            overflow: 'hidden',
+                            borderRadius: isMobile ? 0 : '24px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                        }}
+                    >
+                        {/* Header */}
+                        <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>Post a Link</Typography>
+                            <IconButton onClick={onClose}><CloseIcon /></IconButton>
+                        </Box>
+
+                        <Box sx={{ p: 3, flex: 1 }}>
+                            <TextField
+                                fullWidth
+                                label="URL"
+                                placeholder="https://example.com"
+                                value={url}
+                                onChange={(e) => setUrl(e.target.value)}
+                                sx={{ mb: 1 }}
+                                autoFocus
+                                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <LinkIcon color="action" />
+                                        </InputAdornment>
+                                    ),
+                                }}
+                            />
+                        </Box>
+
+                        <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                            <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
+                            <Button
+                                variant="contained"
+                                onClick={handleSubmit}
+                                disabled={!url.trim() || isLoading}
+                                sx={{ borderRadius: '12px', px: 4 }}
+                            >
+                                {isLoading ? <CircularProgress size={20} /> : 'Post'}
+                            </Button>
+                        </Box>
+                    </Paper>
+                </Box>
+            )}
+        </AnimatePresence>,
+        document.body
+    );
+});
+
+// Room Card Component - Memoized for performance
+const RoomCard = memo(({
+    decryptedName,
+    memberCount,
+    onSelect,
+}: {
+    room: Room; // kept for key prop usage
+    decryptedName: string;
+    memberCount: number;
+    onSelect: () => void;
+}) => {
+    const theme = useTheme();
 
     return (
-        <Box
+        <Paper
+            variant="glass"
+            onClick={onSelect}
             sx={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 1300,
+                p: 3,
+                borderRadius: '20px',
+                cursor: 'pointer',
                 display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                minHeight: 140,
+                '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                },
+            }}
+        >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar
+                    sx={{
+                        width: 48,
+                        height: 48,
+                        bgcolor: alpha(theme.palette.primary.main, 0.2),
+                        color: 'primary.main',
+                        fontWeight: 600,
+                        fontSize: '1.1rem',
+                    }}
+                >
+                    {decryptedName.substring(0, 2).toUpperCase()}
+                </Avatar>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            fontWeight: 600,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {decryptedName}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        {memberCount} member{memberCount > 1 ? 's' : ''}
+                    </Typography>
+                </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 'auto' }}>
+                <GroupIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Typography variant="body2" color="text.secondary">
+                    Tap to enter
+                </Typography>
+            </Box>
+        </Paper>
+    );
+});
+
+// Create Room Card - Memoized for performance
+const CreateRoomCard = memo(({
+    onClick,
+}: {
+    onClick: () => void;
+}) => {
+    const theme = useTheme();
+
+    return (
+        <Paper
+            variant="glass"
+            onClick={onClick}
+            sx={{
+                p: 3,
+                borderRadius: '20px',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(2px)',
+                gap: 2,
+                minHeight: 140,
+                border: `2px dashed ${alpha(theme.palette.success.main, 0.4)}`,
+                bgcolor: alpha(theme.palette.success.main, 0.05),
+                '&:hover': {
+                    borderColor: theme.palette.success.main,
+                },
             }}
-            onClick={onClose}
         >
-            <Paper
-                variant="solid"
+            <IconButton
                 sx={{
-                    p: 3,
-                    width: '100%',
-                    maxWidth: 400,
-                    borderRadius: '24px',
-                    m: 2,
+                    width: 56,
+                    height: 56,
+                    bgcolor: alpha(theme.palette.success.main, 0.15),
+                    color: 'success.main',
+                    '&:hover': {
+                        bgcolor: alpha(theme.palette.success.main, 0.25),
+                    },
                 }}
-                onClick={(e) => e.stopPropagation()}
             >
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    Post a Link
-                </Typography>
-
-                <TextField
-                    fullWidth
-                    label="URL"
-                    placeholder="https://example.com"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    sx={{ mb: 3 }}
-                    autoFocus
-                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <LinkIcon color="action" />
-                            </InputAdornment>
-                        ),
-                    }}
-                />
-
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                    <Button onClick={onClose} disabled={isLoading}>
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleSubmit}
-                        disabled={!url.trim() || isLoading}
-                    >
-                        {isLoading ? <CircularProgress size={20} /> : 'Post'}
-                    </Button>
-                </Box>
-            </Paper>
-        </Box>
+                <AddIcon sx={{ fontSize: 28 }} />
+            </IconButton>
+            <Typography variant="body1" fontWeight={500} color="success.main">
+                Create Room
+            </Typography>
+        </Paper>
     );
 });
 
@@ -371,6 +560,9 @@ export function SocialPage() {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
+    // View mode: 'rooms' shows room cards, 'room-content' shows collections/links
+    const [viewMode, setViewMode] = useState<'rooms' | 'room-content'>('rooms');
+
     // Collection context menu state
     const [collectionContextMenu, setCollectionContextMenu] = useState<{
         mouseX: number;
@@ -398,12 +590,12 @@ export function SocialPage() {
         }
     }, [roomId, pqcEngineStatus, selectRoom]);
 
-    // Auto-select first room when entering page
+    // Switch to room-content view when a room is selected
     useEffect(() => {
-        if (!currentRoom && !roomId && rooms.length > 0 && !isLoadingRooms) {
-            selectRoom(rooms[0]._id);
+        if (currentRoom) {
+            setViewMode('room-content');
         }
-    }, [rooms, currentRoom, roomId, isLoadingRooms, selectRoom]);
+    }, [currentRoom]);
 
     // Auto-refresh content every 5 seconds (paused when comments overlay is open)
     useEffect(() => {
@@ -457,6 +649,11 @@ export function SocialPage() {
     const showSnackbar = (message: string, severity: SnackbarState['severity']) => {
         setSnackbar({ open: true, message, severity });
     };
+
+    // Exit room and return to rooms view
+    const handleExitRoom = useCallback(() => {
+        setViewMode('rooms');
+    }, []);
 
     const handleCreateRoom = async (name: string, description: string) => {
         try {
@@ -626,201 +823,6 @@ export function SocialPage() {
         handleFilterClose();
     };
 
-    const getRoomInitials = (room: Room): string => {
-        const name = decryptedNames.get(room._id) || '??';
-        return name.substring(0, 2).toUpperCase();
-    };
-
-    const SidebarContent = (
-        <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
-            {/* Left Sidebar - Room Icons */}
-            <Paper
-                variant="glass"
-                sx={{
-                    width: 72,
-                    flexShrink: 0,
-                    borderRadius: isMobile ? 0 : '24px',
-                    p: 1.5,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    overflowY: 'auto',
-                    height: '100%',
-                }}
-            >
-                {rooms.map((room) => (
-                    <Tooltip key={room._id} title={decryptedNames.get(room._id) || 'Room'} placement="right">
-                        <Avatar
-                            sx={{
-                                width: 48,
-                                height: 48,
-                                bgcolor:
-                                    currentRoom?._id === room._id
-                                        ? 'primary.main'
-                                        : alpha(theme.palette.primary.main, 0.2),
-                                color:
-                                    currentRoom?._id === room._id
-                                        ? 'primary.contrastText'
-                                        : 'primary.main',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                                fontSize: '1rem',
-                                transition: 'background-color 0.2s ease, transform 0.2s ease',
-                                '&:hover': {
-                                    bgcolor: currentRoom?._id === room._id
-                                        ? 'primary.main'
-                                        : alpha(theme.palette.primary.main, 0.3),
-                                    transform: 'scale(1.05)',
-                                }
-                            }}
-                            onClick={() => {
-                                selectRoom(room._id);
-                                if (isMobile) setMobileDrawerOpen(false);
-                            }}
-                        >
-                            {getRoomInitials(room)}
-                        </Avatar>
-                    </Tooltip>
-                ))}
-
-                <Divider sx={{ width: '100%', my: 1 }} />
-
-                {/* Create Room Button */}
-                <Tooltip title="Create Room" placement="right">
-                    <IconButton
-                        onClick={() => {
-                            setShowCreateDialog(true);
-                        }}
-                        sx={{
-                            width: 48,
-                            height: 48,
-                            bgcolor: alpha(theme.palette.success.main, 0.15),
-                            color: 'success.main',
-                            '&:hover': {
-                                bgcolor: alpha(theme.palette.success.main, 0.25),
-                            },
-                        }}
-                    >
-                        <AddIcon />
-                    </IconButton>
-                </Tooltip>
-            </Paper>
-
-            {/* Inner Sidebar - Collections */}
-            {currentRoom && (
-                <Paper
-                    variant="glass"
-                    sx={{
-                        width: 180,
-                        flexShrink: 0,
-                        borderRadius: isMobile ? 0 : '24px',
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1,
-                        overflowY: 'auto',
-                        height: '100%',
-                        ml: isMobile ? 0 : 2,
-                    }}
-                >
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                            Collections
-                        </Typography>
-                        <IconButton
-                            size="small"
-                            onClick={() => setShowCollectionDialog(true)}
-                            sx={{
-                                color: 'text.secondary',
-                                '&:hover': { color: 'primary.main' }
-                            }}
-                        >
-                            <AddIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                    </Box>
-
-                    {collections.map((collection: Collection) => (
-                        <Box
-                            key={collection._id}
-                            onClick={() => {
-                                selectCollection(collection._id);
-                                if (isMobile) setMobileDrawerOpen(false);
-                            }}
-                            onContextMenu={(e) => handleCollectionContextMenu(e, collection._id)}
-                            onTouchStart={() => handleCollectionTouchStart(collection._id)}
-                            onTouchEnd={handleCollectionTouchEnd}
-                            onTouchMove={handleCollectionTouchEnd}
-                            onDragOver={(e) => {
-                                e.preventDefault();
-                                setDropTargetId(collection._id);
-                            }}
-                            onDragLeave={() => setDropTargetId(null)}
-                            onDrop={(e) => {
-                                e.preventDefault();
-                                handleDrop(collection._id);
-                            }}
-                            sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1.5,
-                                p: 1.5,
-                                borderRadius: '10px',
-                                cursor: 'pointer',
-                                position: 'relative',
-                                transition: 'background-color 0.2s ease, border-color 0.2s ease',
-                                bgcolor:
-                                    currentCollectionId === collection._id
-                                        ? alpha(theme.palette.primary.main, 0.15)
-                                        : dropTargetId === collection._id
-                                            ? alpha(theme.palette.primary.main, 0.25)
-                                            : 'transparent',
-                                border: dropTargetId === collection._id
-                                    ? `1px dashed ${theme.palette.primary.main}`
-                                    : '1px solid transparent',
-                                '&:hover': {
-                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                },
-                            }}
-                        >
-                            <CollectionIcon
-                                sx={{
-                                    fontSize: 18,
-                                    color:
-                                        currentCollectionId === collection._id
-                                            ? 'primary.main'
-                                            : 'text.secondary',
-                                }}
-                            />
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        fontWeight: currentCollectionId === collection._id ? 600 : 400,
-                                        color:
-                                            currentCollectionId === collection._id
-                                                ? 'primary.main'
-                                                : 'text.primary',
-                                        flex: 1,
-                                    }}
-                                >
-                                    {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
-                                </Typography>
-                                {getUnviewedCountByCollection(collection._id) > 0 && (
-                                    <DotIcon
-                                        sx={{
-                                            fontSize: 10,
-                                            color: 'primary.main',
-                                        }}
-                                    />
-                                )}
-                            </Box>
-                        </Box>
-                    ))}
-                </Paper>
-            )}
-        </Box>
-    );
 
     // Loading state
     if (pqcEngineStatus !== 'operational') {
@@ -842,237 +844,221 @@ export function SocialPage() {
     }
 
     return (
-        <Box sx={{ display: 'flex', height: '100%', gap: isMobile ? 0 : 2, overflow: 'hidden', position: 'relative' }}>
-            {/* Desktop Sidebars */}
-            {!isMobile && SidebarContent}
-
-            {/* Mobile Drawer */}
-            <Drawer
-                anchor="left"
-                open={mobileDrawerOpen}
-                onClose={() => setMobileDrawerOpen(false)}
-                PaperProps={{
-                    sx: {
-                        bgcolor: 'background.default',
-                        backgroundImage: 'none',
-                        width: 'auto',
-                    }
-                }}
-            >
-                {SidebarContent}
-            </Drawer>
-
+        <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden', position: 'relative' }}>
             {/* Main Content */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0, overflow: 'hidden' }}>
-                {/* Unified Header for Mobile Accessibility */}
-                {/* Header - Always visible */}
-                {(
-                    <Paper
-                        variant="glass"
-                        sx={{
-                            p: 2,
-                            borderRadius: isMobile ? '12px' : '24px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            flexShrink: 0,
-                        }}
-                    >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            {isMobile && (
-                                <IconButton onClick={() => setMobileDrawerOpen(true)} edge="start" sx={{ mr: -1 }}>
-                                    <MenuIcon />
-                                </IconButton>
-                            )}
-                            {!isMobile && <GroupIcon sx={{ color: 'primary.main' }} />}
-                            <Box>
-                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    {currentRoom ? (decryptedNames.get(currentRoom._id) || 'Loading...') : (rooms.length > 0 ? 'Select a Room' : 'Social Rooms')}
+                {/* Header */}
+                <Paper
+                    variant="glass"
+                    sx={{
+                        p: 2,
+                        borderRadius: isMobile ? '12px' : '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexShrink: 0,
+                    }}
+                >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {/* Back button when viewing room content */}
+                        {viewMode === 'room-content' && currentRoom ? (
+                            <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: -0.5 }}>
+                                <ArrowBackIcon />
+                            </IconButton>
+                        ) : (
+                            <GroupIcon sx={{ color: 'primary.main' }} />
+                        )}
+                        <Box>
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                {viewMode === 'room-content' && currentRoom
+                                    ? (decryptedNames.get(currentRoom._id) || 'Loading...')
+                                    : 'Social Rooms'}
+                            </Typography>
+                            {viewMode === 'room-content' && currentRoom && (
+                                <Typography variant="caption" color="text.secondary">
+                                    {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
                                 </Typography>
-                                {currentRoom && (
-                                    <Typography variant="caption" color="text.secondary">
-                                        {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
-                                    </Typography>
-                                )}
-                            </Box>
+                            )}
                         </Box>
+                    </Box>
 
-                        {currentRoom && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}>
-                                {/* Search Bar */}
-                                {isSearchOpen ? (
-                                    <Box
-                                        sx={{
-                                            width: 200,
-                                            display: 'flex',
-                                            transition: 'width 0.2s ease, opacity 0.2s ease',
-                                            overflow: 'hidden'
+                    {currentRoom && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}>
+                            {/* Search Bar */}
+                            {isSearchOpen ? (
+                                <Box
+                                    sx={{
+                                        width: 200,
+                                        display: 'flex',
+                                        transition: 'width 0.2s ease, opacity 0.2s ease',
+                                        overflow: 'hidden'
+                                    }}
+                                >
+                                    <TextField
+                                        autoFocus
+                                        placeholder="Search links..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        size="small"
+                                        fullWidth
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <SearchIcon fontSize="small" color="action" />
+                                                </InputAdornment>
+                                            ),
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => {
+                                                            setSearchQuery('');
+                                                            setIsSearchOpen(false);
+                                                        }}
+                                                    >
+                                                        <CloseIcon fontSize="small" />
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            ),
                                         }}
-                                    >
-                                        <TextField
-                                            autoFocus
-                                            placeholder="Search links..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            size="small"
-                                            fullWidth
-                                            InputProps={{
-                                                startAdornment: (
-                                                    <InputAdornment position="start">
-                                                        <SearchIcon fontSize="small" color="action" />
-                                                    </InputAdornment>
-                                                ),
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => {
-                                                                setSearchQuery('');
-                                                                setIsSearchOpen(false);
-                                                            }}
-                                                        >
-                                                            <CloseIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </InputAdornment>
-                                                ),
-                                            }}
-                                            sx={{
-                                                '& .MuiOutlinedInput-root': {
-                                                    borderRadius: '14px',
-                                                    bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                                }
-                                            }}
-                                        />
-                                    </Box>
-                                ) : (
-                                    <Tooltip title="Search" key="search-icon">
-                                        <IconButton onClick={() => setIsSearchOpen(true)}>
-                                            <SearchIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                )}
-
-                                {/* Filter Button */}
-                                <Tooltip title="Filter by Uploader">
-                                    <IconButton
-                                        onClick={handleFilterClick}
                                         sx={{
-                                            color: selectedUploader ? 'primary.main' : 'text.secondary',
-                                            bgcolor: selectedUploader ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                                            '&:hover': {
-                                                color: 'primary.main',
-                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '14px',
+                                                bgcolor: alpha(theme.palette.background.paper, 0.5),
                                             }
                                         }}
-                                    >
-                                        <FilterListIcon />
+                                    />
+                                </Box>
+                            ) : (
+                                <Tooltip title="Search" key="search-icon">
+                                    <IconButton onClick={() => setIsSearchOpen(true)}>
+                                        <SearchIcon />
                                     </IconButton>
                                 </Tooltip>
+                            )}
 
-                                {/* Mobile Invite Button */}
-                                {isMobile && (
-                                    <Tooltip title="Copy Invite Link">
-                                        <IconButton onClick={handleCopyInvite} color="primary">
-                                            <ShareIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                )}
-
-                                <Menu
-                                    anchorEl={filterAnchorEl}
-                                    open={Boolean(filterAnchorEl)}
-                                    onClose={handleFilterClose}
-                                    PaperProps={{
-                                        variant: 'solid',
-                                        elevation: 8,
-                                        sx: {
-                                            minWidth: 200,
-                                            mt: 1,
-                                            bgcolor: theme.palette.background.paper, // Opaque background
-                                            backgroundImage: 'none',
-                                            border: `1px solid ${theme.palette.divider}`,
+                            {/* Filter Button */}
+                            <Tooltip title="Filter by Uploader">
+                                <IconButton
+                                    onClick={handleFilterClick}
+                                    sx={{
+                                        color: selectedUploader ? 'primary.main' : 'text.secondary',
+                                        bgcolor: selectedUploader ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                        '&:hover': {
+                                            color: 'primary.main',
+                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
                                         }
                                     }}
                                 >
+                                    <FilterListIcon />
+                                </IconButton>
+                            </Tooltip>
+
+                            {/* Mobile Invite Button */}
+                            {isMobile && (
+                                <Tooltip title="Copy Invite Link">
+                                    <IconButton onClick={handleCopyInvite} color="primary">
+                                        <ShareIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+
+                            <Menu
+                                anchorEl={filterAnchorEl}
+                                open={Boolean(filterAnchorEl)}
+                                onClose={handleFilterClose}
+                                PaperProps={{
+                                    variant: 'solid',
+                                    elevation: 8,
+                                    sx: {
+                                        minWidth: 200,
+                                        mt: 1,
+                                        bgcolor: theme.palette.background.paper, // Opaque background
+                                        backgroundImage: 'none',
+                                        border: `1px solid ${theme.palette.divider}`,
+                                    }
+                                }}
+                            >
+                                <MenuItem
+                                    onClick={() => handleSelectUploader(null)}
+                                    selected={selectedUploader === null}
+                                >
+                                    All Uploaders
+                                </MenuItem>
+                                {getUniqueUploaders().map((uploader) => (
                                     <MenuItem
-                                        onClick={() => handleSelectUploader(null)}
-                                        selected={selectedUploader === null}
+                                        key={uploader.id}
+                                        onClick={() => handleSelectUploader(uploader.id)}
+                                        selected={selectedUploader === uploader.id}
                                     >
-                                        All Uploaders
+                                        {uploader.username}
                                     </MenuItem>
-                                    {getUniqueUploaders().map((uploader) => (
-                                        <MenuItem
-                                            key={uploader.id}
-                                            onClick={() => handleSelectUploader(uploader.id)}
-                                            selected={selectedUploader === uploader.id}
-                                        >
-                                            {uploader.username}
-                                        </MenuItem>
-                                    ))}
-                                </Menu>
+                                ))}
+                            </Menu>
 
-                                {/* Desktop Link Input */}
-                                {!isMobile && (
-                                    <>
-                                        <TextField
-                                            placeholder="Paste a link to share..."
-                                            value={newLinkUrl}
-                                            onChange={(e) => setNewLinkUrl(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handlePostLink()}
-                                            size="small"
-                                            InputProps={{
-                                                startAdornment: (
-                                                    <InputAdornment position="start">
-                                                        <LinkIcon color="action" sx={{ fontSize: 18 }} />
-                                                    </InputAdornment>
-                                                ),
-                                            }}
-                                            sx={{
-                                                flex: 1,
-                                                maxWidth: 400,
-                                                '& .MuiOutlinedInput-root': {
-                                                    borderRadius: '14px',
-                                                },
-                                            }}
-                                        />
+                            {/* Desktop Link Input */}
+                            {!isMobile && (
+                                <>
+                                    <TextField
+                                        placeholder="Paste a link to share..."
+                                        value={newLinkUrl}
+                                        onChange={(e) => setNewLinkUrl(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handlePostLink()}
+                                        size="small"
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <LinkIcon color="action" sx={{ fontSize: 18 }} />
+                                                </InputAdornment>
+                                            ),
+                                        }}
+                                        sx={{
+                                            flex: 1,
+                                            maxWidth: 400,
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '14px',
+                                            },
+                                        }}
+                                    />
 
-                                        <Button
-                                            variant="contained"
-                                            onClick={() => handlePostLink()}
-                                            disabled={!newLinkUrl.trim() || isPostingLink}
-                                            sx={{ borderRadius: '14px', flexShrink: 0 }}
-                                        >
-                                            {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
-                                        </Button>
+                                    <Button
+                                        variant="contained"
+                                        onClick={() => handlePostLink()}
+                                        disabled={!newLinkUrl.trim() || isPostingLink}
+                                        sx={{ borderRadius: '14px', flexShrink: 0 }}
+                                    >
+                                        {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
+                                    </Button>
 
-                                        <Button
-                                            variant="outlined"
-                                            startIcon={<CopyIcon />}
-                                            onClick={handleCopyInvite}
-                                            sx={{ borderRadius: '14px', flexShrink: 0 }}
-                                        >
-                                            Invite
-                                        </Button>
-                                    </>
-                                )}
-                            </Box>
-                        )}
-                    </Paper>
-                )}
+                                    <Button
+                                        variant="outlined"
+                                        startIcon={<CopyIcon />}
+                                        onClick={handleCopyInvite}
+                                        sx={{ borderRadius: '14px', flexShrink: 0 }}
+                                    >
+                                        Invite
+                                    </Button>
+                                </>
+                            )}
+                        </Box>
+                    )}
+                </Paper>
 
                 {/* Main Content Area */}
                 <Box
                     sx={{
                         flex: 1,
-                        overflowY: 'auto',
-                        pr: 1,
-                        pb: isMobile ? 12 : 0,
+                        overflowX: 'hidden',
+                        overflowY: viewMode === 'rooms' ? 'auto' : 'hidden',
+                        pr: viewMode === 'rooms' ? 1 : 0,
+                        pt: viewMode === 'rooms' ? 1 : 0, // 8px padding
+                        px: viewMode === 'rooms' ? 1 : 0,
                     }}
                 >
-                    {currentRoom ? (
-                        // Room selected - show links or empty state
+                    {viewMode === 'rooms' ? (
+                        // Rooms Grid View
                         <>
-                            {isLoadingContent ? (
+                            {isLoadingRooms ? (
                                 <Box
                                     sx={{
                                         display: 'flex',
@@ -1083,91 +1069,317 @@ export function SocialPage() {
                                 >
                                     <CircularProgress />
                                 </Box>
-                            ) : filteredLinks.length > 0 ? (
-                                <Box
-                                    sx={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                                        gap: 2,
-                                    }}
-                                >
-                                    {filteredLinks.map((link: LinkPost) => (
-                                        <LinkCard
-                                            key={link._id}
-                                            link={link}
-                                            onDelete={() => deleteLink(link._id)}
-                                            onDragStart={(id) => setDraggedLinkId(id)}
-                                            onView={(id) => markLinkViewed(id)}
-                                            onUnview={(id) => unmarkLinkViewed(id)}
-                                            onCommentsClick={(l) => setCommentsLink(l)}
-                                            isViewed={viewedLinkIds.has(link._id)}
-                                            commentCount={commentCounts[link._id] || 0}
-                                            canDelete={
-                                                currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
-                                            }
-                                        />
-                                    ))}
-                                </Box>
                             ) : (
                                 <Box
                                     sx={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        height: 300,
+                                        display: 'grid',
+                                        gridTemplateColumns: {
+                                            xs: '1fr',
+                                            sm: 'repeat(2, 1fr)',
+                                            md: 'repeat(3, 1fr)',
+                                            lg: 'repeat(4, 1fr)',
+                                        },
                                         gap: 2,
+                                        pb: isMobile ? 12 : 2,
                                     }}
                                 >
-                                    <LinkIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
-                                    <Typography color="text.secondary">
-                                        No links shared yet. Be the first!
-                                    </Typography>
+                                    {rooms.map((room) => (
+                                        <RoomCard
+                                            key={room._id}
+                                            room={room}
+                                            decryptedName={decryptedNames.get(room._id) || 'Loading...'}
+                                            memberCount={room.memberCount || 1}
+                                            onSelect={() => selectRoom(room._id)}
+                                        />
+                                    ))}
+                                    <CreateRoomCard onClick={() => setShowCreateDialog(true)} />
                                 </Box>
                             )}
                         </>
                     ) : (
-                        // No room selected - show contextual message
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                height: '100%',
-                                minHeight: 300,
-                                gap: 2,
-                            }}
-                        >
-                            {isLoadingRooms ? (
-                                // Loading rooms
-                                <CircularProgress />
-                            ) : rooms.length > 0 ? (
-                                // User has rooms but none selected
-                                <>
-                                    <GroupIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
-                                    <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
-                                        Select a room from the sidebar to view shared links
-                                    </Typography>
-                                </>
-                            ) : (
-                                // User has no rooms
-                                <>
-                                    <GroupIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
-                                    <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
-                                        Create or join a room to start sharing links
-                                    </Typography>
-                                    <Button
-                                        variant="contained"
-                                        size="small"
-                                        startIcon={<AddIcon />}
-                                        onClick={() => setShowCreateDialog(true)}
-                                        sx={{ borderRadius: '12px', mt: 1 }}
-                                    >
-                                        Create Room
-                                    </Button>
-                                </>
+                        // Room Content View
+                        <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
+                            {/* Collections Sidebar */}
+                            {!isMobile && (
+                                <Paper
+                                    variant="glass"
+                                    sx={{
+                                        width: 200,
+                                        flexShrink: 0,
+                                        borderRadius: '20px',
+                                        p: 2,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 1,
+                                        height: '100%',
+                                        overflow: 'hidden',
+                                    }}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexShrink: 0 }}>
+                                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                            Collections
+                                        </Typography>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => setShowCollectionDialog(true)}
+                                            sx={{
+                                                color: 'text.secondary',
+                                                '&:hover': { color: 'primary.main' }
+                                            }}
+                                        >
+                                            <AddIcon sx={{ fontSize: 16 }} />
+                                        </IconButton>
+                                    </Box>
+
+                                    <Box sx={{
+                                        flex: 1,
+                                        overflowY: 'auto',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 1,
+                                        mx: -0.5,
+                                        px: 0.5,
+                                    }}>
+                                        {collections.map((collection) => (
+                                            <Box
+                                                key={collection._id}
+                                                onClick={() => selectCollection(collection._id)}
+                                                onContextMenu={(e) => handleCollectionContextMenu(e, collection._id)}
+                                                onTouchStart={() => handleCollectionTouchStart(collection._id)}
+                                                onTouchEnd={handleCollectionTouchEnd}
+                                                onTouchMove={handleCollectionTouchEnd}
+                                                onDragOver={(e) => {
+                                                    e.preventDefault();
+                                                    setDropTargetId(collection._id);
+                                                }}
+                                                onDragLeave={() => setDropTargetId(null)}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    handleDrop(collection._id);
+                                                }}
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 1.5,
+                                                    p: 1.5,
+                                                    borderRadius: '10px',
+                                                    cursor: 'pointer',
+                                                    position: 'relative',
+                                                    transition: 'background-color 0.15s ease',
+                                                    bgcolor:
+                                                        currentCollectionId === collection._id
+                                                            ? alpha(theme.palette.primary.main, 0.15)
+                                                            : dropTargetId === collection._id
+                                                                ? alpha(theme.palette.primary.main, 0.25)
+                                                                : 'transparent',
+                                                    border: dropTargetId === collection._id
+                                                        ? `1px dashed ${theme.palette.primary.main}`
+                                                        : '1px solid transparent',
+                                                    '&:hover': {
+                                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                    },
+                                                }}
+                                            >
+                                                <CollectionIcon
+                                                    sx={{
+                                                        fontSize: 18,
+                                                        color:
+                                                            currentCollectionId === collection._id
+                                                                ? 'primary.main'
+                                                                : 'text.secondary',
+                                                    }}
+                                                />
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            fontWeight: currentCollectionId === collection._id ? 600 : 400,
+                                                            color:
+                                                                currentCollectionId === collection._id
+                                                                    ? 'primary.main'
+                                                                    : 'text.primary',
+                                                            flex: 1,
+                                                        }}
+                                                    >
+                                                        {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
+                                                    </Typography>
+                                                    {getUnviewedCountByCollection(collection._id) > 0 && (
+                                                        <DotIcon
+                                                            sx={{
+                                                                fontSize: 10,
+                                                                color: 'primary.main',
+                                                            }}
+                                                        />
+                                                    )}
+                                                </Box>
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                </Paper>
                             )}
+
+                            {/* Mobile Collections Drawer */}
+                            <Drawer
+                                anchor="left"
+                                open={mobileDrawerOpen}
+                                onClose={() => setMobileDrawerOpen(false)}
+                                PaperProps={{
+                                    sx: {
+                                        bgcolor: 'background.default',
+                                        backgroundImage: 'none',
+                                        width: 240,
+                                        p: 2,
+                                    }
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                                    <Typography variant="h6" fontWeight={600}>Collections</Typography>
+                                    <IconButton size="small" onClick={() => setMobileDrawerOpen(false)}>
+                                        <CloseIcon />
+                                    </IconButton>
+                                </Box>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                    {collections.map((collection) => (
+                                        <Box
+                                            key={collection._id}
+                                            onClick={() => {
+                                                selectCollection(collection._id);
+                                                setMobileDrawerOpen(false);
+                                            }}
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 1.5,
+                                                p: 1.5,
+                                                borderRadius: '10px',
+                                                cursor: 'pointer',
+                                                bgcolor:
+                                                    currentCollectionId === collection._id
+                                                        ? alpha(theme.palette.primary.main, 0.15)
+                                                        : 'transparent',
+                                                '&:hover': {
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                },
+                                            }}
+                                            onTouchStart={() => handleCollectionTouchStart(collection._id)}
+                                            onTouchEnd={handleCollectionTouchEnd}
+                                            onTouchMove={handleCollectionTouchEnd}
+                                        >
+                                            <CollectionIcon
+                                                sx={{
+                                                    fontSize: 18,
+                                                    color:
+                                                        currentCollectionId === collection._id
+                                                            ? 'primary.main'
+                                                            : 'text.secondary',
+                                                }}
+                                            />
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    fontWeight: currentCollectionId === collection._id ? 600 : 400,
+                                                }}
+                                            >
+                                                {decryptedCollections.get(collection._id) || 'Collection'}
+                                            </Typography>
+                                            {getUnviewedCountByCollection(collection._id) > 0 && (
+                                                <DotIcon sx={{ fontSize: 10, color: 'primary.main', ml: 'auto' }} />
+                                            )}
+                                        </Box>
+                                    ))}
+                                    <Divider sx={{ my: 1 }} />
+                                    <Button
+                                        startIcon={<AddIcon />}
+                                        onClick={() => {
+                                            setShowCollectionDialog(true);
+                                            setMobileDrawerOpen(false);
+                                        }}
+                                        sx={{ justifyContent: 'flex-start' }}
+                                    >
+                                        New Collection
+                                    </Button>
+                                </Box>
+                            </Drawer>
+
+                            {/* Links Content */}
+                            <Box sx={{
+                                flex: 1,
+                                minWidth: 0,
+                                height: '100%',
+                                overflowX: 'hidden',
+                                overflowY: 'auto',
+                                pr: 1,
+                                pt: 1, // 8px padding to prevent any clipping
+                                px: 1, // 8px side padding
+                                pb: isMobile ? 12 : 2,
+                            }}>
+                                {/* Mobile collections button */}
+                                {isMobile && (
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<CollectionIcon />}
+                                        onClick={() => setMobileDrawerOpen(true)}
+                                        sx={{ mb: 2, borderRadius: '12px' }}
+                                    >
+                                        {decryptedCollections.get(currentCollectionId || '') || 'Collections'}
+                                    </Button>
+                                )}
+
+                                {isLoadingContent ? (
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            height: 300,
+                                        }}
+                                    >
+                                        <CircularProgress />
+                                    </Box>
+                                ) : filteredLinks.length > 0 ? (
+                                    <Box
+                                        sx={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                            gap: 2,
+                                        }}
+                                    >
+                                        {filteredLinks.map((link: LinkPost) => (
+                                            <LinkCard
+                                                key={link._id}
+                                                link={link}
+                                                onDelete={() => deleteLink(link._id)}
+                                                onDragStart={(id) => setDraggedLinkId(id)}
+                                                onView={(id) => markLinkViewed(id)}
+                                                onUnview={(id) => unmarkLinkViewed(id)}
+                                                onCommentsClick={(l) => setCommentsLink(l)}
+                                                isViewed={viewedLinkIds.has(link._id)}
+                                                commentCount={commentCounts[link._id] || 0}
+                                                canDelete={
+                                                    currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
+                                                }
+                                            />
+                                        ))}
+                                    </Box>
+                                ) : (
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            height: 300,
+                                            gap: 2,
+                                        }}
+                                    >
+                                        <LinkIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
+                                        <Typography color="text.secondary">
+                                            No links shared yet. Be the first!
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Box>
                         </Box>
                     )}
                 </Box>

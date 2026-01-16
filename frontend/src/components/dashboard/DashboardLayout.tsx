@@ -151,7 +151,7 @@ export function DashboardLayout() {
                             sx={{
                                 flexGrow: 1,
                                 p: { xs: 2, sm: 3, md: 6 },
-                                overflowY: 'auto',
+                                overflowY: { xs: 'hidden', md: 'auto' },
                                 '&::-webkit-scrollbar': { width: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: 3 }
                             }}
