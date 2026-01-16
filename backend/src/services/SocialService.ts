@@ -226,21 +226,8 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             const member = room.members.find(m => m.userId.toString() === userId);
             const collections = await this.collectionRepo.findByRoom(roomId);
 
-            // High-performance unviewed count calculation using lightweight query
-            const collectionIds = collections.map(c => c._id.toString());
-            const allLinksLight = await this.linkPostRepo.findIdsAndCollectionsByCollections(collectionIds);
-            const allLinkIds = allLinksLight.map(l => l._id.toString());
-            // Fetch viewed link IDs for the user in this room (needed for initial link batch)
-            // But we can transition to a more efficient way for the counts themselves
-            const viewedLinkIds = await this.linkViewRepo.findViewedLinkIds(userId, allLinkIds);
-            const viewedSet = new Set(viewedLinkIds);
-
-            // Aggregation-based unviewed counts calculation
-            // This is O(Collections) instead of O(Links)
-            const unviewedCounts: Record<string, number> = {};
-            collections.forEach(c => unviewedCounts[c._id.toString()] = 0);
-
-            // Fetch counts of viewed links by collection for this room
+            // Fetch viewed counts by collection for this user in this room
+            // Using the new compound index: { roomId: 1, userId: 1, collectionId: 1 }
             const viewedByCollection = await this.linkViewRepo.findMany({
                 userId: { $eq: userId as any },
                 roomId: { $eq: roomId as any }
@@ -257,8 +244,12 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 }
             });
 
-            // Need total links per collection to subtract viewed
+            // Get total links per collection in one aggregation
+            const collectionIds = collections.map(c => c._id.toString());
             const collectionStats = await this.linkPostRepo.groupCountByCollections(collectionIds);
+
+            const unviewedCounts: Record<string, number> = {};
+            collections.forEach(c => unviewedCounts[c._id.toString()] = 0);
 
             collectionStats.forEach((stat: { _id: string; count: number }) => {
                 const cid = stat._id.toString();
@@ -274,12 +265,12 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
 
             if (collections.length > 0) {
                 const firstCollectionId = collections[0]._id.toString();
-                const limit = 30; // Matches fetchCollectionLinks default
-                const { links } = await this.linkPostRepo.findByCollectionPaginated(firstCollectionId, limit, 0);
+                const limit = 30;
+                const { links } = await this.linkPostRepo.findByCollectionCursor(firstCollectionId, limit);
                 initialLinks = links;
 
                 // Get viewed status and comments for these initial links
-                const initialIds = links.map(l => l._id.toString());
+                const initialIds = links.map((l: ILinkPost) => l._id.toString());
                 const [viewed, comments] = await Promise.all([
                     this.linkViewRepo.findViewedLinkIds(userId, initialIds),
                     this.linkCommentRepo.countByLinkIds(initialIds)
@@ -320,8 +311,8 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
         userId: string,
         roomId: string,
         collectionId: string,
-        page: number = 1,
-        limit: number = 30
+        limit: number = 30,
+        beforeCursor?: { createdAt: string; id: string }
     ): Promise<{
         links: any[];
         totalCount: number;
@@ -342,15 +333,20 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Collection not found', 404);
             }
 
-            const skip = (page - 1) * limit;
-            const { links, totalCount } = await this.linkPostRepo.findByCollectionPaginated(
+            // Convert cursor strings to correct types if present
+            const cursor = beforeCursor ? {
+                createdAt: new Date(beforeCursor.createdAt),
+                id: beforeCursor.id
+            } : undefined;
+
+            const { links, totalCount } = await this.linkPostRepo.findByCollectionCursor(
                 collectionId,
                 limit,
-                skip
+                cursor
             );
 
             // Get viewed links and comment counts for these links
-            const linkIds = links.map(l => l._id.toString());
+            const linkIds = links.map((l: ILinkPost) => l._id.toString());
             const [viewedLinkIds, commentCounts] = await Promise.all([
                 this.linkViewRepo.findViewedLinkIds(userId, linkIds),
                 this.linkCommentRepo.countByLinkIds(linkIds)
@@ -359,7 +355,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             return {
                 links,
                 totalCount,
-                hasMore: skip + links.length < totalCount,
+                hasMore: links.length === limit, // With cursors, we check if we hit the limit
                 viewedLinkIds,
                 commentCounts
             };

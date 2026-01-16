@@ -103,8 +103,8 @@ const socialService = {
     getCollectionLinks: async (
         roomId: string,
         collectionId: string,
-        page: number = 1,
-        limit: number = 30
+        limit: number = 30,
+        beforeCursor?: { createdAt: string; id: string }
     ): Promise<{
         links: LinkPost[];
         totalCount: number;
@@ -114,7 +114,13 @@ const socialService = {
     }> => {
         const response = await apiClient.get(
             `/social/rooms/${roomId}/collections/${collectionId}/links`,
-            { params: { page, limit } }
+            {
+                params: {
+                    limit,
+                    cursorCreatedAt: beforeCursor?.createdAt,
+                    cursorId: beforeCursor?.id
+                }
+            }
         );
         return response.data;
     },

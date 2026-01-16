@@ -31,7 +31,6 @@ interface SocialState {
 
     // Pagination state
     hasMoreLinks: boolean;
-    currentPage: number;
 
     // Pending invite for join flow
     pendingInvite: {
@@ -49,7 +48,7 @@ interface SocialState {
     selectRoom: (roomId: string) => Promise<void>;
     refreshCurrentRoom: () => Promise<void>;
     selectCollection: (collectionId: string) => Promise<void>;
-    fetchCollectionLinks: (collectionId: string, page?: number, silent?: boolean) => Promise<void>;
+    fetchCollectionLinks: (collectionId: string, isLoadMore?: boolean, silent?: boolean) => Promise<void>;
     loadMoreLinks: () => Promise<void>;
     createRoom: (name: string, description: string, icon?: string) => Promise<Room>;
     joinRoom: (inviteCode: string, roomKey: CryptoKey) => Promise<void>;
@@ -220,7 +219,6 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     isLoadingContent: false,
     isLoadingLinks: false,
     hasMoreLinks: false,
-    currentPage: 1,
     unviewedCounts: {},
     error: null,
     pendingInvite: null,
@@ -331,7 +329,6 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 commentCounts: content.commentCounts || {},
                 rooms: updatedRooms,
                 currentCollectionId: firstCollectionId,
-                currentPage: 1,
                 hasMoreLinks: (content.links?.length || 0) === 30 // Assume more if first page is full
             });
 
@@ -342,7 +339,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             // Auto-load first collection links if NOT already provided in content
             // (In the optimized version, content.links should already have the first page)
             if (firstCollectionId && (!content.links || content.links.length === 0)) {
-                await get().fetchCollectionLinks(firstCollectionId, 1);
+                await get().fetchCollectionLinks(firstCollectionId, false);
             }
 
             set({ isLoadingContent: false });
@@ -401,67 +398,76 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         set({
             currentCollectionId: collectionId,
             links: [], // Clear existing links when switching
-            currentPage: 1,
             hasMoreLinks: false
         });
 
-        await get().fetchCollectionLinks(collectionId, 1);
+        await get().fetchCollectionLinks(collectionId, false);
     },
 
-    fetchCollectionLinks: async (collectionId: string, page: number = 1, silent: boolean = false) => {
+    fetchCollectionLinks: async (collectionId: string, isLoadMore: boolean = false, silent: boolean = false) => {
         const state = get();
         if (!state.currentRoom) return;
 
-        if (!silent) {
+        if (!silent && !isLoadMore) {
             set({ isLoadingLinks: true });
+        }
+
+        // Calculate cursor: undefined for first load/refresh, derived from last link for loadMore
+        let beforeCursor: { createdAt: string; id: string } | undefined;
+        if (isLoadMore && state.links.length > 0) {
+            const lastLink = state.links[state.links.length - 1];
+            beforeCursor = {
+                createdAt: lastLink.createdAt,
+                id: lastLink._id
+            };
         }
 
         try {
             const result = await socialService.getCollectionLinks(
                 state.currentRoom._id,
                 collectionId,
-                page,
-                30
+                30,
+                beforeCursor
             );
 
             set((prev) => {
                 let newLinks = prev.links;
 
-                if (page === 1) {
-                    // Update current list with new first page links
-                    // We merge to avoid duplicates and preserve links loaded from subsequent pages
-                    const existingLinkIds = new Set(prev.links.map(l => l._id));
-                    const refreshedLinks = result.links;
-
+                if (!isLoadMore) {
+                    // Initial Load / Refresh
                     if (silent) {
-                        // For silent refresh, we want to prepend new items and update counts for existing items
+                        // Silent update: Merge/Prepend
+                        const existingLinkIds = new Set(prev.links.map(l => l._id));
+                        const refreshedLinks = result.links;
+
                         const newItems = refreshedLinks.filter(l => !existingLinkIds.has(l._id));
-                        // Create a map for quick lookup of existing items to update them if they are in the refreshed list
                         const refreshedMap = new Map(refreshedLinks.map(l => [l._id, l]));
 
+                        // Update existing items in place
                         newLinks = prev.links.map(l => refreshedMap.get(l._id) || l);
+                        // Add new items at top
                         newLinks = [...newItems, ...newLinks];
                     } else {
-                        // For manual fetch (like switching rooms), we just use the new list
-                        newLinks = refreshedLinks;
+                        // Hard replace
+                        newLinks = result.links;
                     }
                 } else {
-                    // Just append for subsequent pages
+                    // Load More: Append
                     const existingIds = new Set(prev.links.map(l => l._id));
+                    // Filter duplicates just in case
                     const uniqueNewLinks = result.links.filter(l => !existingIds.has(l._id));
                     newLinks = [...prev.links, ...uniqueNewLinks];
                 }
 
                 return {
                     links: newLinks,
-                    viewedLinkIds: (page === 1 && !silent)
+                    viewedLinkIds: (!isLoadMore && !silent)
                         ? new Set(result.viewedLinkIds)
                         : new Set([...prev.viewedLinkIds, ...result.viewedLinkIds]),
-                    commentCounts: (page === 1 && !silent)
+                    commentCounts: (!isLoadMore && !silent)
                         ? result.commentCounts
                         : { ...prev.commentCounts, ...result.commentCounts },
                     hasMoreLinks: result.hasMore,
-                    currentPage: Math.max(prev.currentPage, page),
                     isLoadingLinks: false
                 };
             });
@@ -475,7 +481,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         const state = get();
         if (!state.currentCollectionId || !state.hasMoreLinks || state.isLoadingLinks) return;
 
-        await get().fetchCollectionLinks(state.currentCollectionId, state.currentPage + 1);
+        await get().fetchCollectionLinks(state.currentCollectionId, true);
     },
 
     createRoom: async (name: string, description: string, icon?: string) => {
@@ -769,7 +775,6 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             isLoadingContent: false,
             isLoadingLinks: false,
             hasMoreLinks: false,
-            currentPage: 1,
             pendingInvite: null,
             roomKeys: new Map(),
             error: null,

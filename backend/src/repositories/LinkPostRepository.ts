@@ -36,26 +36,32 @@ export class LinkPostRepository extends BaseRepository<ILinkPost> {
     }
 
     /**
-     * Find links by single collection with pagination
+     * Find links by single collection with cursor-based pagination
+     * Uses createdAt + _id as a stable cursor
      */
-    async findByCollectionPaginated(
+    async findByCollectionCursor(
         collectionId: string,
         limit: number = 30,
-        skip: number = 0
+        beforeCursor?: { createdAt: Date; id: string }
     ): Promise<{ links: ILinkPost[]; totalCount: number }> {
+        const query: any = { collectionId: { $eq: collectionId as any } };
+
+        if (beforeCursor) {
+            query.$or = [
+                { createdAt: { $lt: beforeCursor.createdAt } },
+                { createdAt: beforeCursor.createdAt, _id: { $lt: new mongoose.Types.ObjectId(beforeCursor.id) } }
+            ];
+        }
+
         const [links, totalCount] = await Promise.all([
-            this.findMany({
-                collectionId: { $eq: collectionId as any }
-            } as SafeFilter<ILinkPost>, {
-                sort: { createdAt: -1 },
+            this.findMany(query as SafeFilter<ILinkPost>, {
+                sort: { createdAt: -1, _id: -1 },
                 populate: { path: 'userId', select: 'username' },
-                limit,
-                skip
+                limit
             }),
-            this.count({
-                collectionId: { $eq: collectionId as any }
-            } as SafeFilter<ILinkPost>)
+            this.count({ collectionId: { $eq: collectionId as any } } as SafeFilter<ILinkPost>)
         ]);
+
         return { links, totalCount };
     }
 

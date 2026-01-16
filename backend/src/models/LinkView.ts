@@ -23,6 +23,6 @@ LinkViewSchema.index({ linkId: 1, userId: 1 }, { unique: true });
 LinkViewSchema.index({ userId: 1 });
 
 // Index for room-wide unviewed count aggregation
-LinkViewSchema.index({ roomId: 1, userId: 1 });
+LinkViewSchema.index({ roomId: 1, userId: 1, collectionId: 1 });
 
 export default mongoose.model<ILinkView>('LinkView', LinkViewSchema);

@@ -86,15 +86,21 @@ export const getCollectionLinks = async (req: AuthRequest, res: Response, next: 
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        const page = parseInt(req.query.page as string) || 1;
+        const cursorCreatedAt = req.query.cursorCreatedAt as string;
+        const cursorId = req.query.cursorId as string;
         const limit = parseInt(req.query.limit as string) || 30;
+
+        const beforeCursor = cursorCreatedAt && cursorId ? {
+            createdAt: cursorCreatedAt,
+            id: cursorId
+        } : undefined;
 
         const result = await socialService.getCollectionLinks(
             req.user.id,
             req.params.roomId,
             req.params.collectionId,
-            page,
-            limit
+            limit,
+            beforeCursor
         );
         res.status(200).json(result);
     } catch (error) {
