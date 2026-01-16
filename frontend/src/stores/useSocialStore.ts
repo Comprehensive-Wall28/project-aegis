@@ -22,6 +22,7 @@ interface SocialState {
     viewedLinkIds: Set<string>;
     commentCounts: Record<string, number>;
     unviewedCounts: Record<string, number>;
+    error: string | null;
 
     // Loading states
     isLoadingRooms: boolean;
@@ -64,6 +65,7 @@ interface SocialState {
     setPendingInvite: (invite: SocialState['pendingInvite']) => void;
     decryptRoomMetadata: (room: Room) => Promise<{ name: string; description: string }>;
     decryptCollectionMetadata: (collection: Collection) => Promise<{ name: string }>;
+    clearError: () => void;
     clearSocial: () => void;
     // Real-time setup
     setupSocketListeners: () => void;
@@ -220,6 +222,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     hasMoreLinks: false,
     currentPage: 1,
     unviewedCounts: {},
+    error: null,
     pendingInvite: null,
     roomKeys: new Map(),
 
@@ -264,7 +267,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     },
 
     selectRoom: async (roomId: string) => {
-        set({ isLoadingContent: true, currentCollectionId: null });
+        set({ isLoadingContent: true, currentCollectionId: null, error: null });
         const { setCryptoStatus } = useSessionStore.getState();
         try {
             const content: RoomContent = await socialService.getRoomContent(roomId);
@@ -319,10 +322,11 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             }
 
             set({ isLoadingContent: false });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to select room:', error);
+            const message = error.response?.data?.message || error.message || 'Failed to access room';
             setCryptoStatus('idle');
-            set({ isLoadingContent: false });
+            set({ isLoadingContent: false, error: message });
         }
     },
 
@@ -722,6 +726,10 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         }
     },
 
+    clearError: () => {
+        set({ error: null });
+    },
+
     clearSocial: () => {
         socketService.disconnect();
         set({
@@ -740,6 +748,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             currentPage: 1,
             pendingInvite: null,
             roomKeys: new Map(),
+            error: null,
         });
     },
 
