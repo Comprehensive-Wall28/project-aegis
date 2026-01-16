@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Shield as VaultIcon,
     BarChart as LineChartIcon,
-    Fingerprint as FingerprintIcon,
+    // Fingerprint as FingerprintIcon,
     Settings as SettingsIcon,
     Logout as LogOutIcon,
     ChevronLeft as ChevronLeftIcon,
@@ -42,7 +42,7 @@ const navItems = [
     { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
     { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
     { name: 'Tasks', href: '/dashboard/tasks', icon: TasksIcon },
-    { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
+    // { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
     { name: 'Security', href: '/dashboard/security', icon: SettingsIcon },
 ];
 
@@ -84,11 +84,8 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 2,
                     height: 56,
-                    px: 2,
                     borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                    justifyContent: isCollapsed ? 'center' : 'flex-start',
                     textDecoration: 'none',
                     color: 'inherit',
                     '&:hover': {
@@ -97,21 +94,30 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                     }
                 }}
             >
-                <AegisLogo size={28} disableLink className="logo-hover transition-opacity" />
-                <AnimatePresence>
+                <Box
+                    sx={{
+                        minWidth: 64,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    }}
+                >
+                    <AegisLogo size={28} disableLink className="logo-hover transition-opacity" />
+                </Box>
+                <AnimatePresence mode="wait">
                     {!isCollapsed && (
                         <Typography
                             component={motion.span}
-                            initial={{ opacity: 0, width: 0 }}
-                            animate={{ opacity: 1, width: 'auto' }}
-                            exit={{ opacity: 0, width: 0 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
                             variant="h6"
                             sx={{
                                 fontWeight: 800,
                                 color: 'text.primary',
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
-                                transition: 'color 0.2s'
                             }}
                         >
                             Aegis
@@ -136,8 +142,8 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                                         onClick={() => onClose?.()}
                                         sx={{
                                             minHeight: 48,
-                                            justifyContent: isCollapsed ? 'center' : 'initial',
-                                            px: 2.5,
+                                            justifyContent: 'initial',
+                                            px: 0,
                                             borderRadius: 3,
                                             bgcolor: isActive ? alpha(theme.palette.primary.main, 0.06) : 'transparent',
                                             color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
@@ -153,8 +159,8 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                                     >
                                         <ListItemIcon
                                             sx={{
-                                                minWidth: 0,
-                                                mr: isCollapsed ? 0 : 3,
+                                                minWidth: 48,
+                                                mr: 0,
                                                 justifyContent: 'center',
                                                 color: 'inherit'
                                             }}
@@ -217,8 +223,8 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                             onClick={handleLogout}
                             sx={{
                                 minHeight: 48,
-                                justifyContent: isCollapsed ? 'center' : 'initial',
-                                px: 2.5,
+                                justifyContent: 'initial',
+                                px: 0,
                                 borderRadius: 3,
                                 color: theme.palette.text.secondary,
                                 '&:hover': {
@@ -229,8 +235,8 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                         >
                             <ListItemIcon
                                 sx={{
-                                    minWidth: 0,
-                                    mr: isCollapsed ? 0 : 3,
+                                    minWidth: 48,
+                                    mr: 0,
                                     justifyContent: 'center',
                                     color: 'inherit'
                                 }}
