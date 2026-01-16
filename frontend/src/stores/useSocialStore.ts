@@ -42,6 +42,9 @@ interface SocialState {
     // Room key cache (decrypted room keys)
     roomKeys: Map<string, CryptoKey>;
 
+    // Collection Content Cache
+    linksCache: Record<string, { links: LinkPost[]; hasMore: boolean }>;
+
     // Actions
     fetchRooms: () => Promise<void>;
 
@@ -223,6 +226,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     error: null,
     pendingInvite: null,
     roomKeys: new Map(),
+    linksCache: {},
 
     fetchRooms: async () => {
         set({ isLoadingRooms: true });
@@ -329,7 +333,8 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 commentCounts: content.commentCounts || {},
                 rooms: updatedRooms,
                 currentCollectionId: firstCollectionId,
-                hasMoreLinks: (content.links?.length || 0) === 30 // Assume more if first page is full
+                hasMoreLinks: (content.links?.length || 0) === 30, // Assume more if first page is full
+                linksCache: {}, // Clear cache on room switch to avoid stale data
             });
 
             // Join socket room
@@ -394,6 +399,18 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     selectCollection: async (collectionId: string) => {
         const state = get();
         if (state.currentCollectionId === collectionId) return;
+
+        // Check cache
+        const cached = state.linksCache[collectionId];
+        if (cached) {
+            set({
+                currentCollectionId: collectionId,
+                links: cached.links,
+                hasMoreLinks: cached.hasMore,
+                // We trust the socket to have kept the cache updated.
+            });
+            return;
+        }
 
         set({
             currentCollectionId: collectionId,
@@ -468,7 +485,14 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                         ? result.commentCounts
                         : { ...prev.commentCounts, ...result.commentCounts },
                     hasMoreLinks: result.hasMore,
-                    isLoadingLinks: false
+                    isLoadingLinks: false,
+                    linksCache: {
+                        ...prev.linksCache,
+                        [collectionId]: {
+                            links: newLinks,
+                            hasMore: result.hasMore
+                        }
+                    }
                 };
             });
         } catch (error) {
@@ -596,6 +620,28 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         return collection;
     },
 
+    deleteCollection: async (collectionId: string) => {
+        await socialService.deleteCollection(collectionId);
+        const state = get();
+
+        // Remove collection from list
+        const updatedCollections = state.collections.filter(c => c._id !== collectionId);
+
+        // Remove links in that collection
+        const updatedLinks = state.links.filter(l => l.collectionId !== collectionId);
+
+        // If the deleted collection was selected, select the first available or null
+        const newCollectionId = state.currentCollectionId === collectionId
+            ? (updatedCollections[0]?._id || null)
+            : state.currentCollectionId;
+
+        set({
+            collections: updatedCollections,
+            links: updatedLinks,
+            currentCollectionId: newCollectionId,
+        });
+    },
+
     moveLink: async (linkId: string, collectionId: string) => {
         await socialService.moveLink(linkId, collectionId);
         const state = get();
@@ -680,28 +726,6 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         return state.unviewedCounts[collectionId] || 0;
     },
 
-    deleteCollection: async (collectionId: string) => {
-        await socialService.deleteCollection(collectionId);
-        const state = get();
-
-        // Remove collection from list
-        const updatedCollections = state.collections.filter(c => c._id !== collectionId);
-
-        // Remove links in that collection
-        const updatedLinks = state.links.filter(l => l.collectionId !== collectionId);
-
-        // If the deleted collection was selected, select the first available or null
-        const newCollectionId = state.currentCollectionId === collectionId
-            ? (updatedCollections[0]?._id || null)
-            : state.currentCollectionId;
-
-        set({
-            collections: updatedCollections,
-            links: updatedLinks,
-            currentCollectionId: newCollectionId,
-        });
-    },
-
     createInvite: async (roomId: string) => {
         const state = get();
         const roomKey = state.roomKeys.get(roomId);
@@ -778,6 +802,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             pendingInvite: null,
             roomKeys: new Map(),
             error: null,
+            linksCache: {},
         });
     },
 
@@ -785,6 +810,10 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         // Remove existing listeners to avoid duplicates
         socketService.off('NEW_LINK', () => { });
         socketService.off('NEW_COMMENT', () => { });
+        socketService.off('LINK_UPDATED', () => { });
+        socketService.off('LINK_DELETED', () => { });
+        socketService.off('LINK_MOVED', () => { });
+        socketService.off('connect', () => { });
 
         socketService.on('NEW_LINK', (data: { link: LinkPost, collectionId: string }) => {
             const currentState = get();
@@ -798,6 +827,23 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                     }));
                 }
             }
+
+            // Update cache regardless of current view
+            const cache = currentState.linksCache[data.collectionId];
+            if (cache) {
+                 const exists = cache.links.some(l => l._id === data.link._id);
+                 if (!exists) {
+                     set((prev) => ({
+                         linksCache: {
+                             ...prev.linksCache,
+                             [data.collectionId]: {
+                                 ...cache,
+                                 links: [data.link, ...cache.links]
+                             }
+                         }
+                     }));
+                 }
+            }
         });
 
         socketService.on('NEW_COMMENT', (data: { linkId: string, commentCount: number }) => {
@@ -810,15 +856,52 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         });
 
         socketService.on('LINK_UPDATED', (data: { link: LinkPost }) => {
-            set((prev) => ({
-                links: prev.links.map(l => l._id === data.link._id ? data.link : l)
-            }));
+            set((prev) => {
+                const updatedLinks = prev.links.map(l => l._id === data.link._id ? data.link : l);
+                
+                const collectionId = data.link.collectionId;
+                const cache = prev.linksCache[collectionId];
+                
+                let newCache = prev.linksCache;
+                if (cache) {
+                    newCache = {
+                        ...prev.linksCache,
+                        [collectionId]: {
+                            ...cache,
+                            links: cache.links.map(l => l._id === data.link._id ? data.link : l)
+                        }
+                    };
+                }
+
+                return {
+                    links: updatedLinks,
+                    linksCache: newCache
+                };
+            });
         });
 
         socketService.on('LINK_DELETED', (data: { linkId: string, collectionId: string }) => {
-            set((prev) => ({
-                links: prev.links.filter(l => l._id !== data.linkId)
-            }));
+            set((prev) => {
+                const updatedLinks = prev.links.filter(l => l._id !== data.linkId);
+                
+                const cache = prev.linksCache[data.collectionId];
+                let newCache = prev.linksCache;
+                
+                if (cache) {
+                    newCache = {
+                        ...prev.linksCache,
+                        [data.collectionId]: {
+                            ...cache,
+                            links: cache.links.filter(l => l._id !== data.linkId)
+                        }
+                    };
+                }
+                
+                return {
+                    links: updatedLinks,
+                    linksCache: newCache
+                };
+            });
         });
 
         socketService.on('LINK_MOVED', (data: { linkId: string, newCollectionId: string, link: LinkPost }) => {
@@ -837,10 +920,61 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                     }));
                 }
             } else {
-                // If moved AWAY from current collection, remove it
+                // Should we remove it from current view if it was there?
                 set((prev) => ({
                     links: prev.links.filter(l => l._id !== data.linkId)
                 }));
+            }
+
+            // Update Cache
+            set((prev) => {
+                let newCache = { ...prev.linksCache };
+                
+                // Remove from all potential old locations in cache
+                Object.keys(newCache).forEach(cId => {
+                    const cache = newCache[cId];
+                    
+                    if (cId === data.newCollectionId) {
+                         // Add to new
+                         const exists = cache.links.some(l => l._id === data.linkId);
+                         if (!exists) {
+                             newCache[cId] = {
+                                 ...cache,
+                                 links: [data.link, ...cache.links]
+                             };
+                         }
+                    } else {
+                        // Remove from others
+                         if (cache.links.some(l => l._id === data.linkId)) {
+                             newCache[cId] = {
+                                 ...cache,
+                                 links: cache.links.filter(l => l._id !== data.linkId)
+                             };
+                         }
+                    }
+                });
+
+                return { linksCache: newCache };
+            });
+        });
+
+        // Graceful Reconnection Handling
+        socketService.on('connect', () => {
+            const state = get();
+            console.log('Socket Connected/Reconnected');
+            
+            // If we are in a room, we must re-join it because the new socket doesn't know about it.
+            if (state.currentRoom) {
+                console.log('Re-joining room:', state.currentRoom._id);
+                socketService.joinRoom(state.currentRoom._id);
+                
+                // Invalidate cache to ensure we fetch fresh data, as we might have missed events while disconnected.
+                set({ linksCache: {} });
+                
+                // Refresh the current view immediately so the user sees correct data
+                if (state.currentCollectionId) {
+                    get().fetchCollectionLinks(state.currentCollectionId, false, true); // silent refresh
+                }
             }
         });
     }
