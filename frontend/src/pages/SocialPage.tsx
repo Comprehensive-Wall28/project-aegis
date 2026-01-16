@@ -71,8 +71,6 @@ export function SocialPage() {
     const deleteCollection = useSocialStore((state) => state.deleteCollection);
     const moveLink = useSocialStore((state) => state.moveLink);
     const createInvite = useSocialStore((state) => state.createInvite);
-    const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
-    const decryptCollectionMetadata = useSocialStore((state) => state.decryptCollectionMetadata);
     const markLinkViewed = useSocialStore((state) => state.markLinkViewed);
     const unmarkLinkViewed = useSocialStore((state) => state.unmarkLinkViewed);
     const getUnviewedCountByCollection = useSocialStore((state) => state.getUnviewedCountByCollection);
@@ -96,8 +94,6 @@ export function SocialPage() {
     const [isPostingLink, setIsPostingLink] = useState(false);
     const [draggedLinkId, setDraggedLinkId] = useState<string | null>(null);
     const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-    const [decryptedNames, setDecryptedNames] = useState<Map<string, string>>(new Map());
-    const [decryptedCollections, setDecryptedCollections] = useState<Map<string, string>>(new Map());
     const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedUploader, setSelectedUploader] = useState<string | null>(null);
 
@@ -164,43 +160,11 @@ export function SocialPage() {
 
     // Auto-refresh removed in favor of real-time socket updates
 
-    // Decrypt room names when rooms change
-    useEffect(() => {
-        const decryptNames = async () => {
-            const results = await Promise.all(rooms.map(async (room) => {
-                try {
-                    const { name } = await decryptRoomMetadata(room);
-                    return [room._id, name];
-                } catch {
-                    return [room._id, room.name.substring(0, 2)];
-                }
-            }));
-            setDecryptedNames(new Map(results as [string, string][]));
-        };
+    // Decrypt room names - REMOVED for Lazy Decryption
+    // Room components now handle their own decryption or display encrypted state
 
-        if (rooms.length > 0) {
-            decryptNames();
-        }
-    }, [rooms, decryptRoomMetadata]);
-
-    // Decrypt collection names when they change
-    useEffect(() => {
-        const decryptNames = async () => {
-            const results = await Promise.all(collections.map(async (col) => {
-                try {
-                    const { name } = await decryptCollectionMetadata(col);
-                    return [col._id, name];
-                } catch {
-                    return [col._id, 'Encrypted Collection'];
-                }
-            }));
-            setDecryptedCollections(new Map(results as [string, string][]));
-        };
-
-        if (collections.length > 0) {
-            decryptNames();
-        }
-    }, [collections, decryptCollectionMetadata]);
+    // Decrypt collection names - REMOVED for Lazy Decryption
+    // Sidebar handles collection name decryption lazily
 
     // Scroll links to top when collection changes
     useEffect(() => {
@@ -494,7 +458,6 @@ export function SocialPage() {
                                 isMobile={isMobile}
                                 optimisticRoomId={optimisticRoomId}
                                 currentRoom={currentRoom}
-                                decryptedNames={decryptedNames}
                                 handleExitRoom={handleExitRoom}
                                 searchQuery={searchQuery}
                                 setSearchQuery={setSearchQuery}
@@ -548,8 +511,6 @@ export function SocialPage() {
                                                         <RoomCard
                                                             key={room._id}
                                                             room={room}
-                                                            decryptedName={decryptedNames.get(room._id) || 'Loading...'}
-                                                            memberCount={room.memberCount || 1}
                                                             onSelect={() => handleSelectRoom(room._id)}
                                                         />
                                                     ))}
@@ -577,7 +538,6 @@ export function SocialPage() {
                                                 handleCollectionTouchStart={handleCollectionTouchStart}
                                                 handleCollectionTouchEnd={handleCollectionTouchEnd}
                                                 isLoadingContent={isLoadingContent}
-                                                decryptedCollections={decryptedCollections}
                                                 dropTargetId={dropTargetId}
                                                 setDropTargetId={setDropTargetId}
                                                 handleDrop={handleDrop}
@@ -589,7 +549,7 @@ export function SocialPage() {
                                                 linksContainerRef={linksContainerRef}
                                                 isMobile={isMobile}
                                                 currentCollectionId={currentCollectionId}
-                                                decryptedCollections={decryptedCollections}
+                                                collections={collections}
                                                 setMobileDrawerOpen={setMobileDrawerOpen}
                                                 searchQuery={searchQuery}
                                                 setSearchQuery={setSearchQuery}
@@ -683,7 +643,7 @@ export function SocialPage() {
                             <ConfirmDialog
                                 open={deleteConfirmOpen}
                                 title="Delete Collection"
-                                message={`Are you sure you want to delete "${collectionToDelete ? decryptedCollections.get(collectionToDelete!) || 'this collection' : ''}"? All links in this collection will be permanently deleted.`}
+                                message="Are you sure you want to delete this collection? All links in this collection will be permanently deleted."
                                 confirmText="Delete"
                                 onConfirm={handleDeleteCollection}
                                 onCancel={() => {
@@ -719,8 +679,8 @@ export function SocialPage() {
                     commentsLink && currentRoom && (
                         <CommentsOverlay
                             open={!!commentsLink}
+                            link={commentsLink}
                             onClose={() => setCommentsLink(null)}
-                            link={commentsLink!}
                             currentUserId={currentUserId}
                             encryptComment={async (text) => {
                                 if (!currentRoom) throw new Error('No room selected');

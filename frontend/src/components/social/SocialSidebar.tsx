@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState, useEffect } from 'react';
 import {
     Box,
     Paper,
@@ -10,6 +10,7 @@ import {
     Divider,
     Button,
     Badge,
+    Skeleton,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -17,6 +18,128 @@ import {
     Close as CloseIcon,
 } from '@mui/icons-material';
 import { CollectionSkeleton } from './SocialSkeletons';
+import { useSocialStore } from '@/stores/useSocialStore';
+
+interface CollectionItemProps {
+    collection: any;
+    isActive: boolean;
+    isTarget: boolean;
+    unviewedCount: number;
+    isMobileView: boolean;
+    onClick: () => void;
+    onContextMenu: (e: React.MouseEvent) => void;
+    onTouchStart: () => void;
+    onTouchEnd: () => void;
+    onDragOver: (e: React.DragEvent) => void;
+    onDragLeave: () => void;
+    onDrop: (e: React.DragEvent) => void;
+}
+
+const CollectionItem = memo(({
+    collection,
+    isActive,
+    isTarget,
+    unviewedCount,
+    onClick,
+    onContextMenu,
+    onTouchStart,
+    onTouchEnd,
+    onDragOver,
+    onDragLeave,
+    onDrop,
+}: CollectionItemProps) => {
+    const theme = useTheme();
+    const decryptCollectionMetadata = useSocialStore((state) => state.decryptCollectionMetadata);
+    const [decryptedName, setDecryptedName] = useState<string | null>(null);
+    const [isDecrypting, setIsDecrypting] = useState(false);
+
+    useEffect(() => {
+        const decrypt = async () => {
+            if (collection.type === 'links' && !collection.name) {
+                setDecryptedName('Links');
+                return;
+            }
+            setIsDecrypting(true);
+            try {
+                const { name } = await decryptCollectionMetadata(collection);
+                setDecryptedName(name);
+            } catch (err) {
+                console.error('Failed to decrypt collection metadata:', err);
+                setDecryptedName('Encrypted');
+            } finally {
+                setIsDecrypting(false);
+            }
+        };
+
+        decrypt();
+    }, [collection, decryptCollectionMetadata]);
+
+    return (
+        <Box
+            onClick={onClick}
+            onContextMenu={onContextMenu}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+            onTouchMove={onTouchEnd}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                p: 1.5,
+                borderRadius: '10px',
+                cursor: 'pointer',
+                position: 'relative',
+                transition: 'background-color 0.15s ease',
+                bgcolor: isActive
+                    ? alpha(theme.palette.primary.main, 0.15)
+                    : isTarget
+                        ? alpha(theme.palette.primary.main, 0.25)
+                        : 'transparent',
+                border: isTarget
+                    ? `1px dashed ${theme.palette.primary.main}`
+                    : '1px solid transparent',
+                '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                },
+            }}
+        >
+            <Badge
+                variant="dot"
+                color="primary"
+                invisible={unviewedCount === 0}
+                sx={{
+                    '& .MuiBadge-badge': {
+                        border: `2px solid ${theme.palette.background.paper}`,
+                        padding: '0 4px',
+                    }
+                }}
+            >
+                <CollectionIcon
+                    sx={{
+                        fontSize: 18,
+                        color: isActive ? 'primary.main' : 'text.secondary',
+                    }}
+                />
+            </Badge>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+                <Typography
+                    variant="body2"
+                    noWrap
+                    sx={{
+                        fontWeight: isActive ? 600 : 400,
+                        color: isActive ? 'primary.main' : 'text.primary',
+                        flex: 1,
+                    }}
+                >
+                    {isDecrypting ? <Skeleton width="80%" /> : (decryptedName || '...')}
+                </Typography>
+            </Box>
+        </Box>
+    );
+});
 
 interface SocialSidebarProps {
     isMobile: boolean;
@@ -29,7 +152,6 @@ interface SocialSidebarProps {
     handleCollectionTouchStart: (id: string) => void;
     handleCollectionTouchEnd: () => void;
     isLoadingContent: boolean;
-    decryptedCollections: Map<string, string>;
     dropTargetId: string | null;
     setDropTargetId: (id: string | null) => void;
     handleDrop: (id: string) => void;
@@ -48,23 +170,22 @@ export const SocialSidebar = memo(({
     handleCollectionTouchStart,
     handleCollectionTouchEnd,
     isLoadingContent,
-    decryptedCollections,
     dropTargetId,
     setDropTargetId,
     handleDrop,
     getUnviewedCountByCollection,
     setShowCollectionDialog,
 }: SocialSidebarProps) => {
-    const theme = useTheme();
 
     const renderCollectionItem = (collection: any, isMobileView = false) => {
-        const isActive = currentCollectionId === collection._id;
-        const isTarget = dropTargetId === collection._id;
-        const unviewedCount = getUnviewedCountByCollection(collection._id);
-
         return (
-            <Box
+            <CollectionItem
                 key={collection._id}
+                collection={collection}
+                isActive={currentCollectionId === collection._id}
+                isTarget={dropTargetId === collection._id}
+                unviewedCount={getUnviewedCountByCollection(collection._id)}
+                isMobileView={isMobileView}
                 onClick={() => {
                     selectCollection(collection._id);
                     if (isMobileView) setMobileDrawerOpen(false);
@@ -72,7 +193,6 @@ export const SocialSidebar = memo(({
                 onContextMenu={(e) => handleCollectionContextMenu(e, collection._id)}
                 onTouchStart={() => handleCollectionTouchStart(collection._id)}
                 onTouchEnd={handleCollectionTouchEnd}
-                onTouchMove={handleCollectionTouchEnd}
                 onDragOver={(e) => {
                     if (!isMobileView) {
                         e.preventDefault();
@@ -86,60 +206,7 @@ export const SocialSidebar = memo(({
                         handleDrop(collection._id);
                     }
                 }}
-                sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    p: 1.5,
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    transition: 'background-color 0.15s ease',
-                    bgcolor: isActive
-                        ? alpha(theme.palette.primary.main, 0.15)
-                        : isTarget
-                            ? alpha(theme.palette.primary.main, 0.25)
-                            : 'transparent',
-                    border: isTarget
-                        ? `1px dashed ${theme.palette.primary.main}`
-                        : '1px solid transparent',
-                    '&:hover': {
-                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                    },
-                }}
-            >
-                <Badge
-                    variant="dot"
-                    color="primary"
-                    invisible={unviewedCount === 0}
-                    sx={{
-                        '& .MuiBadge-badge': {
-                            border: `2px solid ${theme.palette.background.paper}`,
-                            padding: '0 4px',
-                        }
-                    }}
-                >
-                    <CollectionIcon
-                        sx={{
-                            fontSize: 18,
-                            color: isActive ? 'primary.main' : 'text.secondary',
-                        }}
-                    />
-                </Badge>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
-                    <Typography
-                        variant="body2"
-                        noWrap
-                        sx={{
-                            fontWeight: isActive ? 600 : 400,
-                            color: isActive ? 'primary.main' : 'text.primary',
-                            flex: 1,
-                        }}
-                    >
-                        {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
-                    </Typography>
-                </Box>
-            </Box>
+            />
         );
     };
 
@@ -230,6 +297,6 @@ export const SocialSidebar = memo(({
                     collections.map((collection) => renderCollectionItem(collection))
                 )}
             </Box>
-        </Paper>
+        </Paper >
     );
 });

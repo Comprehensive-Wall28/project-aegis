@@ -237,37 +237,60 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             }
 
             const rooms = await socialService.getUserRooms();
-            const state = get();
-
-            // Decrypt room keys for each room
-            if (rooms.length > 0) {
-                setCryptoStatus('decrypting');
-            }
-            for (const room of rooms) {
-                if (room.encryptedRoomKey && !state.roomKeys.has(room._id)) {
-                    try {
-                        const roomKey = await decryptRoomKeyWithPQC(
-                            room.encryptedRoomKey,
-                            sessionUser.privateKey
-                        );
-                        state.roomKeys.set(room._id, roomKey);
-                    } catch (err) {
-                        console.error(`Failed to decrypt key for room ${room._id}:`, err);
-                    }
-                }
-            }
-            setCryptoStatus('idle');
-
             set({ rooms, isLoadingRooms: false });
+
+            // Proactive Background Decryption (Phase 3)
+            // Decrypt keys as soon as we land on /social to make room entry instant
+            const state = get();
+            const roomsToDecrypt = rooms.filter(r => r.encryptedRoomKey && !state.roomKeys.has(r._id));
+
+            if (roomsToDecrypt.length > 0) {
+                // Run in background to avoid blocking initial render
+                setTimeout(async () => {
+                    const sessionUser = useSessionStore.getState().user;
+                    if (!sessionUser?.privateKey) return;
+
+                    setCryptoStatus('decrypting');
+                    for (const room of roomsToDecrypt) {
+                        if (!room.encryptedRoomKey) continue;
+                        try {
+                            const roomKey = await decryptRoomKeyWithPQC(
+                                room.encryptedRoomKey,
+                                sessionUser.privateKey
+                            );
+
+                            // We use a new Map to ensure reactiveness in components listening to roomKeys
+                            set((prev) => {
+                                const updatedKeys = new Map(prev.roomKeys);
+                                updatedKeys.set(room._id, roomKey);
+                                return { roomKeys: updatedKeys };
+                            });
+                        } catch (err) {
+                            console.error(`Failed to background decrypt key for room ${room._id}:`, err);
+                        }
+                    }
+                    setCryptoStatus('idle');
+                }, 100); // Small delay to let initial UI settle
+            }
         } catch (error) {
             console.error('Failed to fetch rooms:', error);
             setCryptoStatus('idle');
-            set({ isLoadingRooms: false });
+            set({ isLoadingRooms: false, error: 'Failed to load rooms. Please refresh.' });
         }
     },
 
     selectRoom: async (roomId: string) => {
-        set({ isLoadingContent: true, currentCollectionId: null, error: null });
+        const state = get();
+        // Skip if already loading this room
+        if (state.isLoadingContent && state.currentRoom?._id === roomId) return;
+
+        set({
+            isLoadingContent: true,
+            error: null
+            // We NO LONGER clear currentCollectionId or links immediately 
+            // to allow for a smoother transition if the UI handles it,
+            // or just to avoid extra state updates before the new data arrives
+        });
         const { setCryptoStatus } = useSessionStore.getState();
         try {
             const content: RoomContent = await socialService.getRoomContent(roomId);

@@ -17,6 +17,14 @@ interface LinkCardProps {
     canDelete?: boolean;
 }
 
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+
+// Helper to get proxied URL - defined outside to avoid re-creation
+const getProxiedUrl = (originalUrl: string) => {
+    if (!originalUrl) return '';
+    return `${API_URL}/api/social/proxy-image?url=${encodeURIComponent(originalUrl)}`;
+};
+
 export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
@@ -25,13 +33,6 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
 
     const [isDragging, setIsDragging] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
-
-    // Helper to get proxied URL
-    const getProxiedUrl = (originalUrl: string) => {
-        if (!originalUrl) return '';
-        const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
-        return `${API_URL}/api/social/proxy-image?url=${encodeURIComponent(originalUrl)}`;
-    };
 
     const previewImage = previewData.image ? getProxiedUrl(previewData.image) : '';
     const faviconImage = previewData.favicon ? getProxiedUrl(previewData.favicon) : '';

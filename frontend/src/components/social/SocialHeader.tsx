@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState, useEffect } from 'react';
 import {
     Box,
     Paper,
@@ -13,6 +13,7 @@ import {
     InputAdornment,
     Menu,
     MenuItem,
+    Skeleton,
 } from '@mui/material';
 import {
     Group as GroupIcon,
@@ -25,13 +26,13 @@ import {
     ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import type { Room } from '@/services/socialService';
+import { useSocialStore } from '@/stores/useSocialStore';
 
 interface SocialHeaderProps {
     viewMode: 'rooms' | 'room-content';
     isMobile: boolean;
     optimisticRoomId: string | null;
     currentRoom: Room | null;
-    decryptedNames: Map<string, string>;
     handleExitRoom: () => void;
     searchQuery: string;
     setSearchQuery: (query: string) => void;
@@ -53,7 +54,6 @@ export const SocialHeader = memo(({
     isMobile,
     optimisticRoomId,
     currentRoom,
-    decryptedNames,
     handleExitRoom,
     searchQuery,
     setSearchQuery,
@@ -70,6 +70,30 @@ export const SocialHeader = memo(({
     isPostingLink,
 }: SocialHeaderProps) => {
     const theme = useTheme();
+    const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
+    const [decryptedName, setDecryptedName] = useState<string | null>(null);
+    const [isDecrypting, setIsDecrypting] = useState(false);
+
+    useEffect(() => {
+        const decrypt = async () => {
+            if (!currentRoom) {
+                setDecryptedName(null);
+                return;
+            }
+            setIsDecrypting(true);
+            try {
+                const results = await decryptRoomMetadata(currentRoom);
+                setDecryptedName(results.name);
+            } catch (err) {
+                console.error('Failed to decrypt header room name:', err);
+                setDecryptedName('[Encrypted]');
+            } finally {
+                setIsDecrypting(false);
+            }
+        };
+
+        decrypt();
+    }, [currentRoom, decryptRoomMetadata]);
 
     return (
         <Paper
@@ -95,7 +119,7 @@ export const SocialHeader = memo(({
                 <Box>
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
                         {viewMode === 'room-content' && (optimisticRoomId || currentRoom)
-                            ? (decryptedNames.get(optimisticRoomId || currentRoom?._id || '') || 'Loading...')
+                            ? (isDecrypting ? <Skeleton width={120} /> : (decryptedName || '...'))
                             : 'Social Rooms'}
                     </Typography>
                     {viewMode === 'room-content' && currentRoom && (

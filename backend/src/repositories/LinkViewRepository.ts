@@ -32,13 +32,19 @@ export class LinkViewRepository extends BaseRepository<ILinkView> {
     /**
      * Mark a link as viewed (upsert)
      */
-    async markViewed(userId: string, linkId: string): Promise<void> {
+    async markViewed(userId: string, linkId: string, collectionId?: string, roomId?: string): Promise<void> {
         await this.updateOne(
             {
                 userId: { $eq: userId as any },
                 linkId: { $eq: linkId as any }
             } as SafeFilter<ILinkView>,
-            { $set: { viewedAt: new Date() } },
+            {
+                $set: {
+                    viewedAt: new Date(),
+                    ...(collectionId && { collectionId: collectionId as any }),
+                    ...(roomId && { roomId: roomId as any })
+                }
+            },
             { upsert: true }
         );
     }
@@ -47,13 +53,19 @@ export class LinkViewRepository extends BaseRepository<ILinkView> {
      * Mark a link as viewed (fire-and-forget, no await needed)
      * Returns immediately, write happens asynchronously
      */
-    markViewedAsync(userId: string, linkId: string): void {
+    markViewedAsync(userId: string, linkId: string, collectionId?: string, roomId?: string): void {
         this.updateOne(
             {
                 userId: { $eq: userId as any },
                 linkId: { $eq: linkId as any }
             } as SafeFilter<ILinkView>,
-            { $set: { viewedAt: new Date() } },
+            {
+                $set: {
+                    viewedAt: new Date(),
+                    ...(collectionId && { collectionId: collectionId as any }),
+                    ...(roomId && { roomId: roomId as any })
+                }
+            },
             { upsert: true }
         ).catch(err => {
             // Log but don't throw - fire-and-forget pattern

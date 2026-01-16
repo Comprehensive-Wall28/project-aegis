@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -9,6 +9,7 @@ import {
     TextField,
     InputAdornment,
     CircularProgress,
+    Skeleton,
 } from '@mui/material';
 import {
     Folder as CollectionIcon,
@@ -19,12 +20,13 @@ import {
 import { LinkCardSkeleton } from './SocialSkeletons';
 import { LinkCard } from './LinkCard';
 import type { LinkPost } from '@/services/socialService';
+import { useSocialStore } from '@/stores/useSocialStore';
 
 interface LinksContainerProps {
     linksContainerRef: React.RefObject<HTMLDivElement | null>;
     isMobile: boolean;
     currentCollectionId: string | null;
-    decryptedCollections: Map<string, string>;
+    collections: any[];
     setMobileDrawerOpen: (open: boolean) => void;
     searchQuery: string;
     setSearchQuery: (query: string) => void;
@@ -47,7 +49,7 @@ export const LinksContainer = memo(({
     linksContainerRef,
     isMobile,
     currentCollectionId,
-    decryptedCollections,
+    collections,
     setMobileDrawerOpen,
     searchQuery,
     setSearchQuery,
@@ -66,6 +68,35 @@ export const LinksContainer = memo(({
     loadMoreLinks,
 }: LinksContainerProps) => {
     const theme = useTheme();
+    const decryptCollectionMetadata = useSocialStore((state) => state.decryptCollectionMetadata);
+    const [decryptedName, setDecryptedName] = useState<string | null>(null);
+    const [isDecrypting, setIsDecrypting] = useState(false);
+
+    useEffect(() => {
+        const decrypt = async () => {
+            const collection = collections.find(c => c._id === currentCollectionId);
+            if (!collection) {
+                setDecryptedName(null);
+                return;
+            }
+            if (collection.type === 'links' && !collection.name) {
+                setDecryptedName('Links');
+                return;
+            }
+            setIsDecrypting(true);
+            try {
+                const { name } = await decryptCollectionMetadata(collection);
+                setDecryptedName(name);
+            } catch (err) {
+                console.error('Failed to decrypt container title:', err);
+                setDecryptedName('Encrypted');
+            } finally {
+                setIsDecrypting(false);
+            }
+        };
+
+        decrypt();
+    }, [currentCollectionId, collections, decryptCollectionMetadata]);
 
     return (
         <Box
@@ -103,7 +134,7 @@ export const LinksContainer = memo(({
                         }}
                     >
                         <Typography variant="button" noWrap sx={{ textTransform: 'none' }}>
-                            {decryptedCollections.get(currentCollectionId || '') || 'Collections'}
+                            {isDecrypting ? <Skeleton width={60} /> : (decryptedName || 'Collections')}
                         </Typography>
                     </Button>
                     <TextField

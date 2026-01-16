@@ -230,20 +230,41 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             const collectionIds = collections.map(c => c._id.toString());
             const allLinksLight = await this.linkPostRepo.findIdsAndCollectionsByCollections(collectionIds);
             const allLinkIds = allLinksLight.map(l => l._id.toString());
-
-            // Fetch viewed link IDs for the user
+            // Fetch viewed link IDs for the user in this room (needed for initial link batch)
+            // But we can transition to a more efficient way for the counts themselves
             const viewedLinkIds = await this.linkViewRepo.findViewedLinkIds(userId, allLinkIds);
             const viewedSet = new Set(viewedLinkIds);
 
-            // Aggregate unviewed counts per collection
+            // Aggregation-based unviewed counts calculation
+            // This is O(Collections) instead of O(Links)
             const unviewedCounts: Record<string, number> = {};
             collections.forEach(c => unviewedCounts[c._id.toString()] = 0);
 
-            allLinksLight.forEach(link => {
-                if (!viewedSet.has(link._id.toString())) {
-                    const cid = link.collectionId.toString();
-                    unviewedCounts[cid] = (unviewedCounts[cid] || 0) + 1;
+            // Fetch counts of viewed links by collection for this room
+            const viewedByCollection = await this.linkViewRepo.findMany({
+                userId: { $eq: userId as any },
+                roomId: { $eq: roomId as any }
+            } as any, {
+                select: 'collectionId',
+                lean: true
+            });
+
+            const viewedCounts: Record<string, number> = {};
+            viewedByCollection.forEach((v: any) => {
+                if (v.collectionId) {
+                    const cid = v.collectionId.toString();
+                    viewedCounts[cid] = (viewedCounts[cid] || 0) + 1;
                 }
+            });
+
+            // Need total links per collection to subtract viewed
+            const collectionStats = await this.linkPostRepo.groupCountByCollections(collectionIds);
+
+            collectionStats.forEach((stat: { _id: string; count: number }) => {
+                const cid = stat._id.toString();
+                const total = stat.count;
+                const viewed = viewedCounts[cid] || 0;
+                unviewedCounts[cid] = Math.max(0, total - viewed);
             });
 
             // Reduce API roundtrips: Include initial links for the first collection if it exists
@@ -504,7 +525,12 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             }
 
             // Fire-and-forget: don't await the secondary DB write
-            this.linkViewRepo.markViewedAsync(userId, linkId);
+            this.linkViewRepo.markViewedAsync(
+                userId,
+                linkId,
+                collection._id.toString(),
+                collection.roomId.toString()
+            );
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Mark link viewed error:', error);

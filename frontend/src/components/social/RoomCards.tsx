@@ -1,20 +1,46 @@
-import { memo } from 'react';
-import { Box, Paper, Typography, Avatar, IconButton, alpha, useTheme } from '@mui/material';
-import { Group as GroupIcon, Add as AddIcon } from '@mui/icons-material';
+import { memo, useState, useEffect } from 'react';
+import { Box, Paper, Typography, Avatar, IconButton, alpha, useTheme, Skeleton } from '@mui/material';
+import { Group as GroupIcon, Add as AddIcon, Lock as LockIcon } from '@mui/icons-material';
 import type { Room } from '@/services/socialService';
+import { useSocialStore } from '@/stores/useSocialStore';
 
 // Room Card Component - Memoized for performance
 export const RoomCard = memo(({
-    decryptedName,
-    memberCount,
+    room,
     onSelect,
 }: {
-    room: Room; // kept for compatibility if needed elsewhere
-    decryptedName: string;
-    memberCount: number;
+    room: Room;
     onSelect: () => void;
 }) => {
     const theme = useTheme();
+    const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
+    const roomKey = useSocialStore((state) => state.roomKeys.get(room._id));
+    const [metadata, setMetadata] = useState<{ name: string; description: string } | null>(null);
+    const [isDecrypting, setIsDecrypting] = useState(false);
+
+    useEffect(() => {
+        const decrypt = async () => {
+            if (!roomKey) {
+                setMetadata({ name: '[Encrypted]', description: '' });
+                return;
+            }
+            setIsDecrypting(true);
+            try {
+                const results = await decryptRoomMetadata(room);
+                setMetadata(results);
+            } catch (err) {
+                console.error('Failed to decrypt room metadata:', err);
+                setMetadata({ name: '[Encrypted]', description: '' });
+            } finally {
+                setIsDecrypting(false);
+            }
+        };
+
+        decrypt();
+    }, [room, decryptRoomMetadata, roomKey]);
+
+    const displayName = metadata?.name || '...';
+    const isEncrypted = displayName === '[Encrypted]';
 
     return (
         <Paper
@@ -38,13 +64,13 @@ export const RoomCard = memo(({
                     sx={{
                         width: 48,
                         height: 48,
-                        bgcolor: alpha(theme.palette.primary.main, 0.2),
-                        color: 'primary.main',
+                        bgcolor: isEncrypted ? alpha(theme.palette.warning.main, 0.1) : alpha(theme.palette.primary.main, 0.2),
+                        color: isEncrypted ? 'warning.main' : 'primary.main',
                         fontWeight: 600,
                         fontSize: '1.1rem',
                     }}
                 >
-                    {decryptedName.substring(0, 2).toUpperCase()}
+                    {isEncrypted ? <LockIcon fontSize="small" /> : displayName.substring(0, 2).toUpperCase()}
                 </Avatar>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography
@@ -54,12 +80,13 @@ export const RoomCard = memo(({
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
+                            color: isEncrypted ? 'text.secondary' : 'text.primary',
                         }}
                     >
-                        {decryptedName}
+                        {isDecrypting ? <Skeleton width="60%" /> : displayName}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                        {memberCount} member{memberCount > 1 ? 's' : ''}
+                        {room.memberCount || 1} member{(room.memberCount || 1) > 1 ? 's' : ''}
                     </Typography>
                 </Box>
             </Box>

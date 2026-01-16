@@ -1,6 +1,7 @@
 import { BaseRepository } from './base/BaseRepository';
 import LinkPost, { ILinkPost, IPreviewData } from '../models/LinkPost';
 import { SafeFilter } from './base/types';
+import mongoose from 'mongoose';
 
 /**
  * LinkPostRepository handles LinkPost database operations
@@ -82,5 +83,16 @@ export class LinkPostRepository extends BaseRepository<ILinkPost> {
         return this.deleteMany({
             collectionId: { $eq: collectionId as any }
         } as SafeFilter<ILinkPost>);
+    }
+
+    /**
+     * Get aggregate counts of links per collection
+     */
+    async groupCountByCollections(collectionIds: string[]): Promise<{ _id: string; count: number }[]> {
+        const results = await this.model.aggregate([
+            { $match: { collectionId: { $in: collectionIds.map(id => new mongoose.Types.ObjectId(id)) } } },
+            { $group: { _id: '$collectionId', count: { $sum: 1 } } }
+        ]);
+        return results;
     }
 }
