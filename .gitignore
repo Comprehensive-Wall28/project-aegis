@@ -3,3 +3,4 @@ backend/combined.log
 backend/error.log
 frontend/.env
 backend/.env
+node_modules

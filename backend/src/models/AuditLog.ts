@@ -45,7 +45,7 @@ export interface IAuditLog extends Document {
     timestamp: Date;
 }
 
-const AuditLogSchema: Schema = new Schema({
+export const AuditLogSchema: Schema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',

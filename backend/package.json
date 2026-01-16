@@ -1,7 +1,7 @@
 {
   "name": "aegis-backend",
-  "version": "0.8.2",
-  "description": "",
+  "version": "0.10.0",
+  "description": "project-aegis 3 tier architecture backend",
   "main": "index.js",
   "scripts": {
     "start": "node dist/server.js",
@@ -24,7 +24,6 @@
     "@types/express": "^5.0.6",
     "@types/express-mongo-sanitize": "^2.1.2",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^25.0.8",
     "@types/uuid": "^11.0.0",
     "argon2": "^0.44.0",
     "axios": "^1.13.2",
@@ -60,12 +59,14 @@
     "puppeteer": "^24.35.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "socket.io": "^4.8.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "uuid": "^13.0.0",
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@types/node": "^25.0.9",
     "nodemon": "^3.1.11"
   }
 }

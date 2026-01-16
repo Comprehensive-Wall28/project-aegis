@@ -30,7 +30,7 @@ export interface PreviewData {
     description?: string;
     image?: string;
     favicon?: string;
-    scrapeStatus?: 'success' | 'blocked' | 'failed';
+    scrapeStatus?: 'success' | 'blocked' | 'failed' | 'scraping';
 }
 
 export interface LinkPost {
@@ -48,6 +48,7 @@ export interface RoomContent {
     links: LinkPost[];
     viewedLinkIds: string[];
     commentCounts: Record<string, number>;
+    unviewedCounts: Record<string, number>;
 }
 
 export interface CreateRoomData {
@@ -93,6 +94,28 @@ const socialService = {
      */
     getRoomContent: async (roomId: string): Promise<RoomContent> => {
         const response = await apiClient.get<RoomContent>(`/social/rooms/${roomId}`);
+        return response.data;
+    },
+
+    /**
+     * Get links for a specific collection with pagination
+     */
+    getCollectionLinks: async (
+        roomId: string,
+        collectionId: string,
+        page: number = 1,
+        limit: number = 30
+    ): Promise<{
+        links: LinkPost[];
+        totalCount: number;
+        hasMore: boolean;
+        viewedLinkIds: string[];
+        commentCounts: Record<string, number>;
+    }> => {
+        const response = await apiClient.get(
+            `/social/rooms/${roomId}/collections/${collectionId}/links`,
+            { params: { page, limit } }
+        );
         return response.data;
     },
 

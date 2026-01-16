@@ -6,7 +6,7 @@ export interface ILinkView extends Document {
     viewedAt: Date;
 }
 
-const LinkViewSchema: Schema = new Schema({
+export const LinkViewSchema: Schema = new Schema({
     linkId: { type: Schema.Types.ObjectId, ref: 'LinkPost', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     viewedAt: { type: Date, default: Date.now }

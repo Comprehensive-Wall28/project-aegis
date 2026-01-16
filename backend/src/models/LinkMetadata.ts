@@ -6,17 +6,17 @@ export interface ILinkMetadata extends Document {
     description: string;
     image: string;
     favicon: string;
-    scrapeStatus: 'success' | 'blocked' | 'failed';
+    scrapeStatus: 'success' | 'blocked' | 'failed' | 'scraping';
     lastFetched: Date;
 }
 
-const LinkMetadataSchema: Schema = new Schema({
+export const LinkMetadataSchema: Schema = new Schema({
     url: { type: String, required: true, unique: true, index: true },
     title: { type: String, default: '' },
     description: { type: String, default: '' },
     image: { type: String, default: '' },
     favicon: { type: String, default: '' },
-    scrapeStatus: { type: String, enum: ['success', 'blocked', 'failed'], default: 'success' },
+    scrapeStatus: { type: String, enum: ['success', 'blocked', 'failed', 'scraping'], default: 'success' },
     lastFetched: { type: Date, default: Date.now }
 }, { timestamps: true });
 

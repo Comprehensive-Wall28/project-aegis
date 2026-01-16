@@ -5,7 +5,7 @@ export interface IPreviewData {
     description?: string;
     image?: string;
     favicon?: string;
-    scrapeStatus?: 'success' | 'blocked' | 'failed';
+    scrapeStatus?: 'success' | 'blocked' | 'failed' | 'scraping';
 }
 
 export interface ILinkPost extends Document {
@@ -21,7 +21,7 @@ const PreviewDataSchema = new Schema({
     description: { type: String, default: '' },
     image: { type: String, default: '' },
     favicon: { type: String, default: '' },
-    scrapeStatus: { type: String, enum: ['success', 'blocked', 'failed', ''], default: '' }
+    scrapeStatus: { type: String, enum: ['success', 'blocked', 'failed', 'scraping', ''], default: '' }
 }, { _id: false });
 
 const LinkPostSchema: Schema = new Schema({

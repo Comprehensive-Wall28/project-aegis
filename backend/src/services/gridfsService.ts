@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import { Readable, Writable, PassThrough } from 'stream';
 import logger from '../utils/logger';
 
+//==================SERVICE DEPRECATED==================
+
 // Use mongoose's internal mongodb types to avoid version mismatches
 const { GridFSBucket, ObjectId } = mongoose.mongo;
 

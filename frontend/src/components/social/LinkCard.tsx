@@ -1,6 +1,6 @@
 import { useState, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge } from '@mui/material';
+import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress } from '@mui/material';
 import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LinkPost } from '@/services/socialService';
@@ -167,12 +167,42 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     objectFit: 'contain',
                                     zIndex: 1,
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.3)', // subtle pop
+                                    opacity: previewData.scrapeStatus === 'scraping' ? 0.3 : 1,
                                 }}
                                 onError={(e) => {
                                     // Fallback if proxy fails visually
                                     e.currentTarget.style.display = 'none';
                                 }}
                             />
+                        )}
+                        {previewData.scrapeStatus === 'scraping' && (
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                                    backdropFilter: 'blur(4px)',
+                                    zIndex: 2,
+                                    gap: 1.5,
+                                }}
+                            >
+                                <CircularProgress size={24} thickness={5} />
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 600,
+                                        letterSpacing: '0.05em',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Scraping metadata...
+                                </Typography>
+                            </Box>
                         )}
                         {!previewImage && (
                             <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -460,10 +490,11 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                         <Button
                                             variant="contained"
                                             size="large"
-                                            startIcon={<LinkIcon />}
+                                            startIcon={previewData.scrapeStatus === 'scraping' ? <CircularProgress size={16} color="inherit" /> : <LinkIcon />}
                                             onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                                            disabled={previewData.scrapeStatus === 'scraping'}
                                         >
-                                            Visit Website
+                                            {previewData.scrapeStatus === 'scraping' ? 'Scraping...' : 'Visit Website'}
                                         </Button>
 
                                         <Box sx={{ ml: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
