@@ -555,6 +555,7 @@ export function SocialPage() {
         message: '',
         severity: 'success',
     });
+    const [optimisticRoomId, setOptimisticRoomId] = useState<string | null>(null);
 
     // Mobile Responsive State
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -591,11 +592,7 @@ export function SocialPage() {
     }, [roomId, pqcEngineStatus, selectRoom]);
 
     // Switch to room-content view when a room is selected
-    useEffect(() => {
-        if (currentRoom) {
-            setViewMode('room-content');
-        }
-    }, [currentRoom]);
+
 
     // Auto-refresh content every 5 seconds (paused when comments overlay is open)
     useEffect(() => {
@@ -653,7 +650,14 @@ export function SocialPage() {
     // Exit room and return to rooms view
     const handleExitRoom = useCallback(() => {
         setViewMode('rooms');
+        setOptimisticRoomId(null);
     }, []);
+
+    const handleSelectRoom = useCallback(async (roomId: string) => {
+        setOptimisticRoomId(roomId);
+        setViewMode('room-content');
+        await selectRoom(roomId);
+    }, [selectRoom]);
 
     const handleCreateRoom = async (name: string, description: string) => {
         try {
@@ -857,11 +861,12 @@ export function SocialPage() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         flexShrink: 0,
+                        minHeight: 88,
                     }}
                 >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         {/* Back button when viewing room content */}
-                        {viewMode === 'room-content' && currentRoom ? (
+                        {viewMode === 'room-content' && (optimisticRoomId || currentRoom) ? (
                             <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: -0.5 }}>
                                 <ArrowBackIcon />
                             </IconButton>
@@ -870,8 +875,8 @@ export function SocialPage() {
                         )}
                         <Box>
                             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                {viewMode === 'room-content' && currentRoom
-                                    ? (decryptedNames.get(currentRoom._id) || 'Loading...')
+                                {viewMode === 'room-content' && (optimisticRoomId || currentRoom)
+                                    ? (decryptedNames.get(optimisticRoomId || currentRoom?._id || '') || 'Loading...')
                                     : 'Social Rooms'}
                             </Typography>
                             {viewMode === 'room-content' && currentRoom && (
@@ -882,59 +887,61 @@ export function SocialPage() {
                         </Box>
                     </Box>
 
-                    {currentRoom && (
+                    {viewMode === 'room-content' && currentRoom && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}>
-                            {/* Search Bar */}
-                            {isSearchOpen ? (
-                                <Box
-                                    sx={{
-                                        width: 200,
-                                        display: 'flex',
-                                        transition: 'width 0.2s ease, opacity 0.2s ease',
-                                        overflow: 'hidden'
-                                    }}
-                                >
-                                    <TextField
-                                        autoFocus
-                                        placeholder="Search links..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        size="small"
-                                        fullWidth
-                                        InputProps={{
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <SearchIcon fontSize="small" color="action" />
-                                                </InputAdornment>
-                                            ),
-                                            endAdornment: (
-                                                <InputAdornment position="end">
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => {
-                                                            setSearchQuery('');
-                                                            setIsSearchOpen(false);
-                                                        }}
-                                                    >
-                                                        <CloseIcon fontSize="small" />
-                                                    </IconButton>
-                                                </InputAdornment>
-                                            ),
-                                        }}
+                            {/* Search Bar - Desktop Only in Header now */}
+                            {!isMobile && (
+                                isSearchOpen ? (
+                                    <Box
                                         sx={{
-                                            '& .MuiOutlinedInput-root': {
-                                                borderRadius: '14px',
-                                                bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                            }
+                                            width: 200,
+                                            display: 'flex',
+                                            transition: 'width 0.2s ease, opacity 0.2s ease',
+                                            overflow: 'hidden'
                                         }}
-                                    />
-                                </Box>
-                            ) : (
-                                <Tooltip title="Search" key="search-icon">
-                                    <IconButton onClick={() => setIsSearchOpen(true)}>
-                                        <SearchIcon />
-                                    </IconButton>
-                                </Tooltip>
+                                    >
+                                        <TextField
+                                            autoFocus
+                                            placeholder="Search links..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            size="small"
+                                            fullWidth
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <SearchIcon fontSize="small" color="action" />
+                                                    </InputAdornment>
+                                                ),
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => {
+                                                                setSearchQuery('');
+                                                                setIsSearchOpen(false);
+                                                            }}
+                                                        >
+                                                            <CloseIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: '14px',
+                                                    bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                                }
+                                            }}
+                                        />
+                                    </Box>
+                                ) : (
+                                    <Tooltip title="Search" key="search-icon">
+                                        <IconButton onClick={() => setIsSearchOpen(true)}>
+                                            <SearchIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                )
                             )}
 
                             {/* Filter Button */}
@@ -1055,107 +1062,216 @@ export function SocialPage() {
                         px: viewMode === 'rooms' ? 1 : 0,
                     }}
                 >
-                    {viewMode === 'rooms' ? (
-                        // Rooms Grid View
-                        <>
-                            {isLoadingRooms ? (
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        height: 300,
+                    <AnimatePresence mode="wait">
+                        {viewMode === 'rooms' ? (
+                            // Rooms Grid View
+                            <Box
+                                key="rooms-grid"
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: {
+                                        xs: '1fr',
+                                        sm: 'repeat(2, 1fr)',
+                                        md: 'repeat(3, 1fr)',
+                                        lg: 'repeat(4, 1fr)',
+                                    },
+                                    gap: 2,
+                                    pb: isMobile ? 12 : 2,
+                                    willChange: !isMobile ? 'opacity, transform' : 'auto',
+                                }}
+                            >
+                                {isLoadingRooms ? (
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            height: 300,
+                                            gridColumn: '1 / -1',
+                                        }}
+                                    >
+                                        <CircularProgress />
+                                    </Box>
+                                ) : (
+                                    <>
+                                        {rooms.map((room) => (
+                                            <RoomCard
+                                                key={room._id}
+                                                room={room}
+                                                decryptedName={decryptedNames.get(room._id) || 'Loading...'}
+                                                memberCount={room.memberCount || 1}
+                                                onSelect={() => handleSelectRoom(room._id)}
+                                            />
+                                        ))}
+                                        <CreateRoomCard onClick={() => setShowCreateDialog(true)} />
+                                    </>
+                                )}
+                            </Box>
+                        ) : (
+                            // Room Content View
+                            <Box
+                                key="room-content"
+                                component={motion.div}
+                                initial={!isMobile ? { opacity: 0, y: 5, scale: 0.99 } : undefined}
+                                animate={!isMobile ? { opacity: 1, y: 0, scale: 1 } : undefined}
+                                transition={{
+                                    duration: 0.2,
+                                    ease: "easeInOut",
+                                    scale: { duration: 0.2 }
+                                }}
+                                sx={{
+                                    display: 'flex',
+                                    gap: 2,
+                                    height: '100%',
+                                    willChange: !isMobile ? 'opacity, transform' : 'auto',
+                                }}
+                            >
+                                {/* Collections Sidebar */}
+                                {!isMobile && (
+                                    <Paper
+                                        variant="glass"
+                                        sx={{
+                                            width: 200,
+                                            flexShrink: 0,
+                                            borderRadius: '20px',
+                                            p: 2,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: 1,
+                                            height: '100%',
+                                            overflow: 'hidden',
+                                        }}
+                                    >
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexShrink: 0 }}>
+                                            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                                Collections
+                                            </Typography>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => setShowCollectionDialog(true)}
+                                                sx={{
+                                                    color: 'text.secondary',
+                                                    '&:hover': { color: 'primary.main' }
+                                                }}
+                                            >
+                                                <AddIcon sx={{ fontSize: 16 }} />
+                                            </IconButton>
+                                        </Box>
+
+                                        <Box sx={{
+                                            flex: 1,
+                                            overflowY: 'auto',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: 1,
+                                            mx: -0.5,
+                                            px: 0.5,
+                                        }}>
+                                            {collections.map((collection) => (
+                                                <Box
+                                                    key={collection._id}
+                                                    onClick={() => selectCollection(collection._id)}
+                                                    onContextMenu={(e) => handleCollectionContextMenu(e, collection._id)}
+                                                    onTouchStart={() => handleCollectionTouchStart(collection._id)}
+                                                    onTouchEnd={handleCollectionTouchEnd}
+                                                    onTouchMove={handleCollectionTouchEnd}
+                                                    onDragOver={(e) => {
+                                                        e.preventDefault();
+                                                        setDropTargetId(collection._id);
+                                                    }}
+                                                    onDragLeave={() => setDropTargetId(null)}
+                                                    onDrop={(e) => {
+                                                        e.preventDefault();
+                                                        handleDrop(collection._id);
+                                                    }}
+                                                    sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 1.5,
+                                                        p: 1.5,
+                                                        borderRadius: '10px',
+                                                        cursor: 'pointer',
+                                                        position: 'relative',
+                                                        transition: 'background-color 0.15s ease',
+                                                        bgcolor:
+                                                            currentCollectionId === collection._id
+                                                                ? alpha(theme.palette.primary.main, 0.15)
+                                                                : dropTargetId === collection._id
+                                                                    ? alpha(theme.palette.primary.main, 0.25)
+                                                                    : 'transparent',
+                                                        border: dropTargetId === collection._id
+                                                            ? `1px dashed ${theme.palette.primary.main}`
+                                                            : '1px solid transparent',
+                                                        '&:hover': {
+                                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                        },
+                                                    }}
+                                                >
+                                                    <CollectionIcon
+                                                        sx={{
+                                                            fontSize: 18,
+                                                            color:
+                                                                currentCollectionId === collection._id
+                                                                    ? 'primary.main'
+                                                                    : 'text.secondary',
+                                                        }}
+                                                    />
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                                fontWeight: currentCollectionId === collection._id ? 600 : 400,
+                                                                color:
+                                                                    currentCollectionId === collection._id
+                                                                        ? 'primary.main'
+                                                                        : 'text.primary',
+                                                                flex: 1,
+                                                            }}
+                                                        >
+                                                            {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
+                                                        </Typography>
+                                                        {getUnviewedCountByCollection(collection._id) > 0 && (
+                                                            <DotIcon
+                                                                sx={{
+                                                                    fontSize: 10,
+                                                                    color: 'primary.main',
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </Box>
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    </Paper>
+                                )}
+
+                                {/* Mobile Collections Drawer */}
+                                <Drawer
+                                    anchor="left"
+                                    open={mobileDrawerOpen}
+                                    onClose={() => setMobileDrawerOpen(false)}
+                                    PaperProps={{
+                                        sx: {
+                                            bgcolor: 'background.default',
+                                            backgroundImage: 'none',
+                                            width: 240,
+                                            p: 2,
+                                        }
                                     }}
                                 >
-                                    <CircularProgress />
-                                </Box>
-                            ) : (
-                                <Box
-                                    sx={{
-                                        display: 'grid',
-                                        gridTemplateColumns: {
-                                            xs: '1fr',
-                                            sm: 'repeat(2, 1fr)',
-                                            md: 'repeat(3, 1fr)',
-                                            lg: 'repeat(4, 1fr)',
-                                        },
-                                        gap: 2,
-                                        pb: isMobile ? 12 : 2,
-                                    }}
-                                >
-                                    {rooms.map((room) => (
-                                        <RoomCard
-                                            key={room._id}
-                                            room={room}
-                                            decryptedName={decryptedNames.get(room._id) || 'Loading...'}
-                                            memberCount={room.memberCount || 1}
-                                            onSelect={() => selectRoom(room._id)}
-                                        />
-                                    ))}
-                                    <CreateRoomCard onClick={() => setShowCreateDialog(true)} />
-                                </Box>
-                            )}
-                        </>
-                    ) : (
-                        // Room Content View
-                        <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
-                            {/* Collections Sidebar */}
-                            {!isMobile && (
-                                <Paper
-                                    variant="glass"
-                                    sx={{
-                                        width: 200,
-                                        flexShrink: 0,
-                                        borderRadius: '20px',
-                                        p: 2,
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: 1,
-                                        height: '100%',
-                                        overflow: 'hidden',
-                                    }}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexShrink: 0 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                            Collections
-                                        </Typography>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => setShowCollectionDialog(true)}
-                                            sx={{
-                                                color: 'text.secondary',
-                                                '&:hover': { color: 'primary.main' }
-                                            }}
-                                        >
-                                            <AddIcon sx={{ fontSize: 16 }} />
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                                        <Typography variant="h6" fontWeight={600}>Collections</Typography>
+                                        <IconButton size="small" onClick={() => setMobileDrawerOpen(false)}>
+                                            <CloseIcon />
                                         </IconButton>
                                     </Box>
-
-                                    <Box sx={{
-                                        flex: 1,
-                                        overflowY: 'auto',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: 1,
-                                        mx: -0.5,
-                                        px: 0.5,
-                                    }}>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                         {collections.map((collection) => (
                                             <Box
                                                 key={collection._id}
-                                                onClick={() => selectCollection(collection._id)}
-                                                onContextMenu={(e) => handleCollectionContextMenu(e, collection._id)}
-                                                onTouchStart={() => handleCollectionTouchStart(collection._id)}
-                                                onTouchEnd={handleCollectionTouchEnd}
-                                                onTouchMove={handleCollectionTouchEnd}
-                                                onDragOver={(e) => {
-                                                    e.preventDefault();
-                                                    setDropTargetId(collection._id);
-                                                }}
-                                                onDragLeave={() => setDropTargetId(null)}
-                                                onDrop={(e) => {
-                                                    e.preventDefault();
-                                                    handleDrop(collection._id);
+                                                onClick={() => {
+                                                    selectCollection(collection._id);
+                                                    setMobileDrawerOpen(false);
                                                 }}
                                                 sx={{
                                                     display: 'flex',
@@ -1164,21 +1280,17 @@ export function SocialPage() {
                                                     p: 1.5,
                                                     borderRadius: '10px',
                                                     cursor: 'pointer',
-                                                    position: 'relative',
-                                                    transition: 'background-color 0.15s ease',
                                                     bgcolor:
                                                         currentCollectionId === collection._id
                                                             ? alpha(theme.palette.primary.main, 0.15)
-                                                            : dropTargetId === collection._id
-                                                                ? alpha(theme.palette.primary.main, 0.25)
-                                                                : 'transparent',
-                                                    border: dropTargetId === collection._id
-                                                        ? `1px dashed ${theme.palette.primary.main}`
-                                                        : '1px solid transparent',
+                                                            : 'transparent',
                                                     '&:hover': {
                                                         bgcolor: alpha(theme.palette.primary.main, 0.1),
                                                     },
                                                 }}
+                                                onTouchStart={() => handleCollectionTouchStart(collection._id)}
+                                                onTouchEnd={handleCollectionTouchEnd}
+                                                onTouchMove={handleCollectionTouchEnd}
                                             >
                                                 <CollectionIcon
                                                     sx={{
@@ -1189,317 +1301,291 @@ export function SocialPage() {
                                                                 : 'text.secondary',
                                                     }}
                                                 />
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <Typography
-                                                        variant="body2"
-                                                        sx={{
-                                                            fontWeight: currentCollectionId === collection._id ? 600 : 400,
-                                                            color:
-                                                                currentCollectionId === collection._id
-                                                                    ? 'primary.main'
-                                                                    : 'text.primary',
-                                                            flex: 1,
-                                                        }}
-                                                    >
-                                                        {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
-                                                    </Typography>
-                                                    {getUnviewedCountByCollection(collection._id) > 0 && (
-                                                        <DotIcon
-                                                            sx={{
-                                                                fontSize: 10,
-                                                                color: 'primary.main',
-                                                            }}
-                                                        />
-                                                    )}
-                                                </Box>
+                                                <Typography
+                                                    variant="body2"
+                                                    sx={{
+                                                        fontWeight: currentCollectionId === collection._id ? 600 : 400,
+                                                    }}
+                                                >
+                                                    {decryptedCollections.get(collection._id) || 'Collection'}
+                                                </Typography>
+                                                {getUnviewedCountByCollection(collection._id) > 0 && (
+                                                    <DotIcon sx={{ fontSize: 10, color: 'primary.main', ml: 'auto' }} />
+                                                )}
                                             </Box>
                                         ))}
-                                    </Box>
-                                </Paper>
-                            )}
-
-                            {/* Mobile Collections Drawer */}
-                            <Drawer
-                                anchor="left"
-                                open={mobileDrawerOpen}
-                                onClose={() => setMobileDrawerOpen(false)}
-                                PaperProps={{
-                                    sx: {
-                                        bgcolor: 'background.default',
-                                        backgroundImage: 'none',
-                                        width: 240,
-                                        p: 2,
-                                    }
-                                }}
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                                    <Typography variant="h6" fontWeight={600}>Collections</Typography>
-                                    <IconButton size="small" onClick={() => setMobileDrawerOpen(false)}>
-                                        <CloseIcon />
-                                    </IconButton>
-                                </Box>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                    {collections.map((collection) => (
-                                        <Box
-                                            key={collection._id}
+                                        <Divider sx={{ my: 1 }} />
+                                        <Button
+                                            startIcon={<AddIcon />}
                                             onClick={() => {
-                                                selectCollection(collection._id);
+                                                setShowCollectionDialog(true);
                                                 setMobileDrawerOpen(false);
                                             }}
+                                            sx={{ justifyContent: 'flex-start' }}
+                                        >
+                                            New Collection
+                                        </Button>
+                                    </Box>
+                                </Drawer>
+
+                                {/* Links Content */}
+                                <Box sx={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    height: '100%',
+                                    overflowX: 'hidden',
+                                    overflowY: 'auto',
+                                    pr: 1,
+                                    pt: 1, // 8px padding to prevent any clipping
+                                    px: 1, // 8px side padding
+                                    pb: isMobile ? 12 : 2,
+                                }}>
+                                    {/* Mobile collections button and search */}
+                                    {isMobile && (
+                                        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                                            <Button
+                                                variant="outlined"
+                                                size="small"
+                                                startIcon={<CollectionIcon />}
+                                                onClick={() => setMobileDrawerOpen(true)}
+                                                sx={{
+                                                    borderRadius: '12px',
+                                                    flexShrink: 0,
+                                                    whiteSpace: 'nowrap',
+                                                    borderColor: alpha(theme.palette.divider, 0.2),
+                                                    color: 'text.primary',
+                                                    bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                                    maxWidth: '45%', // Limit width
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    justifyContent: 'flex-start', // Ensure icon stays left
+                                                    '& .MuiButton-startIcon': { flexShrink: 0 }, // Prevent icon shrink
+                                                    '& .MuiButton-endIcon': { flexShrink: 0 },
+                                                }}
+                                            >
+                                                <Typography variant="button" noWrap sx={{ textTransform: 'none' }}>
+                                                    {decryptedCollections.get(currentCollectionId || '') || 'Collections'}
+                                                </Typography>
+                                            </Button>
+                                            <TextField
+                                                placeholder="Search links..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                size="small"
+                                                fullWidth
+                                                InputProps={{
+                                                    startAdornment: (
+                                                        <InputAdornment position="start">
+                                                            <SearchIcon fontSize="small" color="action" />
+                                                        </InputAdornment>
+                                                    ),
+                                                    endAdornment: searchQuery ? (
+                                                        <InputAdornment position="end">
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => setSearchQuery('')}
+                                                            >
+                                                                <CloseIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </InputAdornment>
+                                                    ) : undefined
+                                                }}
+                                                sx={{
+                                                    flex: 1,
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '12px',
+                                                        bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                                        '& fieldset': {
+                                                            borderColor: alpha(theme.palette.divider, 0.2),
+                                                        },
+                                                    }
+                                                }}
+                                            />
+                                        </Box>
+                                    )}
+
+                                    {isLoadingContent ? (
+                                        <Box
                                             sx={{
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                gap: 1.5,
-                                                p: 1.5,
-                                                borderRadius: '10px',
-                                                cursor: 'pointer',
-                                                bgcolor:
-                                                    currentCollectionId === collection._id
-                                                        ? alpha(theme.palette.primary.main, 0.15)
-                                                        : 'transparent',
-                                                '&:hover': {
-                                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                                },
+                                                justifyContent: 'center',
+                                                height: 300,
                                             }}
-                                            onTouchStart={() => handleCollectionTouchStart(collection._id)}
-                                            onTouchEnd={handleCollectionTouchEnd}
-                                            onTouchMove={handleCollectionTouchEnd}
                                         >
-                                            <CollectionIcon
-                                                sx={{
-                                                    fontSize: 18,
-                                                    color:
-                                                        currentCollectionId === collection._id
-                                                            ? 'primary.main'
-                                                            : 'text.secondary',
-                                                }}
-                                            />
-                                            <Typography
-                                                variant="body2"
-                                                sx={{
-                                                    fontWeight: currentCollectionId === collection._id ? 600 : 400,
-                                                }}
-                                            >
-                                                {decryptedCollections.get(collection._id) || 'Collection'}
-                                            </Typography>
-                                            {getUnviewedCountByCollection(collection._id) > 0 && (
-                                                <DotIcon sx={{ fontSize: 10, color: 'primary.main', ml: 'auto' }} />
-                                            )}
+                                            <CircularProgress />
                                         </Box>
-                                    ))}
-                                    <Divider sx={{ my: 1 }} />
-                                    <Button
-                                        startIcon={<AddIcon />}
-                                        onClick={() => {
-                                            setShowCollectionDialog(true);
-                                            setMobileDrawerOpen(false);
-                                        }}
-                                        sx={{ justifyContent: 'flex-start' }}
-                                    >
-                                        New Collection
-                                    </Button>
+                                    ) : filteredLinks.length > 0 ? (
+                                        <Box
+                                            sx={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                                gap: 2,
+                                            }}
+                                        >
+                                            {filteredLinks.map((link: LinkPost) => (
+                                                <LinkCard
+                                                    key={link._id}
+                                                    link={link}
+                                                    onDelete={() => deleteLink(link._id)}
+                                                    onDragStart={(id) => setDraggedLinkId(id)}
+                                                    onView={(id) => markLinkViewed(id)}
+                                                    onUnview={(id) => unmarkLinkViewed(id)}
+                                                    onCommentsClick={(l) => setCommentsLink(l)}
+                                                    isViewed={viewedLinkIds.has(link._id)}
+                                                    commentCount={commentCounts[link._id] || 0}
+                                                    canDelete={
+                                                        currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
+                                                    }
+                                                />
+                                            ))}
+                                        </Box>
+                                    ) : (
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                height: 300,
+                                                gap: 2,
+                                            }}
+                                        >
+                                            <LinkIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
+                                            <Typography color="text.secondary">
+                                                No links shared yet. Be the first!
+                                            </Typography>
+                                        </Box>
+                                    )}
                                 </Box>
-                            </Drawer>
-
-                            {/* Links Content */}
-                            <Box sx={{
-                                flex: 1,
-                                minWidth: 0,
-                                height: '100%',
-                                overflowX: 'hidden',
-                                overflowY: 'auto',
-                                pr: 1,
-                                pt: 1, // 8px padding to prevent any clipping
-                                px: 1, // 8px side padding
-                                pb: isMobile ? 12 : 2,
-                            }}>
-                                {/* Mobile collections button */}
-                                {isMobile && (
-                                    <Button
-                                        variant="outlined"
-                                        size="small"
-                                        startIcon={<CollectionIcon />}
-                                        onClick={() => setMobileDrawerOpen(true)}
-                                        sx={{ mb: 2, borderRadius: '12px' }}
-                                    >
-                                        {decryptedCollections.get(currentCollectionId || '') || 'Collections'}
-                                    </Button>
-                                )}
-
-                                {isLoadingContent ? (
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            height: 300,
-                                        }}
-                                    >
-                                        <CircularProgress />
-                                    </Box>
-                                ) : filteredLinks.length > 0 ? (
-                                    <Box
-                                        sx={{
-                                            display: 'grid',
-                                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                                            gap: 2,
-                                        }}
-                                    >
-                                        {filteredLinks.map((link: LinkPost) => (
-                                            <LinkCard
-                                                key={link._id}
-                                                link={link}
-                                                onDelete={() => deleteLink(link._id)}
-                                                onDragStart={(id) => setDraggedLinkId(id)}
-                                                onView={(id) => markLinkViewed(id)}
-                                                onUnview={(id) => unmarkLinkViewed(id)}
-                                                onCommentsClick={(l) => setCommentsLink(l)}
-                                                isViewed={viewedLinkIds.has(link._id)}
-                                                commentCount={commentCounts[link._id] || 0}
-                                                canDelete={
-                                                    currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
-                                                }
-                                            />
-                                        ))}
-                                    </Box>
-                                ) : (
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            height: 300,
-                                            gap: 2,
-                                        }}
-                                    >
-                                        <LinkIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
-                                        <Typography color="text.secondary">
-                                            No links shared yet. Be the first!
-                                        </Typography>
-                                    </Box>
-                                )}
                             </Box>
-                        </Box>
-                    )}
+                        )}
+                    </AnimatePresence>
                 </Box>
-            </Box>
 
-            {/* Create Room Dialog */}
-            <CreateRoomDialog
-                open={showCreateDialog}
-                onClose={() => setShowCreateDialog(false)}
-                onSubmit={handleCreateRoom}
-                isLoading={isCreating}
-            />
-
-            {/* Create Collection Dialog */}
-            <CreateCollectionDialog
-                open={showCollectionDialog}
-                onClose={() => setShowCollectionDialog(false)}
-                onSubmit={handleCreateCollection}
-                isLoading={isCreatingCollection}
-            />
-
-            {/* Post Link Dialog */}
-            <PostLinkDialog
-                open={showPostLinkDialog}
-                onClose={() => setShowPostLinkDialog(false)}
-                onSubmit={handlePostLink}
-                isLoading={isPostingLink}
-            />
-
-            {/* Mobile FAB */}
-            {isMobile && currentRoom && (
-                <Fab
-                    color="primary"
-                    aria-label="add link"
-                    onClick={() => setShowPostLinkDialog(true)}
-                    sx={{
-                        position: 'fixed',
-                        bottom: 24,
-                        right: 24,
-                        zIndex: 100,
-                    }}
-                >
-                    <AddIcon />
-                </Fab>
-            )}
-
-            {/* Collection Context Menu */}
-            <Menu
-                open={collectionContextMenu !== null}
-                onClose={() => setCollectionContextMenu(null)}
-                anchorReference="anchorPosition"
-                anchorPosition={
-                    collectionContextMenu !== null
-                        ? { top: collectionContextMenu.mouseY, left: collectionContextMenu.mouseX }
-                        : undefined
-                }
-            >
-                <MenuItem onClick={() => {
-                    if (collectionContextMenu) {
-                        setCollectionToDelete(collectionContextMenu.collectionId);
+                {/* Create Room Dialog */}
+                < CreateRoomDialog
+                    open={showCreateDialog}
+                    onClose={() => setShowCreateDialog(false)
                     }
-                    setCollectionContextMenu(null);
-                    setDeleteConfirmOpen(true);
-                }} sx={{ color: 'error.main', gap: 1 }}>
-                    <DeleteIcon fontSize="small" />
-                    Delete Collection
-                </MenuItem>
-            </Menu>
-
-            {/* Delete Collection Confirmation Dialog */}
-            <ConfirmDialog
-                open={deleteConfirmOpen}
-                title="Delete Collection"
-                message={`Are you sure you want to delete "${collectionToDelete ? decryptedCollections.get(collectionToDelete) || 'this collection' : ''}"? All links in this collection will be permanently deleted.`}
-                confirmText="Delete"
-                onConfirm={handleDeleteCollection}
-                onCancel={() => {
-                    setDeleteConfirmOpen(false);
-                    setCollectionToDelete(null);
-                }}
-                isLoading={isDeletingCollection}
-                variant="danger"
-            />
-
-            {/* Snackbar */}
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={4000}
-                onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert
-                    onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                    severity={snackbar.severity}
-                    variant="filled"
-                    sx={{ borderRadius: '14px' }}
-                >
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
-
-            {/* Comments Overlay */}
-            {commentsLink && currentRoom && (
-                <CommentsOverlay
-                    open={!!commentsLink}
-                    onClose={() => setCommentsLink(null)}
-                    link={commentsLink}
-                    currentUserId={currentUserId}
-                    encryptComment={async (text) => {
-                        const roomKey = roomKeys.get(currentRoom._id);
-                        if (!roomKey) throw new Error('Room key not available');
-                        return encryptWithAES(roomKey, text);
-                    }}
-                    decryptComment={async (encrypted) => {
-                        const roomKey = roomKeys.get(currentRoom._id);
-                        if (!roomKey) throw new Error('Room key not available');
-                        return decryptWithAES(roomKey, encrypted);
-                    }}
+                    onSubmit={handleCreateRoom}
+                    isLoading={isCreating}
                 />
-            )}
-        </Box >
+
+                {/* Create Collection Dialog */}
+                < CreateCollectionDialog
+                    open={showCollectionDialog}
+                    onClose={() => setShowCollectionDialog(false)}
+                    onSubmit={handleCreateCollection}
+                    isLoading={isCreatingCollection}
+                />
+
+                {/* Post Link Dialog */}
+                < PostLinkDialog
+                    open={showPostLinkDialog}
+                    onClose={() => setShowPostLinkDialog(false)}
+                    onSubmit={handlePostLink}
+                    isLoading={isPostingLink}
+                />
+
+                {/* Mobile FAB */}
+                {
+                    isMobile && currentRoom && (
+                        <Fab
+                            color="primary"
+                            aria-label="add link"
+                            onClick={() => setShowPostLinkDialog(true)}
+                            sx={{
+                                position: 'fixed',
+                                bottom: 24,
+                                right: 24,
+                                zIndex: 100,
+                            }}
+                        >
+                            <AddIcon />
+                        </Fab>
+                    )
+                }
+
+                {/* Collection Context Menu */}
+                <Menu
+                    open={collectionContextMenu !== null}
+                    onClose={() => setCollectionContextMenu(null)}
+                    anchorReference="anchorPosition"
+                    anchorPosition={
+                        collectionContextMenu
+                            ? { top: collectionContextMenu.mouseY, left: collectionContextMenu.mouseX }
+                            : undefined
+                    }
+                >
+                    <MenuItem onClick={() => {
+                        if (collectionContextMenu) {
+                            setCollectionToDelete(collectionContextMenu.collectionId);
+                        }
+                        setCollectionContextMenu(null);
+                        setDeleteConfirmOpen(true);
+                    }} sx={{ color: 'error.main', gap: 1 }}>
+                        <DeleteIcon fontSize="small" />
+                        Delete Collection
+                    </MenuItem>
+                </Menu>
+
+                {/* Delete Collection Confirmation Dialog */}
+                <ConfirmDialog
+                    open={deleteConfirmOpen}
+                    title="Delete Collection"
+                    message={`Are you sure you want to delete "${collectionToDelete ? decryptedCollections.get(collectionToDelete!) || 'this collection' : ''}"? All links in this collection will be permanently deleted.`}
+                    confirmText="Delete"
+                    onConfirm={handleDeleteCollection}
+                    onCancel={() => {
+                        setDeleteConfirmOpen(false);
+                        setCollectionToDelete(null);
+                    }}
+                    isLoading={isDeletingCollection}
+                    variant="danger"
+                />
+
+                {/* Snackbar */}
+                <Snackbar
+                    open={snackbar.open}
+                    autoHideDuration={4000}
+                    onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                >
+                    <Alert
+                        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+                        severity={snackbar.severity}
+                        variant="filled"
+                        sx={{ borderRadius: '14px' }}
+                    >
+                        {snackbar.message}
+                    </Alert>
+                </Snackbar>
+
+                {/* Comments Overlay */}
+                {
+                    commentsLink && currentRoom && (
+                        <CommentsOverlay
+                            open={!!commentsLink}
+                            onClose={() => setCommentsLink(null)}
+                            link={commentsLink!}
+                            currentUserId={currentUserId}
+                            encryptComment={async (text) => {
+                                if (!currentRoom) throw new Error('No room selected');
+                                const roomKey = roomKeys.get(currentRoom._id);
+                                if (!roomKey) throw new Error('Room key not available');
+                                return encryptWithAES(roomKey, text);
+                            }}
+                            decryptComment={async (encrypted) => {
+                                if (!currentRoom) throw new Error('No room selected');
+                                const roomKey = roomKeys.get(currentRoom._id);
+                                if (!roomKey) throw new Error('Room key not available');
+                                return decryptWithAES(roomKey, encrypted);
+                            }}
+                        />
+                    )
+                }
+            </Box>
+        </Box>
     );
 }
