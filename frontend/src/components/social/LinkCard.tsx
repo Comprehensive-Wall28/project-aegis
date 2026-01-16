@@ -1,7 +1,7 @@
 import { useState, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon } from '@mui/icons-material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LinkPost } from '@/services/socialService';
 
@@ -108,18 +108,17 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                         flexDirection: 'column',
                         transition: 'border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease',
                         border: isViewed
-                            ? '1px solid transparent'
-                            : `1px solid ${alpha(theme.palette.primary.main, 0.4)}`,
+                            ? `1px solid ${alpha('#0ea5e9', 0.5)}` // Sky 500 (Blue) 
+                            : `1px solid ${alpha('#ffffff', 0.6)}`, // White
                         boxShadow: isViewed
-                            ? 'none'
-                            : `0 0 12px ${alpha(theme.palette.primary.main, 0.15)}`,
+                            ? `0 0 12px ${alpha('#0ea5e9', 0.2)}`
+                            : `0 0 12px ${alpha('#ffffff', 0.15)}`,
                         '&:hover': {
                             borderColor: alpha(theme.palette.primary.main, 0.2),
                             bgcolor: alpha(theme.palette.primary.main, 0.03),
                         },
                     }}
                     onClick={() => {
-                        onView?.(link._id);
                         window.open(url, '_blank', 'noopener,noreferrer');
                     }}
                 >
@@ -245,6 +244,22 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                             </Typography>
 
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                {!isViewed && (
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onView?.(link._id);
+                                        }}
+                                        sx={{
+                                            color: 'primary.main',
+                                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
+                                        }}
+                                        title="Mark as Viewed"
+                                    >
+                                        <MarkViewedIcon fontSize="small" />
+                                    </IconButton>
+                                )}
                                 <IconButton
                                     size="small"
                                     onClick={(e) => {
