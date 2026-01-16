@@ -7,7 +7,7 @@ export interface IGPALog extends Document {
     recordHash: string;
 }
 
-const GPALogSchema: Schema = new Schema({
+export const GPALogSchema: Schema = new Schema({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     semester: { type: String, required: true },
     gpa: { type: Number, required: true },

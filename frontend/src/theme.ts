@@ -12,7 +12,7 @@ declare module '@mui/material/Paper' {
 const FONT_PRIMARY = 'Outfit, sans-serif';
 const FONT_SECONDARY = 'Inter, sans-serif';
 
-export type ThemeMode = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'grey' | 'ocean' | 'light';
+export type ThemeMode = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'grey' | 'ocean' | 'light' | 'tokyonight';
 
 export const getTheme = (mode: ThemeMode) => {
 
@@ -143,6 +143,36 @@ export const getTheme = (mode: ThemeMode) => {
                 secondary: '#94a3b8',
             },
             divider: 'rgba(148, 163, 184, 0.08)',
+        },
+        tokyonight: {
+            background: {
+                default: '#16161e', // Even darker for outer depth
+                paper: '#1a1b26',   // Tokyo Night (Night) - Darker center area
+            },
+            primary: {
+                main: '#7aa2f7',    // Tokyo Night Blue
+                contrastText: '#1a1b26',
+            },
+            secondary: {
+                main: '#bb9af7',    // Tokyo Night Magenta
+            },
+            text: {
+                primary: '#c0caf5', // Tokyo Night (Terminal White)
+                secondary: '#9aa5ce', // Improved readability (Markdown Text/Gray-Blue)
+            },
+            error: {
+                main: '#f7768e',
+            },
+            warning: {
+                main: '#ff9e64',
+            },
+            info: {
+                main: '#7dcfff',
+            },
+            success: {
+                main: '#9ece6a',
+            },
+            divider: 'rgba(56, 62, 90, 0.6)', // Higher contrast Storm blue-gray for better definition
         },
     };
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
     Container,
@@ -11,7 +11,8 @@ import {
     useTheme,
     useMediaQuery,
     alpha,
-    Grid
+    Grid,
+    IconButton
 } from '@mui/material';
 import {
     InsertDriveFile as FileIcon,
@@ -20,12 +21,20 @@ import {
     CloudDownload as CloudDownloadIcon,
     Security as SecurityIcon,
     Speed as SpeedIcon,
-    ShieldOutlined as ShieldIcon
+    ShieldOutlined as ShieldIcon,
+    ChevronLeft,
+    ChevronRight
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 import apiClient from '@/services/api';
 import { unwrapKey, hexToBytes } from '@/lib/cryptoUtils';
 import { AegisLogo } from '@/components/AegisLogo';
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface SharedFileMetadata {
     resourceId: string;
@@ -102,6 +111,11 @@ export const PublicSharedFilePage = () => {
     const [downloading, setDownloading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
+    const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
+    const [pdfNumPages, setPdfNumPages] = useState<number | null>(null);
+    const [pdfContainerWidth, setPdfContainerWidth] = useState<number>(400);
+    const [pdfAspectRatio, setPdfAspectRatio] = useState<number>(0.707); // Default to A4 portrait
+    const pdfContainerRef = useRef<HTMLDivElement>(null);
 
     const decryptChunk = async (chunk: Uint8Array, key: CryptoKey) => {
         const iv = chunk.slice(0, 16);
@@ -203,7 +217,7 @@ export const PublicSharedFilePage = () => {
                 const dek = await unwrapKey(responseData.encryptedKey, linkKey);
                 setDecryptedKey(dek);
 
-                if (finalMetadata.mimeType.startsWith('image/')) {
+                if (finalMetadata.mimeType.startsWith('image/') || finalMetadata.mimeType === 'application/pdf') {
                     downloadAndPreview(finalMetadata, dek);
                 }
 
@@ -220,6 +234,39 @@ export const PublicSharedFilePage = () => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
+
+    useEffect(() => {
+        const updateDimensions = () => {
+            if (pdfContainerRef.current) {
+                const containerRect = pdfContainerRef.current.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
+
+                // Available height should account for the floating controls (approx 60px) + some safe margin
+                // We reduce the margin to 40px to allow it to be bigger
+                const availableHeight = containerHeight - 60;
+                const availableWidth = containerWidth - (window.innerWidth < 900 ? 16 : 48);
+
+                // Use the detected aspect ratio for precise fitting
+                // Width based on available width
+                const widthBasedOnWidth = availableWidth;
+                // Width based on available height using known aspect ratio
+                const widthBasedOnHeight = availableHeight * pdfAspectRatio;
+
+                const finalWidth = Math.min(widthBasedOnWidth, widthBasedOnHeight);
+                setPdfContainerWidth(Math.max(finalWidth, 100));
+            }
+        };
+
+        updateDimensions();
+        // Use a small delay to ensure container has settled
+        const timer = setTimeout(updateDimensions, 100);
+        window.addEventListener('resize', updateDimensions);
+        return () => {
+            window.removeEventListener('resize', updateDimensions);
+            clearTimeout(timer);
+        };
+    }, [loading, metadata, pdfAspectRatio]);
 
     const handleDownload = async () => {
         if (!metadata || !decryptedKey) return;
@@ -416,7 +463,7 @@ export const PublicSharedFilePage = () => {
                     transition={{ duration: 0.5, delay: 0.1 }}
                 >
                     <Paper sx={{
-                        borderRadius: 6,
+                        borderRadius: { xs: 1, md: 6 }, // Smaller radius on mobile to prevent clipping
                         overflow: 'hidden',
                         border: '1px solid #1a1a1a',
                         bgcolor: '#0a0a0a',
@@ -425,14 +472,18 @@ export const PublicSharedFilePage = () => {
                         <Grid container>
                             {/* Left Side - Preview */}
                             <Grid size={{ xs: 12, md: 7 }} sx={{ p: 0, borderRight: { md: '1px solid #1a1a1a' } }}>
-                                <Box sx={{
-                                    height: { xs: 300, sm: 400, md: 500 },
-                                    bgcolor: '#050505',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    position: 'relative',
-                                }}>
+                                <Box
+                                    ref={pdfContainerRef}
+                                    sx={{
+                                        height: { xs: 'auto', sm: 400, md: 500 },
+                                        minHeight: { xs: 300 },
+                                        bgcolor: '#050505',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        position: 'relative',
+                                        overflow: 'hidden'
+                                    }}>
                                     {previewLoading ? (
                                         <Stack alignItems="center" spacing={2}>
                                             <CircularProgress size={40} sx={{ color: 'primary.main' }} />
@@ -442,6 +493,99 @@ export const PublicSharedFilePage = () => {
                                         </Stack>
                                     ) : (metadata.mimeType.startsWith('image/') && previewUrl) ? (
                                         <img src={previewUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', padding: '24px' }} />
+                                    ) : (metadata.mimeType === 'application/pdf' && previewUrl) ? (
+                                        <>
+                                            <Box sx={{
+                                                width: '100%',
+                                                height: '100%',
+                                                p: { xs: 0, sm: 2 },
+                                                overflow: 'hidden', // Changed to hidden to prevent scrolling
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center', // Center vertically
+                                                '& .react-pdf__Page': {
+                                                    boxShadow: { xs: 'none', sm: `0 20px 60px ${alpha('#000', 0.5)}` },
+                                                    borderRadius: { xs: 0, sm: '8px' },
+                                                    overflow: 'hidden',
+                                                    maxWidth: '100vw',
+                                                },
+                                                '& .react-pdf__Page__canvas': {
+                                                    borderRadius: { xs: 0, sm: '8px' },
+                                                    maxWidth: '100% !important',
+                                                    height: 'auto !important',
+                                                }
+                                            }}>
+                                                <Document
+                                                    file={previewUrl}
+                                                    onLoadSuccess={({ numPages }) => setPdfNumPages(numPages)}
+                                                    loading={
+                                                        <Stack alignItems="center" spacing={2} sx={{ py: 4 }}>
+                                                            <CircularProgress size={32} sx={{ color: 'primary.main' }} />
+                                                            <Typography variant="caption" sx={{ color: alpha('#fff', 0.5) }}>
+                                                                Rendering PDF...
+                                                            </Typography>
+                                                        </Stack>
+                                                    }
+                                                >
+                                                    <Page
+                                                        pageNumber={pdfCurrentPage}
+                                                        width={pdfContainerWidth}
+                                                        renderTextLayer={false}
+                                                        renderAnnotationLayer={false}
+                                                        onLoadSuccess={(page) => {
+                                                            // Calculate and set aspect ratio: width / height
+                                                            const ratio = page.width / page.height;
+                                                            if (Math.abs(pdfAspectRatio - ratio) > 0.01) {
+                                                                setPdfAspectRatio(ratio);
+                                                            }
+                                                        }}
+                                                    />
+                                                </Document>
+                                            </Box>
+
+                                            {/* Floating Navigation Controls */}
+                                            {pdfNumPages && pdfNumPages > 1 && (
+                                                <Stack
+                                                    direction="row"
+                                                    alignItems="center"
+                                                    spacing={2}
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        bottom: 16,
+                                                        left: '50%',
+                                                        transform: 'translateX(-50%)',
+                                                        bgcolor: '#141414',
+                                                        px: 3,
+                                                        py: 1.2,
+                                                        borderRadius: '24px',
+                                                        border: '1px solid #333',
+                                                        zIndex: 5,
+                                                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                                                    }}
+                                                >
+                                                    <IconButton
+                                                        onClick={() => setPdfCurrentPage(p => Math.max(1, p - 1))}
+                                                        disabled={pdfCurrentPage <= 1}
+                                                        size="small"
+                                                        sx={{ color: 'white', '&:disabled': { color: alpha('#fff', 0.3) } }}
+                                                    >
+                                                        <ChevronLeft />
+                                                    </IconButton>
+                                                    <Typography sx={{ color: 'white', fontSize: '0.9rem', fontWeight: 700, minWidth: 60, textAlign: 'center' }}>
+                                                        {pdfCurrentPage} / {pdfNumPages}
+                                                    </Typography>
+                                                    <IconButton
+                                                        onClick={() => setPdfCurrentPage(p => Math.min(pdfNumPages, p + 1))}
+                                                        disabled={pdfCurrentPage >= pdfNumPages}
+                                                        size="small"
+                                                        sx={{ color: 'white', '&:disabled': { color: alpha('#fff', 0.3) } }}
+                                                    >
+                                                        <ChevronRight />
+                                                    </IconButton>
+                                                </Stack>
+                                            )}
+                                        </>
                                     ) : (
                                         <Box sx={{ textAlign: 'center', color: alpha('#fff', 0.2) }}>
                                             <motion.div animate={{ y: [0, -15, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
@@ -617,7 +761,7 @@ export const PublicSharedFilePage = () => {
                         Aegis Quantum-Safe Infrastructure • Protected by Open-Source Cryptography
                     </Typography>
                 </Box>
-            </Container>
-        </Box>
+            </Container >
+        </Box >
     );
 };

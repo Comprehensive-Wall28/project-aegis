@@ -58,7 +58,7 @@ export const ShareFolderDialog: React.FC<ShareFolderDialogProps> = ({
 
             // 4. Send Invite
             await apiClient.post('/share/invite', {
-                folderId,
+                id: folderId,
                 email: email.trim(),
                 encryptedSharedKey,
                 permissions: ['READ', 'DOWNLOAD']

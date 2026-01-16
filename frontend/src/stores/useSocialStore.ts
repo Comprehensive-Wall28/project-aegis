@@ -7,6 +7,7 @@ import type {
     RoomContent,
 } from '@/services/socialService';
 import { useSessionStore } from './sessionStore';
+import socketService from '@/services/socketService';
 
 // @ts-ignore - Module likely exists but types are missing in environment
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
@@ -18,10 +19,18 @@ interface SocialState {
     collections: Collection[];
     currentCollectionId: string | null;
     links: LinkPost[];
+    viewedLinkIds: Set<string>;
+    commentCounts: Record<string, number>;
+    unviewedCounts: Record<string, number>;
+    error: string | null;
 
     // Loading states
     isLoadingRooms: boolean;
     isLoadingContent: boolean;
+    isLoadingLinks: boolean;
+
+    // Pagination state
+    hasMoreLinks: boolean;
 
     // Pending invite for join flow
     pendingInvite: {
@@ -38,7 +47,9 @@ interface SocialState {
 
     selectRoom: (roomId: string) => Promise<void>;
     refreshCurrentRoom: () => Promise<void>;
-    selectCollection: (collectionId: string) => void;
+    selectCollection: (collectionId: string) => Promise<void>;
+    fetchCollectionLinks: (collectionId: string, isLoadMore?: boolean, silent?: boolean) => Promise<void>;
+    loadMoreLinks: () => Promise<void>;
     createRoom: (name: string, description: string, icon?: string) => Promise<Room>;
     joinRoom: (inviteCode: string, roomKey: CryptoKey) => Promise<void>;
     postLink: (url: string) => Promise<LinkPost>;
@@ -46,11 +57,17 @@ interface SocialState {
     createCollection: (name: string) => Promise<Collection>;
     deleteCollection: (collectionId: string) => Promise<void>;
     moveLink: (linkId: string, collectionId: string) => Promise<void>;
+    markLinkViewed: (linkId: string) => Promise<void>;
+    unmarkLinkViewed: (linkId: string) => Promise<void>;
+    getUnviewedCountByCollection: (collectionId: string) => number;
     createInvite: (roomId: string) => Promise<string>;
     setPendingInvite: (invite: SocialState['pendingInvite']) => void;
     decryptRoomMetadata: (room: Room) => Promise<{ name: string; description: string }>;
     decryptCollectionMetadata: (collection: Collection) => Promise<{ name: string }>;
+    clearError: () => void;
     clearSocial: () => void;
+    // Real-time setup
+    setupSocketListeners: () => void;
 }
 
 // Helper: Convert hex string to Uint8Array
@@ -196,13 +213,20 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     collections: [],
     currentCollectionId: null,
     links: [],
+    viewedLinkIds: new Set(),
+    commentCounts: {},
     isLoadingRooms: false,
     isLoadingContent: false,
+    isLoadingLinks: false,
+    hasMoreLinks: false,
+    unviewedCounts: {},
+    error: null,
     pendingInvite: null,
     roomKeys: new Map(),
 
     fetchRooms: async () => {
         set({ isLoadingRooms: true });
+        const { setCryptoStatus } = useSessionStore.getState();
         try {
             const sessionUser = useSessionStore.getState().user;
             if (!sessionUser?.privateKey) {
@@ -211,32 +235,61 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             }
 
             const rooms = await socialService.getUserRooms();
-            const state = get();
-
-            // Decrypt room keys for each room
-            for (const room of rooms) {
-                if (room.encryptedRoomKey && !state.roomKeys.has(room._id)) {
-                    try {
-                        const roomKey = await decryptRoomKeyWithPQC(
-                            room.encryptedRoomKey,
-                            sessionUser.privateKey
-                        );
-                        state.roomKeys.set(room._id, roomKey);
-                    } catch (err) {
-                        console.error(`Failed to decrypt key for room ${room._id}:`, err);
-                    }
-                }
-            }
-
             set({ rooms, isLoadingRooms: false });
+
+            // Proactive Background Decryption (Phase 3)
+            // Decrypt keys as soon as we land on /social to make room entry instant
+            const state = get();
+            const roomsToDecrypt = rooms.filter(r => r.encryptedRoomKey && !state.roomKeys.has(r._id));
+
+            if (roomsToDecrypt.length > 0) {
+                // Run in background to avoid blocking initial render
+                setTimeout(async () => {
+                    const sessionUser = useSessionStore.getState().user;
+                    if (!sessionUser?.privateKey) return;
+
+                    setCryptoStatus('decrypting');
+                    for (const room of roomsToDecrypt) {
+                        if (!room.encryptedRoomKey) continue;
+                        try {
+                            const roomKey = await decryptRoomKeyWithPQC(
+                                room.encryptedRoomKey,
+                                sessionUser.privateKey
+                            );
+
+                            // We use a new Map to ensure reactiveness in components listening to roomKeys
+                            set((prev) => {
+                                const updatedKeys = new Map(prev.roomKeys);
+                                updatedKeys.set(room._id, roomKey);
+                                return { roomKeys: updatedKeys };
+                            });
+                        } catch (err) {
+                            console.error(`Failed to background decrypt key for room ${room._id}:`, err);
+                        }
+                    }
+                    setCryptoStatus('idle');
+                }, 100); // Small delay to let initial UI settle
+            }
         } catch (error) {
             console.error('Failed to fetch rooms:', error);
-            set({ isLoadingRooms: false });
+            setCryptoStatus('idle');
+            set({ isLoadingRooms: false, error: 'Failed to load rooms. Please refresh.' });
         }
     },
 
     selectRoom: async (roomId: string) => {
-        set({ isLoadingContent: true, currentCollectionId: null });
+        const state = get();
+        // Skip if already loading this room
+        if (state.isLoadingContent && state.currentRoom?._id === roomId) return;
+
+        set({
+            isLoadingContent: true,
+            error: null
+            // We NO LONGER clear currentCollectionId or links immediately 
+            // to allow for a smoother transition if the UI handles it,
+            // or just to avoid extra state updates before the new data arrives
+        });
+        const { setCryptoStatus } = useSessionStore.getState();
         try {
             const content: RoomContent = await socialService.getRoomContent(roomId);
             const state = get();
@@ -246,13 +299,16 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             let roomKey: CryptoKey | undefined;
             if (content.room.encryptedRoomKey && sessionUser?.privateKey) {
                 try {
+                    setCryptoStatus('decrypting');
                     roomKey = await decryptRoomKeyWithPQC(
                         content.room.encryptedRoomKey,
                         sessionUser.privateKey
                     );
                     state.roomKeys.set(roomId, roomKey);
+                    setCryptoStatus('idle');
                 } catch (err) {
                     console.error('Failed to decrypt room key:', err);
+                    setCryptoStatus('idle');
                 }
             }
 
@@ -262,23 +318,43 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 ? state.rooms
                 : [...state.rooms, content.room];
 
+            const firstCollectionId = content.collections[0]?._id || null;
+
             set({
                 currentRoom: content.room,
                 collections: content.collections,
-                links: content.links,
+                unviewedCounts: content.unviewedCounts,
+                links: content.links || [],
+                viewedLinkIds: new Set(content.viewedLinkIds || []),
+                commentCounts: content.commentCounts || {},
                 rooms: updatedRooms,
-                currentCollectionId: content.collections[0]?._id || null,
-                isLoadingContent: false,
+                currentCollectionId: firstCollectionId,
+                hasMoreLinks: (content.links?.length || 0) === 30 // Assume more if first page is full
             });
-        } catch (error) {
-            console.error('Failed to select room:', error);
+
+            // Join socket room
+            socketService.joinRoom(roomId);
+            get().setupSocketListeners();
+
+            // Auto-load first collection links if NOT already provided in content
+            // (In the optimized version, content.links should already have the first page)
+            if (firstCollectionId && (!content.links || content.links.length === 0)) {
+                await get().fetchCollectionLinks(firstCollectionId, false);
+            }
+
             set({ isLoadingContent: false });
+        } catch (error: any) {
+            console.error('Failed to select room:', error);
+            const message = error.response?.data?.message || error.message || 'Failed to access room';
+            setCryptoStatus('idle');
+            set({ isLoadingContent: false, error: message });
         }
     },
 
     refreshCurrentRoom: async () => {
         const state = get();
         if (!state.currentRoom) return;
+        const { setCryptoStatus } = useSessionStore.getState();
 
         try {
             const content: RoomContent = await socialService.getRoomContent(state.currentRoom._id);
@@ -288,13 +364,16 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             // But we can decrypt any new room keys if somehow missing
             if (content.room.encryptedRoomKey && sessionUser?.privateKey && !state.roomKeys.has(state.currentRoom._id)) {
                 try {
+                    setCryptoStatus('decrypting');
                     const roomKey = await decryptRoomKeyWithPQC(
                         content.room.encryptedRoomKey,
                         sessionUser.privateKey
                     );
                     state.roomKeys.set(state.currentRoom._id, roomKey);
+                    setCryptoStatus('idle');
                 } catch (err) {
                     console.error('Failed to decrypt room key during refresh:', err);
+                    setCryptoStatus('idle');
                 }
             }
 
@@ -302,7 +381,9 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             set({
                 // currentRoom: content.room, // Keep existing room obj to prevent full re-render flickering
                 collections: content.collections,
-                links: content.links,
+                unviewedCounts: content.unviewedCounts,
+                // Do NOT overwrite links, viewedLinkIds or commentCounts here 
+                // as they are handled by fetchCollectionLinks now
                 // Do NOT reset currentCollectionId or loading state
             });
         } catch (error) {
@@ -310,15 +391,107 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         }
     },
 
-    selectCollection: (collectionId: string) => {
-        set({ currentCollectionId: collectionId });
+    selectCollection: async (collectionId: string) => {
+        const state = get();
+        if (state.currentCollectionId === collectionId) return;
+
+        set({
+            currentCollectionId: collectionId,
+            links: [], // Clear existing links when switching
+            hasMoreLinks: false
+        });
+
+        await get().fetchCollectionLinks(collectionId, false);
+    },
+
+    fetchCollectionLinks: async (collectionId: string, isLoadMore: boolean = false, silent: boolean = false) => {
+        const state = get();
+        if (!state.currentRoom) return;
+
+        if (!silent && !isLoadMore) {
+            set({ isLoadingLinks: true });
+        }
+
+        // Calculate cursor: undefined for first load/refresh, derived from last link for loadMore
+        let beforeCursor: { createdAt: string; id: string } | undefined;
+        if (isLoadMore && state.links.length > 0) {
+            const lastLink = state.links[state.links.length - 1];
+            beforeCursor = {
+                createdAt: lastLink.createdAt,
+                id: lastLink._id
+            };
+        }
+
+        try {
+            const result = await socialService.getCollectionLinks(
+                state.currentRoom._id,
+                collectionId,
+                30,
+                beforeCursor
+            );
+
+            set((prev) => {
+                let newLinks = prev.links;
+
+                if (!isLoadMore) {
+                    // Initial Load / Refresh
+                    if (silent) {
+                        // Silent update: Merge/Prepend
+                        const existingLinkIds = new Set(prev.links.map(l => l._id));
+                        const refreshedLinks = result.links;
+
+                        const newItems = refreshedLinks.filter(l => !existingLinkIds.has(l._id));
+                        const refreshedMap = new Map(refreshedLinks.map(l => [l._id, l]));
+
+                        // Update existing items in place
+                        newLinks = prev.links.map(l => refreshedMap.get(l._id) || l);
+                        // Add new items at top
+                        newLinks = [...newItems, ...newLinks];
+                    } else {
+                        // Hard replace
+                        newLinks = result.links;
+                    }
+                } else {
+                    // Load More: Append
+                    const existingIds = new Set(prev.links.map(l => l._id));
+                    // Filter duplicates just in case
+                    const uniqueNewLinks = result.links.filter(l => !existingIds.has(l._id));
+                    newLinks = [...prev.links, ...uniqueNewLinks];
+                }
+
+                return {
+                    links: newLinks,
+                    viewedLinkIds: (!isLoadMore && !silent)
+                        ? new Set(result.viewedLinkIds)
+                        : new Set([...prev.viewedLinkIds, ...result.viewedLinkIds]),
+                    commentCounts: (!isLoadMore && !silent)
+                        ? result.commentCounts
+                        : { ...prev.commentCounts, ...result.commentCounts },
+                    hasMoreLinks: result.hasMore,
+                    isLoadingLinks: false
+                };
+            });
+        } catch (error) {
+            console.error('Failed to fetch collection links:', error);
+            set({ isLoadingLinks: false });
+        }
+    },
+
+    loadMoreLinks: async () => {
+        const state = get();
+        if (!state.currentCollectionId || !state.hasMoreLinks || state.isLoadingLinks) return;
+
+        await get().fetchCollectionLinks(state.currentCollectionId, true);
     },
 
     createRoom: async (name: string, description: string, icon?: string) => {
+        const { setCryptoStatus } = useSessionStore.getState();
         const sessionUser = useSessionStore.getState().user;
         if (!sessionUser?.publicKey) {
             throw new Error('PQC keys not initialized');
         }
+
+        setCryptoStatus('encrypting');
 
         // Generate room key
         const roomKey = await generateRoomKey();
@@ -330,6 +503,8 @@ export const useSocialStore = create<SocialState>((set, get) => ({
 
         // Encrypt room key with user's PQC public key
         const encryptedRoomKey = await encryptRoomKeyWithPQC(roomKey, sessionUser.publicKey);
+
+        setCryptoStatus('idle');
 
         // Create room via API
         const room = await socialService.createRoom({
@@ -352,13 +527,18 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     },
 
     joinRoom: async (inviteCode: string, roomKey: CryptoKey) => {
+        const { setCryptoStatus } = useSessionStore.getState();
         const sessionUser = useSessionStore.getState().user;
         if (!sessionUser?.publicKey) {
             throw new Error('PQC keys not initialized');
         }
 
+        setCryptoStatus('encrypting');
+
         // Encrypt room key with user's PQC public key
         const encryptedRoomKey = await encryptRoomKeyWithPQC(roomKey, sessionUser.publicKey);
+
+        setCryptoStatus('idle');
 
         // Join via API
         const result = await socialService.joinRoom(inviteCode, encryptedRoomKey);
@@ -394,13 +574,18 @@ export const useSocialStore = create<SocialState>((set, get) => ({
 
     createCollection: async (name: string) => {
         const state = get();
+        const { setCryptoStatus } = useSessionStore.getState();
         if (!state.currentRoom) throw new Error('No room selected');
 
         const roomKey = state.roomKeys.get(state.currentRoom._id);
         if (!roomKey) throw new Error('Room key not available');
 
+        setCryptoStatus('encrypting');
+
         // Encrypt collection name
         const encryptedName = await encryptWithAES(roomKey, name);
+
+        setCryptoStatus('idle');
 
         const collection = await socialService.createCollection(
             state.currentRoom._id,
@@ -421,6 +606,78 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 l._id === linkId ? { ...l, collectionId: collectionId } : l
             )
         });
+    },
+
+    markLinkViewed: async (linkId: string) => {
+        const state = get();
+        if (state.viewedLinkIds.has(linkId)) return;
+
+        // Optimistically update the UI
+        const newViewedIds = new Set(state.viewedLinkIds);
+        newViewedIds.add(linkId);
+
+        // Find the link to get its collectionId
+        const link = state.links.find(l => l._id === linkId);
+        const newUnviewedCounts = { ...state.unviewedCounts };
+        if (link && newUnviewedCounts[link.collectionId]) {
+            newUnviewedCounts[link.collectionId] = Math.max(0, newUnviewedCounts[link.collectionId] - 1);
+        }
+
+        set({
+            viewedLinkIds: newViewedIds,
+            unviewedCounts: newUnviewedCounts
+        });
+
+        try {
+            await socialService.markLinkViewed(linkId);
+        } catch (error) {
+            // Revert on error
+            console.error('Failed to mark link as viewed:', error);
+            const revertedViewed = new Set(state.viewedLinkIds);
+            set({
+                viewedLinkIds: revertedViewed,
+                unviewedCounts: state.unviewedCounts
+            });
+        }
+    },
+
+    unmarkLinkViewed: async (linkId: string) => {
+        const state = get();
+        if (!state.viewedLinkIds.has(linkId)) return;
+
+        // Optimistically update the UI
+        const newViewedIds = new Set(state.viewedLinkIds);
+        newViewedIds.delete(linkId);
+
+        // Find the link to get its collectionId
+        const link = state.links.find(l => l._id === linkId);
+        const newUnviewedCounts = { ...state.unviewedCounts };
+        if (link) {
+            newUnviewedCounts[link.collectionId] = (newUnviewedCounts[link.collectionId] || 0) + 1;
+        }
+
+        set({
+            viewedLinkIds: newViewedIds,
+            unviewedCounts: newUnviewedCounts
+        });
+
+        try {
+            await socialService.unmarkLinkViewed(linkId);
+        } catch (error) {
+            // Revert on error
+            console.error('Failed to unmark link as viewed:', error);
+            const revertedViewed = new Set(state.viewedLinkIds);
+            revertedViewed.add(linkId);
+            set({
+                viewedLinkIds: revertedViewed,
+                unviewedCounts: state.unviewedCounts
+            });
+        }
+    },
+
+    getUnviewedCountByCollection: (collectionId: string) => {
+        const state = get();
+        return state.unviewedCounts[collectionId] || 0;
     },
 
     deleteCollection: async (collectionId: string) => {
@@ -499,15 +756,92 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         }
     },
 
+    clearError: () => {
+        set({ error: null });
+    },
+
     clearSocial: () => {
+        socketService.disconnect();
         set({
             rooms: [],
             currentRoom: null,
             collections: [],
             currentCollectionId: null,
             links: [],
+            viewedLinkIds: new Set(),
+            commentCounts: {},
+            unviewedCounts: {},
+            isLoadingRooms: false,
+            isLoadingContent: false,
+            isLoadingLinks: false,
+            hasMoreLinks: false,
             pendingInvite: null,
             roomKeys: new Map(),
+            error: null,
         });
     },
+
+    setupSocketListeners: () => {
+        // Remove existing listeners to avoid duplicates
+        socketService.off('NEW_LINK', () => { });
+        socketService.off('NEW_COMMENT', () => { });
+
+        socketService.on('NEW_LINK', (data: { link: LinkPost, collectionId: string }) => {
+            const currentState = get();
+
+            if (currentState.currentCollectionId === data.collectionId) {
+                // If we are looking at this collection, prepend the new link
+                const exists = currentState.links.some(l => l._id === data.link._id);
+                if (!exists) {
+                    set((prev) => ({
+                        links: [data.link, ...prev.links]
+                    }));
+                }
+            }
+        });
+
+        socketService.on('NEW_COMMENT', (data: { linkId: string, commentCount: number }) => {
+            set((prev) => ({
+                commentCounts: {
+                    ...prev.commentCounts,
+                    [data.linkId]: data.commentCount
+                }
+            }));
+        });
+
+        socketService.on('LINK_UPDATED', (data: { link: LinkPost }) => {
+            set((prev) => ({
+                links: prev.links.map(l => l._id === data.link._id ? data.link : l)
+            }));
+        });
+
+        socketService.on('LINK_DELETED', (data: { linkId: string, collectionId: string }) => {
+            set((prev) => ({
+                links: prev.links.filter(l => l._id !== data.linkId)
+            }));
+        });
+
+        socketService.on('LINK_MOVED', (data: { linkId: string, newCollectionId: string, link: LinkPost }) => {
+            const currentState = get();
+
+            if (currentState.currentCollectionId === data.newCollectionId) {
+                // If moved TO the current collection, add it (or update if exists)
+                const exists = currentState.links.some(l => l._id === data.linkId);
+                if (!exists) {
+                    set((prev) => ({
+                        links: [data.link, ...prev.links]
+                    }));
+                } else {
+                    set((prev) => ({
+                        links: prev.links.map(l => l._id === data.linkId ? data.link : l)
+                    }));
+                }
+            } else {
+                // If moved AWAY from current collection, remove it
+                set((prev) => ({
+                    links: prev.links.filter(l => l._id !== data.linkId)
+                }));
+            }
+        });
+    }
 }));

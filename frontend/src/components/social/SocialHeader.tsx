@@ -1,0 +1,271 @@
+import { memo, useState, useEffect } from 'react';
+import {
+    Box,
+    Paper,
+    Typography,
+    IconButton,
+    TextField,
+    Button,
+    alpha,
+    useTheme,
+    CircularProgress,
+    Tooltip,
+    InputAdornment,
+    Menu,
+    MenuItem,
+    Skeleton,
+} from '@mui/material';
+import {
+    Group as GroupIcon,
+    Link as LinkIcon,
+    ContentCopy as CopyIcon,
+    FilterList as FilterListIcon,
+    Search as SearchIcon,
+    Close as CloseIcon,
+    Share as ShareIcon,
+    ArrowBack as ArrowBackIcon,
+} from '@mui/icons-material';
+import type { Room } from '@/services/socialService';
+import { useSocialStore } from '@/stores/useSocialStore';
+
+interface SocialHeaderProps {
+    viewMode: 'rooms' | 'room-content';
+    isMobile: boolean;
+    optimisticRoomId: string | null;
+    currentRoom: Room | null;
+    handleExitRoom: () => void;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
+    handleFilterClick: (event: React.MouseEvent<HTMLElement>) => void;
+    selectedUploader: string | null;
+    handleCopyInvite: () => void;
+    filterAnchorEl: HTMLElement | null;
+    handleFilterClose: () => void;
+    handleSelectUploader: (id: string | null) => void;
+    getUniqueUploaders: () => { id: string, username: string }[];
+    newLinkUrl: string;
+    setNewLinkUrl: (url: string) => void;
+    handlePostLink: () => void;
+    isPostingLink: boolean;
+}
+
+export const SocialHeader = memo(({
+    viewMode,
+    isMobile,
+    optimisticRoomId,
+    currentRoom,
+    handleExitRoom,
+    searchQuery,
+    setSearchQuery,
+    handleFilterClick,
+    selectedUploader,
+    handleCopyInvite,
+    filterAnchorEl,
+    handleFilterClose,
+    handleSelectUploader,
+    getUniqueUploaders,
+    newLinkUrl,
+    setNewLinkUrl,
+    handlePostLink,
+    isPostingLink,
+}: SocialHeaderProps) => {
+    const theme = useTheme();
+    const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
+    const [decryptedName, setDecryptedName] = useState<string | null>(null);
+    const [isDecrypting, setIsDecrypting] = useState(false);
+
+    useEffect(() => {
+        const decrypt = async () => {
+            if (!currentRoom) {
+                setDecryptedName(null);
+                return;
+            }
+            setIsDecrypting(true);
+            try {
+                const results = await decryptRoomMetadata(currentRoom);
+                setDecryptedName(results.name);
+            } catch (err) {
+                console.error('Failed to decrypt header room name:', err);
+                setDecryptedName('[Encrypted]');
+            } finally {
+                setIsDecrypting(false);
+            }
+        };
+
+        decrypt();
+    }, [currentRoom, decryptRoomMetadata]);
+
+    return (
+        <Paper
+            variant="glass"
+            sx={{
+                p: 2,
+                borderRadius: isMobile ? '12px' : '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexShrink: 0,
+                minHeight: 88,
+            }}
+        >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {viewMode === 'room-content' && (optimisticRoomId || currentRoom) ? (
+                    <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: -0.5 }}>
+                        <ArrowBackIcon />
+                    </IconButton>
+                ) : (
+                    <GroupIcon sx={{ color: 'primary.main' }} />
+                )}
+                <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        {viewMode === 'room-content' && (optimisticRoomId || currentRoom)
+                            ? (isDecrypting ? <Skeleton width={120} /> : (decryptedName || '...'))
+                            : 'Social Rooms'}
+                    </Typography>
+                    {viewMode === 'room-content' && currentRoom && (
+                        <Typography variant="caption" color="text.secondary">
+                            {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
+                        </Typography>
+                    )}
+                </Box>
+            </Box>
+
+            {viewMode === 'room-content' && currentRoom && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}>
+                    {!isMobile && (
+                        <Box sx={{ width: 250, display: 'flex', overflow: 'hidden' }}>
+                            <TextField
+                                placeholder="Search links..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                size="small"
+                                fullWidth
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <SearchIcon fontSize="small" color="action" />
+                                        </InputAdornment>
+                                    ),
+                                    endAdornment: searchQuery ? (
+                                        <InputAdornment position="end">
+                                            <IconButton size="small" onClick={() => setSearchQuery('')}>
+                                                <CloseIcon fontSize="small" />
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ) : undefined,
+                                }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '14px',
+                                        bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                    }
+                                }}
+                            />
+                        </Box>
+                    )}
+
+                    <Tooltip title="Filter by Uploader">
+                        <IconButton
+                            onClick={handleFilterClick}
+                            sx={{
+                                color: selectedUploader ? 'primary.main' : 'text.secondary',
+                                bgcolor: selectedUploader ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                '&:hover': {
+                                    color: 'primary.main',
+                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                }
+                            }}
+                        >
+                            <FilterListIcon />
+                        </IconButton>
+                    </Tooltip>
+
+                    {isMobile && (
+                        <Tooltip title="Copy Invite Link">
+                            <IconButton onClick={handleCopyInvite} color="primary">
+                                <ShareIcon />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+
+                    <Menu
+                        anchorEl={filterAnchorEl}
+                        open={Boolean(filterAnchorEl)}
+                        onClose={handleFilterClose}
+                        PaperProps={{
+                            variant: 'solid',
+                            elevation: 8,
+                            sx: {
+                                minWidth: 200,
+                                mt: 1,
+                                bgcolor: theme.palette.background.paper,
+                                backgroundImage: 'none',
+                                border: `1px solid ${theme.palette.divider}`,
+                            }
+                        }}
+                    >
+                        <MenuItem
+                            onClick={() => handleSelectUploader(null)}
+                            selected={selectedUploader === null}
+                        >
+                            All Uploaders
+                        </MenuItem>
+                        {getUniqueUploaders().map((uploader) => (
+                            <MenuItem
+                                key={uploader.id}
+                                onClick={() => handleSelectUploader(uploader.id)}
+                                selected={selectedUploader === uploader.id}
+                            >
+                                {uploader.username}
+                            </MenuItem>
+                        ))}
+                    </Menu>
+
+                    {!isMobile && (
+                        <>
+                            <TextField
+                                placeholder="Paste a link to share..."
+                                value={newLinkUrl}
+                                onChange={(e) => setNewLinkUrl(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handlePostLink()}
+                                size="small"
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <LinkIcon color="action" sx={{ fontSize: 18 }} />
+                                        </InputAdornment>
+                                    ),
+                                }}
+                                sx={{
+                                    flex: 1,
+                                    maxWidth: 400,
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '14px',
+                                    },
+                                }}
+                            />
+
+                            <Button
+                                variant="contained"
+                                onClick={() => handlePostLink()}
+                                disabled={!newLinkUrl.trim() || isPostingLink}
+                                sx={{ borderRadius: '14px', flexShrink: 0 }}
+                            >
+                                {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
+                            </Button>
+
+                            <Button
+                                variant="outlined"
+                                startIcon={<CopyIcon />}
+                                onClick={handleCopyInvite}
+                                sx={{ borderRadius: '14px', flexShrink: 0 }}
+                            >
+                                Invite
+                            </Button>
+                        </>
+                    )}
+                </Box>
+            )}
+        </Paper>
+    );
+});

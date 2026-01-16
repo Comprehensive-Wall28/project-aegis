@@ -71,12 +71,8 @@ export const ShareEmailTab: React.FC<ShareEmailTabProps> = ({ item, type, onSucc
 
             // 4. Send Invite
             const endpoint = type === 'file' ? '/share/invite-file' : '/share/invite';
-            const payload = type === 'file' ? {
-                fileId: item._id,
-                email: email.trim(),
-                encryptedSharedKey
-            } : {
-                folderId: item._id,
+            const payload = {
+                id: item._id,
                 email: email.trim(),
                 encryptedSharedKey
             };

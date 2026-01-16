@@ -1,7 +1,19 @@
 import { Request } from 'express';
 import crypto from 'crypto';
-import AuditLog, { AuditAction, AuditStatus } from '../models/AuditLog';
+import { AuditAction, AuditStatus, AuditLogSchema, IAuditLog } from '../models/AuditLog';
+import { DatabaseManager } from '../config/DatabaseManager';
 import logger from './logger';
+
+/**
+ * Get the AuditLog model from the secondary connection
+ * This ensures audit logs are stored in the secondary database
+ */
+function getAuditLogModel() {
+    const dbManager = DatabaseManager.getInstance();
+    const connection = dbManager.getConnection('secondary');
+    // Use existing model if already registered, otherwise create it
+    return connection.models['AuditLog'] || connection.model<IAuditLog>('AuditLog', AuditLogSchema);
+}
 
 /**
  * Extracts the client IP address from the request.
@@ -68,6 +80,7 @@ export async function logAuditEvent(
         const recordHash = computeRecordHash(userId, action, status, timestamp, metadata);
 
         // Create the audit log entry
+        const AuditLog = getAuditLogModel();
         await AuditLog.create({
             userId,
             action,
@@ -112,6 +125,7 @@ export async function logFailedAuth(
         })).digest('hex');
 
         // Store failed attempt in AuditLog
+        const AuditLog = getAuditLogModel();
         await AuditLog.create({
             identifier: identifierHash,
             action,

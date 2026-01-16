@@ -46,6 +46,12 @@ const THEME_PALETTES: Record<Theme, { background: string; paper: string; primary
         primary: '#ffffff',
         text: '#f1f5f9',
     },
+    tokyonight: {
+        background: '#1a1b26',
+        paper: '#24283b',
+        primary: '#7aa2f7',
+        text: '#c0caf5',
+    },
     light: {
         background: '#f8fafc',
         paper: '#ffffff',

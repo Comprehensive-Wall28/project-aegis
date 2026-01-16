@@ -23,7 +23,8 @@ import {
     Folder as FolderIcon,
     ChevronRight as ChevronRightIcon,
     Home as HomeIcon,
-    FolderShared as SharedIcon
+    FolderShared as SharedIcon,
+    Palette as PaletteIcon
 } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
 
@@ -60,6 +61,7 @@ import { useVaultDownload } from '@/hooks/useVaultDownload';
 import { BackendDown } from '@/components/BackendDown';
 import { ContextMenu, useContextMenu, CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/ContextMenu';
 import { ImagePreviewOverlay } from '@/components/vault/ImagePreviewOverlay';
+import { PDFPreviewOverlay } from '@/components/vault/PDFPreviewOverlay';
 import { ShareDialog } from '@/components/sharing/ShareDialog';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useFolderKeyStore } from '@/stores/useFolderKeyStore';
@@ -172,6 +174,20 @@ export function FilesPage() {
     }>({ open: false, type: 'file' });
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Color picker state
+    const [colorPickerFolderId, setColorPickerFolderId] = useState<string | null>(null);
+    const FOLDER_COLORS = [
+        '#FFB300', // Default Yellow
+        '#EF5350', // Red
+        '#AB47BC', // Purple
+        '#42A5F5', // Blue
+        '#66BB6A', // Green
+        '#26C6DA', // Cyan
+        '#FFA726', // Orange
+        '#8D6E63', // Brown
+        '#78909C', // Gray
+    ];
+
     const sentinelRef = useRef<HTMLDivElement>(null);
     const { uploadFiles } = useVaultUpload();
     const uploadStatus = useUploadStatus(); // Using specialized status-only hook
@@ -179,6 +195,11 @@ export function FilesPage() {
     const { contextMenu, handleContextMenu, closeContextMenu } = useContextMenu();
     const theme = useTheme();
     const isImageFile = (file: FileMetadata) => file.mimeType?.startsWith('image/');
+    const isPdfFile = (file: FileMetadata) => file.mimeType === 'application/pdf';
+
+    // PDF Preview State
+    const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+    const [pdfPreviewFile, setPdfPreviewFile] = useState<FileMetadata | null>(null);
 
     const fetchData = useCallback(async () => {
         try {
@@ -330,11 +351,15 @@ export function FilesPage() {
         if (isImageFile(file)) {
             setPreviewInitialId(file._id);
             setPreviewOpen(true);
+        } else if (isPdfFile(file)) {
+            // If it's a PDF, open the PDF preview
+            setPdfPreviewFile(file);
+            setPdfPreviewOpen(true);
         } else {
-            // For non-images, toggle selection
+            // For other files, toggle selection
             toggleSelect(file._id);
         }
-    }, [toggleSelect, isImageFile]);
+    }, [toggleSelect, isImageFile, isPdfFile]);
 
     const gridSize = useMemo(() => {
         switch (viewPreset) {
@@ -463,6 +488,19 @@ export function FilesPage() {
         }
     };
 
+    const handleFolderColorChange = async (folderId: string, color: string) => {
+        try {
+            await folderService.updateFolderColor(folderId, color);
+            // Update local state
+            setFolders(prev => prev.map(f =>
+                f._id === folderId ? { ...f, color } : f
+            ));
+            setColorPickerFolderId(null);
+        } catch (err) {
+            console.error('Failed to update folder color:', err);
+        }
+    };
+
     const navigateToFolder = useCallback((folder: Folder | null) => {
         if (folder) {
             setFolderPath(prev => [...prev, folder]);
@@ -542,6 +580,13 @@ export function FilesPage() {
                     label: 'Share', icon: <ShareIcon fontSize="small" />, onClick: () => {
                         const folder = folders.find(f => f._id === contextMenu.target?.id);
                         if (folder) setShareDialog({ open: true, item: folder, type: 'folder' });
+                    }
+                },
+                {
+                    label: 'Change Color', icon: <PaletteIcon fontSize="small" />, onClick: () => {
+                        if (contextMenu.target?.id) {
+                            setColorPickerFolderId(contextMenu.target.id);
+                        }
                     }
                 },
                 {
@@ -644,7 +689,10 @@ export function FilesPage() {
                                 color="error"
                                 size="small"
                                 startIcon={<TrashIcon />}
-                                onClick={handleMassDelete}
+                                onClick={(e) => {
+                                    e.currentTarget.blur();
+                                    handleMassDelete();
+                                }}
                                 sx={{ fontWeight: 700, borderRadius: '8px', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                             >
                                 Delete ({selectedIds.size})
@@ -655,7 +703,10 @@ export function FilesPage() {
                         variant="outlined"
                         size="small"
                         startIcon={<CreateFolderIcon />}
-                        onClick={() => setNewFolderDialog(true)}
+                        onClick={(e) => {
+                            e.currentTarget.blur();
+                            setNewFolderDialog(true);
+                        }}
                         sx={{
                             fontWeight: 700,
                             borderRadius: '8px',
@@ -673,7 +724,10 @@ export function FilesPage() {
                         variant="outlined"
                         size="small"
                         startIcon={<UploadIcon />}
-                        onClick={() => setShowUpload(!showUpload)}
+                        onClick={(e) => {
+                            e.currentTarget.blur();
+                            setShowUpload(!showUpload);
+                        }}
                         sx={{
                             fontWeight: 700,
                             borderRadius: '8px',
@@ -983,7 +1037,7 @@ export function FilesPage() {
                 onClose={() => setNewFolderDialog(false)}
                 maxWidth="xs"
                 fullWidth
-                PaperProps={{ variant: 'translucent' }}
+                PaperProps={{ variant: 'solid', sx: { borderRadius: '24px' } }}
             >
                 <DialogTitle sx={{ fontWeight: 700 }}>Create New Folder</DialogTitle>
                 <DialogContent>
@@ -1087,6 +1141,16 @@ export function FilesPage() {
                 files={imageFiles}
                 initialFileId={previewInitialId || ''}
             />
+
+            {/* PDF Preview Overlay */}
+            <PDFPreviewOverlay
+                isOpen={pdfPreviewOpen}
+                onClose={() => {
+                    setPdfPreviewOpen(false);
+                    setPdfPreviewFile(null);
+                }}
+                file={pdfPreviewFile}
+            />
             {/* Share Dialog */}
             {shareDialog.open && shareDialog.item && (
                 <ShareDialog
@@ -1096,6 +1160,45 @@ export function FilesPage() {
                     type={shareDialog.type}
                 />
             )}
+
+            {/* Color Picker Dialog */}
+            <Dialog
+                open={Boolean(colorPickerFolderId)}
+                onClose={() => setColorPickerFolderId(null)}
+                PaperProps={{
+                    sx: {
+                        p: 2,
+                        borderRadius: '20px',
+                        bgcolor: theme.palette.background.paper,
+                        minWidth: 200,
+                    }
+                }}
+            >
+                <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 700, mb: 2 }}>
+                    Choose Folder Color
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 1 }}>
+                    {FOLDER_COLORS.map((color) => (
+                        <Box
+                            key={color}
+                            onClick={() => colorPickerFolderId && handleFolderColorChange(colorPickerFolderId, color)}
+                            sx={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: '10px',
+                                bgcolor: color,
+                                cursor: 'pointer',
+                                border: `2px solid transparent`,
+                                transition: 'transform 0.15s, border-color 0.15s',
+                                '&:hover': {
+                                    transform: 'scale(1.1)',
+                                    borderColor: alpha(theme.palette.common.white, 0.5),
+                                }
+                            }}
+                        />
+                    ))}
+                </Box>
+            </Dialog>
 
             {/* Delete Confirmation Dialog */}
             <ConfirmDialog
@@ -1201,7 +1304,7 @@ const FolderGridItem = memo(({
                     }}
                 >
                     <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))', position: 'relative' }}>
-                        <FolderIcon sx={{ fontSize: iconScaling.size, color: '#FFB300' }} />
+                        <FolderIcon sx={{ fontSize: iconScaling.size, color: folder.color || '#FFB300' }} />
                         {folder.isSharedWithMe && (
                             <SharedIcon
                                 sx={{

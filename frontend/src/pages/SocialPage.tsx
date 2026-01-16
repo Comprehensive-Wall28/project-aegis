@@ -1,312 +1,51 @@
-import { useState, useCallback, useEffect, memo, useMemo, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
     Box,
-    Paper,
     Typography,
-    IconButton,
-    Avatar,
-    TextField,
-    Button,
     alpha,
     useTheme,
     CircularProgress,
     Snackbar,
     Alert,
-    Tooltip,
-    InputAdornment,
-    Divider,
     Menu,
     MenuItem,
     useMediaQuery,
-    Drawer,
     Fab,
+    Button,
 } from '@mui/material';
 import {
     Add as AddIcon,
-    Link as LinkIcon,
-    ContentCopy as CopyIcon,
-    Group as GroupIcon,
-    Folder as CollectionIcon,
-    FilterList as FilterListIcon,
-    Search as SearchIcon,
-    Close as CloseIcon,
-    Menu as MenuIcon,
-    Share as ShareIcon,
     Delete as DeleteIcon,
+    Lock as LockIcon,
+    Home as HomeIcon,
 } from '@mui/icons-material';
 // Internal store and components
-import { useSocialStore } from '@/stores/useSocialStore';
+import { useSocialStore, encryptWithAES, decryptWithAES } from '@/stores/useSocialStore';
 import { useSessionStore } from '@/stores/sessionStore';
-import { LinkCard } from '@/components/social/LinkCard';
+import { CommentsOverlay } from '@/components/social/CommentsOverlay';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import type { Room, LinkPost, Collection } from '@/services/socialService';
+import socketService from '@/services/socketService';
+import type { LinkPost } from '@/services/socialService';
+import { motion, AnimatePresence } from 'framer-motion';
 
-type SnackbarState = {
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info';
-};
-
-// Create Room Dialog (inline for simplicity)
-const CreateRoomDialog = memo(({
-    open,
-    onClose,
-    onSubmit,
-    isLoading,
-}: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (name: string, description: string) => void;
-    isLoading: boolean;
-}) => {
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-
-    const handleSubmit = () => {
-        if (name.trim()) {
-            onSubmit(name.trim(), description.trim());
-        }
-    };
-
-    if (!open) return null;
-
-    return (
-        <Box
-            sx={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 1300,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(2px)',
-            }}
-            onClick={onClose}
-        >
-            <Paper
-                variant="solid"
-                sx={{
-                    p: 3,
-                    width: '100%',
-                    maxWidth: 400,
-                    borderRadius: '24px',
-                }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    Create New Room
-                </Typography>
-
-                <TextField
-                    fullWidth
-                    label="Room Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    sx={{ mb: 2 }}
-                    autoFocus
-                />
-
-                <TextField
-                    fullWidth
-                    label="Description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    multiline
-                    rows={2}
-                    sx={{ mb: 3 }}
-                />
-
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                    <Button onClick={onClose} disabled={isLoading}>
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleSubmit}
-                        disabled={!name.trim() || isLoading}
-                    >
-                        {isLoading ? <CircularProgress size={20} /> : 'Create'}
-                    </Button>
-                </Box>
-            </Paper>
-        </Box>
-    );
-});
-
-// Create Collection Dialog
-const CreateCollectionDialog = memo(({
-    open,
-    onClose,
-    onSubmit,
-    isLoading,
-}: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (name: string) => void;
-    isLoading: boolean;
-}) => {
-    const [name, setName] = useState('');
-
-    const handleSubmit = () => {
-        if (name.trim()) {
-            onSubmit(name.trim());
-            setName('');
-        }
-    };
-
-    useEffect(() => {
-        if (!open) setName('');
-    }, [open]);
-
-    if (!open) return null;
-
-    return (
-        <Box
-            sx={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 1300,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(2px)',
-            }}
-            onClick={onClose}
-        >
-            <Paper
-                variant="solid"
-                sx={{
-                    p: 3,
-                    width: '100%',
-                    maxWidth: 400,
-                    borderRadius: '24px',
-                }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    New Collection
-                </Typography>
-
-                <TextField
-                    fullWidth
-                    label="Collection Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    sx={{ mb: 3 }}
-                    autoFocus
-                    onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                />
-
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                    <Button onClick={onClose} disabled={isLoading}>
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleSubmit}
-                        disabled={!name.trim() || isLoading}
-                    >
-                        {isLoading ? <CircularProgress size={20} /> : 'Create'}
-                    </Button>
-                </Box>
-            </Paper>
-        </Box>
-    );
-});
-
-// Post Link Dialog
-const PostLinkDialog = memo(({
-    open,
-    onClose,
-    onSubmit,
-    isLoading,
-}: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (url: string) => void;
-    isLoading: boolean;
-}) => {
-    const [url, setUrl] = useState('');
-
-    const handleSubmit = () => {
-        if (url.trim()) {
-            onSubmit(url.trim());
-            setUrl('');
-        }
-    };
-
-    if (!open) return null;
-
-    return (
-        <Box
-            sx={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 1300,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(2px)',
-            }}
-            onClick={onClose}
-        >
-            <Paper
-                variant="solid"
-                sx={{
-                    p: 3,
-                    width: '100%',
-                    maxWidth: 400,
-                    borderRadius: '24px',
-                    m: 2,
-                }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    Post a Link
-                </Typography>
-
-                <TextField
-                    fullWidth
-                    label="URL"
-                    placeholder="https://example.com"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    sx={{ mb: 3 }}
-                    autoFocus
-                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <LinkIcon color="action" />
-                            </InputAdornment>
-                        ),
-                    }}
-                />
-
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                    <Button onClick={onClose} disabled={isLoading}>
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleSubmit}
-                        disabled={!url.trim() || isLoading}
-                    >
-                        {isLoading ? <CircularProgress size={20} /> : 'Post'}
-                    </Button>
-                </Box>
-            </Paper>
-        </Box>
-    );
-});
+// Modular Components
+import { CreateRoomDialog, CreateCollectionDialog, PostLinkDialog } from '@/components/social/SocialDialogs';
+import { RoomCard, CreateRoomCard } from '@/components/social/RoomCards';
+import { SocialHeader } from '@/components/social/SocialHeader';
+import { SocialSidebar } from '@/components/social/SocialSidebar';
+import { LinksContainer } from '@/components/social/LinksContainer';
 
 export function SocialPage() {
     const theme = useTheme();
+
+    type SnackbarState = {
+        open: boolean;
+        message: string;
+        severity: 'success' | 'error' | 'info';
+    };
     const { roomId } = useParams<{ roomId?: string }>();
+    const navigate = useNavigate();
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
 
     // Store state
@@ -317,12 +56,13 @@ export function SocialPage() {
     const links = useSocialStore((state) => state.links);
     const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
     const isLoadingRooms = useSocialStore((state) => state.isLoadingRooms);
+    const error = useSocialStore((state) => state.error);
 
     // Actions
 
     const fetchRooms = useSocialStore((state) => state.fetchRooms);
+    const clearError = useSocialStore((state) => state.clearError);
     const selectRoom = useSocialStore((state) => state.selectRoom);
-    const refreshCurrentRoom = useSocialStore((state) => state.refreshCurrentRoom);
     const selectCollection = useSocialStore((state) => state.selectCollection);
     const createRoom = useSocialStore((state) => state.createRoom);
     const postLink = useSocialStore((state) => state.postLink);
@@ -331,8 +71,15 @@ export function SocialPage() {
     const deleteCollection = useSocialStore((state) => state.deleteCollection);
     const moveLink = useSocialStore((state) => state.moveLink);
     const createInvite = useSocialStore((state) => state.createInvite);
-    const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
-    const decryptCollectionMetadata = useSocialStore((state) => state.decryptCollectionMetadata);
+    const markLinkViewed = useSocialStore((state) => state.markLinkViewed);
+    const unmarkLinkViewed = useSocialStore((state) => state.unmarkLinkViewed);
+    const getUnviewedCountByCollection = useSocialStore((state) => state.getUnviewedCountByCollection);
+    const viewedLinkIds = useSocialStore((state) => state.viewedLinkIds);
+    const roomKeys = useSocialStore((state) => state.roomKeys);
+    const commentCounts = useSocialStore((state) => state.commentCounts);
+    const hasMoreLinks = useSocialStore((state) => state.hasMoreLinks);
+    const isLoadingLinks = useSocialStore((state) => state.isLoadingLinks);
+    const loadMoreLinks = useSocialStore((state) => state.loadMoreLinks);
 
     // Get current user ID for delete permissions
     const currentUserId = useSessionStore((state) => state.user?._id);
@@ -347,21 +94,23 @@ export function SocialPage() {
     const [isPostingLink, setIsPostingLink] = useState(false);
     const [draggedLinkId, setDraggedLinkId] = useState<string | null>(null);
     const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-    const [decryptedNames, setDecryptedNames] = useState<Map<string, string>>(new Map());
-    const [decryptedCollections, setDecryptedCollections] = useState<Map<string, string>>(new Map());
     const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedUploader, setSelectedUploader] = useState<string | null>(null);
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [snackbar, setSnackbar] = useState<SnackbarState>({
         open: false,
         message: '',
         severity: 'success',
     });
+    const [optimisticRoomId, setOptimisticRoomId] = useState<string | null>(null);
 
     // Mobile Responsive State
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+    // View mode: 'rooms' shows room cards, 'room-content' shows collections/links
+    const viewMode = roomId ? 'room-content' : 'rooms';
 
     // Collection context menu state
     const [collectionContextMenu, setCollectionContextMenu] = useState<{
@@ -373,6 +122,18 @@ export function SocialPage() {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [isDeletingCollection, setIsDeletingCollection] = useState(false);
 
+    // Comments overlay state
+    const [commentsLink, setCommentsLink] = useState<LinkPost | null>(null);
+
+    // Socket room management cleanup
+    useEffect(() => {
+        return () => {
+            if (currentRoom) {
+                socketService.leaveRoom(currentRoom._id);
+            }
+        };
+    }, [currentRoom]);
+
     // Fetch rooms on mount
     useEffect(() => {
         if (pqcEngineStatus === 'operational') {
@@ -381,71 +142,51 @@ export function SocialPage() {
     }, [pqcEngineStatus, fetchRooms]);
 
     // Load room if roomId in URL
+    // Clear error when returning to rooms list
+    useEffect(() => {
+        if (!roomId && error) {
+            clearError();
+        }
+    }, [roomId, error, clearError]);
+
     useEffect(() => {
         if (roomId && pqcEngineStatus === 'operational') {
             selectRoom(roomId);
         }
     }, [roomId, pqcEngineStatus, selectRoom]);
 
-    // Auto-select first room when entering page
+    // Switch to room-content view when a room is selected
+
+
+    // Auto-refresh removed in favor of real-time socket updates
+
+    // Decrypt room names - REMOVED for Lazy Decryption
+    // Room components now handle their own decryption or display encrypted state
+
+    // Decrypt collection names - REMOVED for Lazy Decryption
+    // Sidebar handles collection name decryption lazily
+
+    // Scroll links to top when collection changes
     useEffect(() => {
-        if (!currentRoom && !roomId && rooms.length > 0 && !isLoadingRooms) {
-            selectRoom(rooms[0]._id);
-        }
-    }, [rooms, currentRoom, roomId, isLoadingRooms, selectRoom]);
-
-    // Auto-refresh content every 5 seconds
-    useEffect(() => {
-        if (!currentRoom) return;
-
-        const interval = setInterval(() => {
-            refreshCurrentRoom();
-        }, 5000);
-
-        return () => clearInterval(interval);
-    }, [currentRoom, refreshCurrentRoom]);
-
-    // Decrypt room names when rooms change
-    useEffect(() => {
-        const decryptNames = async () => {
-            const results = await Promise.all(rooms.map(async (room) => {
-                try {
-                    const { name } = await decryptRoomMetadata(room);
-                    return [room._id, name];
-                } catch {
-                    return [room._id, room.name.substring(0, 2)];
-                }
-            }));
-            setDecryptedNames(new Map(results as [string, string][]));
-        };
-
-        if (rooms.length > 0) {
-            decryptNames();
-        }
-    }, [rooms, decryptRoomMetadata]);
-
-    // Decrypt collection names when they change
-    useEffect(() => {
-        const decryptNames = async () => {
-            const results = await Promise.all(collections.map(async (col) => {
-                try {
-                    const { name } = await decryptCollectionMetadata(col);
-                    return [col._id, name];
-                } catch {
-                    return [col._id, 'Encrypted Collection'];
-                }
-            }));
-            setDecryptedCollections(new Map(results as [string, string][]));
-        };
-
-        if (collections.length > 0) {
-            decryptNames();
-        }
-    }, [collections, decryptCollectionMetadata]);
+        linksContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [currentCollectionId]);
 
     const showSnackbar = (message: string, severity: SnackbarState['severity']) => {
         setSnackbar({ open: true, message, severity });
     };
+
+    // Exit room and return to rooms view
+    const handleExitRoom = useCallback(() => {
+        setOptimisticRoomId(null);
+        clearError();
+        navigate('/dashboard/social');
+    }, [navigate, clearError]);
+
+    const handleSelectRoom = useCallback(async (selectedRoomId: string) => {
+        setOptimisticRoomId(selectedRoomId);
+        navigate(`/dashboard/social/${selectedRoomId}`);
+        await selectRoom(selectedRoomId);
+    }, [selectRoom, navigate]);
 
     const handleCreateRoom = async (name: string, description: string) => {
         try {
@@ -454,7 +195,7 @@ export function SocialPage() {
             setShowCreateDialog(false);
             showSnackbar('Room created with end-to-end encryption', 'success');
             // Navigate to new room
-            selectRoom(room._id);
+            handleSelectRoom(room._id);
         } catch (error: any) {
             showSnackbar(error.message || 'Failed to create room', 'error');
         } finally {
@@ -524,6 +265,9 @@ export function SocialPage() {
 
     // Long press for mobile delete
     const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Ref for links container to scroll to top on collection change
+    const linksContainerRef = useRef<HTMLDivElement>(null);
 
     const handleCollectionTouchStart = (collectionId: string) => {
         longPressTimerRef.current = setTimeout(() => {
@@ -615,190 +359,6 @@ export function SocialPage() {
         handleFilterClose();
     };
 
-    const getRoomInitials = (room: Room): string => {
-        const name = decryptedNames.get(room._id) || '??';
-        return name.substring(0, 2).toUpperCase();
-    };
-
-    const SidebarContent = (
-        <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
-            {/* Left Sidebar - Room Icons */}
-            <Paper
-                variant="glass"
-                sx={{
-                    width: 72,
-                    flexShrink: 0,
-                    borderRadius: isMobile ? 0 : '24px',
-                    p: 1.5,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    overflowY: 'auto',
-                    height: '100%',
-                }}
-            >
-                {rooms.map((room) => (
-                    <Tooltip key={room._id} title={decryptedNames.get(room._id) || 'Room'} placement="right">
-                        <Avatar
-                            sx={{
-                                width: 48,
-                                height: 48,
-                                bgcolor:
-                                    currentRoom?._id === room._id
-                                        ? 'primary.main'
-                                        : alpha(theme.palette.primary.main, 0.2),
-                                color:
-                                    currentRoom?._id === room._id
-                                        ? 'primary.contrastText'
-                                        : 'primary.main',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                                fontSize: '1rem',
-                                transition: 'background-color 0.2s ease, transform 0.2s ease',
-                                '&:hover': {
-                                    bgcolor: currentRoom?._id === room._id
-                                        ? 'primary.main'
-                                        : alpha(theme.palette.primary.main, 0.3),
-                                    transform: 'scale(1.05)',
-                                }
-                            }}
-                            onClick={() => {
-                                selectRoom(room._id);
-                                if (isMobile) setMobileDrawerOpen(false);
-                            }}
-                        >
-                            {getRoomInitials(room)}
-                        </Avatar>
-                    </Tooltip>
-                ))}
-
-                <Divider sx={{ width: '100%', my: 1 }} />
-
-                {/* Create Room Button */}
-                <Tooltip title="Create Room" placement="right">
-                    <IconButton
-                        onClick={() => {
-                            setShowCreateDialog(true);
-                        }}
-                        sx={{
-                            width: 48,
-                            height: 48,
-                            bgcolor: alpha(theme.palette.success.main, 0.15),
-                            color: 'success.main',
-                            '&:hover': {
-                                bgcolor: alpha(theme.palette.success.main, 0.25),
-                            },
-                        }}
-                    >
-                        <AddIcon />
-                    </IconButton>
-                </Tooltip>
-            </Paper>
-
-            {/* Inner Sidebar - Collections */}
-            {currentRoom && (
-                <Paper
-                    variant="glass"
-                    sx={{
-                        width: 180,
-                        flexShrink: 0,
-                        borderRadius: isMobile ? 0 : '24px',
-                        p: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1,
-                        overflowY: 'auto',
-                        height: '100%',
-                        ml: isMobile ? 0 : 2,
-                    }}
-                >
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                            Collections
-                        </Typography>
-                        <IconButton
-                            size="small"
-                            onClick={() => setShowCollectionDialog(true)}
-                            sx={{
-                                color: 'text.secondary',
-                                '&:hover': { color: 'primary.main' }
-                            }}
-                        >
-                            <AddIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                    </Box>
-
-                    {collections.map((collection: Collection) => (
-                        <Box
-                            key={collection._id}
-                            onClick={() => {
-                                selectCollection(collection._id);
-                                if (isMobile) setMobileDrawerOpen(false);
-                            }}
-                            onContextMenu={(e) => handleCollectionContextMenu(e, collection._id)}
-                            onTouchStart={() => handleCollectionTouchStart(collection._id)}
-                            onTouchEnd={handleCollectionTouchEnd}
-                            onTouchMove={handleCollectionTouchEnd}
-                            onDragOver={(e) => {
-                                e.preventDefault();
-                                setDropTargetId(collection._id);
-                            }}
-                            onDragLeave={() => setDropTargetId(null)}
-                            onDrop={(e) => {
-                                e.preventDefault();
-                                handleDrop(collection._id);
-                            }}
-                            sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1.5,
-                                p: 1.5,
-                                borderRadius: '10px',
-                                cursor: 'pointer',
-                                position: 'relative',
-                                transition: 'background-color 0.2s ease, border-color 0.2s ease',
-                                bgcolor:
-                                    currentCollectionId === collection._id
-                                        ? alpha(theme.palette.primary.main, 0.15)
-                                        : dropTargetId === collection._id
-                                            ? alpha(theme.palette.primary.main, 0.25)
-                                            : 'transparent',
-                                border: dropTargetId === collection._id
-                                    ? `1px dashed ${theme.palette.primary.main}`
-                                    : '1px solid transparent',
-                                '&:hover': {
-                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                },
-                            }}
-                        >
-                            <CollectionIcon
-                                sx={{
-                                    fontSize: 18,
-                                    color:
-                                        currentCollectionId === collection._id
-                                            ? 'primary.main'
-                                            : 'text.secondary',
-                                }}
-                            />
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                    fontWeight: currentCollectionId === collection._id ? 600 : 400,
-                                    color:
-                                        currentCollectionId === collection._id
-                                            ? 'primary.main'
-                                            : 'text.primary',
-                                }}
-                            >
-                                {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
-                            </Typography>
-                        </Box>
-                    ))}
-                </Paper>
-            )}
-        </Box>
-    );
 
     // Loading state
     if (pqcEngineStatus !== 'operational') {
@@ -820,426 +380,324 @@ export function SocialPage() {
     }
 
     return (
-        <Box sx={{ display: 'flex', height: '100%', gap: isMobile ? 0 : 2, overflow: 'hidden', position: 'relative' }}>
-            {/* Desktop Sidebars */}
-            {!isMobile && SidebarContent}
-
-            {/* Mobile Drawer */}
-            <Drawer
-                anchor="left"
-                open={mobileDrawerOpen}
-                onClose={() => setMobileDrawerOpen(false)}
-                PaperProps={{
-                    sx: {
-                        bgcolor: 'background.default',
-                        backgroundImage: 'none',
-                        width: 'auto',
-                    }
-                }}
-            >
-                {SidebarContent}
-            </Drawer>
-
+        <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden', position: 'relative' }}>
             {/* Main Content */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0, overflow: 'hidden' }}>
-                {/* Unified Header for Mobile Accessibility */}
-                {/* Header - Always visible */}
-                {(
-                    <Paper
-                        variant="glass"
-                        sx={{
-                            p: 2,
-                            borderRadius: isMobile ? '12px' : '24px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            flexShrink: 0,
-                        }}
-                    >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            {isMobile && (
-                                <IconButton onClick={() => setMobileDrawerOpen(true)} edge="start" sx={{ mr: -1 }}>
-                                    <MenuIcon />
-                                </IconButton>
-                            )}
-                            {!isMobile && <GroupIcon sx={{ color: 'primary.main' }} />}
-                            <Box>
-                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    {currentRoom ? (decryptedNames.get(currentRoom._id) || 'Loading...') : (rooms.length > 0 ? 'Select a Room' : 'Social Rooms')}
-                                </Typography>
-                                {currentRoom && (
-                                    <Typography variant="caption" color="text.secondary">
-                                        {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
-                                    </Typography>
-                                )}
-                            </Box>
-                        </Box>
-
-                        {currentRoom && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}>
-                                {/* Search Bar */}
-                                {isSearchOpen ? (
-                                    <Box
-                                        sx={{
-                                            width: 200,
-                                            display: 'flex',
-                                            transition: 'width 0.2s ease, opacity 0.2s ease',
-                                            overflow: 'hidden'
-                                        }}
-                                    >
-                                        <TextField
-                                            autoFocus
-                                            placeholder="Search links..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            size="small"
-                                            fullWidth
-                                            InputProps={{
-                                                startAdornment: (
-                                                    <InputAdornment position="start">
-                                                        <SearchIcon fontSize="small" color="action" />
-                                                    </InputAdornment>
-                                                ),
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => {
-                                                                setSearchQuery('');
-                                                                setIsSearchOpen(false);
-                                                            }}
-                                                        >
-                                                            <CloseIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </InputAdornment>
-                                                ),
-                                            }}
-                                            sx={{
-                                                '& .MuiOutlinedInput-root': {
-                                                    borderRadius: '14px',
-                                                    bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                                }
-                                            }}
-                                        />
-                                    </Box>
-                                ) : (
-                                    <Tooltip title="Search" key="search-icon">
-                                        <IconButton onClick={() => setIsSearchOpen(true)}>
-                                            <SearchIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                )}
-
-                                {/* Filter Button */}
-                                <Tooltip title="Filter by Uploader">
-                                    <IconButton
-                                        onClick={handleFilterClick}
-                                        sx={{
-                                            color: selectedUploader ? 'primary.main' : 'text.secondary',
-                                            bgcolor: selectedUploader ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                                            '&:hover': {
-                                                color: 'primary.main',
-                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                            }
-                                        }}
-                                    >
-                                        <FilterListIcon />
-                                    </IconButton>
-                                </Tooltip>
-
-                                {/* Mobile Invite Button */}
-                                {isMobile && (
-                                    <Tooltip title="Copy Invite Link">
-                                        <IconButton onClick={handleCopyInvite} color="primary">
-                                            <ShareIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                )}
-
-                                <Menu
-                                    anchorEl={filterAnchorEl}
-                                    open={Boolean(filterAnchorEl)}
-                                    onClose={handleFilterClose}
-                                    PaperProps={{
-                                        variant: 'solid',
-                                        elevation: 8,
-                                        sx: {
-                                            minWidth: 200,
-                                            mt: 1,
-                                            bgcolor: theme.palette.background.paper, // Opaque background
-                                            backgroundImage: 'none',
-                                            border: `1px solid ${theme.palette.divider}`,
-                                        }
-                                    }}
-                                >
-                                    <MenuItem
-                                        onClick={() => handleSelectUploader(null)}
-                                        selected={selectedUploader === null}
-                                    >
-                                        All Uploaders
-                                    </MenuItem>
-                                    {getUniqueUploaders().map((uploader) => (
-                                        <MenuItem
-                                            key={uploader.id}
-                                            onClick={() => handleSelectUploader(uploader.id)}
-                                            selected={selectedUploader === uploader.id}
-                                        >
-                                            {uploader.username}
-                                        </MenuItem>
-                                    ))}
-                                </Menu>
-
-                                {/* Desktop Link Input */}
-                                {!isMobile && (
-                                    <>
-                                        <TextField
-                                            placeholder="Paste a link to share..."
-                                            value={newLinkUrl}
-                                            onChange={(e) => setNewLinkUrl(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handlePostLink()}
-                                            size="small"
-                                            InputProps={{
-                                                startAdornment: (
-                                                    <InputAdornment position="start">
-                                                        <LinkIcon color="action" sx={{ fontSize: 18 }} />
-                                                    </InputAdornment>
-                                                ),
-                                            }}
-                                            sx={{
-                                                flex: 1,
-                                                maxWidth: 400,
-                                                '& .MuiOutlinedInput-root': {
-                                                    borderRadius: '14px',
-                                                },
-                                            }}
-                                        />
-
-                                        <Button
-                                            variant="contained"
-                                            onClick={() => handlePostLink()}
-                                            disabled={!newLinkUrl.trim() || isPostingLink}
-                                            sx={{ borderRadius: '14px', flexShrink: 0 }}
-                                        >
-                                            {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
-                                        </Button>
-
-                                        <Button
-                                            variant="outlined"
-                                            startIcon={<CopyIcon />}
-                                            onClick={handleCopyInvite}
-                                            sx={{ borderRadius: '14px', flexShrink: 0 }}
-                                        >
-                                            Invite
-                                        </Button>
-                                    </>
-                                )}
-                            </Box>
-                        )}
-                    </Paper>
-                )}
-
-                {/* Main Content Area */}
-                <Box
-                    sx={{
-                        flex: 1,
-                        overflowY: 'auto',
-                        pr: 1,
-                    }}
-                >
-                    {currentRoom ? (
-                        // Room selected - show links or empty state
-                        <>
-                            {isLoadingContent ? (
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        height: 300,
-                                    }}
-                                >
-                                    <CircularProgress />
-                                </Box>
-                            ) : filteredLinks.length > 0 ? (
-                                <Box
-                                    sx={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                                        gap: 2,
-                                    }}
-                                >
-                                    {filteredLinks.map((link: LinkPost) => (
-                                        <LinkCard
-                                            key={link._id}
-                                            link={link}
-                                            onDelete={() => deleteLink(link._id)}
-                                            onDragStart={(id) => setDraggedLinkId(id)}
-                                            canDelete={
-                                                currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
-                                            }
-                                        />
-                                    ))}
-                                </Box>
-                            ) : (
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        height: 300,
-                                        gap: 2,
-                                    }}
-                                >
-                                    <LinkIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
-                                    <Typography color="text.secondary">
-                                        No links shared yet. Be the first!
-                                    </Typography>
-                                </Box>
-                            )}
-                        </>
-                    ) : (
-                        // No room selected - show contextual message
+                <AnimatePresence mode="wait">
+                    {error ? (
                         <Box
+                            key="error-view"
+                            component={motion.div}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
                             sx={{
+                                flex: 1,
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                height: '100%',
-                                minHeight: 300,
-                                gap: 2,
+                                textAlign: 'center',
+                                px: 3,
+                                gap: 3,
                             }}
                         >
-                            {isLoadingRooms ? (
-                                // Loading rooms
-                                <CircularProgress />
-                            ) : rooms.length > 0 ? (
-                                // User has rooms but none selected
-                                <>
-                                    <GroupIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
-                                    <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
-                                        Select a room from the sidebar to view shared links
-                                    </Typography>
-                                </>
-                            ) : (
-                                // User has no rooms
-                                <>
-                                    <GroupIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
-                                    <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
-                                        Create or join a room to start sharing links
-                                    </Typography>
-                                    <Button
-                                        variant="contained"
-                                        size="small"
-                                        startIcon={<AddIcon />}
-                                        onClick={() => setShowCreateDialog(true)}
-                                        sx={{ borderRadius: '12px', mt: 1 }}
+                            <Box
+                                sx={{
+                                    width: 100,
+                                    height: 100,
+                                    borderRadius: '30px',
+                                    bgcolor: alpha(theme.palette.error.main, 0.1),
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    mb: 1,
+                                }}
+                            >
+                                <LockIcon sx={{ fontSize: 48, color: 'error.main' }} />
+                            </Box>
+
+                            <Typography variant="h4" fontWeight="bold" color="text.primary">
+                                Access Denied
+                            </Typography>
+
+                            <Typography color="text.secondary" sx={{ maxWidth: 400, mb: 2 }}>
+                                {error === 'Room not found'
+                                    ? "The room you're looking for doesn't exist or has been deleted from the Aegis system."
+                                    : "You don't have permission to access this room. It's encrypted and restricted to authorized members only."}
+                            </Typography>
+
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <Button
+                                    variant="contained"
+                                    startIcon={<HomeIcon />}
+                                    onClick={handleExitRoom}
+                                    sx={{
+                                        borderRadius: '12px',
+                                        px: 4,
+                                        py: 1.5,
+                                        textTransform: 'none',
+                                        fontWeight: 'bold',
+                                    }}
+                                >
+                                    Return to Social
+                                </Button>
+                            </Box>
+                        </Box>
+                    ) : (
+                        <Box
+                            key="social-content"
+                            component={motion.div}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}
+                        >
+                            <SocialHeader
+                                viewMode={viewMode}
+                                isMobile={isMobile}
+                                optimisticRoomId={optimisticRoomId}
+                                currentRoom={currentRoom}
+                                handleExitRoom={handleExitRoom}
+                                searchQuery={searchQuery}
+                                setSearchQuery={setSearchQuery}
+                                handleFilterClick={handleFilterClick}
+                                selectedUploader={selectedUploader}
+                                handleCopyInvite={handleCopyInvite}
+                                filterAnchorEl={filterAnchorEl}
+                                handleFilterClose={handleFilterClose}
+                                handleSelectUploader={handleSelectUploader}
+                                getUniqueUploaders={getUniqueUploaders}
+                                newLinkUrl={newLinkUrl}
+                                setNewLinkUrl={setNewLinkUrl}
+                                handlePostLink={handlePostLink}
+                                isPostingLink={isPostingLink}
+                            />
+
+                            {/* Main Content Area */}
+                            <Box
+                                sx={{
+                                    flex: 1,
+                                    overflowX: 'hidden',
+                                    overflowY: viewMode === 'rooms' ? 'auto' : 'hidden',
+                                    pr: viewMode === 'rooms' ? 1 : 0,
+                                    pt: viewMode === 'rooms' ? 1 : 0, // 8px padding
+                                    px: viewMode === 'rooms' ? 1 : 0,
+                                }}
+                            >
+                                <AnimatePresence mode="wait">
+                                    {viewMode === 'rooms' ? (
+                                        <Box
+                                            key="rooms-grid"
+                                            sx={{
+                                                display: 'grid',
+                                                gridTemplateColumns: {
+                                                    xs: '1fr',
+                                                    sm: 'repeat(2, 1fr)',
+                                                    md: 'repeat(3, 1fr)',
+                                                    lg: 'repeat(4, 1fr)',
+                                                },
+                                                gap: 2,
+                                                pb: isMobile ? 12 : 2,
+                                            }}
+                                        >
+                                            {isLoadingRooms ? (
+                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, gridColumn: '1 / -1' }}>
+                                                    <CircularProgress />
+                                                </Box>
+                                            ) : (
+                                                <>
+                                                    {rooms.map((room) => (
+                                                        <RoomCard
+                                                            key={room._id}
+                                                            room={room}
+                                                            onSelect={() => handleSelectRoom(room._id)}
+                                                        />
+                                                    ))}
+                                                    <CreateRoomCard onClick={() => setShowCreateDialog(true)} />
+                                                </>
+                                            )}
+                                        </Box>
+                                    ) : (
+                                        <Box
+                                            key="room-content"
+                                            component={motion.div}
+                                            initial={!isMobile ? { opacity: 0, y: 5, scale: 0.99 } : undefined}
+                                            animate={!isMobile ? { opacity: 1, y: 0, scale: 1 } : undefined}
+                                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                                            sx={{ display: 'flex', gap: 2, height: '100%' }}
+                                        >
+                                            <SocialSidebar
+                                                isMobile={isMobile}
+                                                mobileDrawerOpen={mobileDrawerOpen}
+                                                setMobileDrawerOpen={setMobileDrawerOpen}
+                                                collections={collections}
+                                                selectCollection={selectCollection}
+                                                currentCollectionId={currentCollectionId}
+                                                handleCollectionContextMenu={handleCollectionContextMenu}
+                                                handleCollectionTouchStart={handleCollectionTouchStart}
+                                                handleCollectionTouchEnd={handleCollectionTouchEnd}
+                                                isLoadingContent={isLoadingContent}
+                                                dropTargetId={dropTargetId}
+                                                setDropTargetId={setDropTargetId}
+                                                handleDrop={handleDrop}
+                                                getUnviewedCountByCollection={getUnviewedCountByCollection}
+                                                setShowCollectionDialog={setShowCollectionDialog}
+                                            />
+
+                                            <LinksContainer
+                                                linksContainerRef={linksContainerRef}
+                                                isMobile={isMobile}
+                                                currentCollectionId={currentCollectionId}
+                                                collections={collections}
+                                                setMobileDrawerOpen={setMobileDrawerOpen}
+                                                searchQuery={searchQuery}
+                                                setSearchQuery={setSearchQuery}
+                                                isLoadingContent={isLoadingContent}
+                                                isLoadingLinks={isLoadingLinks}
+                                                filteredLinks={filteredLinks}
+                                                deleteLink={deleteLink}
+                                                setDraggedLinkId={setDraggedLinkId}
+                                                markLinkViewed={markLinkViewed}
+                                                unmarkLinkViewed={unmarkLinkViewed}
+                                                setCommentsLink={setCommentsLink}
+                                                viewedLinkIds={viewedLinkIds}
+                                                commentCounts={commentCounts}
+                                                currentUserId={currentUserId}
+                                                hasMoreLinks={hasMoreLinks}
+                                                loadMoreLinks={loadMoreLinks}
+                                            />
+                                        </Box>
+                                    )}
+                                </AnimatePresence>
+                            </Box>
+
+                            {/* Create Room Dialog */}
+                            < CreateRoomDialog
+                                open={showCreateDialog}
+                                onClose={() => setShowCreateDialog(false)
+                                }
+                                onSubmit={handleCreateRoom}
+                                isLoading={isCreating}
+                            />
+
+                            {/* Create Collection Dialog */}
+                            < CreateCollectionDialog
+                                open={showCollectionDialog}
+                                onClose={() => setShowCollectionDialog(false)}
+                                onSubmit={handleCreateCollection}
+                                isLoading={isCreatingCollection}
+                            />
+
+                            {/* Post Link Dialog */}
+                            < PostLinkDialog
+                                open={showPostLinkDialog}
+                                onClose={() => setShowPostLinkDialog(false)}
+                                onSubmit={handlePostLink}
+                                isLoading={isPostingLink}
+                            />
+
+                            {/* Mobile FAB */}
+                            {
+                                isMobile && currentRoom && (
+                                    <Fab
+                                        color="primary"
+                                        aria-label="add link"
+                                        onClick={() => setShowPostLinkDialog(true)}
+                                        sx={{
+                                            position: 'fixed',
+                                            bottom: 24,
+                                            right: 24,
+                                            zIndex: 100,
+                                        }}
                                     >
-                                        Create Room
-                                    </Button>
-                                </>
-                            )}
+                                        <AddIcon />
+                                    </Fab>
+                                )
+                            }
+
+                            {/* Collection Context Menu */}
+                            <Menu
+                                open={collectionContextMenu !== null}
+                                onClose={() => setCollectionContextMenu(null)}
+                                anchorReference="anchorPosition"
+                                anchorPosition={
+                                    collectionContextMenu
+                                        ? { top: collectionContextMenu.mouseY, left: collectionContextMenu.mouseX }
+                                        : undefined
+                                }
+                            >
+                                <MenuItem onClick={() => {
+                                    if (collectionContextMenu) {
+                                        setCollectionToDelete(collectionContextMenu.collectionId);
+                                    }
+                                    setCollectionContextMenu(null);
+                                    setDeleteConfirmOpen(true);
+                                }} sx={{ color: 'error.main', gap: 1 }}>
+                                    <DeleteIcon fontSize="small" />
+                                    Delete Collection
+                                </MenuItem>
+                            </Menu>
+
+                            {/* Delete Collection Confirmation Dialog */}
+                            <ConfirmDialog
+                                open={deleteConfirmOpen}
+                                title="Delete Collection"
+                                message="Are you sure you want to delete this collection? All links in this collection will be permanently deleted."
+                                confirmText="Delete"
+                                onConfirm={handleDeleteCollection}
+                                onCancel={() => {
+                                    setDeleteConfirmOpen(false);
+                                    setCollectionToDelete(null);
+                                }}
+                                isLoading={isDeletingCollection}
+                                variant="danger"
+                            />
                         </Box>
                     )}
-                </Box>
-            </Box>
+                </AnimatePresence>
 
-            {/* Create Room Dialog */}
-            <CreateRoomDialog
-                open={showCreateDialog}
-                onClose={() => setShowCreateDialog(false)}
-                onSubmit={handleCreateRoom}
-                isLoading={isCreating}
-            />
-
-            {/* Create Collection Dialog */}
-            <CreateCollectionDialog
-                open={showCollectionDialog}
-                onClose={() => setShowCollectionDialog(false)}
-                onSubmit={handleCreateCollection}
-                isLoading={isCreatingCollection}
-            />
-
-            {/* Post Link Dialog */}
-            <PostLinkDialog
-                open={showPostLinkDialog}
-                onClose={() => setShowPostLinkDialog(false)}
-                onSubmit={handlePostLink}
-                isLoading={isPostingLink}
-            />
-
-            {/* Mobile FAB */}
-            {isMobile && currentRoom && (
-                <Fab
-                    color="primary"
-                    aria-label="add link"
-                    onClick={() => setShowPostLinkDialog(true)}
-                    sx={{
-                        position: 'fixed',
-                        bottom: 24,
-                        right: 24,
-                        zIndex: 100,
-                    }}
-                >
-                    <AddIcon />
-                </Fab>
-            )}
-
-            {/* Collection Context Menu */}
-            <Menu
-                open={collectionContextMenu !== null}
-                onClose={() => setCollectionContextMenu(null)}
-                anchorReference="anchorPosition"
-                anchorPosition={
-                    collectionContextMenu !== null
-                        ? { top: collectionContextMenu.mouseY, left: collectionContextMenu.mouseX }
-                        : undefined
-                }
-            >
-                <MenuItem onClick={() => {
-                    if (collectionContextMenu) {
-                        setCollectionToDelete(collectionContextMenu.collectionId);
-                    }
-                    setCollectionContextMenu(null);
-                    setDeleteConfirmOpen(true);
-                }} sx={{ color: 'error.main', gap: 1 }}>
-                    <DeleteIcon fontSize="small" />
-                    Delete Collection
-                </MenuItem>
-            </Menu>
-
-            {/* Delete Collection Confirmation Dialog */}
-            <ConfirmDialog
-                open={deleteConfirmOpen}
-                title="Delete Collection"
-                message={`Are you sure you want to delete "${collectionToDelete ? decryptedCollections.get(collectionToDelete) || 'this collection' : ''}"? All links in this collection will be permanently deleted.`}
-                confirmText="Delete"
-                onConfirm={handleDeleteCollection}
-                onCancel={() => {
-                    setDeleteConfirmOpen(false);
-                    setCollectionToDelete(null);
-                }}
-                isLoading={isDeletingCollection}
-                variant="danger"
-            />
-
-            {/* Snackbar */}
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={4000}
-                onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert
+                {/* Snackbar */}
+                <Snackbar
+                    open={snackbar.open}
+                    autoHideDuration={4000}
                     onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                    severity={snackbar.severity}
-                    variant="filled"
-                    sx={{ borderRadius: '14px' }}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 >
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
+                    <Alert
+                        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+                        severity={snackbar.severity}
+                        variant="filled"
+                        sx={{ borderRadius: '14px' }}
+                    >
+                        {snackbar.message}
+                    </Alert>
+                </Snackbar>
+
+                {/* Comments Overlay */}
+                {
+                    commentsLink && currentRoom && (
+                        <CommentsOverlay
+                            open={!!commentsLink}
+                            link={commentsLink}
+                            onClose={() => setCommentsLink(null)}
+                            currentUserId={currentUserId}
+                            encryptComment={async (text) => {
+                                if (!currentRoom) throw new Error('No room selected');
+                                const roomKey = roomKeys.get(currentRoom._id);
+                                if (!roomKey) throw new Error('Room key not available');
+                                return encryptWithAES(roomKey, text);
+                            }}
+                            decryptComment={async (encrypted) => {
+                                if (!currentRoom) throw new Error('No room selected');
+                                const roomKey = roomKeys.get(currentRoom._id);
+                                if (!roomKey) throw new Error('Room key not available');
+                                return decryptWithAES(roomKey, encrypted);
+                            }}
+                        />
+                    )
+                }
+            </Box >
         </Box >
     );
 }

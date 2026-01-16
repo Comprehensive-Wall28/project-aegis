@@ -1,9 +1,10 @@
 import express from 'express';
+import './config/initDatabase'; // Initialize DB before other imports
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import connectDB from './config/database';
+import DatabaseManager from './config/DatabaseManager';
 import authRoutes from './routes/authRoutes';
 import vaultRoutes from './routes/vaultRoutes';
 import integrityRoutes from './routes/integrityRoutes';
@@ -19,8 +20,6 @@ import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
-
-connectDB();
 
 const app = express();
 
@@ -48,7 +47,7 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'"],
             styleSrc: ["'self'"],
-            imgSrc: ["'self'", "data:"],
+            imgSrc: ["'self'", "data:", ...allowedOrigins],
             connectSrc: ["'self'"],
             objectSrc: ["'none'"],
             upgradeInsecureRequests: [],

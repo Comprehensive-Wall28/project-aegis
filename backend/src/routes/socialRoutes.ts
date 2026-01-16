@@ -7,11 +7,18 @@ import {
     joinRoom,
     postLink,
     getRoomContent,
+    getCollectionLinks,
     deleteLink,
     createCollection,
     deleteCollection,
-    moveLink
+    moveLink,
+    markLinkViewed,
+    unmarkLinkViewed,
+    getComments,
+    postComment,
+    deleteComment
 } from '../controllers/socialController';
+import { proxyImage } from '../controllers/linkPreviewController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection } from '../middleware/csrfMiddleware';
 
@@ -19,6 +26,7 @@ const router = Router();
 
 // Public endpoint - no auth required
 router.get('/invite/:inviteCode', getInviteInfo);
+router.get('/proxy-image', proxyImage);
 
 // Protected routes - require auth and CSRF
 router.get('/rooms', protect, csrfProtection, getUserRooms);
@@ -28,8 +36,14 @@ router.post('/rooms/join', protect, csrfProtection, joinRoom);
 router.post('/rooms/:roomId/links', protect, csrfProtection, postLink);
 router.post('/rooms/:roomId/collections', protect, csrfProtection, createCollection);
 router.get('/rooms/:roomId', protect, csrfProtection, getRoomContent);
+router.get('/rooms/:roomId/collections/:collectionId/links', protect, csrfProtection, getCollectionLinks);
 router.delete('/links/:linkId', protect, csrfProtection, deleteLink);
 router.delete('/collections/:collectionId', protect, csrfProtection, deleteCollection);
 router.patch('/links/:linkId/move', protect, csrfProtection, moveLink);
+router.post('/links/:linkId/view', protect, csrfProtection, markLinkViewed);
+router.delete('/links/:linkId/view', protect, csrfProtection, unmarkLinkViewed);
+router.get('/links/:linkId/comments', protect, csrfProtection, getComments);
+router.post('/links/:linkId/comments', protect, csrfProtection, postComment);
+router.delete('/comments/:commentId', protect, csrfProtection, deleteComment);
 
 export default router;

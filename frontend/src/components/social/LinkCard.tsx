@@ -1,7 +1,7 @@
 import { useState, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { Box, Paper, Typography, IconButton, alpha, useTheme, Button } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon } from '@mui/icons-material';
+import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress } from '@mui/material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LinkPost } from '@/services/socialService';
 
@@ -10,10 +10,22 @@ interface LinkCardProps {
     onCommentsClick?: (link: LinkPost) => void;
     onDelete?: (linkId: string) => void;
     onDragStart?: (linkId: string) => void;
+    onView?: (linkId: string) => void;
+    onUnview?: (linkId: string) => void;
+    isViewed?: boolean;
+    commentCount?: number;
     canDelete?: boolean;
 }
 
-export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, canDelete }: LinkCardProps) => {
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+
+// Helper to get proxied URL - defined outside to avoid re-creation
+const getProxiedUrl = (originalUrl: string) => {
+    if (!originalUrl) return '';
+    return `${API_URL}/api/social/proxy-image?url=${encodeURIComponent(originalUrl)}`;
+};
+
+export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
@@ -21,6 +33,9 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
 
     const [isDragging, setIsDragging] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
+
+    const previewImage = previewData.image ? getProxiedUrl(previewData.image) : '';
+    const faviconImage = previewData.favicon ? getProxiedUrl(previewData.favicon) : '';
 
     // Close preview
     const closePreview = () => setShowPreview(false);
@@ -83,6 +98,8 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                     transition: 'opacity 0.2s ease',
                     position: 'relative',
                     willChange: 'transform, opacity',
+                    padding: '3px', // Increased safe margin
+                    boxSizing: 'border-box', // Crucial to prevent overflow
                 }}
             >
                 <Paper
@@ -94,13 +111,18 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                         display: 'flex',
                         flexDirection: 'column',
                         transition: 'border-color 0.2s ease, background-color 0.2s ease',
-                        border: '1px solid transparent',
+                        border: isViewed
+                            ? `1px solid ${alpha('#0ea5e9', 0.3)}` // Thin, clean blue border
+                            : `1px solid ${alpha(theme.palette.divider, 0.15)}`, // Minimal clean border
+                        boxShadow: 'none',
                         '&:hover': {
-                            borderColor: alpha(theme.palette.primary.main, 0.2),
-                            bgcolor: alpha(theme.palette.primary.main, 0.03),
+                            borderColor: isViewed ? alpha('#0ea5e9', 0.5) : alpha(theme.palette.primary.main, 0.25),
+                            bgcolor: alpha(theme.palette.primary.main, 0.02),
                         },
                     }}
-                    onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                    onClick={() => {
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                    }}
                 >
                     {/* Preview Image Banner */}
                     <Box
@@ -108,17 +130,119 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                             width: '100%',
                             height: 140,
                             flexShrink: 0,
-                            backgroundImage: previewData.image ? `url(${previewData.image})` : 'none',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            bgcolor: previewData.image ? 'transparent' : alpha(theme.palette.primary.main, 0.08),
+                            bgcolor: alpha(theme.palette.primary.main, 0.08), // Default background if no image
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            position: 'relative',
+                            overflow: 'hidden', // Ensure blur doesn't spill
                         }}
                     >
-                        {!previewData.image && (
-                            <LinkIcon sx={{ fontSize: 40, opacity: 0.2, color: 'primary.main' }} />
+                        {/* 1. Blurred Background layer (fills area) */}
+                        {previewImage && (
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backgroundImage: `url(${previewImage})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    filter: 'blur(10px) brightness(0.7)',
+                                    transform: 'scale(1.1)', // Prevent blur edges
+                                }}
+                            />
+                        )}
+
+                        {/* 2. Sharp Foreground Image (contained) */}
+                        {previewImage && (
+                            <Box
+                                component="img"
+                                src={previewImage}
+                                sx={{
+                                    position: 'relative',
+                                    maxWidth: '100%',
+                                    maxHeight: '100%',
+                                    objectFit: 'contain',
+                                    zIndex: 1,
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)', // subtle pop
+                                    opacity: previewData.scrapeStatus === 'scraping' ? 0.3 : 1,
+                                }}
+                                onError={(e) => {
+                                    // Fallback if proxy fails visually
+                                    e.currentTarget.style.display = 'none';
+                                }}
+                            />
+                        )}
+                        {previewData.scrapeStatus === 'scraping' && (
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                                    backdropFilter: 'blur(4px)',
+                                    zIndex: 2,
+                                    gap: 1.5,
+                                }}
+                            >
+                                <CircularProgress size={24} thickness={5} />
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 600,
+                                        letterSpacing: '0.05em',
+                                        color: 'text.primary',
+                                        textTransform: 'uppercase',
+                                    }}
+                                >
+                                    Scraping metadata...
+                                </Typography>
+                            </Box>
+                        )}
+                        {!previewImage && (
+                            <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <LinkIcon sx={{ fontSize: 40, opacity: 0.1, color: 'primary.main' }} />
+                                {faviconImage && (
+                                    <Box
+                                        component="img"
+                                        src={faviconImage}
+                                        sx={{
+                                            position: 'absolute',
+                                            width: 32,
+                                            height: 32,
+                                            borderRadius: '8px',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                        }}
+                                    />
+                                )}
+                                {previewData.scrapeStatus === 'blocked' && (
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            bottom: -40,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 0.5,
+                                            bgcolor: alpha(theme.palette.warning.main, 0.1),
+                                            color: 'warning.main',
+                                            px: 1,
+                                            py: 0.2,
+                                            borderRadius: '12px',
+                                            fontSize: '0.65rem',
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        <ShieldIcon sx={{ fontSize: 10 }} />
+                                        PROTECTED SITE
+                                    </Box>
+                                )}
+                            </Box>
                         )}
                     </Box>
 
@@ -156,6 +280,29 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                                     size="small"
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        if (isViewed) {
+                                            onUnview?.(link._id);
+                                        } else {
+                                            onView?.(link._id);
+                                        }
+                                    }}
+                                    sx={{
+                                        color: isViewed ? '#0ea5e9' : '#ffffff',
+                                        opacity: isViewed ? 1 : 0.6,
+                                        '&:hover': {
+                                            color: isViewed ? alpha('#0ea5e9', 0.8) : '#ffffff',
+                                            opacity: 1,
+                                            bgcolor: isViewed ? alpha('#0ea5e9', 0.1) : alpha('#ffffff', 0.1)
+                                        }
+                                    }}
+                                    title={isViewed ? "Mark as Unread" : "Mark as Viewed"}
+                                >
+                                    <MarkViewedIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
                                         setShowPreview(true);
                                     }}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
@@ -171,7 +318,20 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                                     }}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
                                 >
-                                    <CommentsIcon fontSize="small" />
+                                    <Badge
+                                        badgeContent={commentCount}
+                                        color="primary"
+                                        max={99}
+                                        sx={{
+                                            '& .MuiBadge-badge': {
+                                                fontSize: '0.65rem',
+                                                minWidth: 16,
+                                                height: 16,
+                                            }
+                                        }}
+                                    >
+                                        <CommentsIcon fontSize="small" />
+                                    </Badge>
                                 </IconButton>
 
                                 {canDelete && (
@@ -224,39 +384,61 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                                 sx={{
                                     width: '100%',
                                     maxWidth: 800,
-                                    maxHeight: '90vh',
+                                    height: { xs: '100dvh', sm: 'auto' },
+                                    maxHeight: { xs: '100dvh', sm: '90vh' },
                                     overflow: 'hidden',
-                                    borderRadius: '24px',
+                                    borderRadius: { xs: 0, sm: '24px' },
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    bgcolor: alpha(theme.palette.background.paper, 0.6),
+                                    bgcolor: alpha(theme.palette.background.paper, 0.8),
+                                    backdropFilter: 'blur(20px)',
                                     boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
                                 }}
                             >
-                                {/* Large Image Header */}
+                                {/* Large Image Header - Now Dynamic */}
                                 <Box
                                     sx={{
                                         width: '100%',
-                                        height: 400,
+                                        height: 'auto',
+                                        maxHeight: { xs: '35vh', sm: 'min(50vh, 500px)' },
+                                        minHeight: { xs: 150, sm: 200 },
+                                        flexShrink: 1,
                                         bgcolor: '#000',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         position: 'relative',
+                                        overflow: 'hidden',
                                     }}
                                 >
-                                    {previewData.image ? (
+                                    {previewImage ? (
                                         <img
-                                            src={previewData.image}
+                                            src={previewImage}
                                             alt={previewData.title}
                                             style={{
                                                 width: '100%',
-                                                height: '100%',
+                                                height: 'auto',
+                                                maxHeight: 'inherit',
                                                 objectFit: 'contain',
                                             }}
                                         />
                                     ) : (
-                                        <LinkIcon sx={{ fontSize: 80, opacity: 0.2, color: 'primary.main' }} />
+                                        <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <LinkIcon sx={{ fontSize: 80, opacity: 0.1, color: 'primary.main' }} />
+                                            {faviconImage && (
+                                                <Box
+                                                    component="img"
+                                                    src={faviconImage}
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        width: 64,
+                                                        height: 64,
+                                                        borderRadius: '12px',
+                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                                                    }}
+                                                />
+                                            )}
+                                        </Box>
                                     )}
 
                                     {/* Close Button */}
@@ -269,6 +451,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                                             bgcolor: 'rgba(0,0,0,0.5)',
                                             color: '#fff',
                                             '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                                            zIndex: 2,
                                         }}
                                     >
                                         <CloseIcon />
@@ -276,12 +459,31 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                                 </Box>
 
                                 {/* Details Content */}
-                                <Box sx={{ p: 4, overflowY: 'auto' }}>
-                                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+                                <Box
+                                    sx={{
+                                        p: { xs: 2.5, sm: 4 },
+                                        overflowY: 'auto',
+                                        flex: 1,
+                                        minHeight: 0,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        '&::-webkit-scrollbar': {
+                                            width: '6px',
+                                        },
+                                        '&::-webkit-scrollbar-thumb': {
+                                            backgroundColor: alpha(theme.palette.text.secondary, 0.2),
+                                            borderRadius: '3px',
+                                        },
+                                        '&::-webkit-scrollbar-thumb:hover': {
+                                            backgroundColor: alpha(theme.palette.text.secondary, 0.3),
+                                        },
+                                    }}
+                                >
+                                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                                         {previewData.title || 'Untitled Link'}
                                     </Typography>
 
-                                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3, whiteSpace: 'pre-wrap' }}>
+                                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3, whiteSpace: 'pre-wrap', flexGrow: 1 }}>
                                         {previewData.description || 'No description available for this link.'}
                                     </Typography>
 
@@ -289,10 +491,11 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, ca
                                         <Button
                                             variant="contained"
                                             size="large"
-                                            startIcon={<LinkIcon />}
+                                            startIcon={previewData.scrapeStatus === 'scraping' ? <CircularProgress size={16} color="inherit" /> : <LinkIcon />}
                                             onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                                            disabled={previewData.scrapeStatus === 'scraping'}
                                         >
-                                            Visit Website
+                                            {previewData.scrapeStatus === 'scraping' ? 'Scraping...' : 'Visit Website'}
                                         </Button>
 
                                         <Box sx={{ ml: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
