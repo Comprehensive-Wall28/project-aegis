@@ -586,7 +586,17 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             state.currentCollectionId || undefined
         );
 
-        set({ links: [linkPost, ...state.links] });
+        // Check if the link was already added by socket (LINK_UPDATED race condition)
+        // In that case, the socket version may have fully-scraped metadata we don't want to overwrite
+        set((prev) => {
+            const existingLink = prev.links.find(l => l._id === linkPost._id);
+            if (existingLink) {
+                // Link already exists (added by socket), don't overwrite with stale 'scraping' version
+                return prev;
+            }
+            return { links: [linkPost, ...prev.links] };
+        });
+
         return linkPost;
     },
 
@@ -861,22 +871,38 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         socketService.on('LINK_UPDATED', (data: { link: LinkPost }) => {
             console.log('[Socket] LINK_UPDATED received:', data.link._id, 'scrapeStatus:', data.link.previewData?.scrapeStatus);
 
+            const currentState = get();
+            const collectionId = data.link.collectionId;
+            const linkExistsInState = currentState.links.some(l => l._id === data.link._id);
+
             set((prev) => {
-                const linkExists = prev.links.some(l => l._id === data.link._id);
-                console.log('[Socket] LINK_UPDATED - link exists in state:', linkExists, 'total links:', prev.links.length);
+                console.log('[Socket] LINK_UPDATED - link exists in state:', linkExistsInState, 'total links:', prev.links.length);
 
-                const updatedLinks = prev.links.map(l => l._id === data.link._id ? data.link : l);
+                let updatedLinks;
+                if (linkExistsInState) {
+                    // Normal update path: link exists, just update it
+                    updatedLinks = prev.links.map(l => l._id === data.link._id ? data.link : l);
+                } else if (currentState.currentCollectionId === collectionId) {
+                    // Race condition: LINK_UPDATED arrived before postLink() added the link to state
+                    // Prepend the fully-scraped link to avoid being stuck on "scraping"
+                    console.log('[Socket] LINK_UPDATED - race condition detected, adding link to state');
+                    updatedLinks = [data.link, ...prev.links];
+                } else {
+                    // Link is for a different collection we're not viewing, skip
+                    updatedLinks = prev.links;
+                }
 
-                const collectionId = data.link.collectionId;
                 const cache = prev.linksCache[collectionId];
-
                 let newCache = prev.linksCache;
                 if (cache) {
+                    const cacheExists = cache.links.some(l => l._id === data.link._id);
                     newCache = {
                         ...prev.linksCache,
                         [collectionId]: {
                             ...cache,
-                            links: cache.links.map(l => l._id === data.link._id ? data.link : l)
+                            links: cacheExists
+                                ? cache.links.map(l => l._id === data.link._id ? data.link : l)
+                                : [data.link, ...cache.links]
                         }
                     };
                 }
