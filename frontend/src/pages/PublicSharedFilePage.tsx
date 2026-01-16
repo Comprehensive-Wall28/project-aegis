@@ -114,6 +114,7 @@ export const PublicSharedFilePage = () => {
     const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
     const [pdfNumPages, setPdfNumPages] = useState<number | null>(null);
     const [pdfContainerWidth, setPdfContainerWidth] = useState<number>(400);
+    const [pdfAspectRatio, setPdfAspectRatio] = useState<number>(0.707); // Default to A4 portrait
     const pdfContainerRef = useRef<HTMLDivElement>(null);
 
     const decryptChunk = async (chunk: Uint8Array, key: CryptoKey) => {
@@ -235,19 +236,37 @@ export const PublicSharedFilePage = () => {
     }, [token]);
 
     useEffect(() => {
-        const updateWidth = () => {
+        const updateDimensions = () => {
             if (pdfContainerRef.current) {
-                const width = pdfContainerRef.current.offsetWidth;
-                // Use ZERO padding on mobile (down md) to ensure edge-to-edge
-                const padding = window.innerWidth < 900 ? 0 : 32;
-                setPdfContainerWidth(Math.max(width - padding, 200));
+                const containerRect = pdfContainerRef.current.getBoundingClientRect();
+                const containerWidth = containerRect.width;
+                const containerHeight = containerRect.height;
+
+                // Available height should account for the floating controls (approx 60px) + some safe margin
+                // We reduce the margin to 40px to allow it to be bigger
+                const availableHeight = containerHeight - 60;
+                const availableWidth = containerWidth - (window.innerWidth < 900 ? 16 : 48);
+
+                // Use the detected aspect ratio for precise fitting
+                // Width based on available width
+                const widthBasedOnWidth = availableWidth;
+                // Width based on available height using known aspect ratio
+                const widthBasedOnHeight = availableHeight * pdfAspectRatio;
+
+                const finalWidth = Math.min(widthBasedOnWidth, widthBasedOnHeight);
+                setPdfContainerWidth(Math.max(finalWidth, 100));
             }
         };
 
-        updateWidth();
-        window.addEventListener('resize', updateWidth);
-        return () => window.removeEventListener('resize', updateWidth);
-    }, [loading, metadata]);
+        updateDimensions();
+        // Use a small delay to ensure container has settled
+        const timer = setTimeout(updateDimensions, 100);
+        window.addEventListener('resize', updateDimensions);
+        return () => {
+            window.removeEventListener('resize', updateDimensions);
+            clearTimeout(timer);
+        };
+    }, [loading, metadata, pdfAspectRatio]);
 
     const handleDownload = async () => {
         if (!metadata || !decryptedKey) return;
@@ -477,13 +496,14 @@ export const PublicSharedFilePage = () => {
                                     ) : (metadata.mimeType === 'application/pdf' && previewUrl) ? (
                                         <>
                                             <Box sx={{
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
                                                 width: '100%',
                                                 height: '100%',
                                                 p: { xs: 0, sm: 2 },
-                                                overflow: 'auto',
+                                                overflow: 'hidden', // Changed to hidden to prevent scrolling
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center', // Center vertically
                                                 '& .react-pdf__Page': {
                                                     boxShadow: { xs: 'none', sm: `0 20px 60px ${alpha('#000', 0.5)}` },
                                                     borderRadius: { xs: 0, sm: '8px' },
@@ -513,10 +533,15 @@ export const PublicSharedFilePage = () => {
                                                         width={pdfContainerWidth}
                                                         renderTextLayer={false}
                                                         renderAnnotationLayer={false}
+                                                        onLoadSuccess={(page) => {
+                                                            // Calculate and set aspect ratio: width / height
+                                                            const ratio = page.width / page.height;
+                                                            if (Math.abs(pdfAspectRatio - ratio) > 0.01) {
+                                                                setPdfAspectRatio(ratio);
+                                                            }
+                                                        }}
                                                     />
                                                 </Document>
-                                                {/* Spacer to push content above floating controls */}
-                                                <Box sx={{ height: 60, flexShrink: 0 }} />
                                             </Box>
 
                                             {/* Floating Navigation Controls */}
@@ -530,8 +555,7 @@ export const PublicSharedFilePage = () => {
                                                         bottom: 16,
                                                         left: '50%',
                                                         transform: 'translateX(-50%)',
-                                                        bgcolor: alpha('#000', 0.6),
-                                                        backdropFilter: 'blur(12px)',
+                                                        bgcolor: '#141414',
                                                         px: 3,
                                                         py: 1.2,
                                                         borderRadius: '24px',

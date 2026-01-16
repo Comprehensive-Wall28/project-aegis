@@ -22,6 +22,7 @@ import {
     useMediaQuery,
     Drawer,
     Fab,
+    Skeleton,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -494,6 +495,54 @@ const CreateRoomCard = memo(({
         </Paper>
     );
 });
+
+// Skeleton for Collections
+const CollectionSkeleton = () => {
+    return (
+        <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            p: 1.5,
+            borderRadius: '10px',
+        }}>
+            <Skeleton variant="circular" width={18} height={18} />
+            <Skeleton variant="text" width="70%" height={24} />
+        </Box>
+    );
+};
+
+// Skeleton for Link Cards
+const LinkCardSkeleton = () => {
+    const theme = useTheme();
+    return (
+        <Paper
+            variant="glass"
+            sx={{
+                borderRadius: '24px',
+                height: 280,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                border: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
+            }}
+        >
+            <Skeleton variant="rectangular" height={140} />
+            <Box sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <Skeleton variant="text" width="90%" height={28} sx={{ mb: 1 }} />
+                <Skeleton variant="text" width="60%" height={20} />
+                <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Skeleton variant="text" width="30%" height={16} />
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Skeleton variant="circular" width={24} height={24} />
+                        <Skeleton variant="circular" width={24} height={24} />
+                        <Skeleton variant="circular" width={24} height={24} />
+                    </Box>
+                </Box>
+            </Box>
+        </Paper>
+    );
+};
 
 export function SocialPage() {
     const theme = useTheme();
@@ -1154,80 +1203,86 @@ export function SocialPage() {
                                             mx: -0.5,
                                             px: 0.5,
                                         }}>
-                                            {collections.map((collection) => (
-                                                <Box
-                                                    key={collection._id}
-                                                    onClick={() => selectCollection(collection._id)}
-                                                    onContextMenu={(e) => handleCollectionContextMenu(e, collection._id)}
-                                                    onTouchStart={() => handleCollectionTouchStart(collection._id)}
-                                                    onTouchEnd={handleCollectionTouchEnd}
-                                                    onTouchMove={handleCollectionTouchEnd}
-                                                    onDragOver={(e) => {
-                                                        e.preventDefault();
-                                                        setDropTargetId(collection._id);
-                                                    }}
-                                                    onDragLeave={() => setDropTargetId(null)}
-                                                    onDrop={(e) => {
-                                                        e.preventDefault();
-                                                        handleDrop(collection._id);
-                                                    }}
-                                                    sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: 1.5,
-                                                        p: 1.5,
-                                                        borderRadius: '10px',
-                                                        cursor: 'pointer',
-                                                        position: 'relative',
-                                                        transition: 'background-color 0.15s ease',
-                                                        bgcolor:
-                                                            currentCollectionId === collection._id
-                                                                ? alpha(theme.palette.primary.main, 0.15)
-                                                                : dropTargetId === collection._id
-                                                                    ? alpha(theme.palette.primary.main, 0.25)
-                                                                    : 'transparent',
-                                                        border: dropTargetId === collection._id
-                                                            ? `1px dashed ${theme.palette.primary.main}`
-                                                            : '1px solid transparent',
-                                                        '&:hover': {
-                                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                                        },
-                                                    }}
-                                                >
-                                                    <CollectionIcon
-                                                        sx={{
-                                                            fontSize: 18,
-                                                            color:
-                                                                currentCollectionId === collection._id
-                                                                    ? 'primary.main'
-                                                                    : 'text.secondary',
+                                            {isLoadingContent ? (
+                                                Array.from({ length: 5 }).map((_, i) => (
+                                                    <CollectionSkeleton key={`col-skel-${i}`} />
+                                                ))
+                                            ) : (
+                                                collections.map((collection) => (
+                                                    <Box
+                                                        key={collection._id}
+                                                        onClick={() => selectCollection(collection._id)}
+                                                        onContextMenu={(e) => handleCollectionContextMenu(e, collection._id)}
+                                                        onTouchStart={() => handleCollectionTouchStart(collection._id)}
+                                                        onTouchEnd={handleCollectionTouchEnd}
+                                                        onTouchMove={handleCollectionTouchEnd}
+                                                        onDragOver={(e) => {
+                                                            e.preventDefault();
+                                                            setDropTargetId(collection._id);
                                                         }}
-                                                    />
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                        <Typography
-                                                            variant="body2"
+                                                        onDragLeave={() => setDropTargetId(null)}
+                                                        onDrop={(e) => {
+                                                            e.preventDefault();
+                                                            handleDrop(collection._id);
+                                                        }}
+                                                        sx={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: 1.5,
+                                                            p: 1.5,
+                                                            borderRadius: '10px',
+                                                            cursor: 'pointer',
+                                                            position: 'relative',
+                                                            transition: 'background-color 0.15s ease',
+                                                            bgcolor:
+                                                                currentCollectionId === collection._id
+                                                                    ? alpha(theme.palette.primary.main, 0.15)
+                                                                    : dropTargetId === collection._id
+                                                                        ? alpha(theme.palette.primary.main, 0.25)
+                                                                        : 'transparent',
+                                                            border: dropTargetId === collection._id
+                                                                ? `1px dashed ${theme.palette.primary.main}`
+                                                                : '1px solid transparent',
+                                                            '&:hover': {
+                                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                            },
+                                                        }}
+                                                    >
+                                                        <CollectionIcon
                                                             sx={{
-                                                                fontWeight: currentCollectionId === collection._id ? 600 : 400,
+                                                                fontSize: 18,
                                                                 color:
                                                                     currentCollectionId === collection._id
                                                                         ? 'primary.main'
-                                                                        : 'text.primary',
-                                                                flex: 1,
+                                                                        : 'text.secondary',
                                                             }}
-                                                        >
-                                                            {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
-                                                        </Typography>
-                                                        {getUnviewedCountByCollection(collection._id) > 0 && (
-                                                            <DotIcon
+                                                        />
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <Typography
+                                                                variant="body2"
                                                                 sx={{
-                                                                    fontSize: 10,
-                                                                    color: 'primary.main',
+                                                                    fontWeight: currentCollectionId === collection._id ? 600 : 400,
+                                                                    color:
+                                                                        currentCollectionId === collection._id
+                                                                            ? 'primary.main'
+                                                                            : 'text.primary',
+                                                                    flex: 1,
                                                                 }}
-                                                            />
-                                                        )}
+                                                            >
+                                                                {decryptedCollections.get(collection._id) || (collection.type === 'links' ? 'Links' : 'Collection')}
+                                                            </Typography>
+                                                            {getUnviewedCountByCollection(collection._id) > 0 && (
+                                                                <DotIcon
+                                                                    sx={{
+                                                                        fontSize: 10,
+                                                                        color: 'primary.main',
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </Box>
                                                     </Box>
-                                                </Box>
-                                            ))}
+                                                ))
+                                            )}
                                         </Box>
                                     </Paper>
                                 )}
@@ -1394,13 +1449,14 @@ export function SocialPage() {
                                     {isLoadingContent ? (
                                         <Box
                                             sx={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                height: 300,
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                                gap: 2,
                                             }}
                                         >
-                                            <CircularProgress />
+                                            {Array.from({ length: 6 }).map((_, i) => (
+                                                <LinkCardSkeleton key={`link-skel-${i}`} />
+                                            ))}
                                         </Box>
                                     ) : filteredLinks.length > 0 ? (
                                         <Box
