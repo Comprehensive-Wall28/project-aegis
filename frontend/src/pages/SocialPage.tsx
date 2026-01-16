@@ -548,7 +548,7 @@ export function SocialPage() {
     const [decryptedCollections, setDecryptedCollections] = useState<Map<string, string>>(new Map());
     const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedUploader, setSelectedUploader] = useState<string | null>(null);
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [snackbar, setSnackbar] = useState<SnackbarState>({
         open: false,
@@ -889,59 +889,46 @@ export function SocialPage() {
 
                     {viewMode === 'room-content' && currentRoom && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}>
-                            {/* Search Bar - Desktop Only in Header now */}
+                            {/* Search Bar - Persistent on Desktop */}
                             {!isMobile && (
-                                isSearchOpen ? (
-                                    <Box
-                                        sx={{
-                                            width: 200,
-                                            display: 'flex',
-                                            transition: 'width 0.2s ease, opacity 0.2s ease',
-                                            overflow: 'hidden'
+                                <Box
+                                    sx={{
+                                        width: 250,
+                                        display: 'flex',
+                                        overflow: 'hidden'
+                                    }}
+                                >
+                                    <TextField
+                                        placeholder="Search links..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        size="small"
+                                        fullWidth
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <SearchIcon fontSize="small" color="action" />
+                                                </InputAdornment>
+                                            ),
+                                            endAdornment: searchQuery ? (
+                                                <InputAdornment position="end">
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => setSearchQuery('')}
+                                                    >
+                                                        <CloseIcon fontSize="small" />
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            ) : undefined,
                                         }}
-                                    >
-                                        <TextField
-                                            autoFocus
-                                            placeholder="Search links..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            size="small"
-                                            fullWidth
-                                            InputProps={{
-                                                startAdornment: (
-                                                    <InputAdornment position="start">
-                                                        <SearchIcon fontSize="small" color="action" />
-                                                    </InputAdornment>
-                                                ),
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => {
-                                                                setSearchQuery('');
-                                                                setIsSearchOpen(false);
-                                                            }}
-                                                        >
-                                                            <CloseIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </InputAdornment>
-                                                ),
-                                            }}
-                                            sx={{
-                                                '& .MuiOutlinedInput-root': {
-                                                    borderRadius: '14px',
-                                                    bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                                }
-                                            }}
-                                        />
-                                    </Box>
-                                ) : (
-                                    <Tooltip title="Search" key="search-icon">
-                                        <IconButton onClick={() => setIsSearchOpen(true)}>
-                                            <SearchIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                )
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '14px',
+                                                bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                            }
+                                        }}
+                                    />
+                                </Box>
                             )}
 
                             {/* Filter Button */}

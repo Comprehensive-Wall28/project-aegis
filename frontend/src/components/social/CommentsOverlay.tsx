@@ -193,10 +193,14 @@ export const CommentsOverlay = memo(({
                             }}
                         >
                             <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography variant="h6" sx={{ fontWeight: 600 }} noWrap>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
                                     Comments
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary" noWrap>
+                                <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
+                                >
                                     {link.previewData?.title || link.url}
                                 </Typography>
                             </Box>
