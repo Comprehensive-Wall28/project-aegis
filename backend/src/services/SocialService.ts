@@ -224,17 +224,20 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             }
 
             const member = room.members.find(m => m.userId.toString() === userId);
-            const collections = await this.collectionRepo.findByRoom(roomId);
 
-            // Fetch viewed counts by collection for this user in this room
-            // Using the new compound index: { roomId: 1, userId: 1, collectionId: 1 }
-            const viewedByCollection = await this.linkViewRepo.findMany({
-                userId: { $eq: userId as any },
-                roomId: { $eq: roomId as any }
-            } as any, {
-                select: 'collectionId',
-                lean: true
-            });
+            // OPTIMIZATION: Run collections and viewedByCollection queries in parallel
+            const [collections, viewedByCollection] = await Promise.all([
+                this.collectionRepo.findByRoom(roomId),
+                // Fetch viewed counts by collection for this user in this room
+                // Using the compound index: { roomId: 1, userId: 1, collectionId: 1 }
+                this.linkViewRepo.findMany({
+                    userId: { $eq: userId as any },
+                    roomId: { $eq: roomId as any }
+                } as any, {
+                    select: 'collectionId',
+                    lean: true
+                })
+            ]);
 
             const viewedCounts: Record<string, number> = {};
             viewedByCollection.forEach((v: any) => {
@@ -244,9 +247,19 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 }
             });
 
-            // Get total links per collection in one aggregation
+            // OPTIMIZATION: Run collectionStats and initial links fetch in parallel
             const collectionIds = collections.map(c => c._id.toString());
-            const collectionStats = await this.linkPostRepo.groupCountByCollections(collectionIds);
+            const firstCollectionId = collections.length > 0 ? collections[0]._id.toString() : null;
+            const limit = 30;
+
+            const [collectionStats, initialLinksResult] = await Promise.all([
+                // Get total links per collection in one aggregation
+                this.linkPostRepo.groupCountByCollections(collectionIds),
+                // Fetch initial links for first collection (or empty if no collections)
+                firstCollectionId
+                    ? this.linkPostRepo.findByCollectionCursor(firstCollectionId, limit)
+                    : Promise.resolve({ links: [], totalCount: 0 })
+            ]);
 
             const unviewedCounts: Record<string, number> = {};
             collections.forEach(c => unviewedCounts[c._id.toString()] = 0);
@@ -258,19 +271,13 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 unviewedCounts[cid] = Math.max(0, total - viewed);
             });
 
-            // Reduce API roundtrips: Include initial links for the first collection if it exists
-            let initialLinks: ILinkPost[] = [];
+            // Get viewed status and comments for initial links
+            const initialLinks = initialLinksResult.links;
             let initialViewedLinkIds: string[] = [];
             let initialCommentCounts: Record<string, number> = {};
 
-            if (collections.length > 0) {
-                const firstCollectionId = collections[0]._id.toString();
-                const limit = 30;
-                const { links } = await this.linkPostRepo.findByCollectionCursor(firstCollectionId, limit);
-                initialLinks = links;
-
-                // Get viewed status and comments for these initial links
-                const initialIds = links.map((l: ILinkPost) => l._id.toString());
+            if (initialLinks.length > 0) {
+                const initialIds = initialLinks.map((l: ILinkPost) => l._id.toString());
                 const [viewed, comments] = await Promise.all([
                     this.linkViewRepo.findViewedLinkIds(userId, initialIds),
                     this.linkCommentRepo.countByLinkIds(initialIds)
