@@ -5,3 +5,4 @@ export * from './base/types';
 
 // Concrete repository exports
 export { TaskRepository } from './TaskRepository';
+export { FileMetadataRepository } from './FileMetadataRepository';
