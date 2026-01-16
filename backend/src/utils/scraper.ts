@@ -98,55 +98,97 @@ const simpleScrape = async (targetUrl: string): Promise<{ data: ScrapeResult | n
 /**
  * Advanced scraper using Puppeteer Stealth and Metascraper.
  */
+// Singleton browser instance
+let browserInstance: any = null;
+
+const getBrowser = async () => {
+    if (browserInstance) return browserInstance;
+
+    logger.info('[Scraper] Launching new Puppeteer browser instance...');
+    browserInstance = await puppeteer.launch({
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage', // Critical for Docker/limited memory environments
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process', // Sometimes helps in strict environments
+            '--disable-gpu'
+        ],
+    });
+
+    // Handle disconnects to clear the singleton
+    browserInstance.on('disconnected', () => {
+        logger.info('[Scraper] Browser disconnected, clearing singleton.');
+        browserInstance = null;
+    });
+
+    return browserInstance;
+};
+
+/**
+ * Advanced scraper using Puppeteer Stealth and Metascraper.
+ */
 export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> => {
-    let browser;
+    let page: any;
     try {
         logger.info(`[Scraper] Starting Advanced Scrape (Puppeteer) for ${targetUrl}`);
-        browser = await puppeteer.launch({
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage', // Critical for Docker/limited memory environments
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process', // Sometimes helps in strict environments
-                '--disable-gpu'
-            ],
-            // executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null, // Optional: Allow external override
-        });
 
-        const page = await browser.newPage();
+        const browser = await getBrowser();
+        page = await browser.newPage();
+
+        // Enable request interception to block unnecessary resources
+        await page.setRequestInterception(true);
+        page.on('request', (req: any) => {
+            const resourceType = req.resourceType();
+            // Block images, fonts, media, and stylesheets to save bandwidth/time
+            // Note: We still parse HTML for og:image URL, we just don't download the binary.
+            if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
+                req.abort();
+            } else {
+                req.continue();
+            }
+        });
 
         // Set a realistic viewport
         await page.setViewport({ width: 1280, height: 800 });
 
         // Go to page
         const response = await page.goto(targetUrl, {
-            waitUntil: 'domcontentloaded', // Much faster and more reliable for ad-heavy sites
-            timeout: 60000 // Increase to 60s
+            waitUntil: 'domcontentloaded', // Much faster and more reliable
+            timeout: 30000 // Reduced to 30s fail-fast
         });
 
         // Try to handle simple gates/overlays ("Enter", "I agree")
         try {
-            await page.evaluate(() => {
+            // Short timeout for this check
+            await page.waitForFunction(() => {
                 const buttons = Array.from(document.querySelectorAll('button, a'));
-                const enterButton = buttons.find(el => {
+                return buttons.some(el => {
                     const text = el.textContent?.toLowerCase() || '';
-                    return text.includes('enter') || text.includes('agree') || text.includes('yes, I am');
+                    return text.includes('enter') || text.includes('agree') || text.includes('yes, i am');
                 });
-                if (enterButton) (enterButton as HTMLElement).click();
-            });
-            // Brief wait for content to settle after potential click
-            await new Promise(r => setTimeout(r, 2000));
+            }, { timeout: 1000 }).then(async () => {
+                await page.evaluate(() => {
+                    const buttons = Array.from(document.querySelectorAll('button, a'));
+                    const enterButton = buttons.find(el => {
+                        const text = el.textContent?.toLowerCase() || '';
+                        return text.includes('enter') || text.includes('agree') || text.includes('yes, ia am');
+                    });
+                    if (enterButton) (enterButton as HTMLElement).click();
+                });
+                await new Promise(r => setTimeout(r, 1000)); // Brief wait for settle
+            }).catch(() => { }); // No button found, continue
         } catch (e) {
-            // Ignore click errors
+            // Ignore interaction errors
         }
 
         const status = response?.status();
         if (status === 403) {
             logger.warn(`[Scraper] Advanced Scrape BLOCKED (403) for ${targetUrl}`);
+            await page.close();
             return {
                 title: '',
                 description: '',
@@ -160,14 +202,14 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
         const url = page.url();
         const metadata = await metascraper({ html, url });
 
-        // Extract favicon manually from page if needed, or use metascraper-logo/clearbit
+        // Extract favicon manually from page if needed
         const favicon = await page.evaluate(() => {
             const icon = document.querySelector('link[rel="icon"]') ||
                 document.querySelector('link[rel="shortcut icon"]');
             return (icon as HTMLLinkElement)?.href || '';
         });
 
-        await browser.close();
+        await page.close(); // Close only the page, keep browser alive
 
         logger.info(`[Scraper] Advanced Scrape SUCCESS for ${targetUrl}`);
         return {
@@ -179,7 +221,8 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
         };
     } catch (error: any) {
         logger.error(`[Scraper] Advanced Scrape FAILED for ${targetUrl}: ${error.message}`);
-        if (browser) await browser.close();
+        if (page && !page.isClosed()) await page.close();
+        // Do NOT close the browser instance here, reusing it for next requests.
 
         return {
             title: '',
