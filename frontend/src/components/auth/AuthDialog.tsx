@@ -450,10 +450,6 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                                     fontWeight: 700,
                                                     borderRadius: 2.5,
                                                     mt: 1,
-                                                    boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
-                                                    '&:hover': {
-                                                        boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.5)}`
-                                                    }
                                                 }}
                                             >
                                                 {loading ? <CircularProgress size={24} color="inherit" /> : (isRegisterMode ? 'Generate Keys & Register' : 'Authenticate')}
