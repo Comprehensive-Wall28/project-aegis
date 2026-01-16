@@ -85,7 +85,6 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                     display: 'flex',
                     alignItems: 'center',
                     height: 56,
-                    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                     textDecoration: 'none',
                     color: 'inherit',
                     '&:hover': {
@@ -187,7 +186,7 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
             </Box>
 
             {/* Bottom Section */}
-            <Box sx={{ p: 1, borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+            <Box sx={{ p: 1 }}>
                 <List disablePadding>
                     {isMobile && (
                         <>
@@ -292,6 +291,7 @@ export function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileClose }: 
                         width: isCollapsed ? 64 : 224,
                         boxSizing: 'border-box',
                         bgcolor: 'transparent', // Transparent to show backdrop
+                        border: 'none',
                         borderRight: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
                         transition: theme.transitions.create('width', {
                             easing: theme.transitions.easing.sharp,
