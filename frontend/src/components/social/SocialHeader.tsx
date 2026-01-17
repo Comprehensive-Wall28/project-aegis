@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useCallback, type ChangeEvent } from 'react';
 import {
     Box,
     Paper,
@@ -57,6 +57,15 @@ export const SocialHeader = memo(({
     const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
     const { name: decryptedName, isDecrypting } = useDecryptedRoomMetadata(currentRoom);
 
+    const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
+    const handleClearSearch = useCallback(() => setSearchQuery(''), [setSearchQuery]);
+    const handleNewLinkChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setNewLinkUrl(e.target.value), [setNewLinkUrl]);
+    const handlePostKeyDown = useCallback((e: React.KeyboardEvent) => e.key === 'Enter' && handlePostLink(), [handlePostLink]);
+    const handleUploaderSelect = useCallback((id: string | null) => handleSelectUploader(id), [handleSelectUploader]);
+    const handleViewFilterAll = useCallback(() => { handleViewFilterChange('all'); handleFilterClose(); }, [handleViewFilterChange, handleFilterClose]);
+    const handleViewFilterViewed = useCallback(() => { handleViewFilterChange('viewed'); handleFilterClose(); }, [handleViewFilterChange, handleFilterClose]);
+    const handleViewFilterUnviewed = useCallback(() => { handleViewFilterChange('unviewed'); handleFilterClose(); }, [handleViewFilterChange, handleFilterClose]);
+
     return (
         <Paper
             variant="glass"
@@ -105,7 +114,7 @@ export const SocialHeader = memo(({
                             <TextField
                                 placeholder="Search links..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={handleSearchChange}
                                 size="small"
                                 fullWidth
                                 InputProps={{
@@ -116,7 +125,7 @@ export const SocialHeader = memo(({
                                     ),
                                     endAdornment: searchQuery ? (
                                         <InputAdornment position="end">
-                                            <IconButton size="small" onClick={() => setSearchQuery('')}>
+                                            <IconButton size="small" onClick={handleClearSearch}>
                                                 <CloseIcon fontSize="small" />
                                             </IconButton>
                                         </InputAdornment>
@@ -179,19 +188,19 @@ export const SocialHeader = memo(({
                             View Status
                         </ListSubheader>
                         <MenuItem
-                            onClick={() => { handleViewFilterChange('all'); handleFilterClose(); }}
+                            onClick={handleViewFilterAll}
                             selected={viewFilter === 'all'}
                         >
                             All Links
                         </MenuItem>
                         <MenuItem
-                            onClick={() => { handleViewFilterChange('viewed'); handleFilterClose(); }}
+                            onClick={handleViewFilterViewed}
                             selected={viewFilter === 'viewed'}
                         >
                             Viewed
                         </MenuItem>
                         <MenuItem
-                            onClick={() => { handleViewFilterChange('unviewed'); handleFilterClose(); }}
+                            onClick={handleViewFilterUnviewed}
                             selected={viewFilter === 'unviewed'}
                         >
                             Unviewed
@@ -211,7 +220,7 @@ export const SocialHeader = memo(({
                         {getUniqueUploaders().map((uploader) => (
                             <MenuItem
                                 key={uploader.id}
-                                onClick={() => handleSelectUploader(uploader.id)}
+                                onClick={() => handleUploaderSelect(uploader.id)}
                                 selected={selectedUploader === uploader.id}
                             >
                                 {uploader.username}
@@ -224,8 +233,8 @@ export const SocialHeader = memo(({
                             <TextField
                                 placeholder="Paste a link to share..."
                                 value={newLinkUrl}
-                                onChange={(e) => setNewLinkUrl(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handlePostLink()}
+                                onChange={handleNewLinkChange}
+                                onKeyDown={handlePostKeyDown}
                                 size="small"
                                 InputProps={{
                                     startAdornment: (

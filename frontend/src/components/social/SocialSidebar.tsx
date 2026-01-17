@@ -51,14 +51,17 @@ const CollectionItem = memo(({
             style={{ listStyle: 'none' }}
         >
             <Box
-                onClick={onClick}
-                onContextMenu={onContextMenu}
-                onTouchStart={onTouchStart}
+                onClick={() => onClick(collection._id)}
+                onContextMenu={(e) => onContextMenu(e, collection._id)}
+                onTouchStart={() => onTouchStart(collection._id)}
                 onTouchEnd={onTouchEnd}
                 onTouchMove={onTouchEnd}
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
-                onDrop={onDrop}
+                onDrop={(e) => {
+                    e.preventDefault();
+                    onDrop(collection._id);
+                }}
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -151,10 +154,17 @@ export const SocialSidebar = memo(({
     }, [collections, isDragging]);
 
     // Handle reorder locally for instant feedback
-    const handleLocalReorder = (newOrder: any[]) => {
+    const handleLocalReorder = useCallback((newOrder: any[]) => {
         setLocalCollections(newOrder);
         setIsDragging(true);
-    };
+    }, []);
+
+    const handleCreateCollectionClick = useCallback(() => {
+        setShowCollectionDialog(true);
+        if (isMobile) setMobileDrawerOpen(false);
+    }, [isMobile, setMobileDrawerOpen, setShowCollectionDialog]);
+
+    const handleCloseDrawer = useCallback(() => setMobileDrawerOpen(false), [setMobileDrawerOpen]);
 
     // Debounced sync to store/backend
     useEffect(() => {
@@ -168,6 +178,11 @@ export const SocialSidebar = memo(({
         return () => clearTimeout(timer);
     }, [localCollections, isDragging, reorderCollections]);
 
+    const handleItemClick = useCallback((id: string) => {
+        selectCollection(id);
+        if (isMobile) setMobileDrawerOpen(false);
+    }, [isMobile, selectCollection, setMobileDrawerOpen]);
+
     const renderCollectionItem = useCallback((collection: any, isMobileView = false) => {
         return (
             <CollectionItem
@@ -177,12 +192,9 @@ export const SocialSidebar = memo(({
                 isTarget={dropTargetId === collection._id}
                 unviewedCount={getUnviewedCountByCollection(collection._id)}
                 isMobileView={isMobileView}
-                onClick={() => {
-                    selectCollection(collection._id);
-                    if (isMobileView) setMobileDrawerOpen(false);
-                }}
-                onContextMenu={(e) => handleCollectionContextMenu(e, collection._id)}
-                onTouchStart={() => handleCollectionTouchStart(collection._id)}
+                onClick={handleItemClick}
+                onContextMenu={handleCollectionContextMenu}
+                onTouchStart={handleCollectionTouchStart}
                 onTouchEnd={handleCollectionTouchEnd}
                 onDragOver={(e) => {
                     if (!isMobileView) {
@@ -191,22 +203,17 @@ export const SocialSidebar = memo(({
                     }
                 }}
                 onDragLeave={() => !isMobileView && setDropTargetId(null)}
-                onDrop={(e) => {
-                    if (!isMobileView) {
-                        e.preventDefault();
-                        handleDrop(collection._id);
-                    }
-                }}
+                onDrop={handleDrop}
             />
         );
-    }, [currentCollectionId, dropTargetId, getUnviewedCountByCollection, handleCollectionContextMenu, handleCollectionTouchEnd, handleCollectionTouchStart, handleDrop, selectCollection, setDropTargetId, setMobileDrawerOpen]);
+    }, [currentCollectionId, dropTargetId, getUnviewedCountByCollection, handleCollectionContextMenu, handleCollectionTouchEnd, handleCollectionTouchStart, handleDrop, handleItemClick, setDropTargetId]);
 
     if (isMobile) {
         return (
             <Drawer
                 anchor="left"
                 open={mobileDrawerOpen}
-                onClose={() => setMobileDrawerOpen(false)}
+                onClose={handleCloseDrawer}
                 PaperProps={{
                     sx: {
                         bgcolor: 'background.default',
@@ -218,7 +225,7 @@ export const SocialSidebar = memo(({
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                     <Typography variant="h6" fontWeight={600}>Collections</Typography>
-                    <IconButton size="small" onClick={() => setMobileDrawerOpen(false)}>
+                    <IconButton size="small" onClick={handleCloseDrawer}>
                         <CloseIcon />
                     </IconButton>
                 </Box>
@@ -229,10 +236,7 @@ export const SocialSidebar = memo(({
                     <Divider sx={{ my: 1 }} />
                     <Button
                         startIcon={<AddIcon />}
-                        onClick={() => {
-                            setShowCollectionDialog(true);
-                            setMobileDrawerOpen(false);
-                        }}
+                        onClick={handleCreateCollectionClick}
                         sx={{ justifyContent: 'flex-start' }}
                     >
                         New Collection

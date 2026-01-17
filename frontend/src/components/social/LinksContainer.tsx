@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useCallback } from 'react';
 import {
     Box,
     Typography,
@@ -54,6 +54,15 @@ export const LinksContainer = memo(({
 
     const { name: decryptedName, isDecrypting } = useDecryptedCollectionMetadata(currentCollection);
 
+    const handleDelete = useCallback((id: string) => deleteLink(id), [deleteLink]);
+    const handleDragStart = useCallback((id: string | null) => setDraggedLinkId(id), [setDraggedLinkId]);
+    const handleView = useCallback((id: string) => markLinkViewed(id), [markLinkViewed]);
+    const handleUnview = useCallback((id: string) => unmarkLinkViewed(id), [unmarkLinkViewed]);
+    const handleCommentsClick = useCallback((link: LinkPost) => setCommentsLink(link), [setCommentsLink]);
+    const handleLoadMore = useCallback(() => loadMoreLinks(), [loadMoreLinks]);
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
+    const handleClearSearch = useCallback(() => setSearchQuery(''), [setSearchQuery]);
+
     return (
         <Box
             ref={linksContainerRef}
@@ -96,7 +105,7 @@ export const LinksContainer = memo(({
                     <TextField
                         placeholder="Search links..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={handleSearchChange}
                         size="small"
                         fullWidth
                         InputProps={{
@@ -107,7 +116,7 @@ export const LinksContainer = memo(({
                             ),
                             endAdornment: searchQuery ? (
                                 <InputAdornment position="end">
-                                    <IconButton size="small" onClick={() => setSearchQuery('')}>
+                                    <IconButton size="small" onClick={handleClearSearch}>
                                         <CloseIcon fontSize="small" />
                                     </IconButton>
                                 </InputAdornment>
@@ -152,11 +161,11 @@ export const LinksContainer = memo(({
                             <LinkCard
                                 key={link._id}
                                 link={link}
-                                onDelete={() => deleteLink(link._id)}
-                                onDragStart={(id) => setDraggedLinkId(id)}
-                                onView={(id) => markLinkViewed(id)}
-                                onUnview={(id) => unmarkLinkViewed(id)}
-                                onCommentsClick={(l) => setCommentsLink(l)}
+                                onDelete={handleDelete}
+                                onDragStart={handleDragStart}
+                                onView={handleView}
+                                onUnview={handleUnview}
+                                onCommentsClick={handleCommentsClick}
                                 isViewed={viewedLinkIds.has(link._id)}
                                 commentCount={commentCounts[link._id] || 0}
                                 canDelete={
@@ -170,7 +179,7 @@ export const LinksContainer = memo(({
                         <Box sx={{ mt: 3, mb: 2, display: 'flex', justifyContent: 'center' }}>
                             <Button
                                 variant="outlined"
-                                onClick={() => loadMoreLinks()}
+                                onClick={handleLoadMore}
                                 disabled={isLoadingLinks}
                                 startIcon={isLoadingLinks ? <CircularProgress size={20} /> : null}
                                 sx={{

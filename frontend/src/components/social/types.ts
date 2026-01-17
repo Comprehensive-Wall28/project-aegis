@@ -30,13 +30,13 @@ export interface CollectionItemProps {
     isTarget: boolean;
     unviewedCount: number;
     isMobileView: boolean;
-    onClick: () => void;
-    onContextMenu: (e: React.MouseEvent) => void;
-    onTouchStart: () => void;
+    onClick: (id: string) => void;
+    onContextMenu: (e: React.MouseEvent, id: string) => void;
+    onTouchStart: (id: string) => void;
     onTouchEnd: () => void;
     onDragOver: (e: React.DragEvent) => void;
     onDragLeave: () => void;
-    onDrop: (e: React.DragEvent) => void;
+    onDrop: (id: string) => void;
 }
 
 export interface SocialSidebarProps {
