@@ -305,6 +305,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                         }
                                     }}
                                     title={isViewed ? "Mark as Unread" : "Mark as Viewed"}
+                                    aria-label={isViewed ? "Mark as unread" : "Mark as viewed"}
                                 >
                                     <MarkViewedIcon fontSize="small" />
                                 </IconButton>
@@ -315,6 +316,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                         setShowPreview(true);
                                     }}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                                    aria-label="Show preview"
                                 >
                                     <OpenInFullIcon fontSize="small" />
                                 </IconButton>
@@ -326,6 +328,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                         onCommentsClick?.(link);
                                     }}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                                    aria-label={`Comments (${commentCount})`}
                                 >
                                     <Badge
                                         badgeContent={commentCount}
@@ -351,6 +354,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                             onDelete?.(link._id);
                                         }}
                                         sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+                                        aria-label="Delete link"
                                     >
                                         <DeleteIcon fontSize="small" />
                                     </IconButton>
@@ -462,6 +466,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                             '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
                                             zIndex: 2,
                                         }}
+                                        aria-label="Close preview"
                                     >
                                         <CloseIcon />
                                     </IconButton>

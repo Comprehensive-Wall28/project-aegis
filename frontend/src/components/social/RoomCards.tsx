@@ -19,6 +19,8 @@ export const RoomCard = memo(({
         <Paper
             variant="glass"
             onClick={onSelect}
+            role="button"
+            aria-label={`Enter room: ${displayName}`}
             sx={{
                 p: 3,
                 borderRadius: '20px',
@@ -83,6 +85,8 @@ export const CreateRoomCard = memo(({
         <Paper
             variant="glass"
             onClick={onClick}
+            role="button"
+            aria-label="Create new room"
             sx={{
                 p: 3,
                 borderRadius: '20px',
@@ -110,6 +114,7 @@ export const CreateRoomCard = memo(({
                         bgcolor: alpha(theme.palette.success.main, 0.25),
                     },
                 }}
+                aria-label="Create room"
             >
                 <AddIcon sx={{ fontSize: 28 }} />
             </IconButton>

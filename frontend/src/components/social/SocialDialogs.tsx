@@ -88,7 +88,9 @@ export const CreateRoomDialog = memo(({
                         >
                             <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>Create New Room</Typography>
-                                <IconButton onClick={onClose}><CloseIcon /></IconButton>
+                                <IconButton onClick={onClose} aria-label="Close">
+                                    <CloseIcon />
+                                </IconButton>
                             </Box>
 
                             <Box sx={{ p: 3, flex: 1, overflowY: 'auto' }}>
@@ -199,7 +201,9 @@ export const CreateCollectionDialog = memo(({
                         >
                             <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>New Collection</Typography>
-                                <IconButton onClick={onClose}><CloseIcon /></IconButton>
+                                <IconButton onClick={onClose} aria-label="Close">
+                                    <CloseIcon />
+                                </IconButton>
                             </Box>
 
                             <Box sx={{ p: 3, flex: 1 }}>
@@ -295,7 +299,9 @@ export const PostLinkDialog = memo(({
                         >
                             <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>Post a Link</Typography>
-                                <IconButton onClick={onClose}><CloseIcon /></IconButton>
+                                <IconButton onClick={onClose} aria-label="Close">
+                                    <CloseIcon />
+                                </IconButton>
                             </Box>
 
                             <Box sx={{ p: 3, flex: 1 }}>

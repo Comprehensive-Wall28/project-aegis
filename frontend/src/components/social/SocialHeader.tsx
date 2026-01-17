@@ -87,7 +87,7 @@ export const SocialHeader = memo(({
         >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 {viewMode === 'room-content' && (optimisticRoomId || currentRoom) ? (
-                    <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: -0.5 }}>
+                    <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: -0.5 }} aria-label="Exit room">
                         <ArrowBackIcon />
                     </IconButton>
                 ) : (
@@ -131,7 +131,7 @@ export const SocialHeader = memo(({
                                     ),
                                     endAdornment: searchQuery ? (
                                         <InputAdornment position="end">
-                                            <IconButton size="small" onClick={handleClearSearch}>
+                                            <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
                                                 <CloseIcon fontSize="small" />
                                             </IconButton>
                                         </InputAdornment>
@@ -158,6 +158,7 @@ export const SocialHeader = memo(({
                                     bgcolor: alpha(theme.palette.primary.main, 0.1),
                                 }
                             }}
+                            aria-label="Filter links"
                         >
                             <FilterListIcon />
                         </IconButton>
@@ -165,7 +166,7 @@ export const SocialHeader = memo(({
 
                     {isMobile && (
                         <Tooltip title="Copy Invite Link">
-                            <IconButton onClick={handleCopyInvite} color="primary">
+                            <IconButton onClick={handleCopyInvite} color="primary" aria-label="Copy invite link">
                                 <ShareIcon />
                             </IconButton>
                         </Tooltip>
@@ -263,6 +264,7 @@ export const SocialHeader = memo(({
                                 onClick={() => handlePostLink()}
                                 disabled={!newLinkUrl.trim() || isPostingLink}
                                 sx={{ borderRadius: SOCIAL_RADIUS_MEDIUM, flexShrink: 0 }}
+                                aria-label="Post link"
                             >
                                 {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
                             </Button>

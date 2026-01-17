@@ -247,7 +247,7 @@ export const CommentsOverlay = memo(({
                                         {link.previewData?.title || link.url}
                                     </Typography>
                                 </Box>
-                                <IconButton onClick={onClose} sx={{ ml: 1 }}>
+                                <IconButton onClick={onClose} sx={{ ml: 1 }} aria-label="Close">
                                     <CloseIcon />
                                 </IconButton>
                             </Box>
@@ -293,6 +293,7 @@ export const CommentsOverlay = memo(({
                                                 loadComments();
                                             }}
                                             sx={{ borderRadius: SOCIAL_RADIUS_SMALL }}
+                                            aria-label="Retry loading comments"
                                         >
                                             Retry
                                         </Button>
@@ -371,6 +372,7 @@ export const CommentsOverlay = memo(({
                                                                                 opacity: 0.5,
                                                                                 '&:hover': { opacity: 1, color: 'error.main' },
                                                                             }}
+                                                                            aria-label="Delete comment"
                                                                         >
                                                                             {deletingId === comment._id ? (
                                                                                 <CircularProgress size={14} />
@@ -438,6 +440,7 @@ export const CommentsOverlay = memo(({
                                         minWidth: 48,
                                         px: 2,
                                     }}
+                                    aria-label="Post comment"
                                 >
                                     {isPosting ? <CircularProgress size={20} /> : <SendIcon />}
                                 </Button>

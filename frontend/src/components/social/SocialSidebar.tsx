@@ -68,6 +68,9 @@ const CollectionItem = memo(({
                     e.preventDefault();
                     onDrop(collection._id);
                 }}
+                role="button"
+                aria-label={`Select collection: ${decryptedName || '...'}`}
+                aria-selected={isActive}
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -231,7 +234,7 @@ export const SocialSidebar = memo(({
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                     <Typography variant="h6" fontWeight={600}>Collections</Typography>
-                    <IconButton size="small" onClick={handleCloseDrawer}>
+                    <IconButton size="small" onClick={handleCloseDrawer} aria-label="Close sidebar">
                         <CloseIcon />
                     </IconButton>
                 </Box>
@@ -284,6 +287,7 @@ export const SocialSidebar = memo(({
                         color: 'text.secondary',
                         '&:hover': { color: 'primary.main' }
                     }}
+                    aria-label="Create collection"
                 >
                     <AddIcon sx={{ fontSize: 16 }} />
                 </IconButton>
