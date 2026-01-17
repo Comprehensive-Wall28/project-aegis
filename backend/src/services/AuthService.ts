@@ -94,8 +94,10 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Missing required fields', 400);
             }
 
-            const existingByEmail = await this.repository.findByEmail(data.email);
-            const existingByUsername = await this.repository.findByUsername(data.username);
+            const [existingByEmail, existingByUsername] = await Promise.all([
+                this.repository.findByEmail(data.email),
+                this.repository.findByUsername(data.username)
+            ]);
 
             if (existingByEmail || existingByUsername) {
                 logger.warn(`Failed registration: Email ${data.email} or username ${data.username} exists`);
