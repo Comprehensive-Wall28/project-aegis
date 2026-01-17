@@ -250,7 +250,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             // OPTIMIZATION: Run collectionStats and initial links fetch in parallel
             const collectionIds = collections.map(c => c._id.toString());
             const firstCollectionId = collections.length > 0 ? collections[0]._id.toString() : null;
-            const limit = 30;
+            const limit = 12;
 
             const [collectionStats, initialLinksResult] = await Promise.all([
                 // Get total links per collection in one aggregation

@@ -428,7 +428,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         const state = get();
         if (!state.currentRoom) return;
 
-        if (!silent && !isLoadMore) {
+        if (!silent) {
             set({ isLoadingLinks: true });
         }
 
@@ -446,7 +446,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             const result = await socialService.getCollectionLinks(
                 state.currentRoom._id,
                 collectionId,
-                30,
+                12,
                 beforeCursor
             );
 

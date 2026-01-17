@@ -88,7 +88,7 @@ export const getCollectionLinks = async (req: AuthRequest, res: Response, next: 
         }
         const cursorCreatedAt = req.query.cursorCreatedAt as string;
         const cursorId = req.query.cursorId as string;
-        const limit = parseInt(req.query.limit as string) || 30;
+        const limit = parseInt(req.query.limit as string) || 12;
 
         const beforeCursor = cursorCreatedAt && cursorId ? {
             createdAt: cursorCreatedAt,
