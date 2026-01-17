@@ -17,6 +17,7 @@ import { UserRepository } from '../repositories/UserRepository';
 import { IUser, IWebAuthnCredential } from '../models/User';
 import logger from '../utils/logger';
 import { logFailedAuth } from '../utils/auditLogger';
+import { encryptToken } from '../utils/cryptoUtils';
 
 // DTOs
 export interface RegisterDTO {
@@ -62,32 +63,11 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         super(new UserRepository());
     }
 
-    private getCookieEncryptionKey(): Buffer {
-        const secret = process.env.COOKIE_ENCRYPTION_KEY || process.env.JWT_SECRET;
-        if (!secret) {
-            throw new Error('Missing encryption key');
-        }
-        return crypto.scryptSync(secret, 'salt', 32);
-    }
-
-    private encryptToken(plaintext: string): string {
-        const key = this.getCookieEncryptionKey();
-        const iv = crypto.randomBytes(12);
-        const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-
-        const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
-        const authTag = cipher.getAuthTag();
-
-        // Combine IV, encrypted content, and auth tag
-        const combined = Buffer.concat([iv, encrypted, authTag]);
-        return combined.toString('base64');
-    }
-
     private generateToken(id: string, username: string): string {
         const jwtToken = jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
             expiresIn: '365d'
         });
-        return this.encryptToken(jwtToken);
+        return encryptToken(jwtToken);
     }
 
     private formatUserResponse(user: IUser): UserResponse {
