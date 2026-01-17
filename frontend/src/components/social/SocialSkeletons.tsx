@@ -1,4 +1,10 @@
 import { Box, Paper, Skeleton, alpha, useTheme } from '@mui/material';
+import {
+    SOCIAL_LINK_CARD_HEIGHT,
+    SOCIAL_LINK_PREVIEW_HEIGHT,
+    SOCIAL_RADIUS_XLARGE,
+    SOCIAL_RADIUS_XSMALL
+} from './constants';
 
 // Skeleton for Collections
 export const CollectionSkeleton = () => {
@@ -8,10 +14,10 @@ export const CollectionSkeleton = () => {
             alignItems: 'center',
             gap: 1.5,
             p: 1.5,
-            borderRadius: '10px',
+            borderRadius: SOCIAL_RADIUS_XSMALL,
         }}>
-            <Skeleton variant="circular" width={18} height={18} />
-            <Skeleton variant="text" width="70%" height={24} />
+            <Skeleton variant="circular" width={18} height={18} animation={false} />
+            <Skeleton variant="text" width="70%" height={24} animation={false} />
         </Box>
     );
 };
@@ -20,30 +26,37 @@ export const CollectionSkeleton = () => {
 export const LinkCardSkeleton = () => {
     const theme = useTheme();
     return (
-        <Paper
-            variant="glass"
-            sx={{
-                borderRadius: '24px',
-                height: 280,
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                border: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
-            }}
-        >
-            <Skeleton variant="rectangular" height={140} />
-            <Box sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <Skeleton variant="text" width="90%" height={28} sx={{ mb: 1 }} />
-                <Skeleton variant="text" width="60%" height={20} />
-                <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Skeleton variant="text" width="30%" height={16} />
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Skeleton variant="circular" width={24} height={24} />
-                        <Skeleton variant="circular" width={24} height={24} />
-                        <Skeleton variant="circular" width={24} height={24} />
+        <Box sx={{
+            height: SOCIAL_LINK_CARD_HEIGHT,
+            padding: '3px',
+            boxSizing: 'border-box'
+        }}>
+            <Paper
+                variant="glass"
+                sx={{
+                    borderRadius: SOCIAL_RADIUS_XLARGE,
+                    height: '100%',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    border: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
+                    boxShadow: 'none',
+                }}
+            >
+                <Skeleton variant="rectangular" height={SOCIAL_LINK_PREVIEW_HEIGHT} animation={false} />
+                <Box sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <Skeleton variant="text" width="90%" height={28} sx={{ mb: 1 }} animation={false} />
+                    <Skeleton variant="text" width="60%" height={20} animation={false} />
+                    <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Skeleton variant="text" width="30%" height={16} animation={false} />
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Skeleton variant="circular" width={24} height={24} animation={false} />
+                            <Skeleton variant="circular" width={24} height={24} animation={false} />
+                            <Skeleton variant="circular" width={24} height={24} animation={false} />
+                        </Box>
                     </Box>
                 </Box>
-            </Box>
-        </Paper>
+            </Paper>
+        </Box>
     );
 };

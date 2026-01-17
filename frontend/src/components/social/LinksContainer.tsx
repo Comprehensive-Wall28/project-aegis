@@ -145,7 +145,7 @@ export const LinksContainer = memo(({
                         gap: 2,
                     }}
                 >
-                    {Array.from({ length: 6 }).map((_, i) => (
+                    {Array.from({ length: 12 }).map((_, i) => (
                         <LinkCardSkeleton key={`link-skel-${i}`} />
                     ))}
                 </Box>
