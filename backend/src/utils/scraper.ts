@@ -98,10 +98,48 @@ const simpleScrape = async (targetUrl: string): Promise<{ data: ScrapeResult | n
 /**
  * Advanced scraper using Puppeteer Stealth and Metascraper.
  */
-// Singleton browser instance
+// Singleton browser instance management
 let browserInstance: any = null;
+let advancedScrapeCount = 0;
+const MAX_ADVANCED_SCRAPES = 10; // Restart browser every 10 scrapes to reclaim memory
+let idleTimeout: NodeJS.Timeout | null = null;
+const IDLE_CLOSE_MS = 5 * 60 * 1000; // 5 minutes
+
+// Concurrency control: Simple lock to prevent multiple simultaneous advanced scrapes
+let isAdvancedScraping = false;
+
+const closeBrowser = async () => {
+    if (browserInstance) {
+        logger.info('[Scraper] Closing Puppeteer browser instance to reclaim memory...');
+        try {
+            await browserInstance.close();
+        } catch (err: any) {
+            logger.error(`[Scraper] Error closing browser: ${err.message}`);
+        }
+        browserInstance = null;
+        advancedScrapeCount = 0;
+    }
+};
 
 const getBrowser = async () => {
+    // Reset idle timeout every time browser is requested
+    if (idleTimeout) {
+        clearTimeout(idleTimeout);
+        idleTimeout = null;
+    }
+
+    // Set a new idle timeout
+    idleTimeout = setTimeout(() => {
+        logger.info('[Scraper] Browser idle for 5 minutes, shutting down...');
+        closeBrowser();
+    }, IDLE_CLOSE_MS);
+
+    // If request limit reached, cycle the browser
+    if (browserInstance && advancedScrapeCount >= MAX_ADVANCED_SCRAPES) {
+        logger.info(`[Scraper] Request limit (${MAX_ADVANCED_SCRAPES}) reached. Recycling browser...`);
+        await closeBrowser();
+    }
+
     if (browserInstance) return browserInstance;
 
     logger.info('[Scraper] Launching new Puppeteer browser instance...');
@@ -114,15 +152,37 @@ const getBrowser = async () => {
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--single-process', // Sometimes helps in strict environments
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-extensions',
+            '--disable-background-networking',
+            '--disable-sync',
+            '--disable-default-apps',
+            '--mute-audio',
+            '--disable-ipc-flooding-protection',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-breakpad',
+            '--disable-component-update',
+            '--disable-domain-reliability',
+            '--disable-features=AudioServiceOutOfProcess',
+            '--disable-hang-monitor',
+            '--disable-notifications',
+            '--disable-offer-store-unmasked-wallet-cards',
+            '--disable-popup-blocking',
+            '--disable-print-preview',
+            '--disable-prompt-on-repost',
+            '--disable-renderer-backgrounding',
+            '--disable-speech-api',
+            '--disable-web-security',
+            '--window-size=1280,800'
         ],
     });
 
-    // Handle disconnects to clear the singleton
+    // Handle unexpected disconnects
     browserInstance.on('disconnected', () => {
-        logger.info('[Scraper] Browser disconnected, clearing singleton.');
+        logger.info('[Scraper] Browser disconnected internally, clearing reference.');
         browserInstance = null;
+        advancedScrapeCount = 0;
     });
 
     return browserInstance;
@@ -132,20 +192,39 @@ const getBrowser = async () => {
  * Advanced scraper using Puppeteer Stealth and Metascraper.
  */
 export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> => {
+    // Concurrency Gate: Simple retry/backoff if another scrape is in progress
+    let attempts = 0;
+    while (isAdvancedScraping && attempts < 5) {
+        attempts++;
+        logger.info(`[Scraper] Advanced scrape already in progress, waiting (attempt ${attempts})...`);
+        await new Promise(r => setTimeout(r, 2000));
+    }
+
+    if (isAdvancedScraping) {
+        logger.error(`[Scraper] Too many concurrent scrapes, failing for ${targetUrl}`);
+        return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'failed' };
+    }
+
+    isAdvancedScraping = true;
+    advancedScrapeCount++;
+
+    let context: any;
     let page: any;
+
     try {
-        logger.info(`[Scraper] Starting Advanced Scrape (Puppeteer) for ${targetUrl}`);
+        logger.info(`[Scraper] Starting Advanced Scrape (Puppeteer) [Req #${advancedScrapeCount}] for ${targetUrl}`);
 
         const browser = await getBrowser();
-        page = await browser.newPage();
+
+        // Use a fresh Browser Context for session isolation and easier memory cleanup
+        context = await browser.createBrowserContext();
+        page = await context.newPage();
 
         // Enable request interception to block unnecessary resources
         await page.setRequestInterception(true);
         page.on('request', (req: any) => {
             const resourceType = req.resourceType();
-            // Block images, fonts, media, and stylesheets to save bandwidth/time
-            // Note: We still parse HTML for og:image URL, we just don't download the binary.
-            if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
+            if (['image', 'stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
                 req.abort();
             } else {
                 req.continue();
@@ -157,45 +236,14 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
 
         // Go to page
         const response = await page.goto(targetUrl, {
-            waitUntil: 'domcontentloaded', // Much faster and more reliable
-            timeout: 30000 // Reduced to 30s fail-fast
+            waitUntil: 'domcontentloaded',
+            timeout: 25000 // Slightly tighter timeout
         });
-
-        // Try to handle simple gates/overlays ("Enter", "I agree")
-        try {
-            // Short timeout for this check
-            await page.waitForFunction(() => {
-                const buttons = Array.from(document.querySelectorAll('button, a'));
-                return buttons.some(el => {
-                    const text = el.textContent?.toLowerCase() || '';
-                    return text.includes('enter') || text.includes('agree') || text.includes('yes, i am');
-                });
-            }, { timeout: 1000 }).then(async () => {
-                await page.evaluate(() => {
-                    const buttons = Array.from(document.querySelectorAll('button, a'));
-                    const enterButton = buttons.find(el => {
-                        const text = el.textContent?.toLowerCase() || '';
-                        return text.includes('enter') || text.includes('agree') || text.includes('yes, ia am');
-                    });
-                    if (enterButton) (enterButton as HTMLElement).click();
-                });
-                await new Promise(r => setTimeout(r, 1000)); // Brief wait for settle
-            }).catch(() => { }); // No button found, continue
-        } catch (e) {
-            // Ignore interaction errors
-        }
 
         const status = response?.status();
         if (status === 403) {
             logger.warn(`[Scraper] Advanced Scrape BLOCKED (403) for ${targetUrl}`);
-            await page.close();
-            return {
-                title: '',
-                description: '',
-                image: '',
-                favicon: '',
-                scrapeStatus: 'blocked'
-            };
+            return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'blocked' };
         }
 
         const html = await page.content();
@@ -209,8 +257,6 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
             return (icon as HTMLLinkElement)?.href || '';
         });
 
-        await page.close(); // Close only the page, keep browser alive
-
         logger.info(`[Scraper] Advanced Scrape SUCCESS for ${targetUrl}`);
         return {
             title: metadata.title || '',
@@ -221,16 +267,17 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
         };
     } catch (error: any) {
         logger.error(`[Scraper] Advanced Scrape FAILED for ${targetUrl}: ${error.message}`);
-        if (page && !page.isClosed()) await page.close();
-        // Do NOT close the browser instance here, reusing it for next requests.
-
-        return {
-            title: '',
-            description: '',
-            image: '',
-            favicon: '',
-            scrapeStatus: 'failed'
-        };
+        return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'failed' };
+    } finally {
+        isAdvancedScraping = false;
+        // Ensure context and all its pages are closed
+        if (context) {
+            try {
+                await context.close();
+            } catch (err: any) {
+                logger.error(`[Scraper] Error closing browser context: ${err.message}`);
+            }
+        }
     }
 };
 
@@ -253,3 +300,4 @@ export const smartScrape = async (targetUrl: string): Promise<ScrapeResult> => {
     logger.info(`[Scraper] Simple Scrape SKIPPED for: ${targetUrl}. Reason: ${reason || 'Unknown'}. Switching to Advanced Scrape.`);
     return advancedScrape(targetUrl);
 };
+
