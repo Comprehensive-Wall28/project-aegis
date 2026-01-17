@@ -105,8 +105,9 @@ const MAX_ADVANCED_SCRAPES = 10; // Restart browser every 10 scrapes to reclaim 
 let idleTimeout: NodeJS.Timeout | null = null;
 const IDLE_CLOSE_MS = 5 * 60 * 1000; // 5 minutes
 
-// Concurrency control: Simple lock to prevent multiple simultaneous advanced scrapes
-let isAdvancedScraping = false;
+// Concurrency control: Limit simultaneous advanced scrapes to save RAM but allow some parallelization
+const MAX_CONCURRENT_SCRAPES = 2;
+let activeAdvancedScrapes = 0;
 
 const closeBrowser = async () => {
     if (browserInstance) {
@@ -130,14 +131,22 @@ const getBrowser = async () => {
 
     // Set a new idle timeout
     idleTimeout = setTimeout(() => {
-        logger.info('[Scraper] Browser idle for 5 minutes, shutting down...');
-        closeBrowser();
+        // Only close if no scrapes are active
+        if (activeAdvancedScrapes === 0) {
+            logger.info('[Scraper] Browser idle for 5 minutes, shutting down...');
+            closeBrowser();
+        } else {
+            logger.info('[Scraper] Browser idle timeout reached but scrapes are active, postponing close.');
+        }
     }, IDLE_CLOSE_MS);
 
     // If request limit reached, cycle the browser
     if (browserInstance && advancedScrapeCount >= MAX_ADVANCED_SCRAPES) {
-        logger.info(`[Scraper] Request limit (${MAX_ADVANCED_SCRAPES}) reached. Recycling browser...`);
-        await closeBrowser();
+        // Wait until all current scrapes finish before closing
+        if (activeAdvancedScrapes === 0) {
+            logger.info(`[Scraper] Request limit (${MAX_ADVANCED_SCRAPES}) reached. Recycling browser...`);
+            await closeBrowser();
+        }
     }
 
     if (browserInstance) return browserInstance;
@@ -183,6 +192,7 @@ const getBrowser = async () => {
         logger.info('[Scraper] Browser disconnected internally, clearing reference.');
         browserInstance = null;
         advancedScrapeCount = 0;
+        activeAdvancedScrapes = 0;
     });
 
     return browserInstance;
@@ -192,20 +202,23 @@ const getBrowser = async () => {
  * Advanced scraper using Puppeteer Stealth and Metascraper.
  */
 export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> => {
-    // Concurrency Gate: Simple retry/backoff if another scrape is in progress
+    // Concurrency Gate: Wait for a slot if max concurrent scrapes reached
     let attempts = 0;
-    while (isAdvancedScraping && attempts < 5) {
+    const maxAttempts = 30; // 30 * 2s = 60s total wait time
+    while (activeAdvancedScrapes >= MAX_CONCURRENT_SCRAPES && attempts < maxAttempts) {
         attempts++;
-        logger.info(`[Scraper] Advanced scrape already in progress, waiting (attempt ${attempts})...`);
+        if (attempts % 5 === 0) {
+            logger.info(`[Scraper] Advanced scrape waiting for slot (${activeAdvancedScrapes} active, attempt ${attempts})...`);
+        }
         await new Promise(r => setTimeout(r, 2000));
     }
 
-    if (isAdvancedScraping) {
+    if (activeAdvancedScrapes >= MAX_CONCURRENT_SCRAPES) {
         logger.error(`[Scraper] Too many concurrent scrapes, failing for ${targetUrl}`);
         return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'failed' };
     }
 
-    isAdvancedScraping = true;
+    activeAdvancedScrapes++;
     advancedScrapeCount++;
 
     let context: any;
@@ -224,6 +237,7 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
         await page.setRequestInterception(true);
         page.on('request', (req: any) => {
             const resourceType = req.resourceType();
+            // Block images, fonts, media, and stylesheets to save bandwidth/time
             if (['image', 'stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
                 req.abort();
             } else {
@@ -237,7 +251,7 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
         // Go to page
         const response = await page.goto(targetUrl, {
             waitUntil: 'domcontentloaded',
-            timeout: 25000 // Slightly tighter timeout
+            timeout: 45000 // Increased timeout for slow sites
         });
 
         const status = response?.status();
@@ -269,7 +283,7 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
         logger.error(`[Scraper] Advanced Scrape FAILED for ${targetUrl}: ${error.message}`);
         return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'failed' };
     } finally {
-        isAdvancedScraping = false;
+        activeAdvancedScrapes--;
         // Ensure context and all its pages are closed
         if (context) {
             try {
