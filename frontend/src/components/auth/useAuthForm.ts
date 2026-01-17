@@ -2,19 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '@/services/authService';
 import { useSessionStore } from '@/stores/sessionStore';
-import { storeSeed, derivePQCSeed } from '@/lib/cryptoUtils';
-import apiClient, { refreshCsrfToken } from '@/services/api';
-import { startAuthentication } from '@simplewebauthn/browser';
-
-interface AuthResponse {
-    _id: string;
-    email: string;
-    username: string;
-    pqcSeed?: string;
-    status?: string;
-    options?: any;
-    message?: string;
-}
+import { storeSeed } from '@/lib/cryptoUtils';
+import { refreshCsrfToken } from '@/services/api';
 
 export function useAuthForm(open: boolean, initialMode: 'login' | 'register', onClose: () => void) {
     const navigate = useNavigate();
@@ -113,20 +102,15 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
         setError('');
 
         try {
-            const credential = await startAuthentication({ optionsJSON: options });
+            // Use consolidated authService method which handles Passkey verify + V1/V2 fallback
+            const response = await authService.loginWithPasskey(email, password);
 
-            const finalResponse = await apiClient.post<AuthResponse>('/auth/webauthn/login-verify', {
-                email,
-                body: credential
-            });
-
-            const data = finalResponse.data;
-            const pqcSeed = await derivePQCSeed(password);
-
-            if (data._id) {
-                setUser({ _id: data._id, email: data.email, username: data.username });
-                storeSeed(pqcSeed);
-                initializeQuantumKeys(pqcSeed);
+            if (response._id) {
+                setUser({ _id: response._id, email: response.email, username: response.username });
+                if (response.pqcSeed) {
+                    storeSeed(response.pqcSeed);
+                    initializeQuantumKeys(response.pqcSeed);
+                }
                 await refreshCsrfToken();
                 onClose();
                 navigate('/dashboard');

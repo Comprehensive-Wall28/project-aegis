@@ -2,10 +2,7 @@ import { create } from 'zustand';
 import auditService, { type AuditLog } from '@/services/auditService';
 import authService from '@/services/authService';
 import * as cryptoUtils from '@/lib/cryptoUtils';
-// PQC Web Worker for background key generation
-const pqcWorker = new Worker(new URL('../workers/pqc.worker.ts', import.meta.url), {
-    type: 'module'
-});
+import { pqcWorkerManager } from '@/lib/pqcWorkerManager';
 
 export interface UserPreferences {
     sessionTimeout: number; // minutes
@@ -139,28 +136,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         // Set to initializing state
         set({ pqcEngineStatus: 'initializing' });
 
-        // Use Web Worker to generate keys without blocking the UI thread
-        const generateKeysViaWorker = (seed?: Uint8Array): Promise<{ publicKey: Uint8Array, secretKey: Uint8Array }> => {
-            return new Promise((resolve, reject) => {
-                const handler = (event: MessageEvent) => {
-                    const { type, publicKey, secretKey, error } = event.data;
-                    if (type === 'keygen_result') {
-                        pqcWorker.removeEventListener('message', handler);
-                        resolve({ publicKey, secretKey });
-                    } else if (type === 'error') {
-                        pqcWorker.removeEventListener('message', handler);
-                        reject(new Error(error));
-                    }
-                };
-                pqcWorker.addEventListener('message', handler);
-                pqcWorker.postMessage({ type: 'keygen', seed });
-            });
-        };
-
         (async () => {
             try {
-                // Generate keys in background
-                const { publicKey, secretKey } = await generateKeysViaWorker(seed);
+                // Use centralized PQC Worker Manager for heavy computation
+                const { publicKey, secretKey } = await pqcWorkerManager.generateKeys(seed);
 
                 // Helper to convert to Hex
                 const bytesToHex = (bytes: Uint8Array) =>

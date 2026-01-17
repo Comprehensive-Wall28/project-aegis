@@ -8,10 +8,18 @@ import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 /**
  * Derive a 64-byte seed from a password for deterministic PQC key generation.
  * ML-KEM-768 keygen requires 64 bytes of entropy.
+ * 
+ * @param password - User's encryption password
+ * @param email - Optional email for dynamic salt (V2). If omitted, uses legacy V1 static salt.
  */
-export async function derivePQCSeed(password: string): Promise<Uint8Array> {
+export async function derivePQCSeed(password: string, email?: string): Promise<Uint8Array> {
     const encoder = new TextEncoder();
-    const data = encoder.encode(password + "aegis-pqc-salt-v1");
+
+    // V1 (Legacy): password + "aegis-pqc-salt-v1"
+    // V2 (Dynamic): password + email + "aegis-pqc-salt-v2"
+    const salt = email ? `${email}aegis-pqc-salt-v2` : "aegis-pqc-salt-v1";
+    const data = encoder.encode(password + salt);
+
     // Use SHA-512 to get exactly 64 bytes
     const hashBuffer = await window.crypto.subtle.digest('SHA-512', data);
     return new Uint8Array(hashBuffer);
@@ -39,10 +47,13 @@ export const hexToBytes = (hex: string): Uint8Array => {
 
 
 /**
- * Generate PQC public key from password (for registration)
+ * Generate PQC public key from password (for registration or verification)
+ * 
+ * @param password - User's encryption password
+ * @param email - Optional email for dynamic salt (V2).
  */
-export async function getPQCDiscoveryKey(password: string): Promise<string> {
-    const seed = await derivePQCSeed(password);
+export async function getPQCDiscoveryKey(password: string, email?: string): Promise<string> {
+    const seed = await derivePQCSeed(password, email);
     const { publicKey } = ml_kem768.keygen(seed);
     return bytesToHex(publicKey);
 }

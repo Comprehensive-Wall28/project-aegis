@@ -7,26 +7,60 @@ import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
  */
 
 self.onmessage = async (event: MessageEvent) => {
-    const { type, seed } = event.data;
+    const { type, password, email, seed, id } = event.data;
 
-    if (type === 'keygen') {
-        try {
+    try {
+        if (type === 'derive_pqc_seed') {
+            const encoder = new TextEncoder();
+            const salt = email ? `${email}aegis-pqc-salt-v2` : "aegis-pqc-salt-v1";
+            const data = encoder.encode(password + salt);
+            const hashBuffer = await self.crypto.subtle.digest('SHA-512', data);
+            const seedArray = new Uint8Array(hashBuffer);
+
+            self.postMessage({
+                type: 'derive_pqc_seed_result',
+                seed: seedArray,
+                id
+            }, [seedArray.buffer] as any);
+        }
+        else if (type === 'get_discovery_key') {
+            const encoder = new TextEncoder();
+            const salt = email ? `${email}aegis-pqc-salt-v2` : "aegis-pqc-salt-v1";
+            const data = encoder.encode(password + salt);
+            const hashBuffer = await self.crypto.subtle.digest('SHA-512', data);
+            const seedArray = new Uint8Array(hashBuffer);
+
+            const { publicKey } = ml_kem768.keygen(seedArray);
+
+            // Convert to hex
+            const hex = Array.from(publicKey)
+                .map((b) => b.toString(16).padStart(2, '0'))
+                .join('');
+
+            self.postMessage({
+                type: 'get_discovery_key_result',
+                publicKey: hex,
+                id
+            });
+        }
+        else if (type === 'keygen') {
             // ML-KEM-768 keygen is the expensive part (~50-100ms)
             const { publicKey, secretKey } = seed ? ml_kem768.keygen(seed) : ml_kem768.keygen();
 
             // Send back the results as Uint8Arrays
-            // We use transferables for zero-copy if possible, though these buffers are small
             self.postMessage({
                 type: 'keygen_result',
                 publicKey,
-                secretKey
+                secretKey,
+                id
             }, [publicKey.buffer, secretKey.buffer] as any);
-        } catch (error) {
-            self.postMessage({
-                type: 'error',
-                error: error instanceof Error ? error.message : String(error)
-            });
         }
+    } catch (error) {
+        self.postMessage({
+            type: 'error',
+            error: error instanceof Error ? error.message : String(error),
+            id
+        });
     }
 };
 
