@@ -696,7 +696,7 @@ export function FilesPage() {
                     setIsExternalDragging(true);
                 }
             }}
-            sx={{ position: 'relative', minHeight: '80vh' }}
+            sx={{ position: 'relative', height: '100%' }}
         >
             {/* External Drag Overlay */}
             <AnimatePresence>
@@ -931,15 +931,57 @@ export function FilesPage() {
             </Dialog>
 
             {/* Breadcrumbs */}
-            {folderPath.length > 0 && (
-                <Breadcrumbs separator={<ChevronRightIcon fontSize="small" sx={{ opacity: 0.5 }} />} sx={{ mb: -2 }}>
+            <Breadcrumbs separator={<ChevronRightIcon fontSize="small" sx={{ opacity: 0.5 }} />} sx={{ mb: -2 }}>
+                <Link
+                    component="button"
+                    underline="hover"
+                    onClick={() => navigateToFolder(null)}
+                    onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragOverId('root');
+                    }}
+                    onDragLeave={() => setDragOverId(null)}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        setDragOverId(null);
+                        const droppedFileId = e.dataTransfer.getData('fileId');
+                        if (droppedFileId) {
+                            const idsToMove = selectedIds.has(droppedFileId)
+                                ? Array.from(selectedIds)
+                                : [droppedFileId];
+                            handleMoveToFolder(null, idsToMove);
+                        }
+                    }}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        fontWeight: 600,
+                        color: 'text.secondary',
+                        p: 0.5,
+                        borderRadius: '4px',
+                        bgcolor: dragOverId === 'root' ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                        border: dragOverId === 'root' ? `1px solid ${theme.palette.primary.main}` : '1px solid transparent'
+                    }}
+                >
+                    <HomeIcon fontSize="small" />
+                    Home
+                </Link>
+                {folderPath.map((folder, index) => (
                     <Link
+                        key={folder._id}
                         component="button"
                         underline="hover"
-                        onClick={() => navigateToFolder(null)}
+                        onClick={() => {
+                            // Navigate to this specific ancestor
+                            navigate(`/dashboard/files/${folder._id}`);
+                        }}
                         onDragOver={(e) => {
-                            e.preventDefault();
-                            setDragOverId('root');
+                            // Don't allow dropping on the current folder (last in path)
+                            if (index < folderPath.length - 1) {
+                                e.preventDefault();
+                                setDragOverId(folder._id);
+                            }
                         }}
                         onDragLeave={() => setDragOverId(null)}
                         onDrop={(e) => {
@@ -950,150 +992,123 @@ export function FilesPage() {
                                 const idsToMove = selectedIds.has(droppedFileId)
                                     ? Array.from(selectedIds)
                                     : [droppedFileId];
-                                handleMoveToFolder(null, idsToMove);
+                                handleMoveToFolder(folder._id, idsToMove);
                             }
                         }}
                         sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5,
                             fontWeight: 600,
-                            color: 'text.secondary',
+                            color: index === folderPath.length - 1 ? 'text.primary' : 'text.secondary',
                             p: 0.5,
                             borderRadius: '4px',
-                            bgcolor: dragOverId === 'root' ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                            border: dragOverId === 'root' ? `1px solid ${theme.palette.primary.main}` : '1px solid transparent'
+                            bgcolor: dragOverId === folder._id ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                            border: dragOverId === folder._id ? `1px solid ${theme.palette.primary.main}` : '1px solid transparent'
                         }}
                     >
-                        <HomeIcon fontSize="small" />
-                        Home
+                        {folder.name}
                     </Link>
-                    {folderPath.map((folder, index) => (
-                        <Link
-                            key={folder._id}
-                            component="button"
-                            underline="hover"
-                            onClick={() => {
-                                // Navigate to this specific ancestor
-                                navigate(`/dashboard/files/${folder._id}`);
-                            }}
-                            onDragOver={(e) => {
-                                // Don't allow dropping on the current folder (last in path)
-                                if (index < folderPath.length - 1) {
-                                    e.preventDefault();
-                                    setDragOverId(folder._id);
-                                }
-                            }}
-                            onDragLeave={() => setDragOverId(null)}
-                            onDrop={(e) => {
-                                e.preventDefault();
-                                setDragOverId(null);
-                                const droppedFileId = e.dataTransfer.getData('fileId');
-                                if (droppedFileId) {
-                                    const idsToMove = selectedIds.has(droppedFileId)
-                                        ? Array.from(selectedIds)
-                                        : [droppedFileId];
-                                    handleMoveToFolder(folder._id, idsToMove);
-                                }
-                            }}
-                            sx={{
-                                fontWeight: 600,
-                                color: index === folderPath.length - 1 ? 'text.primary' : 'text.secondary',
-                                p: 0.5,
-                                borderRadius: '4px',
-                                bgcolor: dragOverId === folder._id ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                                border: dragOverId === folder._id ? `1px solid ${theme.palette.primary.main}` : '1px solid transparent'
-                            }}
-                        >
-                            {folder.name}
-                        </Link>
-                    ))}
-                </Breadcrumbs>
-            )}
+                ))}
+            </Breadcrumbs>
+
 
 
 
             {/* Files Grid */}
-            {isLoading ? (
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        py: 12,
-                        gap: 2,
-                        bgcolor: alpha(theme.palette.background.paper, 0.1),
-                        borderRadius: '16px',
-                        border: `1px dashed ${alpha(theme.palette.divider, 0.1)}`,
-                    }}
-                >
-                    <CircularProgress thickness={5} size={40} />
-                    <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>
-                        Loading secure vault...
-                    </Typography>
-                </Box>
-            ) : (filteredFiles.length === 0 && folders.length === 0) ? (
-                <Paper
-                    variant="translucent"
-                    sx={{ p: 10, textAlign: 'center', borderRadius: '16px' }}
-                    onContextMenu={(e) => handleContextMenu(e, { type: 'empty' })}
-                >
-                    <FolderOpenIcon sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.3, mb: 2 }} />
-                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 700 }}>No files match your criteria</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>Try a different search term or upload a new file</Typography>
-                </Paper>
-            ) : (
-                <Grid container spacing={2} onContextMenu={(e) => handleContextMenu(e, { type: 'empty' })}>
-                    {filteredFolders.map((folder) => (
-                        <FolderGridItem
-                            key={`folder-${folder._id}`}
-                            folder={folder}
-                            gridSize={gridSize}
-                            iconScaling={iconScaling}
-                            typoScaling={typoScaling}
-                            dragOverId={dragOverId}
-                            onNavigate={navigateToFolder}
-                            onContextMenu={handleContextMenu}
-                            onShare={(f) => setShareDialog({ open: true, item: f, type: 'folder' })}
-                            onDelete={(id) => handleDeleteFolder(id)}
-                            onDragOver={(id: string | null) => setDragOverId(id)}
-                            onDrop={(targetId: string, droppedFileId: string) => {
-                                setDragOverId(null);
-                                const idsToMove = selectedIds.has(droppedFileId)
-                                    ? Array.from(selectedIds)
-                                    : [droppedFileId];
-                                handleMoveToFolder(targetId, idsToMove);
-                            }}
-                        />
-                    ))}
+            {/* Files Main Layout - Wrapped to capture right clicks in empty areas */}
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }} onContextMenu={(e) => handleContextMenu(e, { type: 'empty' })}>
+                {isLoading ? (
+                    <Box
+                        sx={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: 4,
+                            width: '100%',
+                            opacity: 0.8
+                        }}
+                    >
+                        <CircularProgress thickness={5} size={40} />
+                        <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600, mt: 2 }}>
+                            Loading secure vault...
+                        </Typography>
+                    </Box>
+                ) : (filteredFiles.length === 0 && folders.length === 0) ? (
+                    <Box
+                        sx={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: 4,
+                            textAlign: 'center',
+                            width: '100%',
+                            opacity: 0.7
+                        }}
+                    >
+                        <FolderOpenIcon sx={{ fontSize: 80, color: 'text.secondary', opacity: 0.2, mb: 2 }} />
+                        <Typography variant="h5" color="text.secondary" sx={{ fontWeight: 800, mb: 1 }}>
+                            Your vault is empty
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 400 }}>
+                            Drag and drop files here or use the "New" button to get started.
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Grid container spacing={2}>
+                        {filteredFolders.map((folder) => (
+                            <FolderGridItem
+                                key={`folder-${folder._id}`}
+                                folder={folder}
+                                gridSize={gridSize}
+                                iconScaling={iconScaling}
+                                typoScaling={typoScaling}
+                                dragOverId={dragOverId}
+                                onNavigate={navigateToFolder}
+                                onContextMenu={handleContextMenu}
+                                onShare={(f) => setShareDialog({ open: true, item: f, type: 'folder' })}
+                                onDelete={(id) => handleDeleteFolder(id)}
+                                onDragOver={(id: string | null) => setDragOverId(id)}
+                                onDrop={(targetId: string, droppedFileId: string) => {
+                                    setDragOverId(null);
+                                    const idsToMove = selectedIds.has(droppedFileId)
+                                        ? Array.from(selectedIds)
+                                        : [droppedFileId];
+                                    handleMoveToFolder(targetId, idsToMove);
+                                }}
+                            />
+                        ))}
 
-                    {filteredFiles.slice(0, displayLimit).map((file) => (
-                        <FileGridItem
-                            key={file._id}
-                            file={file}
-                            gridSize={gridSize}
-                            iconScaling={iconScaling}
-                            typoScaling={typoScaling}
-                            isSelected={selectedIds.has(file._id)}
-                            isDownloading={downloadingId === file._id}
-                            isDeleting={deletingIds.has(file._id)}
-                            onFileClick={handleFileClick}
-                            onContextMenu={handleContextMenu}
-                            onDownload={handleDownload}
-                            onDelete={handleDelete}
-                            onDragStart={() => { /* handled by draggable attribute */ }}
-                        />
-                    ))}
-                </Grid>
-            )}
+                        {filteredFiles.slice(0, displayLimit).map((file) => (
+                            <FileGridItem
+                                key={file._id}
+                                file={file}
+                                gridSize={gridSize}
+                                iconScaling={iconScaling}
+                                typoScaling={typoScaling}
+                                isSelected={selectedIds.has(file._id)}
+                                isDownloading={downloadingId === file._id}
+                                isDeleting={deletingIds.has(file._id)}
+                                onFileClick={handleFileClick}
+                                onContextMenu={handleContextMenu}
+                                onDownload={handleDownload}
+                                onDelete={handleDelete}
+                                onDragStart={() => { /* handled by draggable attribute */ }}
+                            />
+                        ))}
+                    </Grid>
+                )}
+            </Box>
 
             {/* Load More Sentinel */}
-            {filteredFiles.length > displayLimit && (
-                <Box ref={sentinelRef} sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-                    <CircularProgress size={24} />
-                </Box>
-            )}
+            {
+                filteredFiles.length > displayLimit && (
+                    <Box ref={sentinelRef} sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+                        <CircularProgress size={24} />
+                    </Box>
+                )
+            }
 
             {/* Context Menu */}
             <ContextMenu
@@ -1224,14 +1239,16 @@ export function FilesPage() {
                 file={pdfPreviewFile}
             />
             {/* Share Dialog */}
-            {shareDialog.open && shareDialog.item && (
-                <ShareDialog
-                    open={shareDialog.open}
-                    onClose={() => setShareDialog(prev => ({ ...prev, open: false, item: null }))}
-                    item={shareDialog.item}
-                    type={shareDialog.type}
-                />
-            )}
+            {
+                shareDialog.open && shareDialog.item && (
+                    <ShareDialog
+                        open={shareDialog.open}
+                        onClose={() => setShareDialog(prev => ({ ...prev, open: false, item: null }))}
+                        item={shareDialog.item}
+                        type={shareDialog.type}
+                    />
+                )
+            }
 
             {/* Color Picker Dialog */}
             <Dialog
@@ -1316,7 +1333,7 @@ export function FilesPage() {
                     {notification.message}
                 </Alert>
             </Snackbar>
-        </Stack>
+        </Stack >
     );
 }
 
