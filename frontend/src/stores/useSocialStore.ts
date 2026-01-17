@@ -447,7 +447,20 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 beforeCursor
             );
 
+            // Guard: Check if user has switched to a different collection while we were fetching
+            // If so, discard this result to prevent overwriting the new collection's data
+            const currentState = get();
+            if (currentState.currentCollectionId !== collectionId) {
+                console.log(`[Store] Discarding stale fetch result for collection ${collectionId}, current is ${currentState.currentCollectionId}`);
+                return;
+            }
+
             set((prev) => {
+                // Double-check inside set() callback as well for extra safety
+                if (prev.currentCollectionId !== collectionId) {
+                    return prev;
+                }
+
                 let newLinks = prev.links;
 
                 if (!isLoadMore) {
@@ -481,9 +494,8 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                     viewedLinkIds: (!isLoadMore && !silent)
                         ? new Set(result.viewedLinkIds)
                         : new Set([...prev.viewedLinkIds, ...result.viewedLinkIds]),
-                    commentCounts: (!isLoadMore && !silent)
-                        ? result.commentCounts
-                        : { ...prev.commentCounts, ...result.commentCounts },
+                    // Always merge commentCounts to preserve counts for links beyond current page
+                    commentCounts: { ...prev.commentCounts, ...result.commentCounts },
                     hasMoreLinks: result.hasMore,
                     isLoadingLinks: false,
                     linksCache: {
@@ -497,7 +509,11 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             });
         } catch (error) {
             console.error('Failed to fetch collection links:', error);
-            set({ isLoadingLinks: false });
+            // Only clear loading state if this collection is still current
+            const currentState = get();
+            if (currentState.currentCollectionId === collectionId) {
+                set({ isLoadingLinks: false });
+            }
         }
     },
 
@@ -824,7 +840,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         socketService.removeAllListeners('LINK_UPDATED');
         socketService.removeAllListeners('LINK_DELETED');
         socketService.removeAllListeners('LINK_MOVED');
-        // Note: Don't remove 'connect' - it's set up in socketService.connect() and we add our own
+        socketService.removeAllListeners('connect'); // Also remove our custom connect handler
 
         socketService.on('NEW_LINK', (data: { link: LinkPost, collectionId: string }) => {
             console.log('[Socket] NEW_LINK received:', data.link._id, 'scrapeStatus:', data.link.previewData?.scrapeStatus);
