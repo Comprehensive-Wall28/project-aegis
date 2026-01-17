@@ -24,7 +24,9 @@ import {
     ChevronRight as ChevronRightIcon,
     Home as HomeIcon,
     FolderShared as SharedIcon,
-    Palette as PaletteIcon
+    Palette as PaletteIcon,
+    Wallpaper as WallpaperIcon,
+    MoreVert as MoreVertIcon
 } from '@mui/icons-material';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 
@@ -66,6 +68,8 @@ import { ImagePreviewOverlay } from '@/components/vault/ImagePreviewOverlay';
 import { PDFPreviewOverlay } from '@/components/vault/PDFPreviewOverlay';
 import { ShareDialog } from '@/components/sharing/ShareDialog';
 import { useSessionStore } from '@/stores/sessionStore';
+import { usePreferenceStore } from '@/stores/preferenceStore';
+import authService from '@/services/authService';
 import { useFolderKeyStore } from '@/stores/useFolderKeyStore';
 import { generateFolderKey, wrapKey } from '@/lib/cryptoUtils';
 import { Share as ShareIcon } from '@mui/icons-material';
@@ -208,13 +212,14 @@ export function FilesPage() {
     const [pdfPreviewFile, setPdfPreviewFile] = useState<FileMetadata | null>(null);
 
     // Error Notification State
-    const [errorSnackbar, setErrorSnackbar] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+    // Notification State
+    const [notification, setNotification] = useState<{ open: boolean; message: string; type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
     // Check for error param on mount/update
     useEffect(() => {
         const errorType = searchParams.get('error');
         if (errorType === 'folder_not_found') {
-            setErrorSnackbar({ open: true, message: 'Folder not found or you do not have permission to access it.' });
+            setNotification({ open: true, message: 'Folder not found or you do not have permission to access it.', type: 'error' });
             // Clean up URL
             navigate('/dashboard/files', { replace: true });
         }
@@ -601,6 +606,23 @@ export function FilesPage() {
                         if (file) setShareDialog({ open: true, item: file, type: 'file' });
                     }
                 },
+                ...(isImageFile(files.find(f => f._id === targetId)!) ? [{
+                    label: 'Set as Background',
+                    icon: <WallpaperIcon fontSize="small" />,
+                    onClick: async () => {
+                        const file = files.find(f => f._id === targetId);
+                        if (file) {
+                            try {
+                                await authService.updateProfile({ preferences: { backgroundImage: file._id } });
+                                usePreferenceStore.getState().setBackgroundImage(file._id);
+                                setNotification({ open: true, message: 'Background image updated successfully', type: 'success' });
+                            } catch (error) {
+                                console.error('Failed to set background:', error);
+                                setNotification({ open: true, message: 'Failed to update background image', type: 'error' });
+                            }
+                        }
+                    }
+                }] : []),
                 {
                     label: 'Delete', icon: <DeleteIcon fontSize="small" />, onClick: () => {
                         handleDelete(targetId);
@@ -1278,20 +1300,20 @@ export function FilesPage() {
                 variant="danger"
             />
 
-            {/* Error Notification */}
+            {/* Notification Snackbar */}
             <Snackbar
-                open={errorSnackbar.open}
-                autoHideDuration={6000}
-                onClose={() => setErrorSnackbar({ ...errorSnackbar, open: false })}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                open={notification.open}
+                autoHideDuration={4000}
+                onClose={() => setNotification({ ...notification, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
                 <Alert
-                    onClose={() => setErrorSnackbar({ ...errorSnackbar, open: false })}
-                    severity="error"
+                    onClose={() => setNotification({ ...notification, open: false })}
+                    severity={notification.type}
                     variant="filled"
                     sx={{ width: '100%', borderRadius: '12px', fontWeight: 600 }}
                 >
-                    {errorSnackbar.message}
+                    {notification.message}
                 </Alert>
             </Snackbar>
         </Stack>
@@ -1557,6 +1579,20 @@ const FileGridItem = memo(({
                         justifyContent="center"
                         onClick={e => e.stopPropagation()}
                     >
+                        <IconButton
+                            size="small"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onContextMenu(e, { type: 'file', id: file._id });
+                            }}
+                            sx={{
+                                color: 'text.secondary',
+                                p: 0.5,
+                                '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.1) }
+                            }}
+                        >
+                            <MoreVertIcon fontSize="small" />
+                        </IconButton>
                         <IconButton
                             size="small"
                             onClick={() => onDownload(file)}

@@ -7,6 +7,9 @@ import { pqcWorkerManager } from '@/lib/pqcWorkerManager';
 export interface UserPreferences {
     sessionTimeout: number; // minutes
     encryptionLevel: 'STANDARD' | 'HIGH' | 'PARANOID';
+    backgroundImage?: string | null;
+    backgroundBlur?: number;
+    backgroundOpacity?: number;
 }
 
 interface User {

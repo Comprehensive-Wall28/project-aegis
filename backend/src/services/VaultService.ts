@@ -212,6 +212,17 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
     }
 
     /**
+     * Get a single file by ID
+     */
+    public async getFile(userId: string, fileId: string): Promise<IFileMetadata> {
+        const file = await this.repository.findByIdAndOwner(fileId, userId);
+        if (!file) {
+            throw new ServiceError('File not found', 404);
+        }
+        return file;
+    }
+
+    /**
      * Get files for user in a folder (or root)
      */
     async getUserFiles(

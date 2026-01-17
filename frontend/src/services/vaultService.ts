@@ -28,6 +28,11 @@ const vaultService = {
         return response.data;
     },
 
+    getFile: async (fileId: string): Promise<FileMetadata> => {
+        const response = await apiClient.get<FileMetadata>(`${PREFIX}/files/${fileId}`);
+        return response.data;
+    },
+
     downloadFile: async (fileId: string): Promise<Blob> => {
         const response = await apiClient.get(`${PREFIX}/download/${fileId}`, {
             responseType: 'blob',
