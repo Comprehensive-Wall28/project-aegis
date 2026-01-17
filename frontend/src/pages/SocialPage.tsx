@@ -278,7 +278,7 @@ export function SocialPage() {
         }
     };
 
-    const handleCreateCollection = async (name: string) => {
+    const handleCreateCollection = useCallback(async (name: string) => {
         if (!name.trim() || isCreatingCollection) return;
 
         setIsCreatingCollection(true);
@@ -291,9 +291,9 @@ export function SocialPage() {
         } finally {
             setIsCreatingCollection(false);
         }
-    };
+    }, [isCreatingCollection, createCollection, showSnackbar]);
 
-    const handleDrop = async (collectionId: string) => {
+    const handleDrop = useCallback(async (collectionId: string) => {
         if (!draggedLinkId) return;
 
         const linkToMove = links.find(l => l._id === draggedLinkId);
@@ -308,9 +308,9 @@ export function SocialPage() {
 
         setDraggedLinkId(null);
         setDropTargetId(null);
-    };
+    }, [draggedLinkId, links, moveLink, showSnackbar]);
 
-    const handleCollectionContextMenu = (event: React.MouseEvent, collectionId: string) => {
+    const handleCollectionContextMenu = useCallback((event: React.MouseEvent, collectionId: string) => {
         event.preventDefault();
         event.stopPropagation();
         setCollectionContextMenu({
@@ -318,7 +318,7 @@ export function SocialPage() {
             mouseY: event.clientY,
             collectionId,
         });
-    };
+    }, []);
 
     // Long press for mobile delete
     const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -326,19 +326,19 @@ export function SocialPage() {
     // Ref for links container to scroll to top on collection change
     const linksContainerRef = useRef<HTMLDivElement>(null);
 
-    const handleCollectionTouchStart = (collectionId: string) => {
+    const handleCollectionTouchStart = useCallback((collectionId: string) => {
         longPressTimerRef.current = setTimeout(() => {
             setCollectionToDelete(collectionId);
             setDeleteConfirmOpen(true);
         }, 600); // 600ms long press
-    };
+    }, []);
 
-    const handleCollectionTouchEnd = () => {
+    const handleCollectionTouchEnd = useCallback(() => {
         if (longPressTimerRef.current) {
             clearTimeout(longPressTimerRef.current);
             longPressTimerRef.current = null;
         }
-    };
+    }, []);
 
     const handleDeleteCollection = async () => {
         if (!collectionToDelete) return;

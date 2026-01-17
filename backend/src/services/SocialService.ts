@@ -621,11 +621,19 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Room not found or not a member', 403);
             }
 
+            const currentCount = await this.collectionRepo.countByRoom(roomId);
+
             const collection = await this.collectionRepo.create({
                 roomId: roomId as any,
                 name: data.name,
+                order: currentCount,
                 type: data.type || 'links'
             } as any);
+
+            // Broadcast collection creation
+            SocketManager.broadcastToRoom(roomId, 'COLLECTION_CREATED', {
+                collection
+            });
 
             return collection;
         } catch (error) {
@@ -663,11 +671,45 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 roomId: room._id.toString()
             });
 
+            // Broadcast collection deletion
+            SocketManager.broadcastToRoom(room._id.toString(), 'COLLECTION_DELETED', {
+                collectionId,
+                roomId: room._id.toString()
+            });
+
             logger.info(`Collection ${collectionId} deleted by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Delete collection error:', error);
             throw new ServiceError('Failed to delete collection', 500);
+        }
+    }
+
+    async reorderCollections(userId: string, roomId: string, collectionIds: string[]): Promise<void> {
+        try {
+            const room = await this.repository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new ServiceError('Room not found or not a member', 403);
+            }
+
+            // Update orders in bulk or sequentially
+            const updatePromises = collectionIds.map((id, index) =>
+                this.collectionRepo.updateById(id, { $set: { order: index } } as any)
+            );
+
+            await Promise.all(updatePromises);
+
+            // Broadcast new order
+            SocketManager.broadcastToRoom(roomId, 'COLLECTIONS_REORDERED', {
+                roomId,
+                collectionIds
+            });
+
+            logger.info(`Collections reordered in room ${roomId} by user ${userId}`);
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Reorder collections error:', error);
+            throw new ServiceError('Failed to reorder collections', 500);
         }
     }
 

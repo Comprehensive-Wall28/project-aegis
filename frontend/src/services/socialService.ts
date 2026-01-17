@@ -244,6 +244,15 @@ const socialService = {
     deleteCollection: async (collectionId: string): Promise<void> => {
         await apiClient.delete(`/social/collections/${collectionId}`);
     },
+
+    /**
+     * Reorder collections in a room
+     */
+    reorderCollections: async (roomId: string, collectionIds: string[]): Promise<void> => {
+        await apiClient.patch(`/social/rooms/${roomId}/collections/reorder`, {
+            collectionIds,
+        });
+    },
 };
 
 export default socialService;

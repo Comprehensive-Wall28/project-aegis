@@ -11,14 +11,23 @@ export class CollectionRepository extends BaseRepository<ICollection> {
     }
 
     /**
-     * Find collections by room ID
+     * Find collections by room ID, sorted by order
      */
     async findByRoom(roomId: string): Promise<ICollection[]> {
         return this.findMany({
             roomId: { $eq: roomId as any }
         } as SafeFilter<ICollection>, {
-            sort: { createdAt: 1 }
+            sort: { order: 1 }
         });
+    }
+
+    /**
+     * Count collections in a room
+     */
+    async countByRoom(roomId: string): Promise<number> {
+        return this.count({
+            roomId: { $eq: roomId as any }
+        } as SafeFilter<ICollection>);
     }
 
     /**

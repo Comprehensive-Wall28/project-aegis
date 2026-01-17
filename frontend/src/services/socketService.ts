@@ -9,13 +9,46 @@ class SocketService {
     private _reconnectAttempts: number = 0;
     private _currentRoomId: string | null = null;
 
-    private constructor() { }
+    private constructor() {
+        this.setupVisibilityListener();
+    }
 
     public static getInstance(): SocketService {
         if (!SocketService.instance) {
             SocketService.instance = new SocketService();
         }
         return SocketService.instance;
+    }
+
+    private setupVisibilityListener(): void {
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    console.log('[Socket] Tab became visible, checking connection health...');
+                    this.checkConnection();
+                }
+            });
+        }
+    }
+
+    public checkConnection(): void {
+        if (!this.socket) {
+            this.connect();
+            return;
+        }
+
+        if (!this.socket.connected) {
+            console.log('[Socket] Not connected, forcing reconnect...');
+            this.socket.connect();
+        } else {
+            // Heartbeat check: emit a ping and wait for it
+            // This detects "zombie" connections that think they are connected but aren't
+            console.log('[Socket] Performing heartbeat check...');
+            const start = Date.now();
+            this.socket.emit('ping', () => {
+                console.log(`[Socket] Heartbeat latency: ${Date.now() - start}ms`);
+            });
+        }
     }
 
     public get isConnected(): boolean {
@@ -36,7 +69,7 @@ class SocketService {
             reconnection: true,
             reconnectionAttempts: Infinity,
             reconnectionDelay: 1000,
-            reconnectionDelayMax: 30000,
+            reconnectionDelayMax: 5000, // Faster ramp up
             randomizationFactor: 0.5,
             timeout: 20000,
         });
@@ -57,9 +90,9 @@ class SocketService {
             console.log('[Socket] Disconnected:', reason);
             this._isConnected = false;
 
-            // If server disconnected us, we should try to reconnect
-            if (reason === 'io server disconnect') {
-                console.log('[Socket] Server initiated disconnect, attempting reconnect...');
+            // If server disconnected us or network went down, try to reconnect
+            if (reason === 'io server disconnect' || reason === 'transport close' || reason === 'ping timeout') {
+                console.log('[Socket] Reconnectable failure detected, attempting reconnect...');
                 this.socket?.connect();
             }
         });
@@ -80,6 +113,11 @@ class SocketService {
 
         this.socket.on('connect_error', (error) => {
             console.error('[Socket] Connection error:', error.message);
+        });
+
+        // Handle pong/heartbeat from server if needed
+        this.socket.on('pong', () => {
+            // console.log('[Socket] Pong received');
         });
     }
 

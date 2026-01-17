@@ -196,6 +196,20 @@ export const deleteCollection = async (req: AuthRequest, res: Response, next: Ne
     }
 };
 
+export const reorderCollections = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        const { roomId } = req.params;
+        const { collectionIds } = req.body;
+        await socialService.reorderCollections(req.user.id, roomId, collectionIds);
+        res.status(200).json({ message: 'Collections reordered successfully' });
+    } catch (error) {
+        handleError(error, res, next);
+    }
+};
+
 // ============== Comment Endpoints ==============
 
 export const getComments = async (req: AuthRequest, res: Response, next: NextFunction) => {

@@ -11,6 +11,7 @@ import {
     deleteLink,
     createCollection,
     deleteCollection,
+    reorderCollections,
     moveLink,
     markLinkViewed,
     unmarkLinkViewed,
@@ -39,6 +40,7 @@ router.get('/rooms/:roomId', protect, csrfProtection, getRoomContent);
 router.get('/rooms/:roomId/collections/:collectionId/links', protect, csrfProtection, getCollectionLinks);
 router.delete('/links/:linkId', protect, csrfProtection, deleteLink);
 router.delete('/collections/:collectionId', protect, csrfProtection, deleteCollection);
+router.patch('/rooms/:roomId/collections/reorder', protect, csrfProtection, reorderCollections);
 router.patch('/links/:linkId/move', protect, csrfProtection, moveLink);
 router.post('/links/:linkId/view', protect, csrfProtection, markLinkViewed);
 router.delete('/links/:linkId/view', protect, csrfProtection, unmarkLinkViewed);

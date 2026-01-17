@@ -62,6 +62,7 @@ interface SocialState {
     moveLink: (linkId: string, collectionId: string) => Promise<void>;
     markLinkViewed: (linkId: string) => Promise<void>;
     unmarkLinkViewed: (linkId: string) => Promise<void>;
+    reorderCollections: (collectionIds: string[]) => Promise<void>;
     getUnviewedCountByCollection: (collectionId: string) => number;
     createInvite: (roomId: string) => Promise<string>;
     setPendingInvite: (invite: SocialState['pendingInvite']) => void;
@@ -668,6 +669,26 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         });
     },
 
+    reorderCollections: async (collectionIds: string[]) => {
+        const state = get();
+        if (!state.currentRoom) return;
+
+        // Optimistically update the UI
+        const orderedCollections = collectionIds.map(id =>
+            state.collections.find(c => c._id === id)
+        ).filter(Boolean) as Collection[];
+
+        set({ collections: orderedCollections });
+
+        try {
+            await socialService.reorderCollections(state.currentRoom._id, collectionIds);
+        } catch (error) {
+            console.error('Failed to reorder collections:', error);
+            // We could revert here if needed, but usually reordering is robust 
+            // and another sync will fix it.
+        }
+    },
+
     moveLink: async (linkId: string, collectionId: string) => {
         await socialService.moveLink(linkId, collectionId);
         const state = get();
@@ -840,9 +861,51 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         socketService.removeAllListeners('LINK_UPDATED');
         socketService.removeAllListeners('LINK_DELETED');
         socketService.removeAllListeners('LINK_MOVED');
+        socketService.removeAllListeners('COLLECTION_CREATED');
+        socketService.removeAllListeners('COLLECTION_DELETED');
+        socketService.removeAllListeners('COLLECTIONS_REORDERED');
         socketService.removeAllListeners('connect');
         socketService.removeAllListeners('disconnect');
         socketService.removeAllListeners('reconnect_attempt');
+
+        socketService.on('COLLECTION_CREATED', (data: { collection: Collection }) => {
+            console.log('[Socket] COLLECTION_CREATED received:', data.collection._id);
+            set((prev) => {
+                const exists = prev.collections.some(c => c._id === data.collection._id);
+                if (exists) return prev;
+                return { collections: [...prev.collections, data.collection] };
+            });
+        });
+
+        socketService.on('COLLECTION_DELETED', (data: { collectionId: string, roomId: string }) => {
+            console.log('[Socket] COLLECTION_DELETED received:', data.collectionId);
+            set((prev) => {
+                const updatedCollections = prev.collections.filter(c => c._id !== data.collectionId);
+                const updatedLinks = prev.links.filter(l => l.collectionId !== data.collectionId);
+                let newCollectionId = prev.currentCollectionId;
+
+                if (prev.currentCollectionId === data.collectionId) {
+                    newCollectionId = updatedCollections[0]?._id || null;
+                }
+
+                return {
+                    collections: updatedCollections,
+                    links: updatedLinks,
+                    currentCollectionId: newCollectionId
+                };
+            });
+        });
+
+        socketService.on('COLLECTIONS_REORDERED', (data: { collectionIds: string[] }) => {
+            console.log('[Socket] COLLECTIONS_REORDERED received:', data.collectionIds);
+            set((prev) => {
+                const ordered = data.collectionIds.map(id =>
+                    prev.collections.find(c => c._id === id)
+                ).filter(Boolean) as Collection[];
+
+                return { collections: ordered };
+            });
+        });
 
         socketService.on('NEW_LINK', (data: { link: LinkPost, collectionId: string }) => {
             console.log('[Socket] NEW_LINK received:', data.link._id, 'scrapeStatus:', data.link.previewData?.scrapeStatus);
