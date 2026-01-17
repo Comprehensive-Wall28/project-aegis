@@ -14,6 +14,8 @@ import {
     Menu,
     MenuItem,
     Skeleton,
+    Divider,
+    ListSubheader,
 } from '@mui/material';
 import {
     Group as GroupIcon,
@@ -42,6 +44,8 @@ interface SocialHeaderProps {
     filterAnchorEl: HTMLElement | null;
     handleFilterClose: () => void;
     handleSelectUploader: (id: string | null) => void;
+    viewFilter: 'all' | 'viewed' | 'unviewed';
+    handleViewFilterChange: (filter: 'all' | 'viewed' | 'unviewed') => void;
     getUniqueUploaders: () => { id: string, username: string }[];
     newLinkUrl: string;
     setNewLinkUrl: (url: string) => void;
@@ -63,6 +67,8 @@ export const SocialHeader = memo(({
     filterAnchorEl,
     handleFilterClose,
     handleSelectUploader,
+    viewFilter,
+    handleViewFilterChange,
     getUniqueUploaders,
     newLinkUrl,
     setNewLinkUrl,
@@ -171,12 +177,12 @@ export const SocialHeader = memo(({
                         </Box>
                     )}
 
-                    <Tooltip title="Filter by Uploader">
+                    <Tooltip title="Filter Links">
                         <IconButton
                             onClick={handleFilterClick}
                             sx={{
-                                color: selectedUploader ? 'primary.main' : 'text.secondary',
-                                bgcolor: selectedUploader ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                color: (selectedUploader || viewFilter !== 'all') ? 'primary.main' : 'text.secondary',
+                                bgcolor: (selectedUploader || viewFilter !== 'all') ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
                                 '&:hover': {
                                     color: 'primary.main',
                                     bgcolor: alpha(theme.palette.primary.main, 0.1),
@@ -203,14 +209,44 @@ export const SocialHeader = memo(({
                             variant: 'solid',
                             elevation: 8,
                             sx: {
-                                minWidth: 200,
+                                minWidth: 220,
                                 mt: 1,
                                 bgcolor: theme.palette.background.paper,
                                 backgroundImage: 'none',
                                 border: `1px solid ${theme.palette.divider}`,
+                                '& .MuiList-root': {
+                                    pt: 0,
+                                }
                             }
                         }}
                     >
+                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '36px' }}>
+                            View Status
+                        </ListSubheader>
+                        <MenuItem
+                            onClick={() => { handleViewFilterChange('all'); handleFilterClose(); }}
+                            selected={viewFilter === 'all'}
+                        >
+                            All Links
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => { handleViewFilterChange('viewed'); handleFilterClose(); }}
+                            selected={viewFilter === 'viewed'}
+                        >
+                            Viewed
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => { handleViewFilterChange('unviewed'); handleFilterClose(); }}
+                            selected={viewFilter === 'unviewed'}
+                        >
+                            Unviewed
+                        </MenuItem>
+
+                        <Divider sx={{ my: 1 }} />
+
+                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '36px' }}>
+                            Uploaders
+                        </ListSubheader>
                         <MenuItem
                             onClick={() => handleSelectUploader(null)}
                             selected={selectedUploader === null}

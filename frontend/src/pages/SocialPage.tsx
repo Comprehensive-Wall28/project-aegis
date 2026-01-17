@@ -96,6 +96,7 @@ export function SocialPage() {
     const [dropTargetId, setDropTargetId] = useState<string | null>(null);
     const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedUploader, setSelectedUploader] = useState<string | null>(null);
+    const [viewFilter, setViewFilter] = useState<'all' | 'viewed' | 'unviewed'>('all');
 
     const [searchQuery, setSearchQuery] = useState('');
     const [snackbar, setSnackbar] = useState<SnackbarState>({
@@ -409,8 +410,15 @@ export function SocialPage() {
             });
         }
 
+        if (viewFilter !== 'all') {
+            filtered = filtered.filter((l) => {
+                const isViewed = viewedLinkIds.has(l._id);
+                return viewFilter === 'viewed' ? isViewed : !isViewed;
+            });
+        }
+
         return filtered;
-    }, [links, currentCollectionId, selectedUploader, searchQuery]);
+    }, [links, currentCollectionId, selectedUploader, viewFilter, searchQuery, viewedLinkIds]);
 
     const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
         setFilterAnchorEl(event.currentTarget);
@@ -533,6 +541,8 @@ export function SocialPage() {
                                 filterAnchorEl={filterAnchorEl}
                                 handleFilterClose={handleFilterClose}
                                 handleSelectUploader={handleSelectUploader}
+                                viewFilter={viewFilter}
+                                handleViewFilterChange={setViewFilter}
                                 getUniqueUploaders={getUniqueUploaders}
                                 newLinkUrl={newLinkUrl}
                                 setNewLinkUrl={setNewLinkUrl}
