@@ -1017,37 +1017,28 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             // For now, just log. On reconnect, we'll refresh.
         });
 
-        // Graceful Reconnection Handling
+        // Data Refresh on Reconnection
         socketService.on('connect', () => {
             const state = get();
-            console.log('[Store] Socket Connected/Reconnected');
+            console.log('[Store] Socket Reconnected - refreshing data');
 
-            // If we are in a room, we must re-join it because the new socket doesn't know about it.
             if (state.currentRoom) {
-                console.log('[Store] Re-joining room:', state.currentRoom._id);
-                socketService.joinRoom(state.currentRoom._id);
-
                 // Invalidate cache to ensure we fetch fresh data, as we might have missed events while disconnected.
                 set({ linksCache: {} });
 
                 // Refresh the current view immediately so the user sees correct data
                 const collectionId = state.currentCollectionId;
                 if (collectionId) {
-                    // Use a small delay to ensure the room join completes first
+                    // Use a small delay to ensure the re-join (managed by SocketService) propagates first
                     setTimeout(() => {
                         const currentState = get();
-                        // Only refresh if we're still looking at the same collection
                         if (currentState.currentCollectionId === collectionId) {
                             get().fetchCollectionLinks(collectionId, false, true); // silent refresh
                         }
-                    }, 100);
+                    }, 150);
                 }
             }
         });
 
-        // Handle reconnection attempts for logging
-        socketService.on('reconnect_attempt', () => {
-            console.log('[Store] Attempting to reconnect...');
-        });
     }
 }));

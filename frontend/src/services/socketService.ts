@@ -7,6 +7,7 @@ class SocketService {
     private static instance: SocketService;
     private _isConnected: boolean = false;
     private _reconnectAttempts: number = 0;
+    private _currentRoomId: string | null = null;
 
     private constructor() { }
 
@@ -44,6 +45,12 @@ class SocketService {
             console.log('[Socket] Connected:', this.socket?.id);
             this._isConnected = true;
             this._reconnectAttempts = 0;
+
+            // Automatically re-join the current room if one was active
+            if (this._currentRoomId) {
+                console.log('[Socket] Internal: Re-joining persistent room:', this._currentRoomId);
+                this.socket?.emit('join-room', this._currentRoomId);
+            }
         });
 
         this.socket.on('disconnect', (reason) => {
@@ -77,18 +84,22 @@ class SocketService {
     }
 
     public joinRoom(roomId: string): void {
+        this._currentRoomId = roomId;
         if (!this.socket) this.connect();
+
         if (this._isConnected) {
             this.socket?.emit('join-room', roomId);
         } else {
-            // Queue the join for when connected
-            this.socket?.once('connect', () => {
-                this.socket?.emit('join-room', roomId);
-            });
+            // No need to manually once('connect') here as our internal connect handler 
+            // will catch it and use this._currentRoomId
+            console.log(`[Socket] Queueing join-room for ${roomId} (waiting for connection)`);
         }
     }
 
     public leaveRoom(roomId: string): void {
+        if (this._currentRoomId === roomId) {
+            this._currentRoomId = null;
+        }
         this.socket?.emit('leave-room', roomId);
     }
 
@@ -106,6 +117,12 @@ class SocketService {
      * Use this when you don't have a reference to the original callback.
      */
     public removeAllListeners(event: string): void {
+        // Prevent removing critical internal lifecycle listeners
+        const protectedEvents = ['connect', 'disconnect', 'reconnect', 'reconnect_attempt', 'reconnect_error', 'connect_error'];
+        if (protectedEvents.includes(event)) {
+            console.warn(`[Socket] Blocked attempt to remove protected listener: ${event}`);
+            return;
+        }
         this.socket?.removeAllListeners(event);
     }
 
