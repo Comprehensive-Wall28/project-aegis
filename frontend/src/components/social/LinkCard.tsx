@@ -5,6 +5,13 @@ import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInF
 import { motion, AnimatePresence } from 'framer-motion';
 
 import type { LinkCardProps } from './types';
+import {
+    SOCIAL_LINK_CARD_HEIGHT,
+    SOCIAL_LINK_PREVIEW_HEIGHT,
+    SOCIAL_DIALOG_Z_INDEX,
+    SOCIAL_RADIUS_XLARGE,
+    SOCIAL_RADIUS_SMALL
+} from './constants';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
@@ -53,7 +60,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                     ghost.style.display = 'flex';
                     ghost.style.alignItems = 'center';
                     ghost.style.gap = '10px';
-                    ghost.style.zIndex = '9999';
+                    ghost.style.zIndex = SOCIAL_DIALOG_Z_INDEX.toString();
 
                     // Add favicon if available
                     if (faviconImage) {
@@ -94,7 +101,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                 }}
                 onDragEnd={() => setIsDragging(false)}
                 style={{
-                    height: 280,
+                    height: SOCIAL_LINK_CARD_HEIGHT,
                     cursor: 'grab',
                     opacity: isDragging ? 0.5 : 1,
                     transition: 'opacity 0.2s ease',
@@ -108,7 +115,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                     variant="glass"
                     sx={{
                         overflow: 'hidden',
-                        borderRadius: '24px',
+                        borderRadius: SOCIAL_RADIUS_XLARGE,
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
@@ -130,7 +137,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                     <Box
                         sx={{
                             width: '100%',
-                            height: 140,
+                            height: SOCIAL_LINK_PREVIEW_HEIGHT,
                             flexShrink: 0,
                             bgcolor: alpha(theme.palette.primary.main, 0.08), // Default background if no image
                             display: 'flex',
@@ -235,7 +242,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                             color: 'warning.main',
                                             px: 1,
                                             py: 0.2,
-                                            borderRadius: '12px',
+                                            borderRadius: SOCIAL_RADIUS_SMALL,
                                             fontSize: '0.65rem',
                                             fontWeight: 600,
                                         }}
@@ -367,7 +374,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                             sx={{
                                 position: 'fixed',
                                 inset: 0,
-                                zIndex: 9999,
+                                zIndex: SOCIAL_DIALOG_Z_INDEX,
                                 bgcolor: 'rgba(0,0,0,0.8)',
                                 backdropFilter: 'blur(8px)',
                                 display: 'flex',
@@ -389,7 +396,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     height: { xs: '100dvh', sm: 'auto' },
                                     maxHeight: { xs: '100dvh', sm: '90vh' },
                                     overflow: 'hidden',
-                                    borderRadius: { xs: 0, sm: '24px' },
+                                    borderRadius: { xs: 0, sm: SOCIAL_RADIUS_XLARGE },
                                     display: 'flex',
                                     flexDirection: 'column',
                                     bgcolor: alpha(theme.palette.background.paper, 0.8),

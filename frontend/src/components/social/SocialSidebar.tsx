@@ -18,10 +18,16 @@ import {
     Close as CloseIcon,
 } from '@mui/icons-material';
 import { CollectionSkeleton } from './SocialSkeletons';
-import { useSocialStore } from '@/stores/useSocialStore';
 import { Reorder } from 'framer-motion';
+import { useSocialStore } from '@/stores/useSocialStore';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
-import type { CollectionItemProps, SocialSidebarProps } from './types';
+
+import type { SocialSidebarProps, CollectionItemProps } from './types';
+import {
+    SOCIAL_SIDEBAR_WIDTH,
+    SOCIAL_RADIUS_LARGE,
+    SOCIAL_RADIUS_XSMALL
+} from './constants';
 
 
 const CollectionItem = memo(({
@@ -67,7 +73,7 @@ const CollectionItem = memo(({
                     alignItems: 'center',
                     gap: 1.5,
                     p: 1.5,
-                    borderRadius: '10px',
+                    borderRadius: SOCIAL_RADIUS_XSMALL,
                     cursor: 'grab',
                     position: 'relative',
                     transition: 'background-color 0.15s ease, border-color 0.15s ease',
@@ -256,9 +262,9 @@ export const SocialSidebar = memo(({
         <Paper
             variant="glass"
             sx={{
-                width: 200,
+                width: SOCIAL_SIDEBAR_WIDTH,
                 flexShrink: 0,
-                borderRadius: '20px',
+                borderRadius: SOCIAL_RADIUS_LARGE,
                 p: 2,
                 display: 'flex',
                 flexDirection: 'column',

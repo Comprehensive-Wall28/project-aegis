@@ -30,6 +30,12 @@ import {
 import { useSocialStore } from '@/stores/useSocialStore';
 import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
 import type { SocialHeaderProps } from './types';
+import {
+    SOCIAL_HEADER_HEIGHT,
+    SOCIAL_RADIUS_XLARGE,
+    SOCIAL_RADIUS_MEDIUM,
+    SOCIAL_RADIUS_SMALL
+} from './constants';
 
 export const SocialHeader = memo(({
     viewMode,
@@ -71,12 +77,12 @@ export const SocialHeader = memo(({
             variant="glass"
             sx={{
                 p: 2,
-                borderRadius: isMobile ? '12px' : '24px',
+                borderRadius: isMobile ? SOCIAL_RADIUS_SMALL : SOCIAL_RADIUS_XLARGE,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexShrink: 0,
-                minHeight: 88,
+                minHeight: SOCIAL_HEADER_HEIGHT + 32, // Accommodating padding
             }}
         >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -133,7 +139,7 @@ export const SocialHeader = memo(({
                                 }}
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
-                                        borderRadius: '14px',
+                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
                                         bgcolor: alpha(theme.palette.background.paper, 0.5),
                                     }
                                 }}
@@ -247,7 +253,7 @@ export const SocialHeader = memo(({
                                     flex: 1,
                                     maxWidth: 400,
                                     '& .MuiOutlinedInput-root': {
-                                        borderRadius: '14px',
+                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
                                     },
                                 }}
                             />
@@ -256,7 +262,7 @@ export const SocialHeader = memo(({
                                 variant="contained"
                                 onClick={() => handlePostLink()}
                                 disabled={!newLinkUrl.trim() || isPostingLink}
-                                sx={{ borderRadius: '14px', flexShrink: 0 }}
+                                sx={{ borderRadius: SOCIAL_RADIUS_MEDIUM, flexShrink: 0 }}
                             >
                                 {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
                             </Button>
@@ -265,7 +271,7 @@ export const SocialHeader = memo(({
                                 variant="outlined"
                                 startIcon={<CopyIcon />}
                                 onClick={handleCopyInvite}
-                                sx={{ borderRadius: '14px', flexShrink: 0 }}
+                                sx={{ borderRadius: SOCIAL_RADIUS_MEDIUM, flexShrink: 0 }}
                             >
                                 Invite
                             </Button>

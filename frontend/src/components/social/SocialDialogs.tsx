@@ -20,6 +20,11 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 import type { CreateRoomDialogProps, CreateCollectionDialogProps, PostLinkDialogProps } from './types';
+import {
+    SOCIAL_DIALOG_Z_INDEX,
+    SOCIAL_RADIUS_XLARGE,
+    SOCIAL_RADIUS_SMALL
+} from './constants';
 
 // Create Room Dialog
 export const CreateRoomDialog = memo(({
@@ -51,7 +56,7 @@ export const CreateRoomDialog = memo(({
                     sx={{
                         position: 'fixed',
                         inset: 0,
-                        zIndex: 9999,
+                        zIndex: SOCIAL_DIALOG_Z_INDEX,
                         bgcolor: 'rgba(0,0,0,0.8)',
                         backdropFilter: isMobile ? 'none' : 'blur(8px)',
                         display: 'flex',
@@ -74,7 +79,7 @@ export const CreateRoomDialog = memo(({
                             height: isMobile ? '100%' : 'auto',
                             maxHeight: isMobile ? '100%' : '90vh',
                             overflow: 'hidden',
-                            borderRadius: isMobile ? 0 : '24px',
+                            borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
                             display: 'flex',
                             flexDirection: 'column',
                             bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
@@ -93,6 +98,7 @@ export const CreateRoomDialog = memo(({
                                 onChange={(e) => setName(e.target.value)}
                                 sx={{ mb: 2 }}
                                 autoFocus
+                                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                             />
 
                             <TextField
@@ -103,6 +109,7 @@ export const CreateRoomDialog = memo(({
                                 multiline
                                 rows={2}
                                 sx={{ mb: 1 }}
+                                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
                             />
                         </Box>
 
@@ -112,15 +119,15 @@ export const CreateRoomDialog = memo(({
                                 variant="contained"
                                 onClick={handleSubmit}
                                 disabled={!name.trim() || isLoading}
-                                sx={{ borderRadius: '12px', px: 4 }}
+                                sx={{ borderRadius: SOCIAL_RADIUS_SMALL, px: 4 }}
                             >
                                 {isLoading ? <CircularProgress size={20} /> : 'Create'}
                             </Button>
                         </Box>
                     </Paper>
-                </Box>
+                </Box >
             )}
-        </AnimatePresence>,
+        </AnimatePresence >,
         document.body
     );
 });
@@ -159,7 +166,7 @@ export const CreateCollectionDialog = memo(({
                     sx={{
                         position: 'fixed',
                         inset: 0,
-                        zIndex: 9999,
+                        zIndex: SOCIAL_DIALOG_Z_INDEX,
                         bgcolor: 'rgba(0,0,0,0.8)',
                         backdropFilter: isMobile ? 'none' : 'blur(8px)',
                         display: 'flex',
@@ -182,7 +189,7 @@ export const CreateCollectionDialog = memo(({
                             height: isMobile ? '100%' : 'auto',
                             maxHeight: isMobile ? '100%' : '90vh',
                             overflow: 'hidden',
-                            borderRadius: isMobile ? 0 : '24px',
+                            borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
                             display: 'flex',
                             flexDirection: 'column',
                             bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
@@ -201,7 +208,7 @@ export const CreateCollectionDialog = memo(({
                                 onChange={(e) => setName(e.target.value)}
                                 sx={{ mb: 1 }}
                                 autoFocus
-                                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                             />
                         </Box>
 
@@ -211,7 +218,7 @@ export const CreateCollectionDialog = memo(({
                                 variant="contained"
                                 onClick={handleSubmit}
                                 disabled={!name.trim() || isLoading}
-                                sx={{ borderRadius: '12px', px: 4 }}
+                                sx={{ borderRadius: SOCIAL_RADIUS_SMALL, px: 4 }}
                             >
                                 {isLoading ? <CircularProgress size={20} /> : 'Create'}
                             </Button>
@@ -254,7 +261,7 @@ export const PostLinkDialog = memo(({
                     sx={{
                         position: 'fixed',
                         inset: 0,
-                        zIndex: 9999,
+                        zIndex: SOCIAL_DIALOG_Z_INDEX,
                         bgcolor: 'rgba(0,0,0,0.8)',
                         backdropFilter: isMobile ? 'none' : 'blur(8px)',
                         display: 'flex',
@@ -277,7 +284,7 @@ export const PostLinkDialog = memo(({
                             height: isMobile ? '100%' : 'auto',
                             maxHeight: isMobile ? '100%' : '90vh',
                             overflow: 'hidden',
-                            borderRadius: isMobile ? 0 : '24px',
+                            borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
                             display: 'flex',
                             flexDirection: 'column',
                             bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
@@ -314,7 +321,7 @@ export const PostLinkDialog = memo(({
                                 variant="contained"
                                 onClick={handleSubmit}
                                 disabled={!url.trim() || isLoading}
-                                sx={{ borderRadius: '12px', px: 4 }}
+                                sx={{ borderRadius: SOCIAL_RADIUS_SMALL, px: 4 }}
                             >
                                 {isLoading ? <CircularProgress size={20} /> : 'Post'}
                             </Button>

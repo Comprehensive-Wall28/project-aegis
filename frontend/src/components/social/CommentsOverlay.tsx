@@ -18,6 +18,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import socialService, { type LinkComment } from '@/services/socialService';
 
 import type { CommentsOverlayProps } from './types';
+import {
+    SOCIAL_DIALOG_Z_INDEX,
+    SOCIAL_RADIUS_XLARGE,
+    SOCIAL_RADIUS_MEDIUM,
+    SOCIAL_RADIUS_SMALL
+} from './constants';
 
 interface DecryptedComment extends LinkComment {
     decryptedContent: string;
@@ -180,7 +186,7 @@ export const CommentsOverlay = memo(({
                     sx={{
                         position: 'fixed',
                         inset: 0,
-                        zIndex: 9999,
+                        zIndex: SOCIAL_DIALOG_Z_INDEX,
                         bgcolor: 'rgba(0,0,0,0.8)',
                         backdropFilter: 'blur(8px)',
                         display: 'flex',
@@ -202,7 +208,7 @@ export const CommentsOverlay = memo(({
                             height: isMobile ? '100%' : 'auto',
                             maxHeight: isMobile ? '100%' : '80vh',
                             overflow: 'hidden',
-                            borderRadius: isMobile ? 0 : '24px',
+                            borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
                             display: 'flex',
                             flexDirection: 'column',
                             bgcolor: alpha(theme.palette.background.paper, 0.95),
@@ -259,7 +265,7 @@ export const CommentsOverlay = memo(({
                                                 size="small"
                                                 onClick={() => loadComments(true)}
                                                 disabled={isLoadingMore}
-                                                sx={{ borderRadius: '12px', fontSize: '0.75rem' }}
+                                                sx={{ borderRadius: SOCIAL_RADIUS_SMALL, fontSize: '0.75rem' }}
                                             >
                                                 {isLoadingMore ? (
                                                     <CircularProgress size={16} sx={{ mr: 1 }} />
@@ -379,7 +385,7 @@ export const CommentsOverlay = memo(({
                                 size="small"
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
-                                        borderRadius: '16px',
+                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
                                     },
                                 }}
                             />
@@ -388,7 +394,7 @@ export const CommentsOverlay = memo(({
                                 onClick={handlePost}
                                 disabled={!newComment.trim() || isPosting}
                                 sx={{
-                                    borderRadius: '16px',
+                                    borderRadius: SOCIAL_RADIUS_MEDIUM,
                                     minWidth: 48,
                                     px: 2,
                                 }}
