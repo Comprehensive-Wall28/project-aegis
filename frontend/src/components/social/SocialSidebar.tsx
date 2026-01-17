@@ -230,7 +230,13 @@ export const SocialSidebar = memo(({
                     </IconButton>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Reorder.Group axis="y" values={localCollections} onReorder={handleLocalReorder} style={{ padding: 0 }}>
+                    <Reorder.Group
+                        axis="y"
+                        values={localCollections}
+                        onReorder={handleLocalReorder}
+                        style={{ padding: 0 }}
+                        layoutId="sidebar-collections"
+                    >
                         {localCollections.map((collection) => renderCollectionItem(collection, true))}
                     </Reorder.Group>
                     <Divider sx={{ my: 1 }} />
@@ -291,7 +297,13 @@ export const SocialSidebar = memo(({
                         <CollectionSkeleton key={`col-skel-${i}`} />
                     ))
                 ) : (
-                    <Reorder.Group axis="y" values={localCollections} onReorder={handleLocalReorder} style={{ padding: 0 }}>
+                    <Reorder.Group
+                        axis="y"
+                        values={localCollections}
+                        onReorder={handleLocalReorder}
+                        style={{ padding: 0 }}
+                        layoutId="sidebar-collections"
+                    >
                         {localCollections.map((collection) => renderCollectionItem(collection))}
                     </Reorder.Group>
                 )}
