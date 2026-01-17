@@ -13,7 +13,13 @@ import {
     useTheme,
     useMediaQuery,
 } from '@mui/material';
-import { Close as CloseIcon, Send as SendIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import {
+    Close as CloseIcon,
+    Send as SendIcon,
+    Delete as DeleteIcon,
+    Refresh as RefreshIcon,
+    ErrorOutline as ErrorIcon
+} from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import socialService, { type LinkComment } from '@/services/socialService';
 
@@ -49,6 +55,7 @@ export const CommentsOverlay = memo(({
     const [newComment, setNewComment] = useState('');
     const [isPosting, setIsPosting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Fetch and decrypt comments
     const loadComments = useCallback(async (isLoadMore = false) => {
@@ -101,8 +108,9 @@ export const CommentsOverlay = memo(({
             } else {
                 setNextCursor(undefined);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to load comments:', error);
+            setError(error.message || 'Failed to load comments. Please try again.');
         } finally {
             setIsLoading(false);
             setIsLoadingMore(false);
@@ -110,6 +118,7 @@ export const CommentsOverlay = memo(({
     }, [open, link._id, decryptComment, nextCursor]);
 
     useEffect(() => {
+        setError(null);
         loadComments();
     }, [loadComments]);
 
@@ -254,8 +263,38 @@ export const CommentsOverlay = memo(({
                             }}
                         >
                             {isLoading ? (
-                                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4, height: '100%', alignItems: 'center' }}>
                                     <CircularProgress size={24} />
+                                </Box>
+                            ) : error ? (
+                                <Box
+                                    sx={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        py: 6,
+                                        px: 3,
+                                        textAlign: 'center',
+                                        gap: 2
+                                    }}
+                                >
+                                    <ErrorIcon color="error" sx={{ fontSize: 40, opacity: 0.8 }} />
+                                    <Typography color="text.secondary" variant="body2">
+                                        {error}
+                                    </Typography>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<RefreshIcon />}
+                                        onClick={() => {
+                                            setError(null);
+                                            loadComments();
+                                        }}
+                                        sx={{ borderRadius: SOCIAL_RADIUS_SMALL }}
+                                    >
+                                        Retry
+                                    </Button>
                                 </Box>
                             ) : (
                                 <>

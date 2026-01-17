@@ -35,6 +35,7 @@ import { RoomCard, CreateRoomCard } from '@/components/social/RoomCards';
 import { SocialHeader } from '@/components/social/SocialHeader';
 import { SocialSidebar } from '@/components/social/SocialSidebar';
 import { LinksContainer } from '@/components/social/LinksContainer';
+import { SocialErrorBoundary } from '@/components/social/SocialErrorBoundary';
 
 export function SocialPage() {
     const theme = useTheme();
@@ -527,28 +528,30 @@ export function SocialPage() {
                             exit={{ opacity: 0 }}
                             sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}
                         >
-                            <SocialHeader
-                                viewMode={viewMode}
-                                isMobile={isMobile}
-                                optimisticRoomId={optimisticRoomId}
-                                currentRoom={currentRoom}
-                                handleExitRoom={handleExitRoom}
-                                searchQuery={searchQuery}
-                                setSearchQuery={setSearchQuery}
-                                handleFilterClick={handleFilterClick}
-                                selectedUploader={selectedUploader}
-                                handleCopyInvite={handleCopyInvite}
-                                filterAnchorEl={filterAnchorEl}
-                                handleFilterClose={handleFilterClose}
-                                handleSelectUploader={handleSelectUploader}
-                                viewFilter={viewFilter}
-                                handleViewFilterChange={setViewFilter}
-                                getUniqueUploaders={getUniqueUploaders}
-                                newLinkUrl={newLinkUrl}
-                                setNewLinkUrl={setNewLinkUrl}
-                                handlePostLink={handlePostLink}
-                                isPostingLink={isPostingLink}
-                            />
+                            <SocialErrorBoundary componentName="Header">
+                                <SocialHeader
+                                    viewMode={viewMode}
+                                    isMobile={isMobile}
+                                    optimisticRoomId={optimisticRoomId}
+                                    currentRoom={currentRoom}
+                                    handleExitRoom={handleExitRoom}
+                                    searchQuery={searchQuery}
+                                    setSearchQuery={setSearchQuery}
+                                    handleFilterClick={handleFilterClick}
+                                    selectedUploader={selectedUploader}
+                                    handleCopyInvite={handleCopyInvite}
+                                    filterAnchorEl={filterAnchorEl}
+                                    handleFilterClose={handleFilterClose}
+                                    handleSelectUploader={handleSelectUploader}
+                                    viewFilter={viewFilter}
+                                    handleViewFilterChange={setViewFilter}
+                                    getUniqueUploaders={getUniqueUploaders}
+                                    newLinkUrl={newLinkUrl}
+                                    setNewLinkUrl={setNewLinkUrl}
+                                    handlePostLink={handlePostLink}
+                                    isPostingLink={isPostingLink}
+                                />
+                            </SocialErrorBoundary>
 
                             {/* Main Content Area */}
                             <Box
@@ -584,11 +587,12 @@ export function SocialPage() {
                                             ) : (
                                                 <>
                                                     {rooms.map((room) => (
-                                                        <RoomCard
-                                                            key={room._id}
-                                                            room={room}
-                                                            onSelect={() => handleSelectRoom(room._id)}
-                                                        />
+                                                        <SocialErrorBoundary key={room._id} componentName="Room Card">
+                                                            <RoomCard
+                                                                room={room}
+                                                                onSelect={() => handleSelectRoom(room._id)}
+                                                            />
+                                                        </SocialErrorBoundary>
                                                     ))}
                                                     <CreateRoomCard onClick={() => setShowCreateDialog(true)} />
                                                 </>
@@ -603,46 +607,50 @@ export function SocialPage() {
                                             transition={{ duration: 0.2, ease: "easeInOut" }}
                                             sx={{ display: 'flex', gap: 2, height: '100%' }}
                                         >
-                                            <SocialSidebar
-                                                isMobile={isMobile}
-                                                mobileDrawerOpen={mobileDrawerOpen}
-                                                setMobileDrawerOpen={setMobileDrawerOpen}
-                                                collections={collections}
-                                                selectCollection={selectCollection}
-                                                currentCollectionId={currentCollectionId}
-                                                handleCollectionContextMenu={handleCollectionContextMenu}
-                                                handleCollectionTouchStart={handleCollectionTouchStart}
-                                                handleCollectionTouchEnd={handleCollectionTouchEnd}
-                                                isLoadingContent={isLoadingContent}
-                                                dropTargetId={dropTargetId}
-                                                setDropTargetId={setDropTargetId}
-                                                handleDrop={handleDrop}
-                                                getUnviewedCountByCollection={getUnviewedCountByCollection}
-                                                setShowCollectionDialog={setShowCollectionDialog}
-                                            />
+                                            <SocialErrorBoundary componentName="Sidebar">
+                                                <SocialSidebar
+                                                    isMobile={isMobile}
+                                                    mobileDrawerOpen={mobileDrawerOpen}
+                                                    setMobileDrawerOpen={setMobileDrawerOpen}
+                                                    collections={collections}
+                                                    selectCollection={selectCollection}
+                                                    currentCollectionId={currentCollectionId}
+                                                    handleCollectionContextMenu={handleCollectionContextMenu}
+                                                    handleCollectionTouchStart={handleCollectionTouchStart}
+                                                    handleCollectionTouchEnd={handleCollectionTouchEnd}
+                                                    isLoadingContent={isLoadingContent}
+                                                    dropTargetId={dropTargetId}
+                                                    setDropTargetId={setDropTargetId}
+                                                    handleDrop={handleDrop}
+                                                    getUnviewedCountByCollection={getUnviewedCountByCollection}
+                                                    setShowCollectionDialog={setShowCollectionDialog}
+                                                />
+                                            </SocialErrorBoundary>
 
-                                            <LinksContainer
-                                                linksContainerRef={linksContainerRef}
-                                                isMobile={isMobile}
-                                                currentCollectionId={currentCollectionId}
-                                                collections={collections}
-                                                setMobileDrawerOpen={setMobileDrawerOpen}
-                                                searchQuery={searchQuery}
-                                                setSearchQuery={setSearchQuery}
-                                                isLoadingContent={isLoadingContent}
-                                                isLoadingLinks={isLoadingLinks}
-                                                filteredLinks={filteredLinks}
-                                                deleteLink={handleDeleteLink}
-                                                setDraggedLinkId={setDraggedLinkId}
-                                                markLinkViewed={markLinkViewed}
-                                                unmarkLinkViewed={unmarkLinkViewed}
-                                                setCommentsLink={setCommentsLink}
-                                                viewedLinkIds={viewedLinkIds}
-                                                commentCounts={commentCounts}
-                                                currentUserId={currentUserId}
-                                                hasMoreLinks={hasMoreLinks}
-                                                loadMoreLinks={loadMoreLinks}
-                                            />
+                                            <SocialErrorBoundary componentName="Links Container">
+                                                <LinksContainer
+                                                    linksContainerRef={linksContainerRef}
+                                                    isMobile={isMobile}
+                                                    currentCollectionId={currentCollectionId}
+                                                    collections={collections}
+                                                    setMobileDrawerOpen={setMobileDrawerOpen}
+                                                    searchQuery={searchQuery}
+                                                    setSearchQuery={setSearchQuery}
+                                                    isLoadingContent={isLoadingContent}
+                                                    isLoadingLinks={isLoadingLinks}
+                                                    filteredLinks={filteredLinks}
+                                                    deleteLink={handleDeleteLink}
+                                                    setDraggedLinkId={setDraggedLinkId}
+                                                    markLinkViewed={markLinkViewed}
+                                                    unmarkLinkViewed={unmarkLinkViewed}
+                                                    setCommentsLink={setCommentsLink}
+                                                    viewedLinkIds={viewedLinkIds}
+                                                    commentCounts={commentCounts}
+                                                    currentUserId={currentUserId}
+                                                    hasMoreLinks={hasMoreLinks}
+                                                    loadMoreLinks={loadMoreLinks}
+                                                />
+                                            </SocialErrorBoundary>
                                         </Box>
                                     )}
                                 </AnimatePresence>

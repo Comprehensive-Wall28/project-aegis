@@ -19,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import { LinkCardSkeleton } from './SocialSkeletons';
 import { LinkCard } from './LinkCard';
+import { SocialErrorBoundary } from './SocialErrorBoundary';
 import type { LinkPost } from '@/services/socialService';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
 
@@ -158,20 +159,21 @@ export const LinksContainer = memo(({
                         }}
                     >
                         {filteredLinks.map((link: LinkPost) => (
-                            <LinkCard
-                                key={link._id}
-                                link={link}
-                                onDelete={handleDelete}
-                                onDragStart={handleDragStart}
-                                onView={handleView}
-                                onUnview={handleUnview}
-                                onCommentsClick={handleCommentsClick}
-                                isViewed={viewedLinkIds.has(link._id)}
-                                commentCount={commentCounts[link._id] || 0}
-                                canDelete={
-                                    currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
-                                }
-                            />
+                            <SocialErrorBoundary key={link._id} componentName="Link Card">
+                                <LinkCard
+                                    link={link}
+                                    onDelete={handleDelete}
+                                    onDragStart={handleDragStart}
+                                    onView={handleView}
+                                    onUnview={handleUnview}
+                                    onCommentsClick={handleCommentsClick}
+                                    isViewed={viewedLinkIds.has(link._id)}
+                                    commentCount={commentCounts[link._id] || 0}
+                                    canDelete={
+                                        currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
+                                    }
+                                />
+                            </SocialErrorBoundary>
                         ))}
                     </Box>
 
