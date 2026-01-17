@@ -72,6 +72,7 @@ interface SocialState {
     clearSocial: () => void;
     // Real-time setup
     setupSocketListeners: () => void;
+    socketListenersAttached: boolean;
 }
 
 // Helper: Convert hex string to Uint8Array
@@ -228,6 +229,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     pendingInvite: null,
     roomKeys: new Map(),
     linksCache: {},
+    socketListenersAttached: false,
 
     fetchRooms: async () => {
         set({ isLoadingRooms: true });
@@ -452,7 +454,6 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             // If so, discard this result to prevent overwriting the new collection's data
             const currentState = get();
             if (currentState.currentCollectionId !== collectionId) {
-                console.log(`[Store] Discarding stale fetch result for collection ${collectionId}, current is ${currentState.currentCollectionId}`);
                 return;
             }
 
@@ -850,12 +851,16 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             roomKeys: new Map(),
             error: null,
             linksCache: {},
+            socketListenersAttached: false,
         });
     },
 
     setupSocketListeners: () => {
-        // Remove existing listeners to avoid duplicates
-        // Use removeAllListeners instead of off() since we don't have references to the callbacks
+        const state = get();
+        if (state.socketListenersAttached) return;
+
+        // Remove existing listeners for data events to be safe, 
+        // though with the flag this should only run once anyway.
         socketService.removeAllListeners('NEW_LINK');
         socketService.removeAllListeners('NEW_COMMENT');
         socketService.removeAllListeners('LINK_UPDATED');
@@ -864,12 +869,10 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         socketService.removeAllListeners('COLLECTION_CREATED');
         socketService.removeAllListeners('COLLECTION_DELETED');
         socketService.removeAllListeners('COLLECTIONS_REORDERED');
-        socketService.removeAllListeners('connect');
-        socketService.removeAllListeners('disconnect');
-        socketService.removeAllListeners('reconnect_attempt');
+        // Do NOT remove lifecycle listeners (connect, disconnect, etc.) 
+        // as they are protected and managed by SocketService.
 
         socketService.on('COLLECTION_CREATED', (data: { collection: Collection }) => {
-            console.log('[Socket] COLLECTION_CREATED received:', data.collection._id);
             set((prev) => {
                 const exists = prev.collections.some(c => c._id === data.collection._id);
                 if (exists) return prev;
@@ -878,7 +881,6 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         });
 
         socketService.on('COLLECTION_DELETED', (data: { collectionId: string, roomId: string }) => {
-            console.log('[Socket] COLLECTION_DELETED received:', data.collectionId);
             set((prev) => {
                 const updatedCollections = prev.collections.filter(c => c._id !== data.collectionId);
                 const updatedLinks = prev.links.filter(l => l.collectionId !== data.collectionId);
@@ -897,7 +899,6 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         });
 
         socketService.on('COLLECTIONS_REORDERED', (data: { collectionIds: string[] }) => {
-            console.log('[Socket] COLLECTIONS_REORDERED received:', data.collectionIds);
             set((prev) => {
                 const ordered = data.collectionIds.map(id =>
                     prev.collections.find(c => c._id === id)
@@ -908,13 +909,11 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         });
 
         socketService.on('NEW_LINK', (data: { link: LinkPost, collectionId: string }) => {
-            console.log('[Socket] NEW_LINK received:', data.link._id, 'scrapeStatus:', data.link.previewData?.scrapeStatus);
             const currentState = get();
 
             if (currentState.currentCollectionId === data.collectionId) {
                 // If we are looking at this collection, prepend the new link
                 const exists = currentState.links.some(l => l._id === data.link._id);
-                console.log('[Socket] NEW_LINK - checking current view, exists:', exists);
                 if (!exists) {
                     set((prev) => ({
                         links: [data.link, ...prev.links]
@@ -950,14 +949,10 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         });
 
         socketService.on('LINK_UPDATED', (data: { link: LinkPost }) => {
-            console.log('[Socket] LINK_UPDATED received:', data.link._id, 'scrapeStatus:', data.link.previewData?.scrapeStatus);
-
             set((prev) => {
                 const collectionId = data.link.collectionId;
                 const linkExistsInState = prev.links.some(l => l._id === data.link._id);
                 const currentCollectionId = get().currentCollectionId;
-
-                console.log('[Socket] LINK_UPDATED - link exists in state:', linkExistsInState, 'total links:', prev.links.length);
 
                 let updatedLinks;
                 if (linkExistsInState) {
@@ -966,7 +961,6 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 } else if (currentCollectionId === collectionId) {
                     // Race condition: LINK_UPDATED arrived before postLink() added the link to state
                     // Prepend the fully-scraped link to avoid being stuck on "scraping"
-                    console.log('[Socket] LINK_UPDATED - race condition detected, adding link to state');
                     updatedLinks = [data.link, ...prev.links];
                 } else {
                     // Link is for a different collection we're not viewing, skip updating main links array
@@ -1104,5 +1098,6 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             }
         });
 
+        set({ socketListenersAttached: true });
     }
 }));

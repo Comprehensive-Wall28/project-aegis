@@ -24,7 +24,6 @@ class SocketService {
         if (typeof document !== 'undefined') {
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
-                    console.log('[Socket] Tab became visible, checking connection health...');
                     this.checkConnection();
                 }
             });
@@ -38,16 +37,10 @@ class SocketService {
         }
 
         if (!this.socket.connected) {
-            console.log('[Socket] Not connected, forcing reconnect...');
             this.socket.connect();
         } else {
-            // Heartbeat check: emit a ping and wait for it
-            // This detects "zombie" connections that think they are connected but aren't
-            console.log('[Socket] Performing heartbeat check...');
-            const start = Date.now();
-            this.socket.emit('ping', () => {
-                console.log(`[Socket] Heartbeat latency: ${Date.now() - start}ms`);
-            });
+            // Heartbeat check
+            this.socket.emit('ping');
         }
     }
 
@@ -130,7 +123,6 @@ class SocketService {
         } else {
             // No need to manually once('connect') here as our internal connect handler 
             // will catch it and use this._currentRoomId
-            console.log(`[Socket] Queueing join-room for ${roomId} (waiting for connection)`);
         }
     }
 
