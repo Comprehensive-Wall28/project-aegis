@@ -889,27 +889,28 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         socketService.on('LINK_UPDATED', (data: { link: LinkPost }) => {
             console.log('[Socket] LINK_UPDATED received:', data.link._id, 'scrapeStatus:', data.link.previewData?.scrapeStatus);
 
-            const currentState = get();
-            const collectionId = data.link.collectionId;
-            const linkExistsInState = currentState.links.some(l => l._id === data.link._id);
-
             set((prev) => {
+                const collectionId = data.link.collectionId;
+                const linkExistsInState = prev.links.some(l => l._id === data.link._id);
+                const currentCollectionId = get().currentCollectionId;
+
                 console.log('[Socket] LINK_UPDATED - link exists in state:', linkExistsInState, 'total links:', prev.links.length);
 
                 let updatedLinks;
                 if (linkExistsInState) {
                     // Normal update path: link exists, just update it
                     updatedLinks = prev.links.map(l => l._id === data.link._id ? data.link : l);
-                } else if (currentState.currentCollectionId === collectionId) {
+                } else if (currentCollectionId === collectionId) {
                     // Race condition: LINK_UPDATED arrived before postLink() added the link to state
                     // Prepend the fully-scraped link to avoid being stuck on "scraping"
                     console.log('[Socket] LINK_UPDATED - race condition detected, adding link to state');
                     updatedLinks = [data.link, ...prev.links];
                 } else {
-                    // Link is for a different collection we're not viewing, skip
+                    // Link is for a different collection we're not viewing, skip updating main links array
                     updatedLinks = prev.links;
                 }
 
+                // Always update cache if it exists for that collection
                 const cache = prev.linksCache[collectionId];
                 let newCache = prev.linksCache;
                 if (cache) {

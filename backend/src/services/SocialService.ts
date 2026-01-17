@@ -894,6 +894,22 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             }
         } catch (error) {
             logger.error(`Background scraper failed for link ${linkId}:`, error);
+
+            // Critical: Update status to 'failed' in DB so UI stops spinning
+            try {
+                const updatedLink = await this.linkPostRepo.updateById(linkId, {
+                    $set: { 'previewData.scrapeStatus': 'failed' }
+                } as any);
+
+                if (updatedLink) {
+                    await updatedLink.populate('userId', 'username');
+                    SocketManager.broadcastToRoom(roomId, 'LINK_UPDATED', {
+                        link: updatedLink
+                    });
+                }
+            } catch (innerError) {
+                logger.error(`Final fail-safe for link ${linkId} failed:`, innerError);
+            }
         }
     }
 }
