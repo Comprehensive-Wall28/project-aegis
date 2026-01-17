@@ -3,19 +3,8 @@ import { createPortal } from 'react-dom';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress } from '@mui/material';
 import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { LinkPost } from '@/services/socialService';
 
-interface LinkCardProps {
-    link: LinkPost;
-    onCommentsClick?: (link: LinkPost) => void;
-    onDelete?: (linkId: string) => void;
-    onDragStart?: (linkId: string) => void;
-    onView?: (linkId: string) => void;
-    onUnview?: (linkId: string) => void;
-    isViewed?: boolean;
-    commentCount?: number;
-    canDelete?: boolean;
-}
+import type { LinkCardProps } from './types';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 

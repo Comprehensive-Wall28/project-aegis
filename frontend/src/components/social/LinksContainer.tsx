@@ -22,28 +22,7 @@ import { LinkCard } from './LinkCard';
 import type { LinkPost } from '@/services/socialService';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
 
-interface LinksContainerProps {
-    linksContainerRef: React.RefObject<HTMLDivElement | null>;
-    isMobile: boolean;
-    currentCollectionId: string | null;
-    collections: any[];
-    setMobileDrawerOpen: (open: boolean) => void;
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
-    isLoadingContent: boolean;
-    isLoadingLinks: boolean;
-    filteredLinks: LinkPost[];
-    deleteLink: (id: string) => void;
-    setDraggedLinkId: (id: string | null) => void;
-    markLinkViewed: (id: string) => void;
-    unmarkLinkViewed: (id: string) => void;
-    setCommentsLink: (link: LinkPost | null) => void;
-    viewedLinkIds: Set<string>;
-    commentCounts: Record<string, number>;
-    currentUserId: string | undefined;
-    hasMoreLinks: boolean;
-    loadMoreLinks: () => void;
-}
+import type { LinksContainerProps } from './types';
 
 export const LinksContainer = memo(({
     linksContainerRef,

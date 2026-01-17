@@ -27,32 +27,9 @@ import {
     Share as ShareIcon,
     ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
-import type { Room } from '@/services/socialService';
 import { useSocialStore } from '@/stores/useSocialStore';
 import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
-
-interface SocialHeaderProps {
-    viewMode: 'rooms' | 'room-content';
-    isMobile: boolean;
-    optimisticRoomId: string | null;
-    currentRoom: Room | null;
-    handleExitRoom: () => void;
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
-    handleFilterClick: (event: React.MouseEvent<HTMLElement>) => void;
-    selectedUploader: string | null;
-    handleCopyInvite: () => void;
-    filterAnchorEl: HTMLElement | null;
-    handleFilterClose: () => void;
-    handleSelectUploader: (id: string | null) => void;
-    viewFilter: 'all' | 'viewed' | 'unviewed';
-    handleViewFilterChange: (filter: 'all' | 'viewed' | 'unviewed') => void;
-    getUniqueUploaders: () => { id: string, username: string }[];
-    newLinkUrl: string;
-    setNewLinkUrl: (url: string) => void;
-    handlePostLink: () => void;
-    isPostingLink: boolean;
-}
+import type { SocialHeaderProps } from './types';
 
 export const SocialHeader = memo(({
     viewMode,

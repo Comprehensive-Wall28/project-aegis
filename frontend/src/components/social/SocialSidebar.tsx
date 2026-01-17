@@ -21,21 +21,8 @@ import { CollectionSkeleton } from './SocialSkeletons';
 import { useSocialStore } from '@/stores/useSocialStore';
 import { Reorder } from 'framer-motion';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
+import type { CollectionItemProps, SocialSidebarProps } from './types';
 
-interface CollectionItemProps {
-    collection: any;
-    isActive: boolean;
-    isTarget: boolean;
-    unviewedCount: number;
-    isMobileView: boolean;
-    onClick: () => void;
-    onContextMenu: (e: React.MouseEvent) => void;
-    onTouchStart: () => void;
-    onTouchEnd: () => void;
-    onDragOver: (e: React.DragEvent) => void;
-    onDragLeave: () => void;
-    onDrop: (e: React.DragEvent) => void;
-}
 
 const CollectionItem = memo(({
     collection,
@@ -133,24 +120,6 @@ const CollectionItem = memo(({
         </Reorder.Item>
     );
 });
-
-interface SocialSidebarProps {
-    isMobile: boolean;
-    mobileDrawerOpen: boolean;
-    setMobileDrawerOpen: (open: boolean) => void;
-    collections: any[];
-    selectCollection: (id: string) => void;
-    currentCollectionId: string | null;
-    handleCollectionContextMenu: (event: React.MouseEvent, id: string) => void;
-    handleCollectionTouchStart: (id: string) => void;
-    handleCollectionTouchEnd: () => void;
-    isLoadingContent: boolean;
-    dropTargetId: string | null;
-    setDropTargetId: (id: string | null) => void;
-    handleDrop: (id: string) => void;
-    getUnviewedCountByCollection: (id: string) => number;
-    setShowCollectionDialog: (show: boolean) => void;
-}
 
 export const SocialSidebar = memo(({
     isMobile,

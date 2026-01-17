@@ -1,17 +1,14 @@
 import { memo } from 'react';
 import { Box, Paper, Typography, Avatar, IconButton, alpha, useTheme, Skeleton } from '@mui/material';
 import { Group as GroupIcon, Add as AddIcon, Lock as LockIcon } from '@mui/icons-material';
-import type { Room } from '@/services/socialService';
 import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
+import type { RoomCardProps, CreateRoomCardProps } from './types';
 
 // Room Card Component - Memoized for performance
 export const RoomCard = memo(({
     room,
     onSelect,
-}: {
-    room: Room;
-    onSelect: () => void;
-}) => {
+}: RoomCardProps) => {
     const theme = useTheme();
     const { name, isDecrypting } = useDecryptedRoomMetadata(room);
 
@@ -79,9 +76,7 @@ export const RoomCard = memo(({
 // Create Room Card - Memoized for performance
 export const CreateRoomCard = memo(({
     onClick,
-}: {
-    onClick: () => void;
-}) => {
+}: CreateRoomCardProps) => {
     const theme = useTheme();
 
     return (

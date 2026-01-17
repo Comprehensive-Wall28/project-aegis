@@ -19,18 +19,15 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import type { CreateRoomDialogProps, CreateCollectionDialogProps, PostLinkDialogProps } from './types';
+
 // Create Room Dialog
 export const CreateRoomDialog = memo(({
     open,
     onClose,
     onSubmit,
     isLoading,
-}: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (name: string, description: string) => void;
-    isLoading: boolean;
-}) => {
+}: CreateRoomDialogProps) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const theme = useTheme();
@@ -134,12 +131,7 @@ export const CreateCollectionDialog = memo(({
     onClose,
     onSubmit,
     isLoading,
-}: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (name: string) => void;
-    isLoading: boolean;
-}) => {
+}: CreateCollectionDialogProps) => {
     const [name, setName] = useState('');
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -238,12 +230,7 @@ export const PostLinkDialog = memo(({
     onClose,
     onSubmit,
     isLoading,
-}: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (url: string) => void;
-    isLoading: boolean;
-}) => {
+}: PostLinkDialogProps) => {
     const [url, setUrl] = useState('');
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));

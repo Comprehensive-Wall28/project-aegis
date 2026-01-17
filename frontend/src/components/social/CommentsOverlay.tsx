@@ -15,16 +15,9 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon, Send as SendIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import socialService, { type LinkComment, type LinkPost } from '@/services/socialService';
+import socialService, { type LinkComment } from '@/services/socialService';
 
-interface CommentsOverlayProps {
-    open: boolean;
-    onClose: () => void;
-    link: LinkPost;
-    encryptComment: (text: string) => Promise<string>;
-    decryptComment: (encryptedText: string) => Promise<string>;
-    currentUserId?: string;
-}
+import type { CommentsOverlayProps } from './types';
 
 interface DecryptedComment extends LinkComment {
     decryptedContent: string;
