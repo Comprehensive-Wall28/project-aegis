@@ -81,7 +81,7 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
     };
 
     const sharedPaperStyles = {
-        p: 3,
+        p: { xs: 2, sm: 3 },
         borderRadius: '16px',
         bgcolor: alpha(theme.palette.background.paper, 0.4),
         backdropFilter: 'blur(12px)',
@@ -132,21 +132,21 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
                     <Table stickyHeader size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)' }}>
+                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)', px: { xs: 1, sm: 2 } }}>
                                     ACTION
                                 </TableCell>
-                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)' }}>
+                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)', px: { xs: 1, sm: 2 } }}>
                                     STATUS
                                 </TableCell>
                                 {!isMobile && (
-                                    <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)' }}>
+                                    <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)', px: 2 }}>
                                         IP ADDRESS
                                     </TableCell>
                                 )}
-                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)' }}>
+                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)', px: { xs: 1, sm: 2 } }}>
                                     TIME
                                 </TableCell>
-                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, width: 40, backdropFilter: 'blur(8px)' }} />
+                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, width: { xs: 30, sm: 40 }, backdropFilter: 'blur(8px)', px: { xs: 0, sm: 2 } }} />
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -156,21 +156,21 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
                             <TableBody>
                                 {Array.from({ length: 5 }).map((_, i) => (
                                     <TableRow key={`skeleton-${i}`}>
-                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, py: 2 }}>
+                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, px: { xs: 1, sm: 2 } }}>
                                             <Skeleton width="120px" sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
                                         </TableCell>
-                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, py: 2 }}>
-                                            <Skeleton width="60px" sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
+                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, px: { xs: 1, sm: 2 } }}>
+                                            <Skeleton width={isMobile ? 24 : 60} sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
                                         </TableCell>
                                         {!isMobile && (
-                                            <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, py: 2 }}>
+                                            <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, px: 2 }}>
                                                 <Skeleton width="100px" sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
                                             </TableCell>
                                         )}
-                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, py: 2 }}>
+                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, px: { xs: 1, sm: 2 } }}>
                                             <Skeleton width="80px" sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
                                         </TableCell>
-                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, py: 2 }}>
+                                        <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, px: { xs: 0, sm: 2 } }}>
                                             <Skeleton variant="circular" width={24} height={24} sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
                                         </TableCell>
                                     </TableRow>
@@ -255,12 +255,12 @@ function AuditLogRow({ log, isMobile, expanded, onToggle, theme, getStatusColor 
                     '&:hover': { bgcolor: alpha(theme.palette.common.white, 0.03) }
                 }}
             >
-                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, px: { xs: 1, sm: 2 } }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: { xs: '12px', sm: '14px' } }}>
                         {auditService.getActionLabel(log.action)}
                     </Typography>
                 </TableCell>
-                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
+                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, px: { xs: 1, sm: 2 }, whiteSpace: 'nowrap' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         {log.status === 'SUCCESS' ? (
                             <SuccessIcon sx={{ fontSize: 14, color: getStatusColor(log.status) }} />
@@ -272,7 +272,8 @@ function AuditLogRow({ log, isMobile, expanded, onToggle, theme, getStatusColor 
                             sx={{
                                 fontWeight: 600,
                                 color: getStatusColor(log.status),
-                                fontSize: '11px'
+                                fontSize: '11px',
+                                display: { xs: 'none', sm: 'block' }
                             }}
                         >
                             {log.status}
@@ -280,7 +281,7 @@ function AuditLogRow({ log, isMobile, expanded, onToggle, theme, getStatusColor 
                     </Box>
                 </TableCell>
                 {!isMobile && (
-                    <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
+                    <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, px: 2 }}>
                         <Tooltip title={log.ipAddress}>
                             <Typography
                                 variant="caption"
@@ -295,14 +296,14 @@ function AuditLogRow({ log, isMobile, expanded, onToggle, theme, getStatusColor 
                         </Tooltip>
                     </TableCell>
                 )}
-                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
+                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, px: { xs: 1, sm: 2 }, whiteSpace: 'nowrap' }}>
                     <Tooltip title={new Date(log.timestamp).toLocaleString()}>
                         <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '11px' }}>
                             {auditService.formatTimestamp(log.timestamp)}
                         </Typography>
                     </Tooltip>
                 </TableCell>
-                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}` }}>
+                <TableCell sx={{ borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.05)}`, px: { xs: 0, sm: 2 }, width: { xs: 30, sm: 40 } }}>
                     <IconButton size="small" sx={{ color: 'text.secondary' }}>
                         {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                     </IconButton>
