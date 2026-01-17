@@ -1,5 +1,4 @@
 import { useState, useEffect, memo, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import {
     Box,
     Paper,
@@ -24,6 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import socialService, { type LinkComment } from '@/services/socialService';
 
 import type { CommentsOverlayProps } from './types';
+import { DialogPortal } from './DialogPortal';
 import {
     SOCIAL_DIALOG_Z_INDEX,
     SOCIAL_RADIUS_XLARGE,
@@ -183,268 +183,269 @@ export const CommentsOverlay = memo(({
         }
     };
 
-    return createPortal(
-        <AnimatePresence>
-            {open && (
-                <Box
-                    component={motion.div}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={onClose}
-                    sx={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: SOCIAL_DIALOG_Z_INDEX,
-                        bgcolor: 'rgba(0,0,0,0.8)',
-                        backdropFilter: 'blur(8px)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        p: isMobile ? 0 : 4,
-                    }}
-                >
-                    <Paper
-                        variant="glass"
+    return (
+        <DialogPortal>
+            <AnimatePresence>
+                {open && (
+                    <Box
                         component={motion.div}
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.9, opacity: 0 }}
-                        onClick={(e) => e.stopPropagation()}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
                         sx={{
-                            width: '100%',
-                            maxWidth: isMobile ? '100%' : 500,
-                            height: isMobile ? '100%' : 'auto',
-                            maxHeight: isMobile ? '100%' : '80vh',
-                            overflow: 'hidden',
-                            borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: SOCIAL_DIALOG_Z_INDEX,
+                            bgcolor: 'rgba(0,0,0,0.8)',
+                            backdropFilter: 'blur(8px)',
                             display: 'flex',
-                            flexDirection: 'column',
-                            bgcolor: alpha(theme.palette.background.paper, 0.95),
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: isMobile ? 0 : 4,
                         }}
                     >
-                        {/* Header */}
-                        <Box
+                        <Paper
+                            variant="glass"
+                            component={motion.div}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
                             sx={{
-                                p: 2,
-                                borderBottom: `1px solid ${theme.palette.divider}`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                flexShrink: 0,
-                            }}
-                        >
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    Comments
-                                </Typography>
-                                <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    sx={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
-                                >
-                                    {link.previewData?.title || link.url}
-                                </Typography>
-                            </Box>
-                            <IconButton onClick={onClose} sx={{ ml: 1 }}>
-                                <CloseIcon />
-                            </IconButton>
-                        </Box>
-
-                        {/* Comments List */}
-                        <Box
-                            sx={{
-                                flex: 1,
-                                overflowY: 'auto',
-                                p: 2,
+                                width: '100%',
+                                maxWidth: isMobile ? '100%' : 500,
+                                height: isMobile ? '100%' : 'auto',
+                                maxHeight: isMobile ? '100%' : '80vh',
+                                overflow: 'hidden',
+                                borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: 2,
+                                bgcolor: alpha(theme.palette.background.paper, 0.95),
                             }}
                         >
-                            {isLoading ? (
-                                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4, height: '100%', alignItems: 'center' }}>
-                                    <CircularProgress size={24} />
-                                </Box>
-                            ) : error ? (
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        py: 6,
-                                        px: 3,
-                                        textAlign: 'center',
-                                        gap: 2
-                                    }}
-                                >
-                                    <ErrorIcon color="error" sx={{ fontSize: 40, opacity: 0.8 }} />
-                                    <Typography color="text.secondary" variant="body2">
-                                        {error}
-                                    </Typography>
-                                    <Button
-                                        variant="outlined"
-                                        size="small"
-                                        startIcon={<RefreshIcon />}
-                                        onClick={() => {
-                                            setError(null);
-                                            loadComments();
-                                        }}
-                                        sx={{ borderRadius: SOCIAL_RADIUS_SMALL }}
-                                    >
-                                        Retry
-                                    </Button>
-                                </Box>
-                            ) : (
-                                <>
-                                    {hasMore && (
-                                        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
-                                            <Button
-                                                size="small"
-                                                onClick={() => loadComments(true)}
-                                                disabled={isLoadingMore}
-                                                sx={{ borderRadius: SOCIAL_RADIUS_SMALL, fontSize: '0.75rem' }}
-                                            >
-                                                {isLoadingMore ? (
-                                                    <CircularProgress size={16} sx={{ mr: 1 }} />
-                                                ) : null}
-                                                Load older comments ({totalCount - comments.length} more)
-                                            </Button>
-                                        </Box>
-                                    )}
-                                    {comments.length === 0 ? (
-                                        <Box sx={{ textAlign: 'center', py: 4 }}>
-                                            <Typography color="text.secondary">
-                                                No comments yet. Be the first!
-                                            </Typography>
-                                        </Box>
-                                    ) : (
-                                        comments.map((comment, index) => {
-                                            const showDate = index === 0 ||
-                                                formatDate(comment.createdAt) !== formatDate(comments[index - 1].createdAt);
-
-                                            return (
-                                                <Box key={comment._id}>
-                                                    {showDate && (
-                                                        <Typography
-                                                            variant="caption"
-                                                            color="text.secondary"
-                                                            sx={{ display: 'block', textAlign: 'center', mb: 1 }}
-                                                        >
-                                                            {formatDate(comment.createdAt)}
-                                                        </Typography>
-                                                    )}
-                                                    <Box
-                                                        sx={{
-                                                            display: 'flex',
-                                                            gap: 1.5,
-                                                            alignItems: 'flex-start',
-                                                        }}
-                                                    >
-                                                        <Avatar
-                                                            sx={{
-                                                                width: 32,
-                                                                height: 32,
-                                                                bgcolor: 'primary.main',
-                                                                fontSize: '0.875rem',
-                                                            }}
-                                                        >
-                                                            {getUsername(comment).charAt(0).toUpperCase()}
-                                                        </Avatar>
-                                                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                                    {getUsername(comment)}
-                                                                </Typography>
-                                                                <Typography variant="caption" color="text.secondary">
-                                                                    {formatTime(comment.createdAt)}
-                                                                </Typography>
-                                                                {currentUserId === getUserId(comment) && (
-                                                                    <IconButton
-                                                                        size="small"
-                                                                        onClick={() => handleDelete(comment._id)}
-                                                                        disabled={deletingId === comment._id}
-                                                                        sx={{
-                                                                            ml: 'auto',
-                                                                            opacity: 0.5,
-                                                                            '&:hover': { opacity: 1, color: 'error.main' },
-                                                                        }}
-                                                                    >
-                                                                        {deletingId === comment._id ? (
-                                                                            <CircularProgress size={14} />
-                                                                        ) : (
-                                                                            <DeleteIcon fontSize="small" />
-                                                                        )}
-                                                                    </IconButton>
-                                                                )}
-                                                            </Box>
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{
-                                                                    whiteSpace: 'pre-wrap',
-                                                                    wordBreak: 'break-word',
-                                                                }}
-                                                            >
-                                                                {comment.decryptedContent}
-                                                            </Typography>
-                                                        </Box>
-                                                    </Box>
-                                                </Box>
-                                            );
-                                        })
-                                    )}
-                                </>
-                            )}
-                        </Box>
-
-                        {/* Input */}
-                        <Box
-                            sx={{
-                                p: 2,
-                                borderTop: `1px solid ${theme.palette.divider}`,
-                                display: 'flex',
-                                gap: 1,
-                                flexShrink: 0,
-                            }}
-                        >
-                            <TextField
-                                fullWidth
-                                placeholder="Write a comment..."
-                                value={newComment}
-                                onChange={(e) => setNewComment(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handlePost();
-                                    }
-                                }}
-                                multiline
-                                maxRows={3}
-                                size="small"
+                            {/* Header */}
+                            <Box
                                 sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                    },
-                                }}
-                            />
-                            <Button
-                                variant="contained"
-                                onClick={handlePost}
-                                disabled={!newComment.trim() || isPosting}
-                                sx={{
-                                    borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                    minWidth: 48,
-                                    px: 2,
+                                    p: 2,
+                                    borderBottom: `1px solid ${theme.palette.divider}`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    flexShrink: 0,
                                 }}
                             >
-                                {isPosting ? <CircularProgress size={20} /> : <SendIcon />}
-                            </Button>
-                        </Box>
-                    </Paper>
-                </Box>
-            )}
-        </AnimatePresence>,
-        document.body
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                        Comments
+                                    </Typography>
+                                    <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                        sx={{ wordBreak: 'break-word', whiteSpace: 'normal' }}
+                                    >
+                                        {link.previewData?.title || link.url}
+                                    </Typography>
+                                </Box>
+                                <IconButton onClick={onClose} sx={{ ml: 1 }}>
+                                    <CloseIcon />
+                                </IconButton>
+                            </Box>
+
+                            {/* Comments List */}
+                            <Box
+                                sx={{
+                                    flex: 1,
+                                    overflowY: 'auto',
+                                    p: 2,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 2,
+                                }}
+                            >
+                                {isLoading ? (
+                                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4, height: '100%', alignItems: 'center' }}>
+                                        <CircularProgress size={24} />
+                                    </Box>
+                                ) : error ? (
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            py: 6,
+                                            px: 3,
+                                            textAlign: 'center',
+                                            gap: 2
+                                        }}
+                                    >
+                                        <ErrorIcon color="error" sx={{ fontSize: 40, opacity: 0.8 }} />
+                                        <Typography color="text.secondary" variant="body2">
+                                            {error}
+                                        </Typography>
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            startIcon={<RefreshIcon />}
+                                            onClick={() => {
+                                                setError(null);
+                                                loadComments();
+                                            }}
+                                            sx={{ borderRadius: SOCIAL_RADIUS_SMALL }}
+                                        >
+                                            Retry
+                                        </Button>
+                                    </Box>
+                                ) : (
+                                    <>
+                                        {hasMore && (
+                                            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+                                                <Button
+                                                    size="small"
+                                                    onClick={() => loadComments(true)}
+                                                    disabled={isLoadingMore}
+                                                    sx={{ borderRadius: SOCIAL_RADIUS_SMALL, fontSize: '0.75rem' }}
+                                                >
+                                                    {isLoadingMore ? (
+                                                        <CircularProgress size={16} sx={{ mr: 1 }} />
+                                                    ) : null}
+                                                    Load older comments ({totalCount - comments.length} more)
+                                                </Button>
+                                            </Box>
+                                        )}
+                                        {comments.length === 0 ? (
+                                            <Box sx={{ textAlign: 'center', py: 4 }}>
+                                                <Typography color="text.secondary">
+                                                    No comments yet. Be the first!
+                                                </Typography>
+                                            </Box>
+                                        ) : (
+                                            comments.map((comment, index) => {
+                                                const showDate = index === 0 ||
+                                                    formatDate(comment.createdAt) !== formatDate(comments[index - 1].createdAt);
+
+                                                return (
+                                                    <Box key={comment._id}>
+                                                        {showDate && (
+                                                            <Typography
+                                                                variant="caption"
+                                                                color="text.secondary"
+                                                                sx={{ display: 'block', textAlign: 'center', mb: 1 }}
+                                                            >
+                                                                {formatDate(comment.createdAt)}
+                                                            </Typography>
+                                                        )}
+                                                        <Box
+                                                            sx={{
+                                                                display: 'flex',
+                                                                gap: 1.5,
+                                                                alignItems: 'flex-start',
+                                                            }}
+                                                        >
+                                                            <Avatar
+                                                                sx={{
+                                                                    width: 32,
+                                                                    height: 32,
+                                                                    bgcolor: 'primary.main',
+                                                                    fontSize: '0.875rem',
+                                                                }}
+                                                            >
+                                                                {getUsername(comment).charAt(0).toUpperCase()}
+                                                            </Avatar>
+                                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                                                        {getUsername(comment)}
+                                                                    </Typography>
+                                                                    <Typography variant="caption" color="text.secondary">
+                                                                        {formatTime(comment.createdAt)}
+                                                                    </Typography>
+                                                                    {currentUserId === getUserId(comment) && (
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            onClick={() => handleDelete(comment._id)}
+                                                                            disabled={deletingId === comment._id}
+                                                                            sx={{
+                                                                                ml: 'auto',
+                                                                                opacity: 0.5,
+                                                                                '&:hover': { opacity: 1, color: 'error.main' },
+                                                                            }}
+                                                                        >
+                                                                            {deletingId === comment._id ? (
+                                                                                <CircularProgress size={14} />
+                                                                            ) : (
+                                                                                <DeleteIcon fontSize="small" />
+                                                                            )}
+                                                                        </IconButton>
+                                                                    )}
+                                                                </Box>
+                                                                <Typography
+                                                                    variant="body2"
+                                                                    sx={{
+                                                                        whiteSpace: 'pre-wrap',
+                                                                        wordBreak: 'break-word',
+                                                                    }}
+                                                                >
+                                                                    {comment.decryptedContent}
+                                                                </Typography>
+                                                            </Box>
+                                                        </Box>
+                                                    </Box>
+                                                );
+                                            })
+                                        )}
+                                    </>
+                                )}
+                            </Box>
+
+                            {/* Input */}
+                            <Box
+                                sx={{
+                                    p: 2,
+                                    borderTop: `1px solid ${theme.palette.divider}`,
+                                    display: 'flex',
+                                    gap: 1,
+                                    flexShrink: 0,
+                                }}
+                            >
+                                <TextField
+                                    fullWidth
+                                    placeholder="Write a comment..."
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handlePost();
+                                        }
+                                    }}
+                                    multiline
+                                    maxRows={3}
+                                    size="small"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                        },
+                                    }}
+                                />
+                                <Button
+                                    variant="contained"
+                                    onClick={handlePost}
+                                    disabled={!newComment.trim() || isPosting}
+                                    sx={{
+                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                        minWidth: 48,
+                                        px: 2,
+                                    }}
+                                >
+                                    {isPosting ? <CircularProgress size={20} /> : <SendIcon />}
+                                </Button>
+                            </Box>
+                        </Paper>
+                    </Box>
+                )}
+            </AnimatePresence>
+        </DialogPortal>
     );
 });

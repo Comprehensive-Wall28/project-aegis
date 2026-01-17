@@ -1,10 +1,10 @@
 import { useState, memo } from 'react';
-import { createPortal } from 'react-dom';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress } from '@mui/material';
 import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import type { LinkCardProps } from './types';
+import { DialogPortal } from './DialogPortal';
 import {
     SOCIAL_LINK_CARD_HEIGHT,
     SOCIAL_LINK_PREVIEW_HEIGHT,
@@ -362,7 +362,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
             </div>
 
             {/* Full Screen Preview Overlay - Rendered via Portal */}
-            {createPortal(
+            <DialogPortal>
                 <AnimatePresence>
                     {showPreview && (
                         <Box
@@ -520,9 +520,8 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                             </Paper>
                         </Box>
                     )}
-                </AnimatePresence>,
-                document.body
-            )}
+                </AnimatePresence>
+            </DialogPortal>
         </>
     );
 });
