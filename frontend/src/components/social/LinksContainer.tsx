@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from 'react';
+import { memo, useMemo } from 'react';
 import {
     Box,
     Typography,
@@ -20,7 +20,7 @@ import {
 import { LinkCardSkeleton } from './SocialSkeletons';
 import { LinkCard } from './LinkCard';
 import type { LinkPost } from '@/services/socialService';
-import { useSocialStore } from '@/stores/useSocialStore';
+import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
 
 interface LinksContainerProps {
     linksContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -68,35 +68,12 @@ export const LinksContainer = memo(({
     loadMoreLinks,
 }: LinksContainerProps) => {
     const theme = useTheme();
-    const decryptCollectionMetadata = useSocialStore((state) => state.decryptCollectionMetadata);
-    const [decryptedName, setDecryptedName] = useState<string | null>(null);
-    const [isDecrypting, setIsDecrypting] = useState(false);
 
-    useEffect(() => {
-        const decrypt = async () => {
-            const collection = collections.find(c => c._id === currentCollectionId);
-            if (!collection) {
-                setDecryptedName(null);
-                return;
-            }
-            if (collection.type === 'links' && !collection.name) {
-                setDecryptedName('Links');
-                return;
-            }
-            setIsDecrypting(true);
-            try {
-                const { name } = await decryptCollectionMetadata(collection);
-                setDecryptedName(name);
-            } catch (err) {
-                console.error('Failed to decrypt container title:', err);
-                setDecryptedName('Encrypted');
-            } finally {
-                setIsDecrypting(false);
-            }
-        };
+    const currentCollection = useMemo(() =>
+        collections.find(c => c._id === currentCollectionId) || null
+        , [collections, currentCollectionId]);
 
-        decrypt();
-    }, [currentCollectionId, collections, decryptCollectionMetadata]);
+    const { name: decryptedName, isDecrypting } = useDecryptedCollectionMetadata(currentCollection);
 
     return (
         <Box

@@ -20,6 +20,7 @@ import {
 import { CollectionSkeleton } from './SocialSkeletons';
 import { useSocialStore } from '@/stores/useSocialStore';
 import { Reorder } from 'framer-motion';
+import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
 
 interface CollectionItemProps {
     collection: any;
@@ -50,32 +51,8 @@ const CollectionItem = memo(({
     onDrop,
 }: CollectionItemProps) => {
     const theme = useTheme();
-    const decryptCollectionMetadata = useSocialStore((state) => state.decryptCollectionMetadata);
-    const [decryptedName, setDecryptedName] = useState<string | null>(null);
-    const [isDecrypting, setIsDecrypting] = useState(false);
-
-    useEffect(() => {
-        let isMounted = true;
-        const decrypt = async () => {
-            if (collection.type === 'links' && !collection.name) {
-                if (isMounted) setDecryptedName('Links');
-                return;
-            }
-            if (isMounted) setIsDecrypting(true);
-            try {
-                const { name } = await decryptCollectionMetadata(collection);
-                if (isMounted) setDecryptedName(name);
-            } catch (err) {
-                console.error('Failed to decrypt collection metadata:', err);
-                if (isMounted) setDecryptedName('Encrypted');
-            } finally {
-                if (isMounted) setIsDecrypting(false);
-            }
-        };
-
-        decrypt();
-        return () => { isMounted = false; };
-    }, [collection._id, collection.name, decryptCollectionMetadata]); // Optimized dependency array
+    const { name, isDecrypting } = useDecryptedCollectionMetadata(collection);
+    const decryptedName = name;
 
     return (
         <Reorder.Item

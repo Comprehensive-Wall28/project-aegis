@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from 'react';
+import { memo } from 'react';
 import {
     Box,
     Paper,
@@ -29,6 +29,7 @@ import {
 } from '@mui/icons-material';
 import type { Room } from '@/services/socialService';
 import { useSocialStore } from '@/stores/useSocialStore';
+import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
 
 interface SocialHeaderProps {
     viewMode: 'rooms' | 'room-content';
@@ -76,31 +77,8 @@ export const SocialHeader = memo(({
     isPostingLink,
 }: SocialHeaderProps) => {
     const theme = useTheme();
-    const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
     const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
-    const [decryptedName, setDecryptedName] = useState<string | null>(null);
-    const [isDecrypting, setIsDecrypting] = useState(false);
-
-    useEffect(() => {
-        const decrypt = async () => {
-            if (!currentRoom) {
-                setDecryptedName(null);
-                return;
-            }
-            setIsDecrypting(true);
-            try {
-                const results = await decryptRoomMetadata(currentRoom);
-                setDecryptedName(results.name);
-            } catch (err) {
-                console.error('Failed to decrypt header room name:', err);
-                setDecryptedName('[Encrypted]');
-            } finally {
-                setIsDecrypting(false);
-            }
-        };
-
-        decrypt();
-    }, [currentRoom, decryptRoomMetadata]);
+    const { name: decryptedName, isDecrypting } = useDecryptedRoomMetadata(currentRoom);
 
     return (
         <Paper

@@ -1,8 +1,8 @@
-import { memo, useState, useEffect } from 'react';
+import { memo } from 'react';
 import { Box, Paper, Typography, Avatar, IconButton, alpha, useTheme, Skeleton } from '@mui/material';
 import { Group as GroupIcon, Add as AddIcon, Lock as LockIcon } from '@mui/icons-material';
 import type { Room } from '@/services/socialService';
-import { useSocialStore } from '@/stores/useSocialStore';
+import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
 
 // Room Card Component - Memoized for performance
 export const RoomCard = memo(({
@@ -13,33 +13,9 @@ export const RoomCard = memo(({
     onSelect: () => void;
 }) => {
     const theme = useTheme();
-    const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
-    const roomKey = useSocialStore((state) => state.roomKeys.get(room._id));
-    const [metadata, setMetadata] = useState<{ name: string; description: string } | null>(null);
-    const [isDecrypting, setIsDecrypting] = useState(false);
+    const { name, isDecrypting } = useDecryptedRoomMetadata(room);
 
-    useEffect(() => {
-        const decrypt = async () => {
-            if (!roomKey) {
-                setMetadata({ name: '[Encrypted]', description: '' });
-                return;
-            }
-            setIsDecrypting(true);
-            try {
-                const results = await decryptRoomMetadata(room);
-                setMetadata(results);
-            } catch (err) {
-                console.error('Failed to decrypt room metadata:', err);
-                setMetadata({ name: '[Encrypted]', description: '' });
-            } finally {
-                setIsDecrypting(false);
-            }
-        };
-
-        decrypt();
-    }, [room, decryptRoomMetadata, roomKey]);
-
-    const displayName = metadata?.name || '...';
+    const displayName = name || '...';
     const isEncrypted = displayName === '[Encrypted]';
 
     return (
