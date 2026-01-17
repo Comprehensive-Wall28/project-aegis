@@ -2,8 +2,10 @@ import { create } from 'zustand';
 import auditService, { type AuditLog } from '@/services/auditService';
 import authService from '@/services/authService';
 import * as cryptoUtils from '@/lib/cryptoUtils';
-// @ts-ignore
-import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
+// PQC Web Worker for background key generation
+const pqcWorker = new Worker(new URL('../workers/pqc.worker.ts', import.meta.url), {
+    type: 'module'
+});
 
 export interface UserPreferences {
     sessionTimeout: number; // minutes
@@ -137,14 +139,28 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         // Set to initializing state
         set({ pqcEngineStatus: 'initializing' });
 
-        // Run async initialization without blocking
+        // Use Web Worker to generate keys without blocking the UI thread
+        const generateKeysViaWorker = (seed?: Uint8Array): Promise<{ publicKey: Uint8Array, secretKey: Uint8Array }> => {
+            return new Promise((resolve, reject) => {
+                const handler = (event: MessageEvent) => {
+                    const { type, publicKey, secretKey, error } = event.data;
+                    if (type === 'keygen_result') {
+                        pqcWorker.removeEventListener('message', handler);
+                        resolve({ publicKey, secretKey });
+                    } else if (type === 'error') {
+                        pqcWorker.removeEventListener('message', handler);
+                        reject(new Error(error));
+                    }
+                };
+                pqcWorker.addEventListener('message', handler);
+                pqcWorker.postMessage({ type: 'keygen', seed });
+            });
+        };
+
         (async () => {
             try {
-                // WASM loading issues handled by @noble/post-quantum pure JS
-                // const { ml_kem768 } = await import('@noble/post-quantum/ml-kem.js');
-
-                // Generate keys - use seed if provided for persistence
-                const { publicKey, secretKey } = seed ? ml_kem768.keygen(seed) : ml_kem768.keygen();
+                // Generate keys in background
+                const { publicKey, secretKey } = await generateKeysViaWorker(seed);
 
                 // Helper to convert to Hex
                 const bytesToHex = (bytes: Uint8Array) =>
@@ -175,13 +191,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                         },
                         pqcEngineStatus: 'operational'
                     });
-                    console.log(`Quantum Keys Initialized for Session ${seed ? '(Persistent)' : '(Ephemeral)'}, Vault Key: ${vaultKey ? 'Yes' : 'No'}`);
+                    console.log(`Quantum Keys Initialized (Worker) for Session ${seed ? '(Persistent)' : '(Ephemeral)'}, Vault Key: ${vaultKey ? 'Yes' : 'No'}`);
                 } else {
                     // If no user, we still set it as operational for the engine itself
                     set({ pqcEngineStatus: 'operational' });
                 }
             } catch (e) {
-                console.error("Failed to generate PQC keys:", e);
+                console.error("Failed to generate PQC keys (Worker):", e);
                 set({ pqcEngineStatus: 'error' });
             }
         })();
