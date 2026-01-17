@@ -36,38 +36,72 @@ export const CommentsOverlay = memo(({
 
     const [comments, setComments] = useState<DecryptedComment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [nextCursor, setNextCursor] = useState<{ createdAt: string; id: string } | undefined>();
+    const [totalCount, setTotalCount] = useState(0);
     const [newComment, setNewComment] = useState('');
     const [isPosting, setIsPosting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
     // Fetch and decrypt comments
-    const loadComments = useCallback(async () => {
+    const loadComments = useCallback(async (isLoadMore = false) => {
         if (!open) return;
 
-        setIsLoading(true);
+        if (isLoadMore) setIsLoadingMore(true);
+        else setIsLoading(true);
+
         try {
-            const rawComments = await socialService.getComments(link._id);
+            const result = await socialService.getComments(link._id, 20, isLoadMore ? nextCursor : undefined);
+            const rawComments = result.comments;
 
-            // Decrypt all comments
-            const decryptedComments = await Promise.all(
-                rawComments.map(async (comment) => {
-                    let decryptedContent = '[Decryption failed]';
-                    try {
-                        decryptedContent = await decryptComment(comment.encryptedContent);
-                    } catch {
-                        // Keep fallback
-                    }
-                    return { ...comment, decryptedContent };
-                })
-            );
+            // Decrypt comments in chunks to avoid blocking the UI
+            const CONCURRENCY_LIMIT = 5;
+            const decryptedChunk: DecryptedComment[] = [];
 
-            setComments(decryptedComments);
+            for (let i = 0; i < rawComments.map(c => c).length; i += CONCURRENCY_LIMIT) {
+                const chunk = rawComments.slice(i, i + CONCURRENCY_LIMIT);
+                const decryptedBatch = await Promise.all(
+                    chunk.map(async (comment) => {
+                        let decryptedContent = '[Decryption failed]';
+                        try {
+                            decryptedContent = await decryptComment(comment.encryptedContent);
+                        } catch {
+                            // Keep fallback
+                        }
+                        return { ...comment, decryptedContent };
+                    })
+                );
+                decryptedChunk.push(...decryptedBatch);
+            }
+
+            // Reverse for oldest-first display
+            decryptedChunk.reverse();
+
+            if (isLoadMore) {
+                setComments((prev) => [...decryptedChunk, ...prev]);
+            } else {
+                setComments(decryptedChunk);
+            }
+
+            setTotalCount(result.totalCount);
+            setHasMore(result.hasMore);
+
+            if (result.hasMore && rawComments.length > 0) {
+                // For "before" pagination, the cursor is the OLDEST in the fetched batch
+                // Since we sorted DESC in backend, the last item in rawComments is the oldest.
+                const oldest = rawComments[rawComments.length - 1];
+                setNextCursor({ createdAt: oldest.createdAt, id: oldest._id });
+            } else {
+                setNextCursor(undefined);
+            }
         } catch (error) {
             console.error('Failed to load comments:', error);
         } finally {
             setIsLoading(false);
+            setIsLoadingMore(false);
         }
-    }, [open, link._id, decryptComment]);
+    }, [open, link._id, decryptComment, nextCursor]);
 
     useEffect(() => {
         loadComments();
@@ -217,86 +251,105 @@ export const CommentsOverlay = memo(({
                                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                                     <CircularProgress size={24} />
                                 </Box>
-                            ) : comments.length === 0 ? (
-                                <Box sx={{ textAlign: 'center', py: 4 }}>
-                                    <Typography color="text.secondary">
-                                        No comments yet. Be the first!
-                                    </Typography>
-                                </Box>
                             ) : (
-                                comments.map((comment, index) => {
-                                    const showDate = index === 0 ||
-                                        formatDate(comment.createdAt) !== formatDate(comments[index - 1].createdAt);
-
-                                    return (
-                                        <Box key={comment._id}>
-                                            {showDate && (
-                                                <Typography
-                                                    variant="caption"
-                                                    color="text.secondary"
-                                                    sx={{ display: 'block', textAlign: 'center', mb: 1 }}
-                                                >
-                                                    {formatDate(comment.createdAt)}
-                                                </Typography>
-                                            )}
-                                            <Box
-                                                sx={{
-                                                    display: 'flex',
-                                                    gap: 1.5,
-                                                    alignItems: 'flex-start',
-                                                }}
+                                <>
+                                    {hasMore && (
+                                        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+                                            <Button
+                                                size="small"
+                                                onClick={() => loadComments(true)}
+                                                disabled={isLoadingMore}
+                                                sx={{ borderRadius: '12px', fontSize: '0.75rem' }}
                                             >
-                                                <Avatar
-                                                    sx={{
-                                                        width: 32,
-                                                        height: 32,
-                                                        bgcolor: 'primary.main',
-                                                        fontSize: '0.875rem',
-                                                    }}
-                                                >
-                                                    {getUsername(comment).charAt(0).toUpperCase()}
-                                                </Avatar>
-                                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                            {getUsername(comment)}
+                                                {isLoadingMore ? (
+                                                    <CircularProgress size={16} sx={{ mr: 1 }} />
+                                                ) : null}
+                                                Load older comments ({totalCount - comments.length} more)
+                                            </Button>
+                                        </Box>
+                                    )}
+                                    {comments.length === 0 ? (
+                                        <Box sx={{ textAlign: 'center', py: 4 }}>
+                                            <Typography color="text.secondary">
+                                                No comments yet. Be the first!
+                                            </Typography>
+                                        </Box>
+                                    ) : (
+                                        comments.map((comment, index) => {
+                                            const showDate = index === 0 ||
+                                                formatDate(comment.createdAt) !== formatDate(comments[index - 1].createdAt);
+
+                                            return (
+                                                <Box key={comment._id}>
+                                                    {showDate && (
+                                                        <Typography
+                                                            variant="caption"
+                                                            color="text.secondary"
+                                                            sx={{ display: 'block', textAlign: 'center', mb: 1 }}
+                                                        >
+                                                            {formatDate(comment.createdAt)}
                                                         </Typography>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            {formatTime(comment.createdAt)}
-                                                        </Typography>
-                                                        {currentUserId === getUserId(comment) && (
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() => handleDelete(comment._id)}
-                                                                disabled={deletingId === comment._id}
-                                                                sx={{
-                                                                    ml: 'auto',
-                                                                    opacity: 0.5,
-                                                                    '&:hover': { opacity: 1, color: 'error.main' },
-                                                                }}
-                                                            >
-                                                                {deletingId === comment._id ? (
-                                                                    <CircularProgress size={14} />
-                                                                ) : (
-                                                                    <DeleteIcon fontSize="small" />
-                                                                )}
-                                                            </IconButton>
-                                                        )}
-                                                    </Box>
-                                                    <Typography
-                                                        variant="body2"
+                                                    )}
+                                                    <Box
                                                         sx={{
-                                                            whiteSpace: 'pre-wrap',
-                                                            wordBreak: 'break-word',
+                                                            display: 'flex',
+                                                            gap: 1.5,
+                                                            alignItems: 'flex-start',
                                                         }}
                                                     >
-                                                        {comment.decryptedContent}
-                                                    </Typography>
+                                                        <Avatar
+                                                            sx={{
+                                                                width: 32,
+                                                                height: 32,
+                                                                bgcolor: 'primary.main',
+                                                                fontSize: '0.875rem',
+                                                            }}
+                                                        >
+                                                            {getUsername(comment).charAt(0).toUpperCase()}
+                                                        </Avatar>
+                                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                                                    {getUsername(comment)}
+                                                                </Typography>
+                                                                <Typography variant="caption" color="text.secondary">
+                                                                    {formatTime(comment.createdAt)}
+                                                                </Typography>
+                                                                {currentUserId === getUserId(comment) && (
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={() => handleDelete(comment._id)}
+                                                                        disabled={deletingId === comment._id}
+                                                                        sx={{
+                                                                            ml: 'auto',
+                                                                            opacity: 0.5,
+                                                                            '&:hover': { opacity: 1, color: 'error.main' },
+                                                                        }}
+                                                                    >
+                                                                        {deletingId === comment._id ? (
+                                                                            <CircularProgress size={14} />
+                                                                        ) : (
+                                                                            <DeleteIcon fontSize="small" />
+                                                                        )}
+                                                                    </IconButton>
+                                                                )}
+                                                            </Box>
+                                                            <Typography
+                                                                variant="body2"
+                                                                sx={{
+                                                                    whiteSpace: 'pre-wrap',
+                                                                    wordBreak: 'break-word',
+                                                                }}
+                                                            >
+                                                                {comment.decryptedContent}
+                                                            </Typography>
+                                                        </Box>
+                                                    </Box>
                                                 </Box>
-                                            </Box>
-                                        </Box>
-                                    );
-                                })
+                                            );
+                                        })
+                                    )}
+                                </>
                             )}
                         </Box>
 

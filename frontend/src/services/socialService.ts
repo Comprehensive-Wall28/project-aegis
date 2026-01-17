@@ -216,10 +216,28 @@ const socialService = {
     },
 
     /**
-     * Get all comments for a link
+     * Get comments for a link with pagination
      */
-    getComments: async (linkId: string): Promise<LinkComment[]> => {
-        const response = await apiClient.get<LinkComment[]>(`/social/links/${linkId}/comments`);
+    getComments: async (
+        linkId: string,
+        limit: number = 20,
+        beforeCursor?: { createdAt: string; id: string }
+    ): Promise<{
+        comments: LinkComment[];
+        totalCount: number;
+        hasMore: boolean;
+    }> => {
+        const response = await apiClient.get<{
+            comments: LinkComment[];
+            totalCount: number;
+            hasMore: boolean;
+        }>(`/social/links/${linkId}/comments`, {
+            params: {
+                limit,
+                cursorCreatedAt: beforeCursor?.createdAt,
+                cursorId: beforeCursor?.id
+            }
+        });
         return response.data;
     },
 

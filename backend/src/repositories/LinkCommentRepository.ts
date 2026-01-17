@@ -13,15 +13,35 @@ export class LinkCommentRepository extends BaseRepository<ILinkComment> {
     }
 
     /**
-     * Find comments by link ID with user population
+     * Find comments by link ID with pagination and user population
      */
-    async findByLinkId(linkId: string): Promise<ILinkComment[]> {
-        return this.findMany({
-            linkId: { $eq: linkId as any }
-        } as SafeFilter<ILinkComment>, {
-            sort: { createdAt: 1 },
-            populate: { path: 'userId', select: 'username' }
-        });
+    async findByLinkIdWithPagination(
+        linkId: string,
+        limit: number = 20,
+        beforeCursor?: { createdAt: Date; id: string }
+    ): Promise<{ comments: ILinkComment[]; totalCount: number }> {
+        const query: any = { linkId: { $eq: linkId as any } };
+
+        if (beforeCursor) {
+            query.$or = [
+                { createdAt: { $lt: beforeCursor.createdAt } },
+                {
+                    createdAt: beforeCursor.createdAt,
+                    _id: { $lt: new mongoose.Types.ObjectId(beforeCursor.id) }
+                }
+            ];
+        }
+
+        const [comments, totalCount] = await Promise.all([
+            this.findMany(query as SafeFilter<ILinkComment>, {
+                sort: { createdAt: -1, _id: -1 }, // Newest first for pagination, but we will reverse for display if needed
+                limit,
+                populate: { path: 'userId', select: 'username' }
+            }),
+            this.count(query as SafeFilter<ILinkComment>)
+        ]);
+
+        return { comments, totalCount };
     }
 
     /**

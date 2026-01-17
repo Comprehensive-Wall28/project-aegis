@@ -217,8 +217,23 @@ export const getComments = async (req: AuthRequest, res: Response, next: NextFun
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        const comments = await socialService.getComments(req.user.id, req.params.linkId);
-        res.status(200).json(comments);
+
+        const limit = parseInt(req.query.limit as string) || 20;
+        const cursorCreatedAt = req.query.cursorCreatedAt as string;
+        const cursorId = req.query.cursorId as string;
+
+        const beforeCursor = cursorCreatedAt && cursorId ? {
+            createdAt: cursorCreatedAt,
+            id: cursorId
+        } : undefined;
+
+        const result = await socialService.getComments(
+            req.user.id,
+            req.params.linkId,
+            limit,
+            beforeCursor
+        );
+        res.status(200).json(result);
     } catch (error) {
         handleError(error, res, next);
     }

@@ -715,13 +715,17 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
 
     // ============== Comment Operations ==============
 
-    async getComments(userId: string, linkId: string): Promise<any[]> {
+    async getComments(
+        userId: string,
+        linkId: string,
+        limit: number = 20,
+        beforeCursor?: { createdAt: string; id: string }
+    ): Promise<{ comments: any[]; totalCount: number; hasMore: boolean }> {
         try {
             const linkPost = await this.linkPostRepo.findById(linkId);
             if (!linkPost) {
                 throw new ServiceError('Link not found', 404);
             }
-
             const collection = await this.collectionRepo.findById(linkPost.collectionId.toString());
             if (!collection) {
                 throw new ServiceError('Collection not found', 404);
@@ -732,9 +736,22 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Not a member of this room', 403);
             }
 
-            const comments = await this.linkCommentRepo.findByLinkId(linkId);
+            const cursor = beforeCursor ? {
+                createdAt: new Date(beforeCursor.createdAt),
+                id: beforeCursor.id
+            } : undefined;
 
-            return comments;
+            const { comments, totalCount } = await this.linkCommentRepo.findByLinkIdWithPagination(
+                linkId,
+                limit,
+                cursor
+            );
+
+            return {
+                comments,
+                totalCount,
+                hasMore: comments.length === limit
+            };
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Get comments error:', error);
