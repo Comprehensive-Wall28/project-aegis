@@ -120,6 +120,7 @@ export interface PostLinkDialogProps {
     onClose: () => void;
     onSubmit: (url: string) => void;
     isLoading: boolean;
+    error?: string | null;
 }
 
 export interface RoomCardProps {

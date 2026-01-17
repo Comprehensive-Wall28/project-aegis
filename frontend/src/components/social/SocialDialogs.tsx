@@ -11,6 +11,7 @@ import {
     CircularProgress,
     useMediaQuery,
     InputAdornment,
+    Alert,
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -243,6 +244,7 @@ export const PostLinkDialog = memo(({
     onClose,
     onSubmit,
     isLoading,
+    error
 }: PostLinkDialogProps) => {
     const [url, setUrl] = useState('');
     const theme = useTheme();
@@ -322,6 +324,18 @@ export const PostLinkDialog = memo(({
                                         ),
                                     }}
                                 />
+                                {error && (
+                                    <Alert
+                                        severity="error"
+                                        sx={{
+                                            mt: 2,
+                                            borderRadius: SOCIAL_RADIUS_SMALL,
+                                            animation: 'fadeIn 0.3s ease-in'
+                                        }}
+                                    >
+                                        {error}
+                                    </Alert>
+                                )}
                             </Box>
 
                             <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>

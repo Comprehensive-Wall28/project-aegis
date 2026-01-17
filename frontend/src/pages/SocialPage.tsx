@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 // Internal store and components
 import { useSocialStore, encryptWithAES, decryptWithAES } from '@/stores/useSocialStore';
+import { SOCIAL_SNACKBAR_Z_INDEX } from '@/components/social/constants';
 import { useSessionStore } from '@/stores/sessionStore';
 import { CommentsOverlay } from '@/components/social/CommentsOverlay';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
@@ -100,6 +101,7 @@ export function SocialPage() {
     const [viewFilter, setViewFilter] = useState<'all' | 'viewed' | 'unviewed'>('all');
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [postLinkError, setPostLinkError] = useState<string | null>(null);
     const [snackbar, setSnackbar] = useState<SnackbarState>({
         open: false,
         message: '',
@@ -267,13 +269,17 @@ export function SocialPage() {
 
         try {
             setIsPostingLink(true);
+            setPostLinkError(null);
             await postLink(linkToPost.trim());
             setNewLinkUrl('');
             setShowPostLinkDialog(false);
             showSnackbar('Link shared successfully', 'success');
         } catch (error: any) {
             const message = error.response?.data?.message || error.message || 'Failed to post link';
-            showSnackbar(message, 'error');
+            setPostLinkError(message);
+            if (!isMobile) {
+                showSnackbar(message, 'error');
+            }
         } finally {
             setIsPostingLink(false);
         }
@@ -670,9 +676,13 @@ export function SocialPage() {
                             {/* Post Link Dialog */}
                             < PostLinkDialog
                                 open={showPostLinkDialog}
-                                onClose={() => setShowPostLinkDialog(false)}
+                                onClose={() => {
+                                    setShowPostLinkDialog(false);
+                                    setPostLinkError(null);
+                                }}
                                 onSubmit={handlePostLink}
                                 isLoading={isPostingLink}
+                                error={postLinkError}
                             />
 
                             {/* Mobile FAB */}
@@ -741,6 +751,7 @@ export function SocialPage() {
                     autoHideDuration={4000}
                     onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
                     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    sx={{ zIndex: SOCIAL_SNACKBAR_Z_INDEX }}
                 >
                     <Alert
                         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
