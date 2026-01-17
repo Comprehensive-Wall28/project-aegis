@@ -5,6 +5,8 @@ const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 class SocketService {
     private socket: Socket | null = null;
     private static instance: SocketService;
+    private _isConnected: boolean = false;
+    private _reconnectAttempts: number = 0;
 
     private constructor() { }
 
@@ -15,30 +17,75 @@ class SocketService {
         return SocketService.instance;
     }
 
+    public get isConnected(): boolean {
+        return this._isConnected;
+    }
+
+    public get reconnectAttempts(): number {
+        return this._reconnectAttempts;
+    }
+
     public connect(): void {
         if (this.socket?.connected) return;
 
         this.socket = io(SOCKET_URL, {
             withCredentials: true,
-            transports: ['websocket', 'polling']
+            transports: ['websocket', 'polling'],
+            // Robust reconnection settings
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 30000,
+            randomizationFactor: 0.5,
+            timeout: 20000,
         });
 
         this.socket.on('connect', () => {
-            console.log('Socket connected:', this.socket?.id);
+            console.log('[Socket] Connected:', this.socket?.id);
+            this._isConnected = true;
+            this._reconnectAttempts = 0;
         });
 
-        this.socket.on('disconnect', () => {
-            console.log('Socket disconnected');
+        this.socket.on('disconnect', (reason) => {
+            console.log('[Socket] Disconnected:', reason);
+            this._isConnected = false;
+
+            // If server disconnected us, we should try to reconnect
+            if (reason === 'io server disconnect') {
+                console.log('[Socket] Server initiated disconnect, attempting reconnect...');
+                this.socket?.connect();
+            }
+        });
+
+        this.socket.on('reconnect_attempt', (attempt) => {
+            this._reconnectAttempts = attempt;
+            console.log(`[Socket] Reconnection attempt ${attempt}`);
+        });
+
+        this.socket.on('reconnect', (attemptNumber) => {
+            console.log(`[Socket] Reconnected after ${attemptNumber} attempts`);
+            this._reconnectAttempts = 0;
+        });
+
+        this.socket.on('reconnect_failed', () => {
+            console.error('[Socket] Reconnection failed after maximum attempts');
         });
 
         this.socket.on('connect_error', (error) => {
-            console.error('Socket connection error:', error);
+            console.error('[Socket] Connection error:', error.message);
         });
     }
 
     public joinRoom(roomId: string): void {
         if (!this.socket) this.connect();
-        this.socket?.emit('join-room', roomId);
+        if (this._isConnected) {
+            this.socket?.emit('join-room', roomId);
+        } else {
+            // Queue the join for when connected
+            this.socket?.once('connect', () => {
+                this.socket?.emit('join-room', roomId);
+            });
+        }
     }
 
     public leaveRoom(roomId: string): void {
@@ -65,7 +112,10 @@ class SocketService {
     public disconnect(): void {
         this.socket?.disconnect();
         this.socket = null;
+        this._isConnected = false;
+        this._reconnectAttempts = 0;
     }
 }
 
 export default SocketService.getInstance();
+

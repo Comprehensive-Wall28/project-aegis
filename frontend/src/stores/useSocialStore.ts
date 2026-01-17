@@ -840,7 +840,9 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         socketService.removeAllListeners('LINK_UPDATED');
         socketService.removeAllListeners('LINK_DELETED');
         socketService.removeAllListeners('LINK_MOVED');
-        socketService.removeAllListeners('connect'); // Also remove our custom connect handler
+        socketService.removeAllListeners('connect');
+        socketService.removeAllListeners('disconnect');
+        socketService.removeAllListeners('reconnect_attempt');
 
         socketService.on('NEW_LINK', (data: { link: LinkPost, collectionId: string }) => {
             console.log('[Socket] NEW_LINK received:', data.link._id, 'scrapeStatus:', data.link.previewData?.scrapeStatus);
@@ -1008,24 +1010,44 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             });
         });
 
+        // Graceful Disconnection Handling
+        socketService.on('disconnect', () => {
+            console.log('[Store] Socket disconnected - data may become stale');
+            // We could set a flag here to show a connection warning in the UI
+            // For now, just log. On reconnect, we'll refresh.
+        });
+
         // Graceful Reconnection Handling
         socketService.on('connect', () => {
             const state = get();
-            console.log('Socket Connected/Reconnected');
+            console.log('[Store] Socket Connected/Reconnected');
 
             // If we are in a room, we must re-join it because the new socket doesn't know about it.
             if (state.currentRoom) {
-                console.log('Re-joining room:', state.currentRoom._id);
+                console.log('[Store] Re-joining room:', state.currentRoom._id);
                 socketService.joinRoom(state.currentRoom._id);
 
                 // Invalidate cache to ensure we fetch fresh data, as we might have missed events while disconnected.
                 set({ linksCache: {} });
 
                 // Refresh the current view immediately so the user sees correct data
-                if (state.currentCollectionId) {
-                    get().fetchCollectionLinks(state.currentCollectionId, false, true); // silent refresh
+                const collectionId = state.currentCollectionId;
+                if (collectionId) {
+                    // Use a small delay to ensure the room join completes first
+                    setTimeout(() => {
+                        const currentState = get();
+                        // Only refresh if we're still looking at the same collection
+                        if (currentState.currentCollectionId === collectionId) {
+                            get().fetchCollectionLinks(collectionId, false, true); // silent refresh
+                        }
+                    }, 100);
                 }
             }
+        });
+
+        // Handle reconnection attempts for logging
+        socketService.on('reconnect_attempt', () => {
+            console.log('[Store] Attempting to reconnect...');
         });
     }
 }));
