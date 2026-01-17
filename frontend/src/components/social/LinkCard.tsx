@@ -39,44 +39,57 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                     e.dataTransfer.setData('text/plain', link._id);
                     e.dataTransfer.effectAllowed = 'move';
 
-                    const el = e.currentTarget as HTMLElement;
-                    const rect = el.getBoundingClientRect();
-                    const scale = 0.4;
+                    // Create a lightweight ghost element for the drag image
+                    const ghost = document.createElement('div');
+                    ghost.style.position = 'absolute';
+                    ghost.style.top = '-1000px';
+                    ghost.style.left = '-1000px';
+                    ghost.style.width = '200px';
+                    ghost.style.padding = '12px';
+                    ghost.style.background = theme.palette.background.paper;
+                    ghost.style.border = `1px solid ${theme.palette.primary.main}`;
+                    ghost.style.borderRadius = '12px';
+                    ghost.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
+                    ghost.style.display = 'flex';
+                    ghost.style.alignItems = 'center';
+                    ghost.style.gap = '10px';
+                    ghost.style.zIndex = '9999';
 
-                    // Create a wrapper to constrain the drag image size
-                    const wrapper = document.createElement('div');
-                    wrapper.style.width = `${rect.width * scale}px`;
-                    wrapper.style.height = `${rect.height * scale}px`;
-                    wrapper.style.position = 'absolute';
-                    wrapper.style.top = '-9999px';
-                    wrapper.style.left = '-9999px';
-                    wrapper.style.zIndex = '9999';
-                    wrapper.style.overflow = 'hidden'; // Ensure clean edges
+                    // Add favicon if available
+                    if (faviconImage) {
+                        const img = document.createElement('img');
+                        img.src = faviconImage;
+                        img.style.width = '20px';
+                        img.style.height = '20px';
+                        img.style.borderRadius = '4px';
+                        ghost.appendChild(img);
+                    } else {
+                        const icon = document.createElement('span');
+                        icon.innerHTML = '🔗';
+                        icon.style.fontSize = '16px';
+                        ghost.appendChild(icon);
+                    }
 
-                    const clone = el.cloneNode(true) as HTMLElement;
-                    // Reset styles that might interfere
-                    clone.style.width = `${rect.width}px`;
-                    clone.style.height = `${rect.height}px`;
-                    clone.style.transform = `scale(${scale})`;
-                    clone.style.transformOrigin = 'top left';
-                    clone.style.position = 'absolute';
-                    clone.style.top = '0';
-                    clone.style.left = '0';
-                    clone.style.opacity = '1';
-                    clone.style.transition = 'none'; // distinct from original
+                    // Add title
+                    const text = document.createElement('span');
+                    text.innerText = previewData.title || 'Untitled Link';
+                    text.style.fontSize = '13px';
+                    text.style.fontWeight = '600';
+                    text.style.color = theme.palette.text.primary;
+                    text.style.overflow = 'hidden';
+                    text.style.textOverflow = 'ellipsis';
+                    text.style.whiteSpace = 'nowrap';
+                    ghost.appendChild(text);
 
-                    wrapper.appendChild(clone);
-                    document.body.appendChild(wrapper);
+                    document.body.appendChild(ghost);
 
-                    // Calculate offset so the ghost is grabbed continuously relative to cursor
-                    const clickX = e.clientX - rect.left;
-                    const clickY = e.clientY - rect.top;
+                    // Set the custom ghost as the drag image
+                    // Center it under the cursor approximately
+                    e.dataTransfer.setDragImage(ghost, 100, 25);
 
-                    e.dataTransfer.setDragImage(wrapper, clickX * scale, clickY * scale);
-
-                    // Clean up
+                    // Remove after the drag has started
                     setTimeout(() => {
-                        document.body.removeChild(wrapper);
+                        document.body.removeChild(ghost);
                     }, 0);
                 }}
                 onDragEnd={() => setIsDragging(false)}
