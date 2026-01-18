@@ -26,7 +26,6 @@ import { generateFolderKey, wrapKey, unwrapKey } from '@/lib/cryptoUtils';
 import { type ViewPreset } from './types';
 
 // Components
-import { BackendDown } from '@/components/BackendDown';
 import UploadZone from '@/components/vault/UploadZone';
 import { ImagePreviewOverlay } from '@/components/vault/ImagePreviewOverlay';
 import { PDFPreviewOverlay } from '@/components/vault/PDFPreviewOverlay';
@@ -63,7 +62,6 @@ export function FilesPage() {
         setFolders,
         folderPath,
         isLoading,
-        backendError,
         searchQuery,
         setSearchQuery,
         downloadingId,
@@ -391,10 +389,6 @@ export function FilesPage() {
             toggleSelect(file._id);
         }
     }, [toggleSelect]);
-
-    if (backendError) {
-        return <BackendDown onRetry={fetchData} />;
-    }
 
     return (
         <Stack

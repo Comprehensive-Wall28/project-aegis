@@ -41,11 +41,11 @@ export function BackendDown({ onRetry }: BackendDownProps) {
                         </button>
                     )}
                     <Link
-                        to="/dashboard"
+                        to="/"
                         className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-foreground font-medium hover:bg-white/10 transition-all hover:scale-105"
                     >
                         <Home className="w-5 h-5" />
-                        Back to Dashboard
+                        Return Home
                     </Link>
                 </div>
             </div>

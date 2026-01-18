@@ -13,7 +13,6 @@ export const useGPAActions = (showSnackbar: (msg: string, severity: 'success' | 
     const [courses, setCourses] = useState<Course[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [backendError, setBackendError] = useState(false);
     const [unmigratedCount, setUnmigratedCount] = useState(0);
     const [isMigrating, setIsMigrating] = useState(false);
 
@@ -24,7 +23,6 @@ export const useGPAActions = (showSnackbar: (msg: string, severity: 'success' | 
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
-            setBackendError(false);
 
             const [encryptedCourses, prefs] = await Promise.all([
                 gpaService.getEncryptedCourses(),
@@ -46,11 +44,9 @@ export const useGPAActions = (showSnackbar: (msg: string, severity: 'success' | 
             setGPASystem(prefs.gpaSystem);
         } catch (error: any) {
             console.error('Failed to fetch GPA data:', error);
-            if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-                setBackendError(true);
-            } else {
-                setCourses([]);
-            }
+            // Network errors are handled by global BackendStatusProvider
+            // Only set empty courses for other errors
+            setCourses([]);
         } finally {
             setIsLoading(false);
         }
@@ -134,7 +130,6 @@ export const useGPAActions = (showSnackbar: (msg: string, severity: 'success' | 
         courses,
         isLoading,
         isSaving,
-        backendError,
         unmigratedCount,
         isMigrating,
         migrationProgress,

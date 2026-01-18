@@ -17,7 +17,6 @@ import { CourseForm } from '@/components/gpa/CourseForm';
 import { CourseList } from '@/components/gpa/CourseList';
 import { SemesterGPAChart } from '@/components/gpa/SemesterGPAChart';
 import { CumulativeGPAChart } from '@/components/gpa/CumulativeGPAChart';
-import { BackendDown } from '@/components/BackendDown';
 import {
     calculateNormalGPA,
     calculateGermanGPA,
@@ -57,7 +56,6 @@ export function GPAPage() {
         courses,
         isLoading,
         isSaving,
-        backendError,
         unmigratedCount,
         isMigrating,
         migrationProgress,
@@ -102,10 +100,6 @@ export function GPAPage() {
             showSnackbar('Failed to update GPA system', 'error');
         }
     };
-
-    if (backendError) {
-        return <BackendDown onRetry={fetchData} />;
-    }
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>

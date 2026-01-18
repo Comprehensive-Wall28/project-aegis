@@ -18,7 +18,6 @@ export function useFilesData() {
     const [folders, setFolders] = useState<Folder[]>([]);
     const [folderPath, setFolderPath] = useState<Folder[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [backendError, setBackendError] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
@@ -28,7 +27,6 @@ export function useFilesData() {
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
-            setBackendError(false);
 
             // Fetch everything in parallel: files, subfolders, and if needed, current folder metadata for path breadcrumbs
             const promises: [Promise<FileMetadata[]>, Promise<Folder[]>, Promise<Folder | null>] = [
@@ -55,7 +53,7 @@ export function useFilesData() {
                 navigate('/dashboard/files?error=folder_not_found', { replace: true });
                 return;
             }
-            setBackendError(true);
+            // Other errors (like network) are handled by global BackendStatusProvider
 
         } finally {
             setIsLoading(false);
@@ -123,7 +121,6 @@ export function useFilesData() {
         setFolders,
         folderPath,
         isLoading,
-        backendError,
         searchQuery,
         setSearchQuery,
         downloadingId,

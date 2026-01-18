@@ -85,12 +85,11 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
             }
         } catch (err: any) {
             console.error(err);
-            if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
-                onClose();
-                navigate('/backend-down');
-                return;
+            // Network errors are handled by global BackendStatusProvider
+            // Only show error message for other errors
+            if (err.code !== 'ERR_NETWORK' && err.message !== 'Network Error') {
+                setError(err.response?.data?.message || 'Authentication failed');
             }
-            setError(err.response?.data?.message || 'Authentication failed');
         } finally {
             setLoading(false);
         }

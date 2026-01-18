@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
 import { Landing } from '@/pages/Landing';
 import { Dashboard } from '@/pages/Dashboard';
 import { FilesPage } from '@/pages/FilesPage';
@@ -14,11 +14,22 @@ import { BackendDownPage } from '@/pages/BackendDown';
 import { PublicSharedFilePage } from '@/pages/PublicSharedFilePage';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { RouteErrorBoundary } from '@/components/error/RouteErrorBoundary';
+import { BackendStatusProvider } from '@/contexts/BackendStatusContext';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme';
 import { useThemeStore } from '@/stores/themeStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useMemo, useEffect } from 'react';
+
+// Root layout that provides backend status context to all routes
+function RootLayout() {
+    return (
+        <BackendStatusProvider>
+            <Outlet />
+        </BackendStatusProvider>
+    );
+}
 
 // Placeholder pages for future implementation
 
@@ -33,78 +44,98 @@ function ZKPVerifier() {
 
 const router = createBrowserRouter([
     {
-        path: '/',
-        element: <Landing />,
-    },
-    {
-        path: '/backend-down',
-        element: <BackendDownPage />,
-    },
-    {
-        path: '/pqc-learn',
-        element: <PqcLearn />,
-    },
-    {
-        path: '/invite/:code',
-        element: <InviteLanding />,
-    },
-    {
-        path: '/share/view/:token',
-        element: <PublicSharedFilePage />,
-    },
-    {
-        path: '/dashboard',
-        element: (
-            <ProtectedRoute>
-                <DashboardLayout />
-            </ProtectedRoute>
-        ),
+        element: <RootLayout />,
         children: [
             {
-                index: true,
-                element: <Dashboard />,
+                path: '/',
+                element: <Landing />,
+                errorElement: <RouteErrorBoundary />,
             },
             {
-                path: 'files',
-                element: <FilesPage />,
+                path: '/backend-down',
+                element: <BackendDownPage />,
             },
             {
-                path: 'files/:folderId',
-                element: <FilesPage />,
+                path: '/pqc-learn',
+                element: <PqcLearn />,
+                errorElement: <RouteErrorBoundary />,
             },
             {
-                path: 'gpa',
-                element: <GPAPage />,
+                path: '/invite/:code',
+                element: <InviteLanding />,
+                errorElement: <RouteErrorBoundary />,
             },
             {
-                path: 'zkp',
-                element: <ZKPVerifier />,
+                path: '/share/view/:token',
+                element: <PublicSharedFilePage />,
+                errorElement: <RouteErrorBoundary />,
             },
             {
-                path: 'calendar',
-                element: <CalendarPage />,
+                path: '/dashboard',
+                element: (
+                    <ProtectedRoute>
+                        <DashboardLayout />
+                    </ProtectedRoute>
+                ),
+                errorElement: <RouteErrorBoundary />,
+                children: [
+                    {
+                        index: true,
+                        element: <Dashboard />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'files',
+                        element: <FilesPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'files/:folderId',
+                        element: <FilesPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'gpa',
+                        element: <GPAPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'zkp',
+                        element: <ZKPVerifier />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'calendar',
+                        element: <CalendarPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'tasks',
+                        element: <TasksPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'security',
+                        element: <SettingsPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'social',
+                        element: <SocialPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'social/:roomId',
+                        element: <SocialPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                ],
             },
             {
-                path: 'tasks',
-                element: <TasksPage />,
-            },
-            {
-                path: 'security',
-                element: <SettingsPage />,
-            },
-            {
-                path: 'social',
-                element: <SocialPage />,
-            },
-            {
-                path: 'social/:roomId',
-                element: <SocialPage />,
+                path: '*',
+                element: <NotFound />,
             },
         ],
-    },
-    {
-        path: '*',
-        element: <NotFound />,
     },
 ]);
 
