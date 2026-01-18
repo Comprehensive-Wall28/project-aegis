@@ -80,7 +80,11 @@ export function RegisterForm({
                         slotProps={{
                             input: {
                                 startAdornment: <InputAdornment position="start"><PersonIcon fontSize="small" /></InputAdornment>,
-                            }
+                            },
+                            htmlInput: {
+                                'data-1p-ignore': 'false',
+                                'data-lpignore': 'false',
+                            } as React.InputHTMLAttributes<HTMLInputElement>
                         }}
                     />
                 </motion.div>
@@ -98,7 +102,11 @@ export function RegisterForm({
                 slotProps={{
                     input: {
                         startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>,
-                    }
+                    },
+                    htmlInput: {
+                        'data-1p-ignore': 'false',
+                        'data-lpignore': 'false',
+                    } as React.InputHTMLAttributes<HTMLInputElement>
                 }}
             />
 
@@ -114,7 +122,11 @@ export function RegisterForm({
                 slotProps={{
                     input: {
                         startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" /></InputAdornment>,
-                    }
+                    },
+                    htmlInput: {
+                        'data-1p-ignore': 'false',
+                        'data-lpignore': 'false',
+                    } as React.InputHTMLAttributes<HTMLInputElement>
                 }}
             />
 

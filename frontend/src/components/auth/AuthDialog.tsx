@@ -155,6 +155,11 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                 {/* Form Content */}
                                 <Stack
                                     component="form"
+                                    id={state.isRegisterMode ? 'register-form' : 'login-form'}
+                                    method="post"
+                                    action="#"
+                                    data-1p-ignore="false"
+                                    data-lpignore="false"
                                     onSubmit={(e) => {
                                         e.preventDefault();
                                         if (state.show2FA) {

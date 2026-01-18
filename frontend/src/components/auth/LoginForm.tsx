@@ -46,13 +46,17 @@ export function LoginForm({
                 name="email"
                 label="Email Address"
                 type="email"
-                autoComplete="username"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => onEmailChange(e.target.value)}
                 slotProps={{
                     input: {
                         startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>,
-                    }
+                    },
+                    htmlInput: {
+                        'data-1p-ignore': 'false',
+                        'data-lpignore': 'false',
+                    } as React.InputHTMLAttributes<HTMLInputElement>
                 }}
             />
 
@@ -68,7 +72,11 @@ export function LoginForm({
                 slotProps={{
                     input: {
                         startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" /></InputAdornment>,
-                    }
+                    },
+                    htmlInput: {
+                        'data-1p-ignore': 'false',
+                        'data-lpignore': 'false',
+                    } as React.InputHTMLAttributes<HTMLInputElement>
                 }}
             />
 
