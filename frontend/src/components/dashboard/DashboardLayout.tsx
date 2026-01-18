@@ -131,7 +131,7 @@ export function DashboardLayout() {
     return (
         <Box
             sx={{
-                height: '100vh',
+                height: ['100vh', '100dvh'],
                 bgcolor: 'background.default',
                 display: 'flex',
                 overflow: 'hidden',
@@ -192,7 +192,7 @@ export function DashboardLayout() {
                     }),
                     display: 'flex',
                     flexDirection: 'column',
-                    height: '100vh',
+                    height: ['100vh', '100dvh'],
                     position: 'relative',
                     zIndex: 1,
                     minWidth: 0
