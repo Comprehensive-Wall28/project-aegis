@@ -21,7 +21,6 @@ interface FileGridItemProps {
     onContextMenu: (e: React.MouseEvent, target: ContextMenuTarget) => void;
     onDownload: (file: FileMetadata) => void;
     onDelete: (id: string) => void;
-    onDragStart: (id: string) => void;
 }
 
 export const FileGridItem = memo(({
@@ -35,8 +34,7 @@ export const FileGridItem = memo(({
     onFileClick,
     onContextMenu,
     onDownload,
-    onDelete,
-    onDragStart
+    onDelete
 }: FileGridItemProps) => {
     const theme = useTheme();
     const { icon: FileTypeIcon, color } = getFileIconInfo(file.originalFileName);
@@ -49,7 +47,6 @@ export const FileGridItem = memo(({
                     draggable
                     onDragStart={(e) => {
                         e.dataTransfer.setData('fileId', file._id);
-                        onDragStart(file._id);
                     }}
                     onClick={(e) => onFileClick(file, e)}
                     onContextMenu={(e) => onContextMenu(e, { type: 'file', id: file._id })}

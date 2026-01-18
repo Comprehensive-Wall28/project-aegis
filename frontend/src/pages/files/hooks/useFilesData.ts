@@ -18,7 +18,6 @@ export function useFilesData() {
     const [folders, setFolders] = useState<Folder[]>([]);
     const [folderPath, setFolderPath] = useState<Folder[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [backendError, setBackendError] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -45,11 +44,6 @@ export function useFilesData() {
                     // If the backend returns the path (ancestors), use it
                     if (currentFolder.path) {
                         setFolderPath([...currentFolder.path, currentFolder]);
-                    } else {
-                        // Fallback or if already set
-                        if (folderPath.length === 0 || folderPath[folderPath.length - 1]._id !== currentFolderId) {
-                            setFolderPath([currentFolder]);
-                        }
                     }
                 } catch (e: any) {
                     console.error("Failed to fetch folder details for path", e);
@@ -64,7 +58,6 @@ export function useFilesData() {
                 setFolderPath([]);
             }
 
-            setError(null);
         } catch (err: any) {
             console.error('Failed to fetch files:', err);
             // Check if it was the main fetch that failed due to invalid folder ID which might bubble up
@@ -73,7 +66,7 @@ export function useFilesData() {
                 return;
             }
             setBackendError(true);
-            setError('Failed to load files');
+
         } finally {
             setIsLoading(false);
         }
@@ -139,7 +132,6 @@ export function useFilesData() {
         setFolders,
         folderPath,
         isLoading,
-        error,
         backendError,
         searchQuery,
         setSearchQuery,

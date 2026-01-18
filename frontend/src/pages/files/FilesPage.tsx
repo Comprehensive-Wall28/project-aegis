@@ -430,7 +430,6 @@ export function FilesPage() {
                 onDownload={handleDownload}
                 onDragOver={setDragOverId}
                 onDrop={(targetId, droppedId) => handleInternalDrop(targetId, droppedId, selectedIds)}
-                onDragStart={() => { }}
                 dragOverId={dragOverId}
             />
 
