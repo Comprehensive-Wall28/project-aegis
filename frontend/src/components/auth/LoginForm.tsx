@@ -24,7 +24,6 @@ interface LoginFormProps {
     error: string;
     success: string;
     onToggleMode: () => void;
-    onSubmit: (e: React.FormEvent) => void;
 }
 
 export function LoginForm({
@@ -36,7 +35,6 @@ export function LoginForm({
     error,
     success,
     onToggleMode,
-    onSubmit
 }: LoginFormProps) {
     const theme = useTheme();
 
@@ -105,8 +103,8 @@ export function LoginForm({
             <Button
                 fullWidth
                 variant="contained"
+                type="submit"
                 disabled={loading}
-                onClick={onSubmit}
                 sx={{
                     py: 1.5,
                     fontWeight: 700,

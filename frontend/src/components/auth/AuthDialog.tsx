@@ -153,11 +153,21 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                 </Box>
 
                                 {/* Form Content */}
-                                <Stack component="form" onSubmit={actions.handleAuth} sx={{ gap: 2.5 }}>
+                                <Stack
+                                    component="form"
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        if (state.show2FA) {
+                                            actions.handleComplete2FA();
+                                        } else {
+                                            actions.handleAuth();
+                                        }
+                                    }}
+                                    sx={{ gap: 2.5 }}
+                                >
                                     {state.show2FA ? (
                                         <TwoFactorPrompt
                                             loading={state.loading}
-                                            onComplete2FA={() => actions.handleComplete2FA()}
                                             onCancel={() => actions.setShow2FA(false)}
                                         />
                                     ) : state.isRegisterMode ? (
@@ -172,7 +182,6 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                             error={state.error}
                                             success={state.success}
                                             onToggleMode={actions.toggleMode}
-                                            onSubmit={actions.handleAuth}
                                             openCount={state.openCount}
                                         />
                                     ) : (
@@ -185,7 +194,6 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                             error={state.error}
                                             success={state.success}
                                             onToggleMode={actions.toggleMode}
-                                            onSubmit={actions.handleAuth}
                                         />
                                     )}
                                 </Stack>

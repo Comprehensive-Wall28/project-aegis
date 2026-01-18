@@ -27,7 +27,6 @@ interface RegisterFormProps {
     error: string;
     success: string;
     onToggleMode: () => void;
-    onSubmit: (e: React.FormEvent) => void;
     openCount: number;
 }
 
@@ -56,7 +55,6 @@ export function RegisterForm({
     error,
     success,
     onToggleMode,
-    onSubmit,
     openCount
 }: RegisterFormProps) {
     const theme = useTheme();
@@ -146,8 +144,8 @@ export function RegisterForm({
             <Button
                 fullWidth
                 variant="contained"
+                type="submit"
                 disabled={loading}
-                onClick={onSubmit}
                 sx={{
                     py: 1.5,
                     fontWeight: 700,

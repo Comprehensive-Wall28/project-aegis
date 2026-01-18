@@ -10,13 +10,11 @@ import {
 
 interface TwoFactorPromptProps {
     loading: boolean;
-    onComplete2FA: () => void;
     onCancel: () => void;
 }
 
 export function TwoFactorPrompt({
     loading,
-    onComplete2FA,
     onCancel
 }: TwoFactorPromptProps) {
     return (
@@ -31,7 +29,7 @@ export function TwoFactorPrompt({
             <Button
                 fullWidth
                 variant="contained"
-                onClick={onComplete2FA}
+                type="submit"
                 disabled={loading}
                 startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <FingerprintIcon />}
                 sx={{ py: 1.5, borderRadius: 2.5 }}
