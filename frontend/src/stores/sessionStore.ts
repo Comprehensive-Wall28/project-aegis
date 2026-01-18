@@ -26,6 +26,7 @@ interface User {
         counter: number;
         transports?: string[];
     }>;
+    totalStorageUsed?: number;
 }
 
 export type CryptoStatus = 'idle' | 'encrypting' | 'decrypting' | 'processing' | 'done';
@@ -52,9 +53,10 @@ interface SessionState {
     setCryptoStatus: (status: CryptoStatus) => void;
     initializeQuantumKeys: (seed?: Uint8Array) => void;
     checkAuth: () => Promise<void>;
-    updateUser: (updates: Partial<Pick<User, 'username' | 'email'>>) => void;
+    updateUser: (updates: Partial<Pick<User, 'username' | 'email' | 'totalStorageUsed'>>) => void;
     setRecentActivity: (logs: AuditLog[]) => void;
     fetchRecentActivity: () => Promise<void>;
+    fetchStorageStats: () => Promise<void>;
 }
 
 // Module-level flag to prevent concurrent auth checks
@@ -277,6 +279,19 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             set({ recentActivity: logs });
         } catch (error) {
             console.error('Failed to fetch recent activity:', error);
+        }
+    },
+
+    fetchStorageStats: async () => {
+        const currentState = get();
+        if (!currentState.isAuthenticated) return;
+
+        try {
+            const { default: vaultService } = await import('@/services/vaultService');
+            const data = await vaultService.getStorageStats();
+            get().updateUser({ totalStorageUsed: data.totalStorageUsed });
+        } catch (error) {
+            console.error('Failed to fetch storage stats:', error);
         }
     }
 }));

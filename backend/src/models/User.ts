@@ -24,6 +24,7 @@ export interface IUser extends Document {
     preferences: IUserPreferences;
     webauthnCredentials: IWebAuthnCredential[];
     currentChallenge?: string;
+    totalStorageUsed: number;
 }
 
 const UserSchema: Schema = new Schema({
@@ -56,7 +57,9 @@ const UserSchema: Schema = new Schema({
         transports: [{ type: String }]
     }],
 
-    currentChallenge: { type: String }
+    currentChallenge: { type: String },
+
+    totalStorageUsed: { type: Number, default: 0, min: 0 }
 
 }, { timestamps: true });
 

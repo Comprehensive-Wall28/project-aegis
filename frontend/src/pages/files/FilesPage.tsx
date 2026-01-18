@@ -197,6 +197,9 @@ export function FilesPage() {
             });
             setIsDeleting(false);
             setDeleteConfirm({ open: false, type: 'file' });
+
+            // Refresh storage stats
+            useSessionStore.getState().fetchStorageStats();
         }
     }, [deleteConfirm.id, setFiles, setSelectedIds]);
 
@@ -246,6 +249,9 @@ export function FilesPage() {
         if (successfulIds.size === ids.length) {
             clearSelection();
         }
+
+        // Refresh storage stats
+        useSessionStore.getState().fetchStorageStats();
     }, [selectedIds, setFiles, setSelectedIds, clearSelection]);
 
     const handleMoveToFolder = useCallback(async (targetFolderId: string | null, idsToOverride?: string[]) => {

@@ -3,6 +3,7 @@ import { Readable } from 'stream';
 import mongoose from 'mongoose';
 import { BaseService, ServiceError } from './base/BaseService';
 import { FileMetadataRepository } from '../repositories/FileMetadataRepository';
+import { UserRepository } from '../repositories/UserRepository';
 import { IFileMetadata } from '../models/FileMetadata';
 import Folder from '../models/Folder';
 import SharedFolder from '../models/SharedFolder';
@@ -41,8 +42,12 @@ export interface ChunkUploadResult {
  * VaultService handles file storage business logic
  */
 export class VaultService extends BaseService<IFileMetadata, FileMetadataRepository> {
+    private userRepository: UserRepository;
+    private readonly MAX_STORAGE = 5 * 1024 * 1024 * 1024; // 5GB
+
     constructor() {
         super(new FileMetadataRepository());
+        this.userRepository = new UserRepository();
     }
 
     /**
@@ -70,6 +75,16 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 'encapsulatedKey',
                 'mimeType'
             ]);
+
+            // Check user storage limit
+            const user = await this.userRepository.findById(userId);
+            if (!user) {
+                throw new ServiceError('User not found', 404);
+            }
+
+            if (user.totalStorageUsed + data.fileSize > this.MAX_STORAGE) {
+                throw new ServiceError('Storage limit exceeded. Upgrade your plan or delete some files.', 403);
+            }
 
             // Initiate Google Drive resumable upload session
             const uploadStreamId = await initiateUpload(data.originalFileName, data.fileSize, {
@@ -159,6 +174,11 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 // Finalize the upload
                 const googleDriveFileId = await finalizeUpload(fileRecord.uploadStreamId);
                 await this.repository.completeUpload(fileId, googleDriveFileId);
+
+                // Update user storage usage
+                await this.userRepository.updateById(userId, {
+                    $inc: { totalStorageUsed: fileRecord.fileSize }
+                } as any);
 
                 logger.info(`Vault upload completed: ${fileId} -> Google Drive ${googleDriveFileId}`);
                 return { complete: true, googleDriveFileId };
@@ -320,6 +340,13 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             // Delete metadata record
             await this.repository.deleteByIdAndOwner(fileId, userId);
 
+            // Update user storage usage (decrement)
+            if (fileRecord.status === 'completed') {
+                await this.userRepository.updateById(userId, {
+                    $inc: { totalStorageUsed: -fileRecord.fileSize }
+                } as any);
+            }
+
             logger.info(`Vault file deleted: ${fileRecord.fileName} (${fileId}) by User ${userId}`);
 
             await this.logAction(userId, 'FILE_DELETE', 'SUCCESS', req, {
@@ -331,5 +358,20 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             logger.error('Delete file error:', error);
             throw new ServiceError('Delete failed', 500);
         }
+    }
+
+    /**
+     * Get user storage stats
+     */
+    async getStorageStats(userId: string): Promise<{ totalStorageUsed: number; maxStorage: number }> {
+        const user = await this.userRepository.findById(userId);
+        if (!user) {
+            throw new ServiceError('User not found', 404);
+        }
+
+        return {
+            totalStorageUsed: user.totalStorageUsed || 0,
+            maxStorage: this.MAX_STORAGE
+        };
     }
 }

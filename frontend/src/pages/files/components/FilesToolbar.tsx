@@ -1,4 +1,5 @@
-import { Box, TextField, InputAdornment, Button, useTheme, alpha } from '@mui/material';
+import { Box, TextField, InputAdornment, Button, useTheme, alpha, Stack } from '@mui/material';
+import { StorageIndicator } from '@/components/vault/StorageIndicator';
 import {
     Search as SearchIcon,
     CheckBox as CheckSquareIcon,
@@ -51,20 +52,31 @@ export function FilesToolbar({
                 }}
             />
 
-            {totalCount > 0 && (
-                <Button
-                    size="small"
-                    onClick={onSelectAll}
-                    startIcon={
-                        selectedCount === totalCount ? <CheckSquareIcon color="primary" /> :
-                            selectedCount > 0 ? <XSquareIcon /> : <SquareIcon />
-                    }
-                    sx={{ color: 'text.secondary', fontWeight: 600, fontSize: { xs: '12px', sm: '13px' }, alignSelf: { xs: 'flex-start', md: 'center' } }}
-                >
-                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{selectedCount === totalCount ? 'Deselect All' : 'Select All'}</Box>
-                    <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{selectedCount === totalCount ? 'Deselect' : 'Select'}</Box>
-                </Button>
-            )}
+            <Stack direction="row" spacing={3} alignItems="center">
+                <StorageIndicator />
+
+                {totalCount > 0 && (
+                    <Button
+                        size="small"
+                        onClick={onSelectAll}
+                        startIcon={
+                            selectedCount === totalCount ? <CheckSquareIcon color="primary" /> :
+                                selectedCount > 0 ? <XSquareIcon /> : <SquareIcon />
+                        }
+                        sx={{
+                            color: 'text.secondary',
+                            fontWeight: 600,
+                            fontSize: { xs: '12px', sm: '13px' },
+                            alignSelf: { xs: 'flex-start', md: 'center' },
+                            textTransform: 'none',
+                            '&:hover': { color: 'primary.main', bgcolor: 'transparent' }
+                        }}
+                    >
+                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{selectedCount === totalCount ? 'Deselect All' : 'Select All'}</Box>
+                        <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{selectedCount === totalCount ? 'Deselect' : 'Select'}</Box>
+                    </Button>
+                )}
+            </Stack>
         </Box>
     );
 }

@@ -151,6 +151,22 @@ export const deleteUserFile = async (req: AuthRequest, res: Response) => {
 };
 
 /**
+ * Get user storage stats
+ */
+export const getStorageStats = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user?.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        const stats = await vaultService.getStorageStats(req.user.id);
+        res.json(stats);
+    } catch (error) {
+        handleError(error, res);
+    }
+};
+
+/**
  * Handle service errors and convert to HTTP responses
  */
 function handleError(error: unknown, res: Response): void {

@@ -43,6 +43,11 @@ const vaultService = {
     deleteFile: async (fileId: string): Promise<void> => {
         await apiClient.delete(`${PREFIX}/files/${fileId}`);
     },
+
+    getStorageStats: async (): Promise<{ totalStorageUsed: number; maxStorage: number }> => {
+        const response = await apiClient.get(`${PREFIX}/storage-stats`);
+        return response.data;
+    },
 };
 
 export default vaultService;
