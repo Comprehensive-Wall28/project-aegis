@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
-// @ts-ignore - Module likely exists but types are missing in environment
-import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
+import { pqcWorkerManager } from '../lib/pqcWorkerManager';
 
 export interface CourseData {
     name: string;
@@ -131,9 +130,8 @@ export const useCourseEncryption = () => {
             // 1. Generate AES-256 Key
             const aesKey = await generateAESKey();
 
-            // 2. Encapsulate Key (PQC ML-KEM-768)
-            const pubKeyBytes = hexToBytes(user.publicKey);
-            const { cipherText: encapsulatedKey, sharedSecret } = ml_kem768.encapsulate(pubKeyBytes);
+            // 2. Encapsulate Key (PQC ML-KEM-768) - now in worker
+            const { cipherText: encapsulatedKey, sharedSecret } = await pqcWorkerManager.encapsulate(user.publicKey);
 
             // 3. Wrap AES Key with shared secret
             const encryptedSymmetricKey = await encryptAESKey(aesKey, sharedSecret);
@@ -170,10 +168,11 @@ export const useCourseEncryption = () => {
             throw new Error('User private key not found. PQC Engine must be operational.');
         }
 
-        // 1. Decapsulate to get shared secret
-        const privKeyBytes = hexToBytes(user.privateKey);
-        const encapsulatedKeyBytes = hexToBytes(encryptedCourse.encapsulatedKey);
-        const sharedSecret = ml_kem768.decapsulate(encapsulatedKeyBytes, privKeyBytes);
+        // 1. Decapsulate to get shared secret - now in worker
+        const sharedSecret = await pqcWorkerManager.decapsulate(
+            encryptedCourse.encapsulatedKey,
+            user.privateKey
+        );
 
         // 2. Decrypt AES key
         const aesKey = await decryptAESKey(encryptedCourse.encryptedSymmetricKey, sharedSecret);

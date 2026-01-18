@@ -107,10 +107,18 @@ export const calculateSemesterGPAs = (
     nMax: number = 1.0,
     nMin: number = 4.0
 ): Array<{ semester: string; gpa: number; courseCount: number }> => {
-    const semesters = sortSemestersChronologically([...new Set(courses.map(c => c.semester))]);
+    if (courses.length === 0) return [];
+
+    const grouped = courses.reduce((acc, course) => {
+        if (!acc[course.semester]) acc[course.semester] = [];
+        acc[course.semester].push(course);
+        return acc;
+    }, {} as Record<string, typeof courses>);
+
+    const semesters = sortSemestersChronologically(Object.keys(grouped));
 
     return semesters.map(semester => {
-        const semCourses = courses.filter(c => c.semester === semester);
+        const semCourses = grouped[semester];
         const gpa = gpaSystem === 'GERMAN'
             ? calculateGermanGPA(semCourses, nMax, nMin)
             : calculateNormalGPA(semCourses);
@@ -127,19 +135,23 @@ export const calculateCumulativeProgression = (
     nMax: number = 1.0,
     nMin: number = 4.0
 ): Array<{ semester: string; cumulativeGPA: number }> => {
-    const semesters = sortSemestersChronologically([...new Set(courses.map(c => c.semester))]);
+    if (courses.length === 0) return [];
+
+    const grouped = courses.reduce((acc, course) => {
+        if (!acc[course.semester]) acc[course.semester] = [];
+        acc[course.semester].push(course);
+        return acc;
+    }, {} as Record<string, typeof courses>);
+
+    const semesters = sortSemestersChronologically(Object.keys(grouped));
     const progression: Array<{ semester: string; cumulativeGPA: number }> = [];
 
-    let runningCourses: Array<{ grade: number; credits: number }> = [];
+    const runningCourses: Array<{ grade: number; credits: number }> = [];
 
     for (const semester of semesters) {
-        runningCourses = [
-            ...runningCourses,
-            ...courses.filter(c => c.semester === semester).map(c => ({
-                grade: c.grade,
-                credits: c.credits,
-            })),
-        ];
+        const semCourses = grouped[semester];
+        runningCourses.push(...semCourses.map(c => ({ grade: c.grade, credits: c.credits })));
+
         const cumGPA = gpaSystem === 'GERMAN'
             ? calculateGermanGPA(runningCourses, nMax, nMin)
             : calculateNormalGPA(runningCourses);

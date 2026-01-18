@@ -74,14 +74,13 @@ class PQCWorkerManager {
         };
     }
     /**
-     * Expensive: Decrypt room key using ML-KEM-768 decapsulation
+     * Expensive: Decrypt data using ML-KEM-768 decapsulation
      */
-    async decryptRoomKey(encryptedRoomKeyHex: string, privateKeyHex: string): Promise<Uint8Array> {
-        // Helper to convert hex to Uint8Array
+    async decapsulate(cipherTextHex: string, privateKeyHex: string): Promise<Uint8Array> {
         const hexToBytes = (hex: string) =>
             new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
 
-        const cipherText = hexToBytes(encryptedRoomKeyHex);
+        const cipherText = hexToBytes(cipherTextHex);
         const privateKey = hexToBytes(privateKeyHex);
 
         const result = await this.sendRequest('decapsulate', { cipherText, privateKey });
@@ -89,10 +88,9 @@ class PQCWorkerManager {
     }
 
     /**
-     * Expensive: Encrypt room key using ML-KEM-768 encapsulation
+     * Expensive: Encrypt data using ML-KEM-768 encapsulation
      */
-    async encryptRoomKey(publicKeyHex: string): Promise<{ sharedSecret: Uint8Array; cipherText: Uint8Array }> {
-        // Helper to convert hex to Uint8Array
+    async encapsulate(publicKeyHex: string): Promise<{ sharedSecret: Uint8Array; cipherText: Uint8Array }> {
         const hexToBytes = (hex: string) =>
             new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
 
@@ -104,6 +102,10 @@ class PQCWorkerManager {
             cipherText: result.cipherText
         };
     }
+
+    // Aliases for backward compatibility if needed, but preferably we should update callers
+    async decryptRoomKey(encRoomKey: string, privKey: string) { return this.decapsulate(encRoomKey, privKey); }
+    async encryptRoomKey(pubKey: string) { return this.encapsulate(pubKey); }
 }
 
 export const pqcWorkerManager = new PQCWorkerManager();
