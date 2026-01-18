@@ -106,7 +106,7 @@ export function FilesGrid({
     }, [viewPreset]);
 
     return (
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }} onContextMenu={(e) => onContextMenu(e, { type: 'empty' })}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <AnimatePresence mode="wait">
                 {isLoading ? (
                     <Box
@@ -180,6 +180,7 @@ export function FilesGrid({
                                     onToggleSelect={onToggleSelect}
                                     onMove={onMove}
                                     isMobile={isMobile}
+                                    selectedCount={selectedIds.size}
                                 />
                             ))}
                         </Grid>

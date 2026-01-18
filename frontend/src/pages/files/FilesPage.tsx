@@ -402,6 +402,7 @@ export function FilesPage() {
             className="text-sharp"
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
+            onContextMenu={(e) => handleContextMenu(e, { type: 'empty' })}
             sx={{ position: 'relative', height: '100%' }}
         >
             {/* External Drag Overlay */}

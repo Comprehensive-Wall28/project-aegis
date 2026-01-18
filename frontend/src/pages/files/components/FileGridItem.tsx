@@ -12,7 +12,7 @@ import {
 import { motion, type Variants } from 'framer-motion';
 import type { FileMetadata } from '@/services/vaultService';
 import type { GridSizeConfig, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
-import { getFileIconInfo, formatFileSize, isPreviewable } from '../utils';
+import { getFileIconInfo, formatFileSize, isPreviewable, createDragPreview } from '../utils';
 
 const itemVariants: Variants = {
     hidden: { opacity: 0, y: 15 },
@@ -42,6 +42,7 @@ interface FileGridItemProps {
     onToggleSelect: (id: string) => void;
     onMove: (file: FileMetadata) => void;
     isMobile: boolean;
+    selectedCount: number;
 }
 
 export const FileGridItem = memo(({
@@ -58,7 +59,8 @@ export const FileGridItem = memo(({
     onDelete,
     onToggleSelect,
     onMove,
-    isMobile
+    isMobile,
+    selectedCount
 }: FileGridItemProps) => {
     const theme = useTheme();
     const { icon: FileTypeIcon, color } = getFileIconInfo(file.originalFileName);
@@ -80,6 +82,23 @@ export const FileGridItem = memo(({
                     draggable
                     onDragStart={(e) => {
                         e.dataTransfer.setData('fileId', file._id);
+
+                        // Create custom drag preview
+                        const dragCount = isSelected ? selectedCount : 1;
+                        if (dragCount > 0) {
+                            // We need to pass the icon SVG or similar. For now, let's use a generic file icon color.
+                            // Ideally, we'd render the actual icon to string, but that's complex. 
+                            // The util uses a default white SVG.
+                            const preview = createDragPreview(file.originalFileName, dragCount);
+                            e.dataTransfer.setDragImage(preview, 0, 0);
+
+                            // Remove after browser captures it
+                            setTimeout(() => {
+                                if (document.body.contains(preview)) {
+                                    document.body.removeChild(preview);
+                                }
+                            }, 0);
+                        }
                     }}
                     onClick={(e) => onFileClick(file, e)}
                     onContextMenu={(e) => onContextMenu(e, { type: 'file', id: file._id })}
