@@ -1,7 +1,7 @@
-import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { Box, Typography, CircularProgress, Grid } from '@mui/material';
+import { useState, useEffect, useMemo } from 'react';
+import { Box, Typography, CircularProgress, Grid, useTheme, useMediaQuery } from '@mui/material';
 import { FolderOpen as FolderOpenIcon } from '@mui/icons-material';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import type { FileMetadata } from '@/services/vaultService';
 import type { Folder } from '@/services/folderService';
@@ -9,15 +9,6 @@ import type { ViewPreset, GridSizeConfig, IconScalingConfig, TypoScalingConfig, 
 import { FolderGridItem } from './FolderGridItem';
 import { FileGridItem } from './FileGridItem';
 
-const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.05
-        }
-    }
-};
 
 interface FilesGridProps {
     isLoading: boolean;
@@ -64,27 +55,28 @@ export function FilesGrid({
     onMove,
     dragOverId
 }: FilesGridProps) {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [displayLimit, setDisplayLimit] = useState(30);
-    const observerRef = useRef<IntersectionObserver | null>(null);
+    const [sentinelNode, setSentinelNode] = useState<HTMLElement | null>(null);
 
     // Reset limit when folder changes
     useEffect(() => {
         setDisplayLimit(30);
     }, [currentFolderId]);
 
-    // Lazy load observer using callback ref
-    const onSentinel = useCallback((node: HTMLDivElement | null) => {
-        if (observerRef.current) observerRef.current.disconnect();
+    useEffect(() => {
+        if (!sentinelNode) return;
 
-        if (node) {
-            observerRef.current = new IntersectionObserver((entries) => {
-                if (entries[0].isIntersecting) {
-                    setDisplayLimit(prev => prev + 20);
-                }
-            }, { threshold: 0.1 });
-            observerRef.current.observe(node);
-        }
-    }, []);
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                setDisplayLimit(prev => prev + 20);
+            }
+        }, { threshold: 0.1, rootMargin: '200px' });
+
+        observer.observe(sentinelNode);
+        return () => observer.disconnect();
+    }, [sentinelNode, displayLimit]);
 
     const gridSize = useMemo<GridSizeConfig>(() => {
         switch (viewPreset) {
@@ -151,10 +143,6 @@ export function FilesGrid({
                         <Grid
                             container
                             spacing={2}
-                            component={motion.div}
-                            variants={containerVariants}
-                            initial="hidden"
-                            animate="visible"
                             key="grid"
                         >
                             {folders.map((folder) => (
@@ -171,6 +159,7 @@ export function FilesGrid({
                                     onDelete={onDeleteFolder}
                                     onDragOver={onDragOver}
                                     onDrop={onDrop}
+                                    isMobile={isMobile}
                                 />
                             ))}
 
@@ -190,11 +179,12 @@ export function FilesGrid({
                                     onDelete={onDeleteFile}
                                     onToggleSelect={onToggleSelect}
                                     onMove={onMove}
+                                    isMobile={isMobile}
                                 />
                             ))}
                         </Grid>
                         {files.length > displayLimit && (
-                            <Box ref={onSentinel} sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+                            <Box ref={setSentinelNode} sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
                                 <CircularProgress size={24} />
                             </Box>
                         )}

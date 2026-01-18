@@ -36,6 +36,7 @@ interface FolderGridItemProps {
     onDelete: (id: string) => void;
     onDragOver: (id: string | null) => void;
     onDrop: (targetId: string, droppedFileId: string) => void;
+    isMobile: boolean;
 }
 
 export const FolderGridItem = memo(({
@@ -49,14 +50,22 @@ export const FolderGridItem = memo(({
     onShare,
     onDelete,
     onDragOver,
-    onDrop
+    onDrop,
+    isMobile
 }: FolderGridItemProps) => {
     const theme = useTheme();
 
     return (
-        <Grid size={gridSize} component={motion.div} variants={itemVariants}>
+        <Grid
+            size={gridSize}
+            component={motion.div}
+            variants={itemVariants}
+            initial={isMobile ? false : 'hidden'}
+            whileInView={isMobile ? undefined : 'visible'}
+            viewport={{ once: true }}
+        >
             <Box
-                sx={{ height: '100%' }}
+                sx={{ height: '100%', willChange: 'transform, opacity' }}
             >
                 <Paper
                     elevation={0}

@@ -40,6 +40,7 @@ interface FileGridItemProps {
     onDelete: (id: string) => void;
     onToggleSelect: (id: string) => void;
     onMove: (file: FileMetadata) => void;
+    isMobile: boolean;
 }
 
 export const FileGridItem = memo(({
@@ -55,15 +56,23 @@ export const FileGridItem = memo(({
     onDownload,
     onDelete,
     onToggleSelect,
-    onMove
+    onMove,
+    isMobile
 }: FileGridItemProps) => {
     const theme = useTheme();
     const { icon: FileTypeIcon, color } = getFileIconInfo(file.originalFileName);
 
     return (
-        <Grid size={gridSize} component={motion.div} variants={itemVariants}>
+        <Grid
+            size={gridSize}
+            component={motion.div}
+            variants={itemVariants}
+            initial={isMobile ? false : 'hidden'}
+            whileInView={isMobile ? undefined : 'visible'}
+            viewport={{ once: true }}
+        >
             <Box
-                sx={{ height: '100%' }}
+                sx={{ height: '100%', willChange: 'transform, opacity' }}
             >
                 <Paper
                     elevation={0}
@@ -144,41 +153,47 @@ export const FileGridItem = memo(({
                         >
                             {isSelected ? <CheckCircleIcon fontSize="small" /> : <UncheckedIcon fontSize="small" />}
                         </IconButton>
-                        <IconButton
-                            size="small"
-                            onClick={() => onDownload(file)}
-                            disabled={isDownloading}
-                            sx={{
-                                color: 'primary.main',
-                                p: 0.5,
-                                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
-                            }}
-                        >
-                            <DownloadIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                            size="small"
-                            onClick={() => onDelete(file._id)}
-                            disabled={isDeleting}
-                            sx={{
-                                color: '#EF5350',
-                                p: 0.5,
-                                '&:hover': { bgcolor: alpha('#EF5350', 0.1) }
-                            }}
-                        >
-                            <TrashIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                            size="small"
-                            onClick={() => onMove(file)}
-                            sx={{
-                                color: 'warning.main',
-                                p: 0.5,
-                                '&:hover': { bgcolor: alpha(theme.palette.warning.main, 0.1) }
-                            }}
-                        >
-                            <MoveIcon fontSize="small" />
-                        </IconButton>
+
+                        {!isMobile && (
+                            <>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => onDownload(file)}
+                                    disabled={isDownloading}
+                                    sx={{
+                                        color: 'primary.main',
+                                        p: 0.5,
+                                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
+                                    }}
+                                >
+                                    <DownloadIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => onDelete(file._id)}
+                                    disabled={isDeleting}
+                                    sx={{
+                                        color: '#EF5350',
+                                        p: 0.5,
+                                        '&:hover': { bgcolor: alpha('#EF5350', 0.1) }
+                                    }}
+                                >
+                                    <TrashIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => onMove(file)}
+                                    sx={{
+                                        color: 'warning.main',
+                                        p: 0.5,
+                                        '&:hover': { bgcolor: alpha(theme.palette.warning.main, 0.1) }
+                                    }}
+                                >
+                                    <MoveIcon fontSize="small" />
+                                </IconButton>
+                            </>
+                        )}
+
                         <IconButton
                             size="small"
                             onClick={(e) => onContextMenu(e, { type: 'file', id: file._id })}
