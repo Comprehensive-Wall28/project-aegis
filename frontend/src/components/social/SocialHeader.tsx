@@ -156,7 +156,7 @@ export const SocialHeader = memo(({
             </Box>
 
             <AnimatePresence>
-                {viewMode === 'room-content' && currentRoom && (
+                {viewMode === 'room-content' && (optimisticRoomId || currentRoom) ? (
                     <Box
                         key="header-actions"
                         component={motion.div}
@@ -166,64 +166,68 @@ export const SocialHeader = memo(({
                         transition={{ duration: 0.15 }}
                         sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}
                     >
-                        {!isMobile && (
-                            <Box sx={{ width: 250, display: 'flex', overflow: 'hidden' }}>
-                                <TextField
-                                    placeholder="Search links..."
-                                    value={searchQuery}
-                                    onChange={handleSearchChange}
-                                    size="small"
-                                    fullWidth
-                                    slotProps={{
-                                        input: {
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <SearchIcon fontSize="small" color="action" />
-                                                </InputAdornment>
-                                            ),
-                                            endAdornment: searchQuery ? (
-                                                <InputAdornment position="end">
-                                                    <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
-                                                        <CloseIcon fontSize="small" />
-                                                    </IconButton>
-                                                </InputAdornment>
-                                            ) : undefined,
-                                        }
-                                    }}
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                            {!isMobile && (
+                                <Box sx={{ width: 250, display: 'flex', overflow: 'hidden' }}>
+                                    <TextField
+                                        placeholder="Search links..."
+                                        value={searchQuery}
+                                        onChange={handleSearchChange}
+                                        size="small"
+                                        fullWidth
+                                        disabled={!currentRoom}
+                                        slotProps={{
+                                            input: {
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <SearchIcon fontSize="small" color="action" />
+                                                    </InputAdornment>
+                                                ),
+                                                endAdornment: searchQuery ? (
+                                                    <InputAdornment position="end">
+                                                        <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
+                                                            <CloseIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ) : undefined,
+                                            }
+                                        }}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                                bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                            }
+                                        }}
+                                    />
+                                </Box>
+                            )}
+
+                            <Tooltip title="Filter Links">
+                                <IconButton
+                                    onClick={handleFilterClick}
+                                    disabled={!currentRoom}
                                     sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                            bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                        color: (selectedUploader || viewFilter !== 'all') ? 'primary.main' : 'text.secondary',
+                                        bgcolor: (selectedUploader || viewFilter !== 'all') ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                        '&:hover': {
+                                            color: 'primary.main',
+                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
                                         }
                                     }}
-                                />
-                            </Box>
-                        )}
-
-                        <Tooltip title="Filter Links">
-                            <IconButton
-                                onClick={handleFilterClick}
-                                sx={{
-                                    color: (selectedUploader || viewFilter !== 'all') ? 'primary.main' : 'text.secondary',
-                                    bgcolor: (selectedUploader || viewFilter !== 'all') ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                                    '&:hover': {
-                                        color: 'primary.main',
-                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                    }
-                                }}
-                                aria-label="Filter links"
-                            >
-                                <FilterListIcon />
-                            </IconButton>
-                        </Tooltip>
-
-                        {isMobile && (
-                            <Tooltip title="Copy Invite Link">
-                                <IconButton onClick={handleCopyInvite} color="primary" aria-label="Copy invite link">
-                                    <ShareIcon />
+                                    aria-label="Filter links"
+                                >
+                                    <FilterListIcon />
                                 </IconButton>
                             </Tooltip>
-                        )}
+
+                            {isMobile && (
+                                <Tooltip title="Copy Invite Link">
+                                    <IconButton onClick={handleCopyInvite} color="primary" disabled={!currentRoom} aria-label="Copy invite link">
+                                        <ShareIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                        </Box>
 
                         <Menu
                             anchorEl={filterAnchorEl}
@@ -424,7 +428,7 @@ export const SocialHeader = memo(({
                             </>
                         )}
                     </Box>
-                )}
+                ) : null}
             </AnimatePresence>
         </Paper>
     );
