@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Box, Paper, Typography, Stack, IconButton, useTheme, alpha, Grid } from '@mui/material';
+import { Box, Paper, Typography, Stack, IconButton, useTheme, alpha } from '@mui/material';
 import {
     Folder as FolderIcon,
     Share as ShareIcon,
@@ -7,26 +7,12 @@ import {
     FolderShared as SharedIcon,
     MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
-import { motion, type Variants } from 'framer-motion';
 import type { Folder } from '@/services/folderService';
-import type { GridSizeConfig, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
-
-const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            type: 'spring',
-            stiffness: 300,
-            damping: 30
-        }
-    }
-};
+import type { IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
 
 interface FolderGridItemProps {
     folder: Folder;
-    gridSize: GridSizeConfig;
+
     iconScaling: IconScalingConfig;
     typoScaling: TypoScalingConfig;
     dragOverId: string | null;
@@ -36,12 +22,11 @@ interface FolderGridItemProps {
     onDelete: (id: string) => void;
     onDragOver: (id: string | null) => void;
     onDrop: (targetId: string, droppedFileId: string) => void;
-    isMobile: boolean;
 }
 
 export const FolderGridItem = memo(({
     folder,
-    gridSize,
+
     iconScaling,
     typoScaling,
     dragOverId,
@@ -50,24 +35,13 @@ export const FolderGridItem = memo(({
     onShare,
     onDelete,
     onDragOver,
-    onDrop,
-    isMobile
+    onDrop
 }: FolderGridItemProps) => {
     const theme = useTheme();
 
     return (
-        <Grid
-            size={gridSize}
-            component={motion.div}
-            variants={itemVariants}
-            initial={isMobile ? false : 'hidden'}
-            whileInView={isMobile ? undefined : 'visible'}
-            viewport={{ once: true }}
-        >
-            <Box
-                sx={{ height: '100%', willChange: 'transform, opacity' }}
-            >
-                <Paper
+        <Box sx={{ width: '100%', height: '100%' }}>
+            <Paper
                     elevation={0}
                     onClick={() => onNavigate(folder)}
                     onContextMenu={(e) => onContextMenu(e, { type: 'folder', id: folder._id })}
@@ -84,9 +58,12 @@ export const FolderGridItem = memo(({
                         }
                     }}
                     sx={{
-                        p: 2,
+                        p: iconScaling.padding,
                         position: 'relative',
                         cursor: 'pointer',
+                        width: '100%',
+                        height: '100%',
+                        overflow: 'hidden',
                         borderRadius: '24px',
                         border: dragOverId === folder._id
                             ? `2px solid ${theme.palette.primary.main}`
@@ -98,7 +75,6 @@ export const FolderGridItem = memo(({
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        aspectRatio: '1/1',
                         transition: 'background-color 0.2s, border-color 0.2s',
                         '&:hover': {
                             bgcolor: alpha(theme.palette.background.paper, 0.6),
@@ -131,13 +107,15 @@ export const FolderGridItem = memo(({
                             color: 'text.primary',
                             width: '100%',
                             textAlign: 'center',
-                            px: 1,
+                            px: 0.5,
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
+                            WebkitBoxOrient: 'vertical' as any,
                             overflow: 'hidden',
-                            lineHeight: 1.2,
-                            wordBreak: 'break-word'
+                            lineHeight: 1.3,
+                            wordBreak: 'break-word',
+                            fontSize: { xs: '0.75rem', sm: 'inherit' },
+                            minHeight: { xs: '2.4em', sm: 'auto' }
                         }}
                     >
                         {folder.name}
@@ -187,7 +165,6 @@ export const FolderGridItem = memo(({
                         </IconButton>
                     </Stack>
                 </Paper>
-            </Box>
-        </Grid>
+        </Box>
     );
 });

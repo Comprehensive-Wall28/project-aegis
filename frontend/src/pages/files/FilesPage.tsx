@@ -403,7 +403,7 @@ export function FilesPage() {
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onContextMenu={(e) => handleContextMenu(e, { type: 'empty' })}
-            sx={{ position: 'relative', height: '100%' }}
+            sx={{ position: 'relative', pb: 4 }}
         >
             {/* External Drag Overlay */}
             <AnimatePresence>
@@ -456,8 +456,6 @@ export function FilesPage() {
             <FilesToolbar
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                viewPreset={viewPreset}
-                onViewPresetChange={setViewPreset}
                 selectedCount={selectedIds.size}
                 totalCount={files.length}
                 onSelectAll={selectAll}
@@ -514,7 +512,7 @@ export function FilesPage() {
                 selectedIds={selectedIds}
                 downloadingId={downloadingId}
                 deletingIds={deletingIds}
-                currentFolderId={currentFolderId}
+
                 onNavigate={navigateToFolder}
                 onFileClick={handleFileClick}
                 onContextMenu={handleContextMenu}

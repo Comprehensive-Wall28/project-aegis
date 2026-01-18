@@ -1,14 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, CircularProgress, Grid, useTheme, useMediaQuery } from '@mui/material';
+import { useMemo } from 'react';
+import { Box, Typography, CircularProgress, useTheme, useMediaQuery } from '@mui/material';
 import { FolderOpen as FolderOpenIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import type { FileMetadata } from '@/services/vaultService';
 import type { Folder } from '@/services/folderService';
-import type { ViewPreset, GridSizeConfig, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
+import type { ViewPreset, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
 import { FolderGridItem } from './FolderGridItem';
 import { FileGridItem } from './FileGridItem';
-
 
 interface FilesGridProps {
     isLoading: boolean;
@@ -18,7 +17,7 @@ interface FilesGridProps {
     selectedIds: Set<string>;
     downloadingId: string | null;
     deletingIds: Set<string>;
-    currentFolderId: string | null;
+
     onNavigate: (folder: Folder) => void;
     onFileClick: (file: FileMetadata, e: React.MouseEvent) => void;
     onContextMenu: (e: React.MouseEvent, target: ContextMenuTarget) => void;
@@ -41,7 +40,6 @@ export function FilesGrid({
     selectedIds,
     downloadingId,
     deletingIds,
-    currentFolderId,
     onNavigate,
     onFileClick,
     onContextMenu,
@@ -57,39 +55,20 @@ export function FilesGrid({
 }: FilesGridProps) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const [displayLimit, setDisplayLimit] = useState(20);
-    const [sentinelNode, setSentinelNode] = useState<HTMLElement | null>(null);
 
-    // Reset limit when folder changes
-    useEffect(() => {
-        setDisplayLimit(20);
-    }, [currentFolderId]);
-
-    useEffect(() => {
-        if (!sentinelNode) return;
-
-        const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting) {
-                setDisplayLimit(prev => prev + 15);
-            }
-        }, { threshold: 0.1, rootMargin: '200px' });
-
-        observer.observe(sentinelNode);
-        return () => observer.disconnect();
-    }, [sentinelNode, displayLimit]);
-
-    const gridSize = useMemo<GridSizeConfig>(() => {
+    const gridSize = useMemo<Record<string, number>>(() => {
         switch (viewPreset) {
-            case 'compact': return { xs: 6, sm: 4, md: 3, lg: 2 };
-            case 'comfort': return { xs: 12, sm: 6, md: 4, lg: 3 };
-            case 'detailed': return { xs: 12, sm: 12, md: 6, lg: 4 };
-            default: return { xs: 6, sm: 4, md: 3, lg: 2.4 };
+            case 'compact': return { xs: 100, sm: 25, md: 16.66, lg: 12.5 }; // 1, 4, 6, 8 items
+            case 'comfort': return { xs: 100, sm: 50, md: 33.33, lg: 25 };     // 1, 2, 3, 4 items
+            case 'detailed': return { xs: 100, sm: 100, md: 50, lg: 33.33 };   // 1, 1, 2, 3 items
+            case 'standard': return { xs: 100, sm: 33.33, md: 25, lg: 20 };     // 1, 3, 4, 5 items
+            default: return { xs: 100, sm: 33.33, md: 25, lg: 20 };
         }
     }, [viewPreset]);
 
     const iconScaling = useMemo<IconScalingConfig>(() => {
         switch (viewPreset) {
-            case 'compact': return { size: 48, padding: 1.5, badge: 14 };
+            case 'compact': return { size: 36, padding: 1, badge: 12 };
             case 'comfort': return { size: 80, padding: 2.5, badge: 20 };
             case 'detailed': return { size: 64, padding: 3.5, badge: 24 };
             default: return { size: 64, padding: 2, badge: 18 };
@@ -98,15 +77,23 @@ export function FilesGrid({
 
     const typoScaling = useMemo<TypoScalingConfig>(() => {
         switch (viewPreset) {
-            case 'compact': return { name: 'caption', size: 11, mb: 0.5 };
+            case 'compact': return { name: 'caption', size: 12, mb: 0.25 };
             case 'comfort': return { name: 'body1', size: 24, mb: 1 };
             case 'detailed': return { name: 'h6', size: 30, mb: 1.5 };
             default: return { name: 'body2', size: 16, mb: 1 };
         }
-    }, [viewPreset]);
+    }, [viewPreset, isMobile]);
+
+    // Unified data set
+    const allData = useMemo(() => {
+        return [
+            ...folders.map(f => ({ type: 'folder' as const, data: f })),
+            ...files.map(f => ({ type: 'file' as const, data: f }))
+        ];
+    }, [folders, files]);
 
     return (
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
             <AnimatePresence mode="wait">
                 {isLoading ? (
                     <Box
@@ -122,7 +109,7 @@ export function FilesGrid({
                             RESOLVING_VAULT_METADATA
                         </Typography>
                     </Box>
-                ) : (files.length === 0 && folders.length === 0) ? (
+                ) : (allData.length === 0) ? (
                     <Box
                         key="empty"
                         component={motion.div}
@@ -139,59 +126,81 @@ export function FilesGrid({
                         </Typography>
                     </Box>
                 ) : (
-                    <>
-                        <Grid
-                            container
-                            spacing={2}
-                            key="grid"
-                        >
-                            {folders.map((folder) => (
-                                <FolderGridItem
-                                    key={`folder-${folder._id}`}
-                                    folder={folder}
-                                    gridSize={gridSize}
-                                    iconScaling={iconScaling}
-                                    typoScaling={typoScaling}
-                                    dragOverId={dragOverId}
-                                    onNavigate={onNavigate}
-                                    onContextMenu={onContextMenu}
-                                    onShare={onShare}
-                                    onDelete={onDeleteFolder}
-                                    onDragOver={onDragOver}
-                                    onDrop={onDrop}
-                                    isMobile={isMobile}
-                                />
-                            ))}
-
-                            {files.slice(0, displayLimit).map((file) => (
-                                <FileGridItem
-                                    key={file._id}
-                                    file={file}
-                                    gridSize={gridSize}
-                                    iconScaling={iconScaling}
-                                    typoScaling={typoScaling}
-                                    isSelected={selectedIds.has(file._id)}
-                                    isDownloading={downloadingId === file._id}
-                                    isDeleting={deletingIds.has(file._id)}
-                                    onFileClick={onFileClick}
-                                    onContextMenu={onContextMenu}
-                                    onDownload={onDownload}
-                                    onDelete={onDeleteFile}
-                                    onToggleSelect={onToggleSelect}
-                                    onMove={onMove}
-                                    isMobile={isMobile}
-                                    selectedCount={selectedIds.size}
-                                />
-                            ))}
-                        </Grid>
-                        {files.length > displayLimit && (
-                            <Box ref={setSentinelNode} sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-                                <CircularProgress size={24} />
-                            </Box>
-                        )}
-                    </>
+                    <Box
+                        sx={{
+                            display: 'grid',
+                            gridTemplateColumns: {
+                                xs: `repeat(${Math.floor(100 / gridSize.xs)}, 1fr)`,
+                                sm: `repeat(${Math.floor(100 / gridSize.sm)}, 1fr)`,
+                                md: `repeat(${Math.floor(100 / gridSize.md)}, 1fr)`,
+                                lg: `repeat(${Math.floor(100 / gridSize.lg)}, 1fr)`
+                            },
+                            gap: 2,
+                            p: 2,
+                            width: '100%'
+                        }}
+                    >
+                        {allData.map((item) => {
+                            if (item.type === 'folder') {
+                                const folder = item.data as Folder;
+                                return (
+                                    <Box
+                                        key={`folder-${folder._id}`}
+                                        sx={{
+                                            aspectRatio: '1/1',
+                                            minWidth: 0,
+                                            contentVisibility: 'auto',
+                                            containIntrinsicBlockSize: '200px'
+                                        }}
+                                    >
+                                        <FolderGridItem
+                                            folder={folder}
+                                            iconScaling={iconScaling}
+                                            typoScaling={typoScaling}
+                                            dragOverId={dragOverId}
+                                            onNavigate={onNavigate}
+                                            onContextMenu={onContextMenu}
+                                            onShare={onShare}
+                                            onDelete={onDeleteFolder}
+                                            onDragOver={onDragOver}
+                                            onDrop={onDrop}
+                                        />
+                                    </Box>
+                                );
+                            } else {
+                                const file = item.data as FileMetadata;
+                                return (
+                                    <Box
+                                        key={`file-${file._id}`}
+                                        sx={{
+                                            aspectRatio: '1/1',
+                                            minWidth: 0,
+                                            contentVisibility: 'auto',
+                                            containIntrinsicBlockSize: '200px'
+                                        }}
+                                    >
+                                        <FileGridItem
+                                            file={file}
+                                            iconScaling={iconScaling}
+                                            typoScaling={typoScaling}
+                                            isSelected={selectedIds.has(file._id)}
+                                            isDownloading={downloadingId === file._id}
+                                            isDeleting={deletingIds.has(file._id)}
+                                            onFileClick={onFileClick}
+                                            onContextMenu={onContextMenu}
+                                            onDownload={onDownload}
+                                            onDelete={onDeleteFile}
+                                            onToggleSelect={onToggleSelect}
+                                            onMove={onMove}
+                                            selectedCount={selectedIds.size}
+                                        />
+                                    </Box>
+                                );
+                            }
+                        })}
+                    </Box>
                 )}
             </AnimatePresence>
-        </Box >
+        </Box>
     );
 }

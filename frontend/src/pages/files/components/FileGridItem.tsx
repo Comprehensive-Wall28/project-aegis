@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Box, Paper, Typography, Stack, IconButton, useTheme, alpha, Grid } from '@mui/material';
+import { Box, Paper, Typography, Stack, IconButton, useTheme, alpha } from '@mui/material';
 import {
     Delete as TrashIcon,
     Download as DownloadIcon,
@@ -9,27 +9,13 @@ import {
     DriveFileMove as MoveIcon,
     Visibility as VisibilityIcon
 } from '@mui/icons-material';
-import { motion, type Variants } from 'framer-motion';
 import type { FileMetadata } from '@/services/vaultService';
-import type { GridSizeConfig, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
+import type { IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
 import { getFileIconInfo, formatFileSize, isPreviewable, createDragPreview } from '../utils';
-
-const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            type: 'spring',
-            stiffness: 300,
-            damping: 30
-        }
-    }
-};
 
 interface FileGridItemProps {
     file: FileMetadata;
-    gridSize: GridSizeConfig;
+
     iconScaling: IconScalingConfig;
     typoScaling: TypoScalingConfig;
     isSelected: boolean;
@@ -41,13 +27,12 @@ interface FileGridItemProps {
     onDelete: (id: string) => void;
     onToggleSelect: (id: string) => void;
     onMove: (file: FileMetadata) => void;
-    isMobile: boolean;
     selectedCount: number;
 }
 
 export const FileGridItem = memo(({
     file,
-    gridSize,
+
     iconScaling,
     typoScaling,
     isSelected,
@@ -59,25 +44,14 @@ export const FileGridItem = memo(({
     onDelete,
     onToggleSelect,
     onMove,
-    isMobile,
     selectedCount
 }: FileGridItemProps) => {
     const theme = useTheme();
     const { icon: FileTypeIcon, color } = getFileIconInfo(file.originalFileName);
 
     return (
-        <Grid
-            size={gridSize}
-            component={motion.div}
-            variants={itemVariants}
-            initial={isMobile ? false : 'hidden'}
-            whileInView={isMobile ? undefined : 'visible'}
-            viewport={{ once: true }}
-        >
-            <Box
-                sx={{ height: '100%', willChange: 'transform, opacity' }}
-            >
-                <Paper
+        <Box sx={{ width: '100%', height: '100%' }}>
+            <Paper
                     elevation={0}
                     draggable
                     onDragStart={(e) => {
@@ -103,9 +77,12 @@ export const FileGridItem = memo(({
                     onClick={(e) => onFileClick(file, e)}
                     onContextMenu={(e) => onContextMenu(e, { type: 'file', id: file._id })}
                     sx={{
-                        p: 2,
+                        p: iconScaling.padding,
                         position: 'relative',
                         cursor: 'grab',
+                        width: '100%',
+                        height: '100%',
+                        overflow: 'hidden',
                         '&:active': { cursor: 'grabbing' },
                         borderRadius: '24px',
                         border: isSelected
@@ -118,7 +95,6 @@ export const FileGridItem = memo(({
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        aspectRatio: '1/1',
                         transition: 'background-color 0.2s, border-color 0.2s',
                         '&:hover': {
                             bgcolor: isSelected
@@ -160,13 +136,15 @@ export const FileGridItem = memo(({
                             color: 'text.primary',
                             width: '100%',
                             textAlign: 'center',
-                            px: 1,
+                            px: 0.5,
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
+                            WebkitBoxOrient: 'vertical' as any,
                             overflow: 'hidden',
-                            lineHeight: 1.2,
-                            wordBreak: 'break-word'
+                            lineHeight: 1.3,
+                            wordBreak: 'break-word',
+                            fontSize: { xs: '0.75rem', sm: 'inherit' },
+                            minHeight: { xs: '2.4em', sm: 'auto' }
                         }}
                         title={file.originalFileName}
                     >
@@ -195,45 +173,41 @@ export const FileGridItem = memo(({
                             {isSelected ? <CheckCircleIcon fontSize="small" /> : <UncheckedIcon fontSize="small" />}
                         </IconButton>
 
-                        {!isMobile && (
-                            <>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => onDownload(file)}
-                                    disabled={isDownloading}
-                                    sx={{
-                                        color: 'primary.main',
-                                        p: 0.5,
-                                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
-                                    }}
-                                >
-                                    <DownloadIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => onDelete(file._id)}
-                                    disabled={isDeleting}
-                                    sx={{
-                                        color: '#EF5350',
-                                        p: 0.5,
-                                        '&:hover': { bgcolor: alpha('#EF5350', 0.1) }
-                                    }}
-                                >
-                                    <TrashIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => onMove(file)}
-                                    sx={{
-                                        color: 'warning.main',
-                                        p: 0.5,
-                                        '&:hover': { bgcolor: alpha(theme.palette.warning.main, 0.1) }
-                                    }}
-                                >
-                                    <MoveIcon fontSize="small" />
-                                </IconButton>
-                            </>
-                        )}
+                        <IconButton
+                            size="small"
+                            onClick={() => onDownload(file)}
+                            disabled={isDownloading}
+                            sx={{
+                                color: 'primary.main',
+                                p: 0.5,
+                                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
+                            }}
+                        >
+                            <DownloadIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                            size="small"
+                            onClick={() => onDelete(file._id)}
+                            disabled={isDeleting}
+                            sx={{
+                                color: '#EF5350',
+                                p: 0.5,
+                                '&:hover': { bgcolor: alpha('#EF5350', 0.1) }
+                            }}
+                        >
+                            <TrashIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                            size="small"
+                            onClick={() => onMove(file)}
+                            sx={{
+                                color: 'warning.main',
+                                p: 0.5,
+                                '&:hover': { bgcolor: alpha(theme.palette.warning.main, 0.1) }
+                            }}
+                        >
+                            <MoveIcon fontSize="small" />
+                        </IconButton>
 
                         <IconButton
                             size="small"
@@ -248,7 +222,6 @@ export const FileGridItem = memo(({
                         </IconButton>
                     </Stack>
                 </Paper>
-            </Box>
-        </Grid>
+        </Box>
     );
 });
