@@ -72,6 +72,22 @@ export interface LinkComment {
     createdAt: string;
 }
 
+export const retryOperation = async <T>(
+    operation: () => Promise<T>,
+    retries = 3,
+    delay = 1000
+): Promise<T> => {
+    try {
+        return await operation();
+    } catch (error) {
+        if (retries > 0) {
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            return retryOperation(operation, retries - 1, delay * 2);
+        }
+        throw error;
+    }
+};
+
 const socialService = {
     /**
      * Get all rooms the user is a member of

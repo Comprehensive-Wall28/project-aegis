@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { SocialState } from './types';
-import socialService from '@/services/socialService';
+import socialService, { retryOperation } from '@/services/socialService';
 
 export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState, keyof import('./types').LinkSlice>> = (set, get) => ({
     links: [],
@@ -122,6 +122,18 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
     },
 
     postLink: async (url: string) => {
+        // Validate URL
+        try {
+            const parsedUrl = new URL(url);
+            if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+                throw new Error('URL must start with http:// or https://');
+            }
+        } catch (e: any) {
+            const msg = e.message === 'URL must start with http:// or https://' ? e.message : 'Invalid URL format';
+            console.error('Validation error:', msg);
+            throw new Error(msg);
+        }
+
         const state = get();
         if (!state.currentRoom) {
             throw new Error('No room selected');
@@ -150,20 +162,39 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
     },
 
     deleteLink: async (linkId: string) => {
-        await socialService.deleteLink(linkId);
         const state = get();
+        const originalLinks = state.links;
+
+        // Optimistic update
         set({ links: state.links.filter(l => l._id !== linkId) });
+
+        try {
+            await retryOperation(() => socialService.deleteLink(linkId));
+        } catch (error) {
+            console.error('Failed to delete link:', error);
+            // Revert on failure
+            set({ links: originalLinks });
+        }
     },
 
     moveLink: async (linkId: string, collectionId: string) => {
-        await socialService.moveLink(linkId, collectionId);
         const state = get();
+        const originalLinks = state.links;
 
+        // Optimistic update
         set({
             links: state.links.map(l =>
                 l._id === linkId ? { ...l, collectionId: collectionId } : l
             )
         });
+
+        try {
+            await retryOperation(() => socialService.moveLink(linkId, collectionId));
+        } catch (error) {
+            console.error('Failed to move link:', error);
+            // Revert on failure
+            set({ links: originalLinks });
+        }
     },
 
     markLinkViewed: async (linkId: string) => {
