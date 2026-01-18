@@ -46,7 +46,7 @@ export function LoginForm({
                 name="email"
                 label="Email Address"
                 type="email"
-                autoComplete="email"
+                autoComplete="username"
                 value={email}
                 onChange={(e) => onEmailChange(e.target.value)}
                 slotProps={{
