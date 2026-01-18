@@ -9,6 +9,8 @@ class SocketService {
     private _reconnectAttempts: number = 0;
     private _currentRoomId: string | null = null;
 
+    private _listeners: Map<string, Set<(data: any) => void>> = new Map();
+
     private constructor() {
         this.setupVisibilityListener();
     }
@@ -55,6 +57,7 @@ class SocketService {
     public connect(): void {
         if (this.socket?.connected) return;
 
+        console.log('[Socket] Initializing new socket instance');
         this.socket = io(SOCKET_URL, {
             withCredentials: true,
             transports: ['websocket', 'polling'],
@@ -65,6 +68,13 @@ class SocketService {
             reconnectionDelayMax: 5000, // Faster ramp up
             randomizationFactor: 0.5,
             timeout: 20000,
+        });
+
+        // Re-attach all registered listeners to the new socket instance
+        this._listeners.forEach((callbacks, event) => {
+            callbacks.forEach(callback => {
+                this.socket?.on(event, callback);
+            });
         });
 
         this.socket.on('connect', () => {
@@ -120,9 +130,6 @@ class SocketService {
 
         if (this._isConnected) {
             this.socket?.emit('join-room', roomId);
-        } else {
-            // No need to manually once('connect') here as our internal connect handler 
-            // will catch it and use this._currentRoomId
         }
     }
 
@@ -134,11 +141,17 @@ class SocketService {
     }
 
     public on(event: string, callback: (data: any) => void): void {
+        if (!this._listeners.has(event)) {
+            this._listeners.set(event, new Set());
+        }
+        this._listeners.get(event)?.add(callback);
+
         if (!this.socket) this.connect();
         this.socket?.on(event, callback);
     }
 
     public off(event: string, callback: (data: any) => void): void {
+        this._listeners.get(event)?.delete(callback);
         this.socket?.off(event, callback);
     }
 
@@ -153,6 +166,7 @@ class SocketService {
             console.warn(`[Socket] Blocked attempt to remove protected listener: ${event}`);
             return;
         }
+        this._listeners.delete(event);
         this.socket?.removeAllListeners(event);
     }
 
@@ -161,6 +175,8 @@ class SocketService {
         this.socket = null;
         this._isConnected = false;
         this._reconnectAttempts = 0;
+        // Keep _listeners registry so they can be re-applied on next connect
+        // unless we explicitly want them gone.
     }
 }
 

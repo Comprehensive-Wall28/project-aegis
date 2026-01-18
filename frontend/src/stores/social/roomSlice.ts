@@ -80,6 +80,10 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
             error: null
         });
 
+        // Join socket room and setup listeners early to capture updates during fetch
+        socketService.joinRoom(roomId);
+        get().setupSocketListeners();
+
         const { setCryptoStatus } = useSessionStore.getState();
         try {
             const content: RoomContent = await socialService.getRoomContent(roomId);
@@ -122,16 +126,9 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
                 hasMoreLinks: (content.links?.length || 0) >= 12, // Match backend limit
             });
 
-            // Actions from fresh state
-            const { setupSocketListeners, fetchCollectionLinks } = get();
-
-            // Join socket room
-            socketService.joinRoom(roomId);
-            setupSocketListeners();
-
             // Auto-load first collection links if needed
             if (firstCollectionId && (!content.links || content.links.length === 0)) {
-                await fetchCollectionLinks(firstCollectionId, false);
+                await get().fetchCollectionLinks(firstCollectionId, false);
             }
 
             set({ isLoadingContent: false });

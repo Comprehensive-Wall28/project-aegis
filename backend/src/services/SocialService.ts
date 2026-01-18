@@ -592,6 +592,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             // Broadcast movement to room
             SocketManager.broadcastToRoom(targetCollection.roomId.toString(), 'LINK_MOVED', {
                 linkId,
+                oldCollectionId: linkPost.collectionId.toString(),
                 newCollectionId: collectionId,
                 link: updated
             });
