@@ -123,19 +123,21 @@ export const SocialHeader = memo(({
                                 onChange={handleSearchChange}
                                 size="small"
                                 fullWidth
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <SearchIcon fontSize="small" color="action" />
-                                        </InputAdornment>
-                                    ),
-                                    endAdornment: searchQuery ? (
-                                        <InputAdornment position="end">
-                                            <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
-                                                <CloseIcon fontSize="small" />
-                                            </IconButton>
-                                        </InputAdornment>
-                                    ) : undefined,
+                                slotProps={{
+                                    input: {
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <SearchIcon fontSize="small" color="action" />
+                                            </InputAdornment>
+                                        ),
+                                        endAdornment: searchQuery ? (
+                                            <InputAdornment position="end">
+                                                <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
+                                                    <CloseIcon fontSize="small" />
+                                                </IconButton>
+                                            </InputAdornment>
+                                        ) : undefined,
+                                    }
                                 }}
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
@@ -243,12 +245,14 @@ export const SocialHeader = memo(({
                                 onChange={handleNewLinkChange}
                                 onKeyDown={handlePostKeyDown}
                                 size="small"
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <LinkIcon color="action" sx={{ fontSize: 18 }} />
-                                        </InputAdornment>
-                                    ),
+                                slotProps={{
+                                    input: {
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <LinkIcon color="action" sx={{ fontSize: 18 }} />
+                                            </InputAdornment>
+                                        ),
+                                    }
                                 }}
                                 sx={{
                                     flex: 1,

@@ -316,12 +316,14 @@ export const PostLinkDialog = memo(({
                                     sx={{ mb: 1 }}
                                     autoFocus
                                     onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                                    InputProps={{
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <LinkIcon color="action" />
-                                            </InputAdornment>
-                                        ),
+                                    slotProps={{
+                                        input: {
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <LinkIcon color="action" />
+                                                </InputAdornment>
+                                            ),
+                                        }
                                     }}
                                 />
                                 {error && (

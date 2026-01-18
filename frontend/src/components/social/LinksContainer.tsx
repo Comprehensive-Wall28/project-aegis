@@ -111,19 +111,21 @@ export const LinksContainer = memo(({
                         onChange={handleSearchChange}
                         size="small"
                         fullWidth
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon fontSize="small" color="action" />
-                                </InputAdornment>
-                            ),
-                            endAdornment: searchQuery ? (
-                                <InputAdornment position="end">
-                                    <IconButton size="small" onClick={handleClearSearch}>
-                                        <CloseIcon fontSize="small" />
-                                    </IconButton>
-                                </InputAdornment>
-                            ) : undefined
+                        slotProps={{
+                            input: {
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon fontSize="small" color="action" />
+                                    </InputAdornment>
+                                ),
+                                endAdornment: searchQuery ? (
+                                    <InputAdornment position="end">
+                                        <IconButton size="small" onClick={handleClearSearch}>
+                                            <CloseIcon fontSize="small" />
+                                        </IconButton>
+                                    </InputAdornment>
+                                ) : undefined
+                            }
                         }}
                         sx={{
                             flex: 1,

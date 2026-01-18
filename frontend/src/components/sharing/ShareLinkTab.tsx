@@ -173,8 +173,10 @@ export const ShareLinkTab: React.FC<ShareLinkTabProps> = ({ item, type }) => {
                             fullWidth
                             value={generatedLink}
                             variant="outlined"
-                            InputProps={{
-                                readOnly: true,
+                            slotProps={{
+                                input: {
+                                    readOnly: true,
+                                }
                             }}
                             sx={{
                                 '& .MuiOutlinedInput-root': {

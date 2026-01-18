@@ -71,11 +71,16 @@ export function RegisterForm({
                 >
                     <TextField
                         fullWidth
+                        id="register-username"
+                        name="username"
                         label="Username"
+                        autoComplete="username"
                         value={username}
                         onChange={(e) => onUsernameChange(e.target.value)}
-                        InputProps={{
-                            startAdornment: <InputAdornment position="start"><PersonIcon fontSize="small" /></InputAdornment>,
+                        slotProps={{
+                            input: {
+                                startAdornment: <InputAdornment position="start"><PersonIcon fontSize="small" /></InputAdornment>,
+                            }
                         }}
                     />
                 </motion.div>
@@ -83,23 +88,33 @@ export function RegisterForm({
 
             <TextField
                 fullWidth
+                id="register-email"
+                name="email"
                 label="Email Address"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => onEmailChange(e.target.value)}
-                InputProps={{
-                    startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>,
+                slotProps={{
+                    input: {
+                        startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>,
+                    }
                 }}
             />
 
             <TextField
                 fullWidth
+                id="register-password"
+                name="password"
                 label="Encryption Password"
                 type="password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => onPasswordChange(e.target.value)}
-                InputProps={{
-                    startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" /></InputAdornment>,
+                slotProps={{
+                    input: {
+                        startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" /></InputAdornment>,
+                    }
                 }}
             />
 

@@ -47,12 +47,14 @@ export function FilesToolbar({
                             border: `1px solid ${alpha(theme.palette.divider, 0.5)}`
                         }
                     }}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                            </InputAdornment>
-                        ),
+                    slotProps={{
+                        input: {
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+                                </InputAdornment>
+                            ),
+                        }
                     }}
                 />
 

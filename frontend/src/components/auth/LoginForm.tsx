@@ -42,23 +42,33 @@ export function LoginForm({
         <>
             <TextField
                 fullWidth
+                id="login-email"
+                name="email"
                 label="Email Address"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => onEmailChange(e.target.value)}
-                InputProps={{
-                    startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>,
+                slotProps={{
+                    input: {
+                        startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>,
+                    }
                 }}
             />
 
             <TextField
                 fullWidth
+                id="login-password"
+                name="password"
                 label="Encryption Password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => onPasswordChange(e.target.value)}
-                InputProps={{
-                    startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" /></InputAdornment>,
+                slotProps={{
+                    input: {
+                        startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" /></InputAdornment>,
+                    }
                 }}
             />
 
