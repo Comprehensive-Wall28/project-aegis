@@ -67,14 +67,12 @@ export const FileGridItem = memo(({
                         alignItems: 'center',
                         justifyContent: 'center',
                         aspectRatio: '1/1',
-                        transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s, box-shadow 0.2s',
+                        transition: 'background-color 0.2s, border-color 0.2s',
                         '&:hover': {
                             bgcolor: isSelected
                                 ? alpha(theme.palette.primary.main, 0.15)
                                 : alpha(theme.palette.background.paper, 0.6),
-                            borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.3),
-                            transform: 'translateY(-4px)',
-                            boxShadow: `0 12px 24px -8px ${alpha(theme.palette.common.black, 0.5)}`
+                            borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.3)
                         }
                     }}
                 >
@@ -91,7 +89,7 @@ export const FileGridItem = memo(({
                     </Box>
 
                     <Typography
-                        variant={typoScaling.name as any}
+                        variant={typoScaling.name}
                         sx={{
                             fontWeight: 700,
                             color: 'text.primary',

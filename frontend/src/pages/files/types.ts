@@ -1,3 +1,5 @@
+import type { TypographyVariant } from '@mui/material';
+
 export type ViewPreset = 'compact' | 'standard' | 'comfort' | 'detailed';
 
 export interface GridSizeConfig {
@@ -14,7 +16,7 @@ export interface IconScalingConfig {
 }
 
 export interface TypoScalingConfig {
-    name: string; // MUI variant
+    name: TypographyVariant; // MUI variant
     size: number;
     mb: number;
 }

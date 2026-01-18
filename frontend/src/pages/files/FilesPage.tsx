@@ -121,10 +121,11 @@ export function FilesPage() {
     }, [navigate, clearSelection]);
 
     const handleCreateFolder = useCallback(async (name: string) => {
+        // Access store directly to get fresh state without triggering re-renders or adding dependencies
         const { user } = useSessionStore.getState();
         const masterKey = user?.vaultKey;
         if (!masterKey) {
-            alert('Vault keys not ready. Please wait or log in again.');
+            setNotification({ open: true, message: 'Vault keys not ready. Please wait or log in again.', type: 'error' });
             return;
         }
         try {
@@ -134,9 +135,10 @@ export function FilesPage() {
             useFolderKeyStore.getState().setKey(newFolder._id, folderKey);
             setNewFolderDialog(false);
             fetchData();
-        } catch (err) {
+            setNotification({ open: true, message: 'Folder created successfully', type: 'success' });
+        } catch (err: any) {
             console.error('Failed to create folder:', err);
-            alert('Failed to create secure folder. Please try again.');
+            setNotification({ open: true, message: err.response?.data?.message || 'Failed to create secure folder', type: 'error' });
         }
     }, [currentFolderId, fetchData]);
 
@@ -146,8 +148,10 @@ export function FilesPage() {
             await folderService.renameFolder(renameFolderDialog.folder._id, newName.trim());
             setRenameFolderDialog({ open: false, folder: null });
             fetchData();
-        } catch (err) {
+            setNotification({ open: true, message: 'Folder renamed successfully', type: 'success' });
+        } catch (err: any) {
             console.error('Failed to rename folder:', err);
+            setNotification({ open: true, message: err.response?.data?.message || 'Failed to rename folder', type: 'error' });
         }
     }, [renameFolderDialog.folder, fetchData]);
 
@@ -227,6 +231,14 @@ export function FilesPage() {
                 successfulIds.forEach(id => next.delete(id));
                 return next;
             });
+            const failedCount = ids.length - successfulIds.size;
+            if (failedCount > 0) {
+                setNotification({ open: true, message: `Deleted ${successfulIds.size} files. ${failedCount} failed.`, type: 'error' });
+            } else {
+                setNotification({ open: true, message: `Deleted ${ids.length} files`, type: 'success' });
+            }
+        } else if (ids.length > 0) {
+            setNotification({ open: true, message: 'Failed to delete selected files', type: 'error' });
         }
 
         setDeletingIds(new Set());
@@ -247,8 +259,10 @@ export function FilesPage() {
             clearSelection();
             setMoveToFolderDialog(false);
             fetchData();
-        } catch (err) {
+            setNotification({ open: true, message: `Moved ${ids.length} files successfully`, type: 'success' });
+        } catch (err: any) {
             console.error('Failed to move files:', err);
+            setNotification({ open: true, message: err.response?.data?.message || 'Failed to move files', type: 'error' });
         }
     }, [filesToMove, clearSelection, fetchData]);
 
@@ -258,8 +272,10 @@ export function FilesPage() {
             await folderService.updateFolderColor(colorPickerFolderId, color);
             setFolders(prev => prev.map(f => f._id === colorPickerFolderId ? { ...f, color } : f));
             setColorPickerFolderId(null);
-        } catch (err) {
+            setNotification({ open: true, message: 'Folder color updated', type: 'success' });
+        } catch (err: any) {
             console.error('Failed to update folder color:', err);
+            setNotification({ open: true, message: err.response?.data?.message || 'Failed to update folder color', type: 'error' });
         }
     }, [colorPickerFolderId, setFolders]);
 
