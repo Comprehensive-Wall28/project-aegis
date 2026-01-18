@@ -69,9 +69,15 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
                 }
 
                 // Calculate other state updates
-                const newViewedLinkIds = (!isLoadMore && !silent)
-                    ? new Set(result.viewedLinkIds)
-                    : new Set([...prev.viewedLinkIds, ...result.viewedLinkIds]);
+                let newViewedLinkIds = prev.viewedLinkIds;
+                if (!isLoadMore && !silent) {
+                    newViewedLinkIds = new Set(result.viewedLinkIds);
+                } else if (result.viewedLinkIds && result.viewedLinkIds.length > 0) {
+                    const hasNew = result.viewedLinkIds.some(id => !prev.viewedLinkIds.has(id));
+                    if (hasNew) {
+                        newViewedLinkIds = new Set([...prev.viewedLinkIds, ...result.viewedLinkIds]);
+                    }
+                }
 
                 const newCommentCounts = { ...prev.commentCounts, ...result.commentCounts };
 

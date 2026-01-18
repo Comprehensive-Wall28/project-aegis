@@ -72,7 +72,7 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
     },
 
     selectRoom: async (roomId: string) => {
-        const state = get();
+        let state = get();
         if (state.isLoadingContent && state.currentRoom?._id === roomId) return;
 
         set({
@@ -83,7 +83,7 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
         const { setCryptoStatus } = useSessionStore.getState();
         try {
             const content: RoomContent = await socialService.getRoomContent(roomId);
-            const state = get();
+            state = get(); // Update local reference
             const sessionUser = useSessionStore.getState().user;
 
             // Decrypt room key if we have one
@@ -122,13 +122,16 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
                 hasMoreLinks: (content.links?.length || 0) >= 12, // Match backend limit
             });
 
+            // Actions from fresh state
+            const { setupSocketListeners, fetchCollectionLinks } = get();
+
             // Join socket room
             socketService.joinRoom(roomId);
-            get().setupSocketListeners();
+            setupSocketListeners();
 
             // Auto-load first collection links if needed
             if (firstCollectionId && (!content.links || content.links.length === 0)) {
-                await get().fetchCollectionLinks(firstCollectionId, false);
+                await fetchCollectionLinks(firstCollectionId, false);
             }
 
             set({ isLoadingContent: false });
