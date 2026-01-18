@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useContextMenu, CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/ContextMenu';
 import {
     Folder as FolderIcon,
@@ -49,7 +50,7 @@ export function useFileContextMenu({
 
     const isImageFile = (file: FileMetadata) => file.mimeType?.startsWith('image/');
 
-    const getMenuItems = () => {
+    const menuItems = useMemo(() => {
         const target = contextMenu.target as ContextMenuTarget | null;
         const targetId = target?.id;
         const targetType = target?.type;
@@ -140,12 +141,28 @@ export function useFileContextMenu({
         return [
             { label: 'New Folder', icon: <CreateFolderIcon fontSize="small" />, onClick: () => setNewFolderDialog(true) },
         ];
-    };
+    }, [
+        contextMenu.target,
+        files,
+        folders,
+        selectedIds,
+        setFilesToMove,
+        setMoveToFolderDialog,
+        setShareDialog,
+        setNewFolderName,
+        setRenameFolderDialog,
+        setColorPickerFolderId,
+        setNewFolderDialog,
+        handleDelete,
+        handleDeleteFolder,
+        navigateToFolder,
+        setNotification
+    ]);
 
     return {
         contextMenu,
         handleContextMenu,
         closeContextMenu,
-        getMenuItems
+        menuItems
     };
 }

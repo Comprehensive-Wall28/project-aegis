@@ -120,7 +120,7 @@ export function FilesPage() {
         clearSelection();
     }, [navigate, clearSelection]);
 
-    const handleCreateFolder = async (name: string) => {
+    const handleCreateFolder = useCallback(async (name: string) => {
         const { user } = useSessionStore.getState();
         const masterKey = user?.vaultKey;
         if (!masterKey) {
@@ -138,9 +138,9 @@ export function FilesPage() {
             console.error('Failed to create folder:', err);
             alert('Failed to create secure folder. Please try again.');
         }
-    };
+    }, [currentFolderId, fetchData]);
 
-    const handleRenameFolder = async (newName: string) => {
+    const handleRenameFolder = useCallback(async (newName: string) => {
         if (!renameFolderDialog.folder) return;
         try {
             await folderService.renameFolder(renameFolderDialog.folder._id, newName.trim());
@@ -149,13 +149,13 @@ export function FilesPage() {
         } catch (err) {
             console.error('Failed to rename folder:', err);
         }
-    };
+    }, [renameFolderDialog.folder, fetchData]);
 
-    const handleDeleteFolder = (id: string) => {
+    const handleDeleteFolder = useCallback((id: string) => {
         setDeleteConfirm({ open: true, type: 'folder', id });
-    };
+    }, []);
 
-    const confirmDeleteFolder = async () => {
+    const confirmDeleteFolder = useCallback(async () => {
         if (!deleteConfirm.id) return;
         setIsDeleting(true);
         try {
@@ -167,13 +167,13 @@ export function FilesPage() {
             setIsDeleting(false);
             setDeleteConfirm({ open: false, type: 'file' });
         }
-    };
+    }, [deleteConfirm.id, fetchData]);
 
-    const handleDeleteFile = (id: string) => {
+    const handleDeleteFile = useCallback((id: string) => {
         setDeleteConfirm({ open: true, type: 'file', id });
-    };
+    }, []);
 
-    const confirmDeleteFile = async () => {
+    const confirmDeleteFile = useCallback(async () => {
         if (!deleteConfirm.id) return;
         setIsDeleting(true);
         try {
@@ -196,14 +196,14 @@ export function FilesPage() {
             setIsDeleting(false);
             setDeleteConfirm({ open: false, type: 'file' });
         }
-    };
+    }, [deleteConfirm.id, setFiles, setSelectedIds]);
 
-    const handleMassDelete = () => {
+    const handleMassDelete = useCallback(() => {
         if (selectedIds.size === 0) return;
         setDeleteConfirm({ open: true, type: 'mass', count: selectedIds.size });
-    };
+    }, [selectedIds.size]);
 
-    const confirmMassDelete = async () => {
+    const confirmMassDelete = useCallback(async () => {
         setIsDeleting(true);
         const ids = Array.from(selectedIds);
         for (const id of ids) {
@@ -224,9 +224,9 @@ export function FilesPage() {
         clearSelection();
         setIsDeleting(false);
         setDeleteConfirm({ open: false, type: 'file' });
-    };
+    }, [selectedIds, setFiles, clearSelection]);
 
-    const handleMoveToFolder = async (targetFolderId: string | null, idsToOverride?: string[]) => {
+    const handleMoveToFolder = useCallback(async (targetFolderId: string | null, idsToOverride?: string[]) => {
         const ids = idsToOverride || filesToMove;
         if (ids.length === 0) return;
         try {
@@ -238,9 +238,9 @@ export function FilesPage() {
         } catch (err) {
             console.error('Failed to move files:', err);
         }
-    };
+    }, [filesToMove, clearSelection, fetchData]);
 
-    const handleFolderColorChange = async (color: string) => {
+    const handleFolderColorChange = useCallback(async (color: string) => {
         if (!colorPickerFolderId) return;
         try {
             await folderService.updateFolderColor(colorPickerFolderId, color);
@@ -249,7 +249,7 @@ export function FilesPage() {
         } catch (err) {
             console.error('Failed to update folder color:', err);
         }
-    };
+    }, [colorPickerFolderId, setFolders]);
 
     // Drag Drop Hook
     const {
@@ -268,7 +268,7 @@ export function FilesPage() {
         contextMenu,
         handleContextMenu,
         closeContextMenu,
-        getMenuItems
+        menuItems
     } = useFileContextMenu({
         files,
         folders,
@@ -287,7 +287,7 @@ export function FilesPage() {
     });
 
     // File Click Logic
-    const handleFileClick = (file: FileMetadata, e: React.MouseEvent) => {
+    const handleFileClick = useCallback((file: FileMetadata, e: React.MouseEvent) => {
         if (e.ctrlKey || e.metaKey) {
             toggleSelect(file._id);
             return;
@@ -301,7 +301,7 @@ export function FilesPage() {
         } else {
             toggleSelect(file._id);
         }
-    };
+    }, [toggleSelect]);
 
     if (backendError) {
         return <BackendDown onRetry={fetchData} />;
@@ -355,8 +355,8 @@ export function FilesPage() {
                 selectedCount={selectedIds.size}
                 showUpload={showUpload}
                 onMassDelete={handleMassDelete}
-                onNewFolder={() => setNewFolderDialog(true)}
-                onToggleUpload={() => setShowUpload(!showUpload)}
+                onNewFolder={useCallback(() => setNewFolderDialog(true), [])}
+                onToggleUpload={useCallback(() => setShowUpload(prev => !prev), [])}
             />
 
             <FilesToolbar
@@ -437,7 +437,7 @@ export function FilesPage() {
                 open={contextMenu.open}
                 anchorPosition={contextMenu.position}
                 onClose={closeContextMenu}
-                items={getMenuItems()}
+                items={menuItems}
             />
 
             <NewFolderDialog

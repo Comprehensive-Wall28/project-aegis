@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { Box, Typography, Stack, Button, useTheme, alpha } from '@mui/material';
 import {
     FolderOpen as FolderOpenIcon,
@@ -26,6 +27,21 @@ export function FilesHeader({
 }: FilesHeaderProps) {
     const theme = useTheme();
 
+    const handleMassDeleteClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.blur();
+        onMassDelete();
+    }, [onMassDelete]);
+
+    const handleNewFolderClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.blur();
+        onNewFolder();
+    }, [onNewFolder]);
+
+    const handleToggleUploadClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.blur();
+        onToggleUpload();
+    }, [onToggleUpload]);
+
     return (
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 2 }}>
             <Box>
@@ -49,10 +65,7 @@ export function FilesHeader({
                             color="error"
                             size="small"
                             startIcon={<TrashIcon />}
-                            onClick={(e) => {
-                                e.currentTarget.blur();
-                                onMassDelete();
-                            }}
+                            onClick={handleMassDeleteClick}
                             sx={{ fontWeight: 700, borderRadius: '8px', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                         >
                             Delete ({selectedCount})
@@ -63,10 +76,7 @@ export function FilesHeader({
                     variant="outlined"
                     size="small"
                     startIcon={<CreateFolderIcon />}
-                    onClick={(e) => {
-                        e.currentTarget.blur();
-                        onNewFolder();
-                    }}
+                    onClick={handleNewFolderClick}
                     sx={{
                         fontWeight: 700,
                         borderRadius: '8px',
@@ -84,10 +94,7 @@ export function FilesHeader({
                     variant="outlined"
                     size="small"
                     startIcon={<UploadIcon />}
-                    onClick={(e) => {
-                        e.currentTarget.blur();
-                        onToggleUpload();
-                    }}
+                    onClick={handleToggleUploadClick}
                     sx={{
                         fontWeight: 700,
                         borderRadius: '8px',
