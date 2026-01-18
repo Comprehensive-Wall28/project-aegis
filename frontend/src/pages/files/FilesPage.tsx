@@ -206,25 +206,37 @@ export function FilesPage() {
     const confirmMassDelete = useCallback(async () => {
         setIsDeleting(true);
         const ids = Array.from(selectedIds);
-        for (const id of ids) {
+        setDeletingIds(new Set(ids));
+
+        const results = await Promise.all(ids.map(async (id) => {
             try {
-                setDeletingIds(prev => new Set(prev).add(id));
                 await vaultService.deleteFile(id);
-                setFiles(prev => prev.filter(f => f._id !== id));
+                return { id, success: true };
             } catch (err) {
                 console.error(`Failed to delete ${id}:`, err);
-            } finally {
-                setDeletingIds(prev => {
-                    const next = new Set(prev);
-                    next.delete(id);
-                    return next;
-                });
+                return { id, success: false };
             }
+        }));
+
+        const successfulIds = new Set(results.filter(r => r.success).map(r => r.id));
+
+        if (successfulIds.size > 0) {
+            setFiles(prev => prev.filter(f => !successfulIds.has(f._id)));
+            setSelectedIds(prev => {
+                const next = new Set(prev);
+                successfulIds.forEach(id => next.delete(id));
+                return next;
+            });
         }
-        clearSelection();
+
+        setDeletingIds(new Set());
         setIsDeleting(false);
         setDeleteConfirm({ open: false, type: 'file' });
-    }, [selectedIds, setFiles, clearSelection]);
+
+        if (successfulIds.size === ids.length) {
+            clearSelection();
+        }
+    }, [selectedIds, setFiles, setSelectedIds, clearSelection]);
 
     const handleMoveToFolder = useCallback(async (targetFolderId: string | null, idsToOverride?: string[]) => {
         const ids = idsToOverride || filesToMove;
