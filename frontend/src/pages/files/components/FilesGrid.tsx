@@ -78,10 +78,10 @@ export function FilesGrid({
 
     const typoScaling = useMemo<TypoScalingConfig>(() => {
         switch (viewPreset) {
-            case 'compact': return { name: 'caption', size: 12, mb: 0.25 };
-            case 'comfort': return { name: 'body1', size: 24, mb: 1 };
-            case 'detailed': return { name: 'h6', size: 30, mb: 1.5 };
-            default: return { name: 'body2', size: 16, mb: 1 };
+            case 'compact': return { name: 'body2', size: 14, mb: 0.5 };
+            case 'comfort': return { name: 'h6', size: 28, mb: 1.5 };
+            case 'detailed': return { name: 'h5', size: 34, mb: 2 };
+            default: return { name: 'body1', size: 18, mb: 1 };
         }
     }, [viewPreset, isMobile]);
 

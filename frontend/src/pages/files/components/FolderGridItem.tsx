@@ -114,8 +114,8 @@ export const FolderGridItem = memo(({
                             overflow: 'hidden',
                             lineHeight: 1.3,
                             wordBreak: 'break-word',
-                            fontSize: { xs: '0.75rem', sm: 'inherit' },
-                            minHeight: { xs: '2.4em', sm: 'auto' }
+                            fontSize: { xs: '0.875rem', sm: 'inherit' },
+                            minHeight: { xs: '2.6em', sm: 'auto' }
                         }}
                     >
                         {folder.name}
