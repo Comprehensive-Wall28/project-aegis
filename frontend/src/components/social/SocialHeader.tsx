@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from 'react';
+import { memo, useCallback, useState, type ChangeEvent } from 'react';
 import {
     Box,
     Paper,
@@ -14,6 +14,10 @@ import {
     Menu,
     MenuItem,
     Skeleton,
+    Divider,
+    ListSubheader,
+    ListItemIcon,
+    ListItemText,
 } from '@mui/material';
 import {
     Group as GroupIcon,
@@ -24,30 +28,22 @@ import {
     Close as CloseIcon,
     Share as ShareIcon,
     ArrowBack as ArrowBackIcon,
+    AccessTime as TimeIcon,
+    Visibility as VisibilityIcon,
+    VisibilityOff as VisibilityOffIcon,
+    Person as PersonIcon,
+    Check as CheckIcon,
+    History as HistoryIcon,
 } from '@mui/icons-material';
-import type { Room } from '@/services/socialService';
 import { useSocialStore } from '@/stores/useSocialStore';
-
-interface SocialHeaderProps {
-    viewMode: 'rooms' | 'room-content';
-    isMobile: boolean;
-    optimisticRoomId: string | null;
-    currentRoom: Room | null;
-    handleExitRoom: () => void;
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
-    handleFilterClick: (event: React.MouseEvent<HTMLElement>) => void;
-    selectedUploader: string | null;
-    handleCopyInvite: () => void;
-    filterAnchorEl: HTMLElement | null;
-    handleFilterClose: () => void;
-    handleSelectUploader: (id: string | null) => void;
-    getUniqueUploaders: () => { id: string, username: string }[];
-    newLinkUrl: string;
-    setNewLinkUrl: (url: string) => void;
-    handlePostLink: () => void;
-    isPostingLink: boolean;
-}
+import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
+import type { SocialHeaderProps } from './types';
+import {
+    SOCIAL_HEADER_HEIGHT,
+    SOCIAL_RADIUS_XLARGE,
+    SOCIAL_RADIUS_MEDIUM,
+    SOCIAL_RADIUS_SMALL
+} from './constants';
 
 export const SocialHeader = memo(({
     viewMode,
@@ -63,54 +59,48 @@ export const SocialHeader = memo(({
     filterAnchorEl,
     handleFilterClose,
     handleSelectUploader,
+    viewFilter,
+    handleViewFilterChange,
     getUniqueUploaders,
     newLinkUrl,
     setNewLinkUrl,
     handlePostLink,
     isPostingLink,
+    sortOrder,
+    handleSortOrderChange,
 }: SocialHeaderProps) => {
     const theme = useTheme();
-    const decryptRoomMetadata = useSocialStore((state) => state.decryptRoomMetadata);
-    const [decryptedName, setDecryptedName] = useState<string | null>(null);
-    const [isDecrypting, setIsDecrypting] = useState(false);
+    const [uploaderSearch, setUploaderSearch] = useState('');
+    const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
+    const { name: decryptedName, isDecrypting } = useDecryptedRoomMetadata(currentRoom);
 
-    useEffect(() => {
-        const decrypt = async () => {
-            if (!currentRoom) {
-                setDecryptedName(null);
-                return;
-            }
-            setIsDecrypting(true);
-            try {
-                const results = await decryptRoomMetadata(currentRoom);
-                setDecryptedName(results.name);
-            } catch (err) {
-                console.error('Failed to decrypt header room name:', err);
-                setDecryptedName('[Encrypted]');
-            } finally {
-                setIsDecrypting(false);
-            }
-        };
-
-        decrypt();
-    }, [currentRoom, decryptRoomMetadata]);
+    const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
+    const handleClearSearch = useCallback(() => setSearchQuery(''), [setSearchQuery]);
+    const handleNewLinkChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setNewLinkUrl(e.target.value), [setNewLinkUrl]);
+    const handlePostKeyDown = useCallback((e: React.KeyboardEvent) => e.key === 'Enter' && handlePostLink(), [handlePostLink]);
+    const handleUploaderSelect = useCallback((id: string | null) => handleSelectUploader(id), [handleSelectUploader]);
+    const handleViewFilterAll = useCallback(() => { handleViewFilterChange('all'); handleFilterClose(); }, [handleViewFilterChange, handleFilterClose]);
+    const handleViewFilterViewed = useCallback(() => { handleViewFilterChange('viewed'); handleFilterClose(); }, [handleViewFilterChange, handleFilterClose]);
+    const handleViewFilterUnviewed = useCallback(() => { handleViewFilterChange('unviewed'); handleFilterClose(); }, [handleViewFilterChange, handleFilterClose]);
+    const handleSortLatest = useCallback(() => { handleSortOrderChange('latest'); handleFilterClose(); }, [handleSortOrderChange, handleFilterClose]);
+    const handleSortOldest = useCallback(() => { handleSortOrderChange('oldest'); handleFilterClose(); }, [handleSortOrderChange, handleFilterClose]);
 
     return (
         <Paper
             variant="glass"
             sx={{
                 p: 2,
-                borderRadius: isMobile ? '12px' : '24px',
+                borderRadius: isMobile ? SOCIAL_RADIUS_SMALL : SOCIAL_RADIUS_XLARGE,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexShrink: 0,
-                minHeight: 88,
+                minHeight: SOCIAL_HEADER_HEIGHT + 32, // Accommodating padding
             }}
         >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 {viewMode === 'room-content' && (optimisticRoomId || currentRoom) ? (
-                    <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: -0.5 }}>
+                    <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: -0.5 }} aria-label="Exit room">
                         <ArrowBackIcon />
                     </IconButton>
                 ) : (
@@ -119,13 +109,19 @@ export const SocialHeader = memo(({
                 <Box>
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
                         {viewMode === 'room-content' && (optimisticRoomId || currentRoom)
-                            ? (isDecrypting ? <Skeleton width={120} /> : (decryptedName || '...'))
+                            ? (isLoadingContent || isDecrypting || (optimisticRoomId && currentRoom && optimisticRoomId !== currentRoom._id)
+                                ? <Skeleton width={120} />
+                                : (decryptedName || '...'))
                             : 'Social Rooms'}
                     </Typography>
-                    {viewMode === 'room-content' && currentRoom && (
-                        <Typography variant="caption" color="text.secondary">
-                            {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
-                        </Typography>
+                    {viewMode === 'room-content' && (optimisticRoomId || currentRoom) && (
+                        isLoadingContent || (optimisticRoomId && currentRoom && optimisticRoomId !== currentRoom._id) ? (
+                            <Skeleton width={80} height={20} />
+                        ) : currentRoom && (
+                            <Typography variant="caption" color="text.secondary">
+                                {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
+                            </Typography>
+                        )
                     )}
                 </Box>
             </Box>
@@ -137,26 +133,28 @@ export const SocialHeader = memo(({
                             <TextField
                                 placeholder="Search links..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={handleSearchChange}
                                 size="small"
                                 fullWidth
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <SearchIcon fontSize="small" color="action" />
-                                        </InputAdornment>
-                                    ),
-                                    endAdornment: searchQuery ? (
-                                        <InputAdornment position="end">
-                                            <IconButton size="small" onClick={() => setSearchQuery('')}>
-                                                <CloseIcon fontSize="small" />
-                                            </IconButton>
-                                        </InputAdornment>
-                                    ) : undefined,
+                                slotProps={{
+                                    input: {
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <SearchIcon fontSize="small" color="action" />
+                                            </InputAdornment>
+                                        ),
+                                        endAdornment: searchQuery ? (
+                                            <InputAdornment position="end">
+                                                <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
+                                                    <CloseIcon fontSize="small" />
+                                                </IconButton>
+                                            </InputAdornment>
+                                        ) : undefined,
+                                    }
                                 }}
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
-                                        borderRadius: '14px',
+                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
                                         bgcolor: alpha(theme.palette.background.paper, 0.5),
                                     }
                                 }}
@@ -164,17 +162,18 @@ export const SocialHeader = memo(({
                         </Box>
                     )}
 
-                    <Tooltip title="Filter by Uploader">
+                    <Tooltip title="Filter Links">
                         <IconButton
                             onClick={handleFilterClick}
                             sx={{
-                                color: selectedUploader ? 'primary.main' : 'text.secondary',
-                                bgcolor: selectedUploader ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                color: (selectedUploader || viewFilter !== 'all') ? 'primary.main' : 'text.secondary',
+                                bgcolor: (selectedUploader || viewFilter !== 'all') ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
                                 '&:hover': {
                                     color: 'primary.main',
                                     bgcolor: alpha(theme.palette.primary.main, 0.1),
                                 }
                             }}
+                            aria-label="Filter links"
                         >
                             <FilterListIcon />
                         </IconButton>
@@ -182,7 +181,7 @@ export const SocialHeader = memo(({
 
                     {isMobile && (
                         <Tooltip title="Copy Invite Link">
-                            <IconButton onClick={handleCopyInvite} color="primary">
+                            <IconButton onClick={handleCopyInvite} color="primary" aria-label="Copy invite link">
                                 <ShareIcon />
                             </IconButton>
                         </Tooltip>
@@ -192,33 +191,142 @@ export const SocialHeader = memo(({
                         anchorEl={filterAnchorEl}
                         open={Boolean(filterAnchorEl)}
                         onClose={handleFilterClose}
+                        disableScrollLock
                         PaperProps={{
                             variant: 'solid',
                             elevation: 8,
                             sx: {
-                                minWidth: 200,
+                                minWidth: 260,
                                 mt: 1,
                                 bgcolor: theme.palette.background.paper,
                                 backgroundImage: 'none',
                                 border: `1px solid ${theme.palette.divider}`,
+                                borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                '& .MuiList-root': {
+                                    pt: 0,
+                                },
                             }
                         }}
                     >
-                        <MenuItem
-                            onClick={() => handleSelectUploader(null)}
-                            selected={selectedUploader === null}
-                        >
-                            All Uploaders
+                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '40px', color: 'primary.main', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Sort Order
+                        </ListSubheader>
+
+                        <MenuItem onClick={handleSortLatest} selected={sortOrder === 'latest'} sx={{ py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <HistoryIcon fontSize="small" color={sortOrder === 'latest' ? 'primary' : 'inherit'} />
+                            </ListItemIcon>
+                            <ListItemText primary="Latest First" primaryTypographyProps={{ variant: 'body2', fontWeight: sortOrder === 'latest' ? 600 : 400 }} />
+                            {sortOrder === 'latest' && <CheckIcon fontSize="small" color="primary" />}
                         </MenuItem>
-                        {getUniqueUploaders().map((uploader) => (
-                            <MenuItem
-                                key={uploader.id}
-                                onClick={() => handleSelectUploader(uploader.id)}
-                                selected={selectedUploader === uploader.id}
-                            >
-                                {uploader.username}
+
+                        <MenuItem onClick={handleSortOldest} selected={sortOrder === 'oldest'} sx={{ py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <TimeIcon fontSize="small" color={sortOrder === 'oldest' ? 'primary' : 'inherit'} />
+                            </ListItemIcon>
+                            <ListItemText primary="Oldest First" primaryTypographyProps={{ variant: 'body2', fontWeight: sortOrder === 'oldest' ? 600 : 400 }} />
+                            {sortOrder === 'oldest' && <CheckIcon fontSize="small" color="primary" />}
+                        </MenuItem>
+
+                        <Divider sx={{ my: 1, opacity: 0.6 }} />
+
+                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '40px', color: 'primary.main', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            View Status
+                        </ListSubheader>
+
+                        <MenuItem onClick={handleViewFilterAll} selected={viewFilter === 'all'} sx={{ py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <FilterListIcon fontSize="small" color={viewFilter === 'all' ? 'primary' : 'inherit'} />
+                            </ListItemIcon>
+                            <ListItemText primary="All Links" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'all' ? 600 : 400 }} />
+                            {viewFilter === 'all' && <CheckIcon fontSize="small" color="primary" />}
+                        </MenuItem>
+
+                        <MenuItem onClick={handleViewFilterViewed} selected={viewFilter === 'viewed'} sx={{ py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <VisibilityIcon fontSize="small" color={viewFilter === 'viewed' ? 'primary' : 'inherit'} />
+                            </ListItemIcon>
+                            <ListItemText primary="Viewed" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'viewed' ? 600 : 400 }} />
+                            {viewFilter === 'viewed' && <CheckIcon fontSize="small" color="primary" />}
+                        </MenuItem>
+
+                        <MenuItem onClick={handleViewFilterUnviewed} selected={viewFilter === 'unviewed'} sx={{ py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <VisibilityOffIcon fontSize="small" color={viewFilter === 'unviewed' ? 'primary' : 'inherit'} />
+                            </ListItemIcon>
+                            <ListItemText primary="Unviewed" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'unviewed' ? 600 : 400 }} />
+                            {viewFilter === 'unviewed' && <CheckIcon fontSize="small" color="primary" />}
+                        </MenuItem>
+
+                        <Divider sx={{ my: 1, opacity: 0.6 }} />
+
+                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '40px', color: 'primary.main', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Uploaders
+                        </ListSubheader>
+
+                        {getUniqueUploaders().length > 8 && (
+                            <Box sx={{ px: 2, pb: 1 }}>
+                                <TextField
+                                    size="small"
+                                    fullWidth
+                                    placeholder="Filter uploaders..."
+                                    value={uploaderSearch}
+                                    onChange={(e) => setUploaderSearch(e.target.value)}
+                                    autoFocus
+                                    slotProps={{
+                                        input: {
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <SearchIcon fontSize="small" />
+                                                </InputAdornment>
+                                            ),
+                                        }
+                                    }}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: SOCIAL_RADIUS_SMALL,
+                                            height: 32,
+                                            fontSize: '0.8125rem',
+                                        }
+                                    }}
+                                />
+                            </Box>
+                        )}
+
+                        <Box sx={{ maxHeight: 240, overflowY: 'auto' }}>
+                            <MenuItem onClick={() => handleSelectUploader(null)} selected={selectedUploader === null} sx={{ py: 1 }}>
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                    <GroupIcon fontSize="small" color={selectedUploader === null ? 'primary' : 'inherit'} />
+                                </ListItemIcon>
+                                <ListItemText primary="All Uploaders" primaryTypographyProps={{ variant: 'body2', fontWeight: selectedUploader === null ? 600 : 400 }} />
+                                {selectedUploader === null && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
-                        ))}
+
+                            {getUniqueUploaders()
+                                .filter(u => u.username.toLowerCase().includes(uploaderSearch.toLowerCase()))
+                                .map((uploader) => (
+                                    <MenuItem
+                                        key={uploader.id}
+                                        onClick={() => handleUploaderSelect(uploader.id)}
+                                        selected={selectedUploader === uploader.id}
+                                        sx={{ py: 1 }}
+                                    >
+                                        <ListItemIcon sx={{ minWidth: 36 }}>
+                                            <PersonIcon fontSize="small" color={selectedUploader === uploader.id ? 'primary' : 'inherit'} />
+                                        </ListItemIcon>
+                                        <ListItemText primary={uploader.username} primaryTypographyProps={{ variant: 'body2', fontWeight: selectedUploader === uploader.id ? 600 : 400 }} />
+                                        {selectedUploader === uploader.id && <CheckIcon fontSize="small" color="primary" />}
+                                    </MenuItem>
+                                ))}
+
+                            {getUniqueUploaders().filter(u => u.username.toLowerCase().includes(uploaderSearch.toLowerCase())).length === 0 && (
+                                <Box sx={{ py: 2, px: 3, textAlign: 'center' }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                        No uploaders found
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Box>
                     </Menu>
 
                     {!isMobile && (
@@ -226,21 +334,23 @@ export const SocialHeader = memo(({
                             <TextField
                                 placeholder="Paste a link to share..."
                                 value={newLinkUrl}
-                                onChange={(e) => setNewLinkUrl(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handlePostLink()}
+                                onChange={handleNewLinkChange}
+                                onKeyDown={handlePostKeyDown}
                                 size="small"
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <LinkIcon color="action" sx={{ fontSize: 18 }} />
-                                        </InputAdornment>
-                                    ),
+                                slotProps={{
+                                    input: {
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <LinkIcon color="action" sx={{ fontSize: 18 }} />
+                                            </InputAdornment>
+                                        ),
+                                    }
                                 }}
                                 sx={{
                                     flex: 1,
                                     maxWidth: 400,
                                     '& .MuiOutlinedInput-root': {
-                                        borderRadius: '14px',
+                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
                                     },
                                 }}
                             />
@@ -249,16 +359,28 @@ export const SocialHeader = memo(({
                                 variant="contained"
                                 onClick={() => handlePostLink()}
                                 disabled={!newLinkUrl.trim() || isPostingLink}
-                                sx={{ borderRadius: '14px', flexShrink: 0 }}
+                                sx={{
+                                    borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                    flexShrink: 0,
+                                    minWidth: 90,
+                                    height: 40,
+                                    boxShadow: theme.shadows[2],
+                                }}
+                                aria-label="Post link"
                             >
-                                {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
+                                {isPostingLink ? <CircularProgress size={20} color="inherit" /> : 'Post'}
                             </Button>
 
                             <Button
                                 variant="outlined"
                                 startIcon={<CopyIcon />}
                                 onClick={handleCopyInvite}
-                                sx={{ borderRadius: '14px', flexShrink: 0 }}
+                                sx={{
+                                    borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                    flexShrink: 0,
+                                    height: 40,
+                                    px: 2,
+                                }}
                             >
                                 Invite
                             </Button>

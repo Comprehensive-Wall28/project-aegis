@@ -12,11 +12,19 @@ interface PreferenceState {
     gpaSystem: GPASystem;
     germanScaleConfig: GermanScaleConfig;
     isLoading: boolean;
+    isSidebarCollapsed: boolean;
+    backgroundImage: string | null;
+    backgroundBlur: number;
+    backgroundOpacity: number;
 
     // Actions
     setGPASystem: (system: GPASystem) => void;
     setGermanConfig: (config: Partial<GermanScaleConfig>) => void;
     setLoading: (loading: boolean) => void;
+    toggleSidebar: () => void;
+    setBackgroundImage: (fileId: string | null) => void;
+    setBackgroundBlur: (blur: number) => void;
+    setBackgroundOpacity: (opacity: number) => void;
     reset: () => void;
 }
 
@@ -31,6 +39,10 @@ export const usePreferenceStore = create<PreferenceState>()(
             gpaSystem: 'NORMAL',
             germanScaleConfig: defaultGermanConfig,
             isLoading: false,
+            isSidebarCollapsed: true,
+            backgroundImage: null,
+            backgroundBlur: 8,
+            backgroundOpacity: 0.4,
 
             setGPASystem: (system) => set({ gpaSystem: system }),
 
@@ -40,12 +52,17 @@ export const usePreferenceStore = create<PreferenceState>()(
                 })),
 
             setLoading: (loading) => set({ isLoading: loading }),
+            toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
+            setBackgroundImage: (fileId) => set({ backgroundImage: fileId }),
+            setBackgroundBlur: (blur) => set({ backgroundBlur: blur }),
+            setBackgroundOpacity: (opacity) => set({ backgroundOpacity: opacity }),
 
             reset: () =>
                 set({
                     gpaSystem: 'NORMAL',
                     germanScaleConfig: defaultGermanConfig,
                     isLoading: false,
+                    isSidebarCollapsed: true,
                 }),
         }),
         {

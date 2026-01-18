@@ -42,7 +42,7 @@ export function InviteLanding() {
     const [roomInfo, setRoomInfo] = useState<{ name: string; description: string } | null>(null);
     const [roomKey, setRoomKey] = useState<CryptoKey | null>(null);
 
-    // Parse invite on mount
+    // Parse invite on mount - Visible to everyone
     useEffect(() => {
         const loadInvite = async () => {
             if (!code) {
@@ -83,13 +83,10 @@ export function InviteLanding() {
         loadInvite();
     }, [code]);
 
-    const handleJoin = async () => {
+    const handleAction = async () => {
         if (!code || !roomKey) return;
 
-        // Wait for auth check to complete
-        if (isAuthChecking) return;
-
-        // If not authenticated, redirect to login with pending invite
+        // Force a "login" flow check
         if (!isAuthenticated || pqcEngineStatus !== 'operational') {
             // Store pending invite in session storage for after login
             sessionStorage.setItem(
@@ -103,6 +100,7 @@ export function InviteLanding() {
             return;
         }
 
+        // If already authenticated, proceed to join
         try {
             setIsJoining(true);
             await joinRoom(code, roomKey);
@@ -112,6 +110,15 @@ export function InviteLanding() {
             setIsJoining(false);
         }
     };
+
+    // Show initial loading only during auth check
+    if (isAuthChecking) {
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <Loader2 className="w-12 h-12 text-primary animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-black flex items-center justify-center">
@@ -176,7 +183,7 @@ export function InviteLanding() {
                         {/* Action Wrapper */}
                         <div className="w-full max-w-xs space-y-4">
                             <button
-                                onClick={handleJoin}
+                                onClick={handleAction}
                                 disabled={isJoining}
                                 className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-primary text-primary-foreground font-bold text-lg hover:bg-primary/90 transition-all hover:scale-105 disabled:opacity-50 disabled:pointer-events-none"
                             >
@@ -187,17 +194,11 @@ export function InviteLanding() {
                                     </>
                                 ) : (
                                     <>
-                                        {isAuthChecking ? 'Checking session...' : (isAuthenticated ? 'Join Room' : 'Login to Join')}
+                                        Login to Join
                                         <ArrowRight className="w-5 h-5" />
                                     </>
                                 )}
                             </button>
-
-                            {!isAuthenticated && (
-                                <p className="text-xs text-muted-foreground">
-                                    You will be redirected to login securely
-                                </p>
-                            )}
                         </div>
                     </motion.div>
                 ) : null}

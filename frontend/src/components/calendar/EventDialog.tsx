@@ -123,8 +123,8 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                         fullWidth
                         required
                         variant="outlined"
-                        InputProps={{
-                            sx: { borderRadius: '12px' }
+                        slotProps={{
+                            input: { sx: { borderRadius: '12px' } }
                         }}
                     />
 
@@ -135,9 +135,9 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                             fullWidth
-                            InputLabelProps={{ shrink: true }}
-                            InputProps={{
-                                sx: { borderRadius: '12px', fontFamily: 'JetBrains Mono, monospace' }
+                            slotProps={{
+                                inputLabel: { shrink: true },
+                                input: { sx: { borderRadius: '12px', fontFamily: 'JetBrains Mono, monospace' } }
                             }}
                         />
                         <TextField
@@ -146,9 +146,9 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
                             fullWidth
-                            InputLabelProps={{ shrink: true }}
-                            InputProps={{
-                                sx: { borderRadius: '12px', fontFamily: 'JetBrains Mono, monospace' }
+                            slotProps={{
+                                inputLabel: { shrink: true },
+                                input: { sx: { borderRadius: '12px', fontFamily: 'JetBrains Mono, monospace' } }
                             }}
                         />
                     </Box>
@@ -170,8 +170,8 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                         onChange={(e) => setLocation(e.target.value)}
                         fullWidth
                         variant="outlined"
-                        InputProps={{
-                            sx: { borderRadius: '12px' }
+                        slotProps={{
+                            input: { sx: { borderRadius: '12px' } }
                         }}
                     />
 
@@ -183,8 +183,8 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                         multiline
                         rows={3}
                         variant="outlined"
-                        InputProps={{
-                            sx: { borderRadius: '12px' }
+                        slotProps={{
+                            input: { sx: { borderRadius: '12px' } }
                         }}
                     />
 

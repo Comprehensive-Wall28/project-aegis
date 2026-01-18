@@ -164,7 +164,7 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
     };
 
     const sharedPaperStyles = {
-        p: 4,
+        p: { xs: 2, sm: 4 },
         borderRadius: '16px',
         bgcolor: alpha(theme.palette.background.paper, 0.4),
         backdropFilter: 'blur(12px)',

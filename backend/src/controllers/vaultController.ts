@@ -101,6 +101,22 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
 };
 
 /**
+ * Get a single file
+ */
+export const getFile = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user?.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        const file = await vaultService.getFile(req.user.id, req.params.id);
+        res.json(file);
+    } catch (error) {
+        handleError(error, res);
+    }
+};
+
+/**
  * Get user files (optionally filtered by folder)
  */
 export const getUserFiles = async (req: AuthRequest, res: Response) => {

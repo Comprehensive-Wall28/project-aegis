@@ -1,21 +1,17 @@
 import { useState, memo } from 'react';
-import { createPortal } from 'react-dom';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon } from '@mui/icons-material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { LinkPost } from '@/services/socialService';
 
-interface LinkCardProps {
-    link: LinkPost;
-    onCommentsClick?: (link: LinkPost) => void;
-    onDelete?: (linkId: string) => void;
-    onDragStart?: (linkId: string) => void;
-    onView?: (linkId: string) => void;
-    onUnview?: (linkId: string) => void;
-    isViewed?: boolean;
-    commentCount?: number;
-    canDelete?: boolean;
-}
+import type { LinkCardProps } from './types';
+import { DialogPortal } from './DialogPortal';
+import {
+    SOCIAL_LINK_CARD_HEIGHT,
+    SOCIAL_LINK_PREVIEW_HEIGHT,
+    SOCIAL_DIALOG_Z_INDEX,
+    SOCIAL_RADIUS_XLARGE,
+    SOCIAL_RADIUS_SMALL
+} from './constants';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
@@ -25,7 +21,7 @@ const getProxiedUrl = (originalUrl: string) => {
     return `${API_URL}/api/social/proxy-image?url=${encodeURIComponent(originalUrl)}`;
 };
 
-export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete }: LinkCardProps) => {
+export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
@@ -50,49 +46,62 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                     e.dataTransfer.setData('text/plain', link._id);
                     e.dataTransfer.effectAllowed = 'move';
 
-                    const el = e.currentTarget as HTMLElement;
-                    const rect = el.getBoundingClientRect();
-                    const scale = 0.4;
+                    // Create a lightweight ghost element for the drag image
+                    const ghost = document.createElement('div');
+                    ghost.style.position = 'absolute';
+                    ghost.style.top = '-1000px';
+                    ghost.style.left = '-1000px';
+                    ghost.style.width = '200px';
+                    ghost.style.padding = '12px';
+                    ghost.style.background = theme.palette.background.paper;
+                    ghost.style.border = `1px solid ${theme.palette.primary.main}`;
+                    ghost.style.borderRadius = '12px';
+                    ghost.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
+                    ghost.style.display = 'flex';
+                    ghost.style.alignItems = 'center';
+                    ghost.style.gap = '10px';
+                    ghost.style.zIndex = SOCIAL_DIALOG_Z_INDEX.toString();
 
-                    // Create a wrapper to constrain the drag image size
-                    const wrapper = document.createElement('div');
-                    wrapper.style.width = `${rect.width * scale}px`;
-                    wrapper.style.height = `${rect.height * scale}px`;
-                    wrapper.style.position = 'absolute';
-                    wrapper.style.top = '-9999px';
-                    wrapper.style.left = '-9999px';
-                    wrapper.style.zIndex = '9999';
-                    wrapper.style.overflow = 'hidden'; // Ensure clean edges
+                    // Add favicon if available
+                    if (faviconImage) {
+                        const img = document.createElement('img');
+                        img.src = faviconImage;
+                        img.style.width = '20px';
+                        img.style.height = '20px';
+                        img.style.borderRadius = '4px';
+                        ghost.appendChild(img);
+                    } else {
+                        const icon = document.createElement('span');
+                        icon.innerHTML = '🔗';
+                        icon.style.fontSize = '16px';
+                        ghost.appendChild(icon);
+                    }
 
-                    const clone = el.cloneNode(true) as HTMLElement;
-                    // Reset styles that might interfere
-                    clone.style.width = `${rect.width}px`;
-                    clone.style.height = `${rect.height}px`;
-                    clone.style.transform = `scale(${scale})`;
-                    clone.style.transformOrigin = 'top left';
-                    clone.style.position = 'absolute';
-                    clone.style.top = '0';
-                    clone.style.left = '0';
-                    clone.style.opacity = '1';
-                    clone.style.transition = 'none'; // distinct from original
+                    // Add title
+                    const text = document.createElement('span');
+                    text.innerText = previewData.title || 'Untitled Link';
+                    text.style.fontSize = '13px';
+                    text.style.fontWeight = '600';
+                    text.style.color = theme.palette.text.primary;
+                    text.style.overflow = 'hidden';
+                    text.style.textOverflow = 'ellipsis';
+                    text.style.whiteSpace = 'nowrap';
+                    ghost.appendChild(text);
 
-                    wrapper.appendChild(clone);
-                    document.body.appendChild(wrapper);
+                    document.body.appendChild(ghost);
 
-                    // Calculate offset so the ghost is grabbed continuously relative to cursor
-                    const clickX = e.clientX - rect.left;
-                    const clickY = e.clientY - rect.top;
+                    // Set the custom ghost as the drag image
+                    // Center it under the cursor approximately
+                    e.dataTransfer.setDragImage(ghost, 100, 25);
 
-                    e.dataTransfer.setDragImage(wrapper, clickX * scale, clickY * scale);
-
-                    // Clean up
+                    // Remove after the drag has started
                     setTimeout(() => {
-                        document.body.removeChild(wrapper);
+                        document.body.removeChild(ghost);
                     }, 0);
                 }}
                 onDragEnd={() => setIsDragging(false)}
                 style={{
-                    height: 280,
+                    height: SOCIAL_LINK_CARD_HEIGHT,
                     cursor: 'grab',
                     opacity: isDragging ? 0.5 : 1,
                     transition: 'opacity 0.2s ease',
@@ -106,7 +115,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                     variant="glass"
                     sx={{
                         overflow: 'hidden',
-                        borderRadius: '24px',
+                        borderRadius: SOCIAL_RADIUS_XLARGE,
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
@@ -128,7 +137,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                     <Box
                         sx={{
                             width: '100%',
-                            height: 140,
+                            height: SOCIAL_LINK_PREVIEW_HEIGHT,
                             flexShrink: 0,
                             bgcolor: alpha(theme.palette.primary.main, 0.08), // Default background if no image
                             display: 'flex',
@@ -233,7 +242,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                             color: 'warning.main',
                                             px: 1,
                                             py: 0.2,
-                                            borderRadius: '12px',
+                                            borderRadius: SOCIAL_RADIUS_SMALL,
                                             fontSize: '0.65rem',
                                             fontWeight: 600,
                                         }}
@@ -296,6 +305,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                         }
                                     }}
                                     title={isViewed ? "Mark as Unread" : "Mark as Viewed"}
+                                    aria-label={isViewed ? "Mark as unread" : "Mark as viewed"}
                                 >
                                     <MarkViewedIcon fontSize="small" />
                                 </IconButton>
@@ -306,6 +316,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                         setShowPreview(true);
                                     }}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                                    aria-label="Show preview"
                                 >
                                     <OpenInFullIcon fontSize="small" />
                                 </IconButton>
@@ -317,6 +328,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                         onCommentsClick?.(link);
                                     }}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                                    aria-label={`Comments (${commentCount})`}
                                 >
                                     <Badge
                                         badgeContent={commentCount}
@@ -334,6 +346,19 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     </Badge>
                                 </IconButton>
 
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onMoveClick?.(link);
+                                    }}
+                                    sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                                    aria-label="Move link"
+                                    title="Move to Collection"
+                                >
+                                    <MoveIcon fontSize="small" />
+                                </IconButton>
+
                                 {canDelete && (
                                     <IconButton
                                         size="small"
@@ -342,6 +367,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                             onDelete?.(link._id);
                                         }}
                                         sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+                                        aria-label="Delete link"
                                     >
                                         <DeleteIcon fontSize="small" />
                                     </IconButton>
@@ -353,7 +379,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
             </div>
 
             {/* Full Screen Preview Overlay - Rendered via Portal */}
-            {createPortal(
+            <DialogPortal>
                 <AnimatePresence>
                     {showPreview && (
                         <Box
@@ -365,7 +391,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                             sx={{
                                 position: 'fixed',
                                 inset: 0,
-                                zIndex: 9999,
+                                zIndex: SOCIAL_DIALOG_Z_INDEX,
                                 bgcolor: 'rgba(0,0,0,0.8)',
                                 backdropFilter: 'blur(8px)',
                                 display: 'flex',
@@ -387,7 +413,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     height: { xs: '100dvh', sm: 'auto' },
                                     maxHeight: { xs: '100dvh', sm: '90vh' },
                                     overflow: 'hidden',
-                                    borderRadius: { xs: 0, sm: '24px' },
+                                    borderRadius: { xs: 0, sm: SOCIAL_RADIUS_XLARGE },
                                     display: 'flex',
                                     flexDirection: 'column',
                                     bgcolor: alpha(theme.palette.background.paper, 0.8),
@@ -453,6 +479,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                             '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
                                             zIndex: 2,
                                         }}
+                                        aria-label="Close preview"
                                     >
                                         <CloseIcon />
                                     </IconButton>
@@ -511,9 +538,8 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                             </Paper>
                         </Box>
                     )}
-                </AnimatePresence>,
-                document.body
-            )}
+                </AnimatePresence>
+            </DialogPortal>
         </>
     );
 });

@@ -7,8 +7,6 @@ import {
     TextField,
     Alert,
     CircularProgress,
-    IconButton,
-    Tooltip,
     Stack,
     useTheme,
     alpha
@@ -92,6 +90,15 @@ export const ShareLinkTab: React.FC<ShareLinkTabProps> = ({ item, type }) => {
 
             setGeneratedLink(link);
 
+            // Auto copy
+            try {
+                await navigator.clipboard.writeText(link);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            } catch (err) {
+                console.error('Failed to auto-copy:', err);
+            }
+
         } catch (err: any) {
             console.error('Link generation failed:', err);
             setError(err.message || 'Failed to generate link');
@@ -161,45 +168,51 @@ export const ShareLinkTab: React.FC<ShareLinkTabProps> = ({ item, type }) => {
                         </Typography>
                     </Box>
 
-                    <TextField
-                        fullWidth
-                        value={generatedLink}
-                        variant="outlined"
-                        InputProps={{
-                            readOnly: true,
-                            endAdornment: (
-                                <Tooltip title={copied ? 'Copied!' : 'Copy to Clipboard'}>
-                                    <IconButton
-                                        onClick={copyToClipboard}
-                                        edge="end"
-                                        sx={{
-                                            color: copied ? 'success.main' : 'inherit',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        {copied ? <CheckCircleIcon /> : <CopyIcon />}
-                                    </IconButton>
-                                </Tooltip>
-                            )
-                        }}
-                        sx={{
-                            mb: 2,
-                            '& .MuiOutlinedInput-root': {
-                                transition: 'all 0.3s',
-                                borderColor: copied ? 'success.main' : 'inherit',
-                                '& fieldset': {
-                                    borderColor: copied ? 'success.main' : 'inherit',
-                                    borderWidth: copied ? '2px' : '1px'
-                                },
-                                '&:hover fieldset': {
-                                    borderColor: copied ? 'success.main' : 'primary.main',
-                                },
-                                '&.Mui-focused fieldset': {
-                                    borderColor: copied ? 'success.main' : 'primary.main',
+                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                        <TextField
+                            fullWidth
+                            value={generatedLink}
+                            variant="outlined"
+                            slotProps={{
+                                input: {
+                                    readOnly: true,
                                 }
-                            }
-                        }}
-                    />
+                            }}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: '12px',
+                                    transition: 'all 0.3s',
+                                    borderColor: copied ? 'success.main' : 'inherit',
+                                    '& fieldset': {
+                                        borderColor: copied ? 'success.main' : 'inherit',
+                                        borderWidth: copied ? '2px' : '1px'
+                                    },
+                                    '&:hover fieldset': {
+                                        borderColor: copied ? 'success.main' : 'primary.main',
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: copied ? 'success.main' : 'primary.main',
+                                    }
+                                }
+                            }}
+                        />
+                        <Button
+                            variant="contained"
+                            color={copied ? "success" : "primary"}
+                            onClick={copyToClipboard}
+                            sx={{
+                                borderRadius: '12px',
+                                width: 56,
+                                minWidth: 56,
+                                p: 0,
+                                flexShrink: 0,
+                                boxShadow: 'none'
+                            }}
+                        >
+                            {copied ? <CheckCircleIcon /> : <CopyIcon />}
+                        </Button>
+                    </Box>
+
                     <Stack
                         direction={{ xs: 'column', sm: 'row' }}
                         justifyContent="space-between"

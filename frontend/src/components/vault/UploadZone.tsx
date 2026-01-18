@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { CloudUpload as UploadIcon, Lock as FileLockIcon, GppGood as ShieldCheckIcon } from '@mui/icons-material';
 import { Box, Typography, Paper, LinearProgress, alpha, useTheme } from '@mui/material';
+import { motion } from 'framer-motion';
 import { useVaultUpload } from '../../hooks/useVaultUpload';
 
 
@@ -62,7 +63,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx 
                 onDrop={handleDrop}
                 sx={{
                     position: 'relative',
-                    p: 6,
+                    p: { xs: 3, sm: 4, md: 6 },
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
@@ -99,7 +100,13 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx 
                 />
 
                 {/* Icons & Status */}
-                <Box sx={{ position: 'relative' }}>
+                <Box
+                    component={motion.div}
+                    initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.4, ease: 'easeOut' }}
+                    sx={{ position: 'relative' }}
+                >
                     {isCompleted && activeCount === 0 ? (
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'success.main' }}>
                             <ShieldCheckIcon sx={{ fontSize: 48 }} />
@@ -134,7 +141,13 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx 
                 </Box>
 
                 {/* Text Feedback */}
-                <Box sx={{ textAlign: 'center' }}>
+                <Box
+                    component={motion.div}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25, duration: 0.4, ease: 'easeOut' }}
+                    sx={{ textAlign: 'center' }}
+                >
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
                         {globalState.status === 'idle' && 'Drop sensitive files here'}
                         {isActive && activeCount > 0 && `Uploading ${activeCount} file${activeCount > 1 ? 's' : ''}...`}

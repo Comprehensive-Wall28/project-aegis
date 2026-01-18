@@ -1,5 +1,4 @@
 import { useState, useEffect, memo } from 'react';
-import { createPortal } from 'react-dom';
 import {
     Box,
     Paper,
@@ -12,6 +11,7 @@ import {
     CircularProgress,
     useMediaQuery,
     InputAdornment,
+    Alert,
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -19,18 +19,22 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import type { CreateRoomDialogProps, CreateCollectionDialogProps, PostLinkDialogProps, MoveLinkDialogProps } from './types';
+import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
+import { DialogPortal } from './DialogPortal';
+import {
+    SOCIAL_DIALOG_Z_INDEX,
+    SOCIAL_RADIUS_XLARGE,
+    SOCIAL_RADIUS_SMALL
+} from './constants';
+
 // Create Room Dialog
 export const CreateRoomDialog = memo(({
     open,
     onClose,
     onSubmit,
     isLoading,
-}: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (name: string, description: string) => void;
-    isLoading: boolean;
-}) => {
+}: CreateRoomDialogProps) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const theme = useTheme();
@@ -42,89 +46,94 @@ export const CreateRoomDialog = memo(({
         }
     };
 
-    return createPortal(
-        <AnimatePresence>
-            {open && (
-                <Box
-                    component={motion.div}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={onClose}
-                    sx={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 9999,
-                        bgcolor: 'rgba(0,0,0,0.8)',
-                        backdropFilter: isMobile ? 'none' : 'blur(8px)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        p: isMobile ? 0 : 4,
-                    }}
-                >
-                    <Paper
-                        variant={isMobile ? "solid" : "glass"}
+    return (
+        <DialogPortal>
+            <AnimatePresence>
+                {open && (
+                    <Box
                         component={motion.div}
-                        initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                        animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-                        exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                        transition={isMobile ? { type: 'spring', damping: 25, stiffness: 300 } : {}}
-                        onClick={(e) => e.stopPropagation()}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
                         sx={{
-                            width: '100%',
-                            maxWidth: isMobile ? '100%' : 450,
-                            height: isMobile ? '100%' : 'auto',
-                            maxHeight: isMobile ? '100%' : '90vh',
-                            overflow: 'hidden',
-                            borderRadius: isMobile ? 0 : '24px',
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: SOCIAL_DIALOG_Z_INDEX,
+                            bgcolor: 'rgba(0,0,0,0.8)',
+                            backdropFilter: isMobile ? 'none' : 'blur(8px)',
                             display: 'flex',
-                            flexDirection: 'column',
-                            bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: isMobile ? 0 : 4,
                         }}
                     >
-                        <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>Create New Room</Typography>
-                            <IconButton onClick={onClose}><CloseIcon /></IconButton>
-                        </Box>
+                        <Paper
+                            variant={isMobile ? "solid" : "glass"}
+                            component={motion.div}
+                            initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            transition={isMobile ? { type: 'spring', damping: 25, stiffness: 300 } : {}}
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                                width: '100%',
+                                maxWidth: isMobile ? '100%' : 450,
+                                height: isMobile ? '100%' : 'auto',
+                                maxHeight: isMobile ? '100%' : '90vh',
+                                overflow: 'hidden',
+                                borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                            }}
+                        >
+                            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>Create New Room</Typography>
+                                <IconButton onClick={onClose} aria-label="Close">
+                                    <CloseIcon />
+                                </IconButton>
+                            </Box>
 
-                        <Box sx={{ p: 3, flex: 1, overflowY: 'auto' }}>
-                            <TextField
-                                fullWidth
-                                label="Room Name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                sx={{ mb: 2 }}
-                                autoFocus
-                            />
+                            <Box sx={{ p: 3, flex: 1, overflowY: 'auto' }}>
+                                <TextField
+                                    fullWidth
+                                    label="Room Name"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    sx={{ mb: 2 }}
+                                    autoFocus
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                                />
 
-                            <TextField
-                                fullWidth
-                                label="Description"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                multiline
-                                rows={2}
-                                sx={{ mb: 1 }}
-                            />
-                        </Box>
+                                <TextField
+                                    fullWidth
+                                    label="Description"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    multiline
+                                    rows={2}
+                                    sx={{ mb: 1 }}
+                                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
+                                />
+                            </Box>
 
-                        <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                            <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
-                            <Button
-                                variant="contained"
-                                onClick={handleSubmit}
-                                disabled={!name.trim() || isLoading}
-                                sx={{ borderRadius: '12px', px: 4 }}
-                            >
-                                {isLoading ? <CircularProgress size={20} /> : 'Create'}
-                            </Button>
-                        </Box>
-                    </Paper>
-                </Box>
-            )}
-        </AnimatePresence>,
-        document.body
+                            <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                                <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleSubmit}
+                                    disabled={!name.trim() || isLoading}
+                                    sx={{ borderRadius: SOCIAL_RADIUS_SMALL, px: 4 }}
+                                >
+                                    {isLoading ? <CircularProgress size={20} /> : 'Create'}
+                                </Button>
+                            </Box>
+                        </Paper>
+                    </Box >
+                )}
+            </AnimatePresence >
+        </DialogPortal>
     );
 });
 
@@ -134,12 +143,7 @@ export const CreateCollectionDialog = memo(({
     onClose,
     onSubmit,
     isLoading,
-}: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (name: string) => void;
-    isLoading: boolean;
-}) => {
+}: CreateCollectionDialogProps) => {
     const [name, setName] = useState('');
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -155,80 +159,83 @@ export const CreateCollectionDialog = memo(({
         if (!open) setName('');
     }, [open]);
 
-    return createPortal(
-        <AnimatePresence>
-            {open && (
-                <Box
-                    component={motion.div}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={onClose}
-                    sx={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 9999,
-                        bgcolor: 'rgba(0,0,0,0.8)',
-                        backdropFilter: isMobile ? 'none' : 'blur(8px)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        p: isMobile ? 0 : 4,
-                    }}
-                >
-                    <Paper
-                        variant={isMobile ? "solid" : "glass"}
+    return (
+        <DialogPortal>
+            <AnimatePresence>
+                {open && (
+                    <Box
                         component={motion.div}
-                        initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                        animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-                        exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                        transition={isMobile ? { type: 'spring', damping: 25, stiffness: 300 } : {}}
-                        onClick={(e) => e.stopPropagation()}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
                         sx={{
-                            width: '100%',
-                            maxWidth: isMobile ? '100%' : 400,
-                            height: isMobile ? '100%' : 'auto',
-                            maxHeight: isMobile ? '100%' : '90vh',
-                            overflow: 'hidden',
-                            borderRadius: isMobile ? 0 : '24px',
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: SOCIAL_DIALOG_Z_INDEX,
+                            bgcolor: 'rgba(0,0,0,0.8)',
+                            backdropFilter: isMobile ? 'none' : 'blur(8px)',
                             display: 'flex',
-                            flexDirection: 'column',
-                            bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: isMobile ? 0 : 4,
                         }}
                     >
-                        <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>New Collection</Typography>
-                            <IconButton onClick={onClose}><CloseIcon /></IconButton>
-                        </Box>
+                        <Paper
+                            variant={isMobile ? "solid" : "glass"}
+                            component={motion.div}
+                            initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            transition={isMobile ? { type: 'spring', damping: 25, stiffness: 300 } : {}}
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                                width: '100%',
+                                maxWidth: isMobile ? '100%' : 400,
+                                height: isMobile ? '100%' : 'auto',
+                                maxHeight: isMobile ? '100%' : '90vh',
+                                overflow: 'hidden',
+                                borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                            }}
+                        >
+                            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>New Collection</Typography>
+                                <IconButton onClick={onClose} aria-label="Close">
+                                    <CloseIcon />
+                                </IconButton>
+                            </Box>
 
-                        <Box sx={{ p: 3, flex: 1 }}>
-                            <TextField
-                                fullWidth
-                                label="Collection Name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                sx={{ mb: 1 }}
-                                autoFocus
-                                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                            />
-                        </Box>
+                            <Box sx={{ p: 3, flex: 1 }}>
+                                <TextField
+                                    fullWidth
+                                    label="Collection Name"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    sx={{ mb: 1 }}
+                                    autoFocus
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                                />
+                            </Box>
 
-                        <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                            <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
-                            <Button
-                                variant="contained"
-                                onClick={handleSubmit}
-                                disabled={!name.trim() || isLoading}
-                                sx={{ borderRadius: '12px', px: 4 }}
-                            >
-                                {isLoading ? <CircularProgress size={20} /> : 'Create'}
-                            </Button>
-                        </Box>
-                    </Paper>
-                </Box>
-            )}
-        </AnimatePresence>,
-        document.body
+                            <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                                <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleSubmit}
+                                    disabled={!name.trim() || isLoading}
+                                    sx={{ borderRadius: SOCIAL_RADIUS_SMALL, px: 4 }}
+                                >
+                                    {isLoading ? <CircularProgress size={20} /> : 'Create'}
+                                </Button>
+                            </Box>
+                        </Paper>
+                    </Box>
+                )}
+            </AnimatePresence>
+        </DialogPortal>
     );
 });
 
@@ -238,12 +245,8 @@ export const PostLinkDialog = memo(({
     onClose,
     onSubmit,
     isLoading,
-}: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (url: string) => void;
-    isLoading: boolean;
-}) => {
+    error
+}: PostLinkDialogProps) => {
     const [url, setUrl] = useState('');
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -255,87 +258,221 @@ export const PostLinkDialog = memo(({
         }
     };
 
-    return createPortal(
-        <AnimatePresence>
-            {open && (
-                <Box
-                    component={motion.div}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={onClose}
-                    sx={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 9999,
-                        bgcolor: 'rgba(0,0,0,0.8)',
-                        backdropFilter: isMobile ? 'none' : 'blur(8px)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        p: isMobile ? 0 : 4,
-                    }}
-                >
-                    <Paper
-                        variant={isMobile ? "solid" : "glass"}
+    return (
+        <DialogPortal>
+            <AnimatePresence>
+                {open && (
+                    <Box
                         component={motion.div}
-                        initial={isMobile ? { y: '100%' } : { scale: 0.8, opacity: 0 }}
-                        animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-                        exit={isMobile ? { y: '100%' } : { scale: 0.8, opacity: 0 }}
-                        transition={isMobile ? { type: 'spring', damping: 30, stiffness: 350 } : {}}
-                        onClick={(e) => e.stopPropagation()}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
                         sx={{
-                            width: '100%',
-                            maxWidth: isMobile ? '100%' : 450,
-                            height: isMobile ? '100%' : 'auto',
-                            maxHeight: isMobile ? '100%' : '90vh',
-                            overflow: 'hidden',
-                            borderRadius: isMobile ? 0 : '24px',
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: SOCIAL_DIALOG_Z_INDEX,
+                            bgcolor: 'rgba(0,0,0,0.8)',
+                            backdropFilter: isMobile ? 'none' : 'blur(8px)',
                             display: 'flex',
-                            flexDirection: 'column',
-                            bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: isMobile ? 0 : 4,
                         }}
                     >
-                        <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>Post a Link</Typography>
-                            <IconButton onClick={onClose}><CloseIcon /></IconButton>
-                        </Box>
+                        <Paper
+                            variant={isMobile ? "solid" : "glass"}
+                            component={motion.div}
+                            initial={isMobile ? { y: '100%' } : { scale: 0.8, opacity: 0 }}
+                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: '100%' } : { scale: 0.8, opacity: 0 }}
+                            transition={isMobile ? { type: 'spring', damping: 30, stiffness: 350 } : {}}
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                                width: '100%',
+                                maxWidth: isMobile ? '100%' : 450,
+                                height: isMobile ? '100%' : 'auto',
+                                maxHeight: isMobile ? '100%' : '90vh',
+                                overflow: 'hidden',
+                                borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                            }}
+                        >
+                            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>Post a Link</Typography>
+                                <IconButton onClick={onClose} aria-label="Close">
+                                    <CloseIcon />
+                                </IconButton>
+                            </Box>
 
-                        <Box sx={{ p: 3, flex: 1 }}>
-                            <TextField
-                                fullWidth
-                                label="URL"
-                                placeholder="https://example.com"
-                                value={url}
-                                onChange={(e) => setUrl(e.target.value)}
-                                sx={{ mb: 1 }}
-                                autoFocus
-                                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <LinkIcon color="action" />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                            />
-                        </Box>
+                            <Box sx={{ p: 3, flex: 1 }}>
+                                <TextField
+                                    fullWidth
+                                    label="URL"
+                                    placeholder="https://example.com"
+                                    value={url}
+                                    onChange={(e) => setUrl(e.target.value)}
+                                    sx={{ mb: 1 }}
+                                    autoFocus
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                                    slotProps={{
+                                        input: {
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <LinkIcon color="action" />
+                                                </InputAdornment>
+                                            ),
+                                        }
+                                    }}
+                                />
+                                {error && (
+                                    <Alert
+                                        severity="error"
+                                        sx={{
+                                            mt: 2,
+                                            borderRadius: SOCIAL_RADIUS_SMALL,
+                                            animation: 'fadeIn 0.3s ease-in'
+                                        }}
+                                    >
+                                        {error}
+                                    </Alert>
+                                )}
+                            </Box>
 
-                        <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                            <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
-                            <Button
-                                variant="contained"
-                                onClick={handleSubmit}
-                                disabled={!url.trim() || isLoading}
-                                sx={{ borderRadius: '12px', px: 4 }}
-                            >
-                                {isLoading ? <CircularProgress size={20} /> : 'Post'}
-                            </Button>
-                        </Box>
-                    </Paper>
-                </Box>
-            )}
-        </AnimatePresence>,
-        document.body
+                            <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                                <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleSubmit}
+                                    disabled={!url.trim() || isLoading}
+                                    sx={{ borderRadius: SOCIAL_RADIUS_SMALL, px: 4 }}
+                                >
+                                    {isLoading ? <CircularProgress size={20} /> : 'Post'}
+                                </Button>
+                            </Box>
+                        </Paper>
+                    </Box>
+                )}
+            </AnimatePresence>
+        </DialogPortal>
     );
 });
+// Move Link Dialog
+export const MoveLinkDialog = memo(({
+    open,
+    onClose,
+    onSubmit,
+    collections,
+    currentCollectionId,
+    isLoading
+}: MoveLinkDialogProps) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    return (
+        <DialogPortal>
+            <AnimatePresence>
+                {open && (
+                    <Box
+                        component={motion.div}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        sx={{
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: SOCIAL_DIALOG_Z_INDEX,
+                            bgcolor: 'rgba(0,0,0,0.8)',
+                            backdropFilter: isMobile ? 'none' : 'blur(8px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: isMobile ? 0 : 2,
+                        }}
+                    >
+                        <Paper
+                            variant={isMobile ? "solid" : "glass"}
+                            component={motion.div}
+                            initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                                width: '100%',
+                                maxWidth: isMobile ? '100%' : 400,
+                                height: isMobile ? '100%' : 'auto',
+                                maxHeight: isMobile ? '100%' : '80vh',
+                                overflow: 'hidden',
+                                borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                            }}
+                        >
+                            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>Move to Collection</Typography>
+                                <IconButton onClick={onClose} aria-label="Close">
+                                    <CloseIcon />
+                                </IconButton>
+                            </Box>
+
+                            <Box sx={{ p: 1, flex: 1, overflowY: 'auto' }}>
+                                {collections.map((collection) => (
+                                    <CollectionOption
+                                        key={collection._id}
+                                        collection={collection}
+                                        isActive={collection._id === currentCollectionId}
+                                        onClick={() => onSubmit(collection._id)}
+                                    />
+                                ))}
+                            </Box>
+
+                            <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'flex-end' }}>
+                                <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
+                            </Box>
+                        </Paper>
+                    </Box>
+                )}
+            </AnimatePresence>
+        </DialogPortal>
+    );
+});
+
+// Helper component for MoveLinkDialog options
+const CollectionOption = ({ collection, isActive, onClick }: { collection: any, isActive: boolean, onClick: () => void }) => {
+    const theme = useTheme();
+    const { name: decryptedName, isDecrypting } = useDecryptedCollectionMetadata(collection);
+
+    return (
+        <Button
+            fullWidth
+            onClick={onClick}
+            disabled={isActive}
+            sx={{
+                justifyContent: 'flex-start',
+                textAlign: 'left',
+                p: 2,
+                borderRadius: SOCIAL_RADIUS_SMALL,
+                mb: 0.5,
+                bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                color: isActive ? 'primary.main' : 'text.primary',
+                '&:hover': {
+                    bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.primary.main, 0.05),
+                },
+                textTransform: 'none',
+            }}
+        >
+            <Typography variant="body1" sx={{ fontWeight: isActive ? 600 : 400 }}>
+                {isDecrypting ? '...' : (decryptedName || 'Untitled Collection')}
+            </Typography>
+            {isActive && (
+                <Typography variant="caption" sx={{ ml: 'auto', opacity: 0.6 }}>
+                    Current
+                </Typography>
+            )}
+        </Button>
+    );
+};

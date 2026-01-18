@@ -9,10 +9,76 @@ import { refreshCsrfToken } from '@/services/api';
 import UploadManager from '@/components/vault/UploadManager';
 import { useSocialStore, importRoomKeyFromBase64 } from '@/stores/useSocialStore';
 
+import { usePreferenceStore } from '@/stores/preferenceStore';
+import { useSessionStore } from '@/stores/sessionStore';
+import { useVaultDownload } from '@/hooks/useVaultDownload';
+import vaultService from '@/services/vaultService';
+import { backgroundCache } from '@/lib/backgroundCache';
+
 export function DashboardLayout() {
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const isSidebarCollapsed = usePreferenceStore((state) => state.isSidebarCollapsed);
+    const toggleSidebar = usePreferenceStore((state) => state.toggleSidebar);
+    const backgroundImage = usePreferenceStore((state) => state.backgroundImage);
+    const backgroundBlur = usePreferenceStore((state) => state.backgroundBlur);
+    const backgroundOpacity = usePreferenceStore((state) => state.backgroundOpacity);
+    const [bgUrl, setBgUrl] = useState<string | null>(null);
+    const { downloadAndDecrypt } = useVaultDownload();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const theme = useTheme();
+    const user = useSessionStore((state) => state.user);
+
+    // Sync user preferences to local store on login/update
+    useEffect(() => {
+        if (user?.preferences) {
+            usePreferenceStore.setState({
+                backgroundImage: user.preferences.backgroundImage || null,
+                backgroundBlur: user.preferences.backgroundBlur ?? 8,
+                backgroundOpacity: user.preferences.backgroundOpacity ?? 0.4
+            });
+        }
+    }, [user]);
+
+    useEffect(() => {
+        let active = true;
+        let objectUrl: string | null = null;
+
+        const loadBackground = async () => {
+            if (!backgroundImage) {
+                setBgUrl(null);
+                return;
+            }
+
+            try {
+                // 1. Try cache first
+                const cachedBlob = await backgroundCache.get(backgroundImage);
+                if (cachedBlob && active) {
+                    objectUrl = URL.createObjectURL(cachedBlob);
+                    setBgUrl(objectUrl);
+                    return; // Done
+                }
+
+                // 2. Not in cache, download from vault
+                const fileMetadata = await vaultService.getFile(backgroundImage);
+                const blob = await downloadAndDecrypt(fileMetadata);
+                if (blob && active) {
+                    objectUrl = URL.createObjectURL(blob);
+                    setBgUrl(objectUrl);
+
+                    // 3. Save to cache
+                    await backgroundCache.save(backgroundImage, blob);
+                }
+            } catch (error) {
+                console.error('Failed to load background:', error);
+            }
+        };
+
+        loadBackground();
+
+        return () => {
+            active = false;
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [backgroundImage, downloadAndDecrypt]);
 
     // Fetch CSRF token when dashboard loads
     useEffect(() => {
@@ -67,13 +133,18 @@ export function DashboardLayout() {
             sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}
         >
             {/* Soft Ambient Background Glow - Fixed 'Orb' issue by using wide ellipse */}
+            {/* Soft Ambient Background Glow - Fixed 'Orb' issue by using wide ellipse */}
             <Box
                 sx={{
                     position: 'fixed',
-                    inset: 0,
+                    inset: -10, // Slight overflow to prevent edge artifacts on blur
                     zIndex: 0,
-                    background: `radial-gradient(ellipse 120% 50% at 50% -20%, ${alpha(theme.palette.primary.main, 0.2)} 0%, transparent 100%)`,
-                    opacity: 0.12, // Subtle, well-integrated glow
+                    background: bgUrl
+                        ? `url(${bgUrl}) center/cover no-repeat fixed`
+                        : `radial-gradient(ellipse 120% 50% at 50% -20%, ${alpha(theme.palette.primary.main, 0.2)} 0%, transparent 100%)`,
+                    opacity: bgUrl ? (backgroundOpacity ?? 0.4) : 0.12,
+                    filter: bgUrl ? `blur(${backgroundBlur ?? 8}px) brightness(0.7)` : 'none',
+                    transition: 'background 0.5s ease-in-out, opacity 0.5s ease-in-out, filter 0.5s ease-in-out',
                     pointerEvents: 'none'
                 }}
             />
@@ -98,7 +169,7 @@ export function DashboardLayout() {
             {/* Sidebar */}
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
-                onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                onToggle={toggleSidebar}
                 isMobileOpen={isMobileMenuOpen}
                 onMobileClose={() => setIsMobileMenuOpen(false)}
             />

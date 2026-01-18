@@ -2,12 +2,14 @@ import { create } from 'zustand';
 import auditService, { type AuditLog } from '@/services/auditService';
 import authService from '@/services/authService';
 import * as cryptoUtils from '@/lib/cryptoUtils';
-// @ts-ignore
-import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
+import { pqcWorkerManager } from '@/lib/pqcWorkerManager';
 
 export interface UserPreferences {
     sessionTimeout: number; // minutes
     encryptionLevel: 'STANDARD' | 'HIGH' | 'PARANOID';
+    backgroundImage?: string | null;
+    backgroundBlur?: number;
+    backgroundOpacity?: number;
 }
 
 interface User {
@@ -137,14 +139,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         // Set to initializing state
         set({ pqcEngineStatus: 'initializing' });
 
-        // Run async initialization without blocking
         (async () => {
             try {
-                // WASM loading issues handled by @noble/post-quantum pure JS
-                // const { ml_kem768 } = await import('@noble/post-quantum/ml-kem.js');
-
-                // Generate keys - use seed if provided for persistence
-                const { publicKey, secretKey } = seed ? ml_kem768.keygen(seed) : ml_kem768.keygen();
+                // Use centralized PQC Worker Manager for heavy computation
+                const { publicKey, secretKey } = await pqcWorkerManager.generateKeys(seed);
 
                 // Helper to convert to Hex
                 const bytesToHex = (bytes: Uint8Array) =>
@@ -175,13 +173,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                         },
                         pqcEngineStatus: 'operational'
                     });
-                    console.log(`Quantum Keys Initialized for Session ${seed ? '(Persistent)' : '(Ephemeral)'}, Vault Key: ${vaultKey ? 'Yes' : 'No'}`);
+                    console.log(`Quantum Keys Initialized (Worker) for Session ${seed ? '(Persistent)' : '(Ephemeral)'}, Vault Key: ${vaultKey ? 'Yes' : 'No'}`);
                 } else {
                     // If no user, we still set it as operational for the engine itself
                     set({ pqcEngineStatus: 'operational' });
                 }
             } catch (e) {
-                console.error("Failed to generate PQC keys:", e);
+                console.error("Failed to generate PQC keys (Worker):", e);
                 set({ pqcEngineStatus: 'error' });
             }
         })();

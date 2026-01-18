@@ -239,6 +239,7 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                     onClick={onMobileMenuOpen}
                     sx={{
                         display: { lg: 'none' },
+                        p: 1.5, // Increased touch area
                         color: theme.palette.text.secondary,
                         '&:hover': {
                             color: theme.palette.primary.main,
@@ -246,7 +247,7 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                         }
                     }}
                 >
-                    <MenuIcon />
+                    <MenuIcon sx={{ fontSize: 28 }} />
                 </IconButton>
             </Box>
         </Box>

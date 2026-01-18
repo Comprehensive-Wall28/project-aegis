@@ -105,7 +105,7 @@ export function SettingsPage() {
             initial="hidden"
             animate="visible"
             variants={containerVariants}
-            sx={{ maxWidth: 800, mx: 'auto', p: { xs: 2, md: 3 } }}
+            sx={{ maxWidth: 800, mx: 'auto', px: { xs: 1, md: 3 }, py: { xs: 2, md: 3 } }}
         >
             {/* Page Header */}
             <Box component={motion.div} variants={itemVariants} sx={{ mb: 3 }}>

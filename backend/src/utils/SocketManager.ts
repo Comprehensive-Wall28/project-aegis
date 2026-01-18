@@ -21,7 +21,9 @@ class SocketManager {
                 origin: allowedOrigins,
                 methods: ['GET', 'POST'],
                 credentials: true
-            }
+            },
+            pingInterval: 10000,
+            pingTimeout: 5000,
         });
 
         this.io.on('connection', (socket) => {

@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from 'react';
+import { memo, useMemo, useCallback } from 'react';
 import {
     Box,
     Typography,
@@ -10,6 +10,7 @@ import {
     InputAdornment,
     CircularProgress,
     Skeleton,
+    useMediaQuery,
 } from '@mui/material';
 import {
     Folder as CollectionIcon,
@@ -17,33 +18,14 @@ import {
     Close as CloseIcon,
     Link as LinkIcon,
 } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import { LinkCardSkeleton } from './SocialSkeletons';
 import { LinkCard } from './LinkCard';
+import { SocialErrorBoundary } from './SocialErrorBoundary';
 import type { LinkPost } from '@/services/socialService';
-import { useSocialStore } from '@/stores/useSocialStore';
+import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
 
-interface LinksContainerProps {
-    linksContainerRef: React.RefObject<HTMLDivElement | null>;
-    isMobile: boolean;
-    currentCollectionId: string | null;
-    collections: any[];
-    setMobileDrawerOpen: (open: boolean) => void;
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
-    isLoadingContent: boolean;
-    isLoadingLinks: boolean;
-    filteredLinks: LinkPost[];
-    deleteLink: (id: string) => void;
-    setDraggedLinkId: (id: string | null) => void;
-    markLinkViewed: (id: string) => void;
-    unmarkLinkViewed: (id: string) => void;
-    setCommentsLink: (link: LinkPost | null) => void;
-    viewedLinkIds: Set<string>;
-    commentCounts: Record<string, number>;
-    currentUserId: string | undefined;
-    hasMoreLinks: boolean;
-    loadMoreLinks: () => void;
-}
+import type { LinksContainerProps } from './types';
 
 export const LinksContainer = memo(({
     linksContainerRef,
@@ -65,53 +47,51 @@ export const LinksContainer = memo(({
     commentCounts,
     currentUserId,
     hasMoreLinks,
-    loadMoreLinks,
+    loadAllLinks,
+    onMoveLink,
 }: LinksContainerProps) => {
     const theme = useTheme();
-    const decryptCollectionMetadata = useSocialStore((state) => state.decryptCollectionMetadata);
-    const [decryptedName, setDecryptedName] = useState<string | null>(null);
-    const [isDecrypting, setIsDecrypting] = useState(false);
+    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
-    useEffect(() => {
-        const decrypt = async () => {
-            const collection = collections.find(c => c._id === currentCollectionId);
-            if (!collection) {
-                setDecryptedName(null);
-                return;
-            }
-            if (collection.type === 'links' && !collection.name) {
-                setDecryptedName('Links');
-                return;
-            }
-            setIsDecrypting(true);
-            try {
-                const { name } = await decryptCollectionMetadata(collection);
-                setDecryptedName(name);
-            } catch (err) {
-                console.error('Failed to decrypt container title:', err);
-                setDecryptedName('Encrypted');
-            } finally {
-                setIsDecrypting(false);
-            }
-        };
+    const currentCollection = useMemo(() =>
+        collections.find(c => c._id === currentCollectionId) || null
+        , [collections, currentCollectionId]);
 
-        decrypt();
-    }, [currentCollectionId, collections, decryptCollectionMetadata]);
+    const { name: decryptedName, isDecrypting } = useDecryptedCollectionMetadata(currentCollection);
+
+    const handleDelete = useCallback((id: string) => deleteLink(id), [deleteLink]);
+    const handleDragStart = useCallback((id: string | null) => setDraggedLinkId(id), [setDraggedLinkId]);
+    const handleView = useCallback((id: string) => markLinkViewed(id), [markLinkViewed]);
+    const handleUnview = useCallback((id: string) => unmarkLinkViewed(id), [unmarkLinkViewed]);
+    const handleCommentsClick = useCallback((link: LinkPost) => setCommentsLink(link), [setCommentsLink]);
+    const handleLoadAll = useCallback(() => loadAllLinks(), [loadAllLinks]);
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
+    const handleClearSearch = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSearchQuery('');
+    }, [setSearchQuery]);
+    const handleMoveClick = useCallback((link: LinkPost) => onMoveLink?.(link), [onMoveLink]);
 
     return (
-        <Box
-            ref={linksContainerRef}
-            sx={{
-                flex: 1,
-                minWidth: 0,
-                height: '100%',
-                overflowX: 'hidden',
-                overflowY: 'auto',
-                pr: 1,
-                pt: 1,
-                px: 1,
-                pb: isMobile ? 12 : 2,
-            }}>
+        <motion.div
+            initial={isDesktop ? { opacity: 0 } : false}
+            animate={isDesktop ? { opacity: 1 } : undefined}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            style={{ flex: 1, minWidth: 0, height: '100%', display: 'flex', flexDirection: 'column' }}
+        >
+            <Box
+                ref={linksContainerRef}
+                sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    height: '100%',
+                    overflowX: 'hidden',
+                    overflowY: 'auto',
+                    pr: 1,
+                    pt: 1,
+                    px: 1,
+                    pb: isMobile ? 12 : 2,
+                }}>
             {isMobile && (
                 <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                     <Button
@@ -140,22 +120,24 @@ export const LinksContainer = memo(({
                     <TextField
                         placeholder="Search links..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={handleSearchChange}
                         size="small"
                         fullWidth
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon fontSize="small" color="action" />
-                                </InputAdornment>
-                            ),
-                            endAdornment: searchQuery ? (
-                                <InputAdornment position="end">
-                                    <IconButton size="small" onClick={() => setSearchQuery('')}>
-                                        <CloseIcon fontSize="small" />
-                                    </IconButton>
-                                </InputAdornment>
-                            ) : undefined
+                        slotProps={{
+                            input: {
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon fontSize="small" color="action" />
+                                    </InputAdornment>
+                                ),
+                                endAdornment: searchQuery ? (
+                                    <InputAdornment position="end">
+                                        <IconButton size="small" onClick={handleClearSearch}>
+                                            <CloseIcon fontSize="small" />
+                                        </IconButton>
+                                    </InputAdornment>
+                                ) : undefined
+                            }
                         }}
                         sx={{
                             flex: 1,
@@ -179,7 +161,7 @@ export const LinksContainer = memo(({
                         gap: 2,
                     }}
                 >
-                    {Array.from({ length: 6 }).map((_, i) => (
+                    {Array.from({ length: 12 }).map((_, i) => (
                         <LinkCardSkeleton key={`link-skel-${i}`} />
                     ))}
                 </Box>
@@ -193,41 +175,44 @@ export const LinksContainer = memo(({
                         }}
                     >
                         {filteredLinks.map((link: LinkPost) => (
-                            <LinkCard
-                                key={link._id}
-                                link={link}
-                                onDelete={() => deleteLink(link._id)}
-                                onDragStart={(id) => setDraggedLinkId(id)}
-                                onView={(id) => markLinkViewed(id)}
-                                onUnview={(id) => unmarkLinkViewed(id)}
-                                onCommentsClick={(l) => setCommentsLink(l)}
-                                isViewed={viewedLinkIds.has(link._id)}
-                                commentCount={commentCounts[link._id] || 0}
-                                canDelete={
-                                    currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
-                                }
-                            />
+                            <SocialErrorBoundary key={link._id} componentName="Link Card">
+                                <LinkCard
+                                    link={link}
+                                    onDelete={handleDelete}
+                                    onDragStart={handleDragStart}
+                                    onView={handleView}
+                                    onUnview={handleUnview}
+                                    onCommentsClick={handleCommentsClick}
+                                    isViewed={viewedLinkIds.has(link._id)}
+                                    commentCount={commentCounts[link._id] || 0}
+                                    canDelete={
+                                        currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
+                                    }
+                                    onMoveClick={handleMoveClick}
+                                />
+                            </SocialErrorBoundary>
                         ))}
                     </Box>
 
                     {hasMoreLinks && (
-                        <Box sx={{ mt: 3, mb: 2, display: 'flex', justifyContent: 'center' }}>
+                        <Box sx={{ mt: 3, mb: 2, display: 'flex', justifyContent: 'center', gap: 2 }}>
                             <Button
-                                variant="outlined"
-                                onClick={() => loadMoreLinks()}
+                                variant="contained"
+                                onClick={handleLoadAll}
                                 disabled={isLoadingLinks}
-                                startIcon={isLoadingLinks ? <CircularProgress size={20} /> : null}
                                 sx={{
                                     borderRadius: '12px',
-                                    px: 4,
-                                    borderColor: alpha(theme.palette.primary.main, 0.3),
+                                    px: 6,
+                                    py: 1,
+                                    bgcolor: alpha(theme.palette.primary.main, 0.9),
                                     '&:hover': {
-                                        borderColor: theme.palette.primary.main,
-                                        bgcolor: alpha(theme.palette.primary.main, 0.05),
-                                    }
+                                        bgcolor: theme.palette.primary.main,
+                                    },
+                                    textTransform: 'none',
+                                    fontWeight: 600
                                 }}
                             >
-                                {isLoadingLinks ? 'Loading...' : 'Load More'}
+                                {isLoadingLinks ? <CircularProgress size={20} color="inherit" /> : 'Load All Links'}
                             </Button>
                         </Box>
                     )}
@@ -249,6 +234,7 @@ export const LinksContainer = memo(({
                     </Typography>
                 </Box>
             )}
-        </Box>
+            </Box>
+        </motion.div>
     );
 });

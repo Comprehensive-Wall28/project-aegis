@@ -17,6 +17,7 @@ export interface Folder {
     ownerId?: string;
     encryptedSessionKey?: string;
     color?: string; // Custom folder color (hex)
+    path?: Folder[]; // Ancestor path for breadcrumbs
 }
 
 
@@ -51,8 +52,8 @@ const folderService = {
         await apiClient.delete(`${PREFIX}/${id}`);
     },
 
-    moveFiles: async (fileIds: string[], folderId?: string | null): Promise<{ modifiedCount: number }> => {
-        const response = await apiClient.put<{ modifiedCount: number }>(`${PREFIX}/move-files`, { fileIds, folderId });
+    moveFiles: async (updates: { fileId: string; encryptedKey: string }[], folderId?: string | null): Promise<{ modifiedCount: number }> => {
+        const response = await apiClient.put<{ modifiedCount: number }>(`${PREFIX}/move-files`, { updates, folderId });
         return response.data;
     },
 };

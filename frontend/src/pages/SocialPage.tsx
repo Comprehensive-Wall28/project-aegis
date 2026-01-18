@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 import {
     Box,
     Typography,
@@ -22,6 +23,7 @@ import {
 } from '@mui/icons-material';
 // Internal store and components
 import { useSocialStore, encryptWithAES, decryptWithAES } from '@/stores/useSocialStore';
+import { SOCIAL_SNACKBAR_Z_INDEX } from '@/components/social/constants';
 import { useSessionStore } from '@/stores/sessionStore';
 import { CommentsOverlay } from '@/components/social/CommentsOverlay';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
@@ -30,11 +32,12 @@ import type { LinkPost } from '@/services/socialService';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Modular Components
-import { CreateRoomDialog, CreateCollectionDialog, PostLinkDialog } from '@/components/social/SocialDialogs';
+import { CreateRoomDialog, CreateCollectionDialog, PostLinkDialog, MoveLinkDialog } from '@/components/social/SocialDialogs';
 import { RoomCard, CreateRoomCard } from '@/components/social/RoomCards';
 import { SocialHeader } from '@/components/social/SocialHeader';
 import { SocialSidebar } from '@/components/social/SocialSidebar';
 import { LinksContainer } from '@/components/social/LinksContainer';
+import { SocialErrorBoundary } from '@/components/social/SocialErrorBoundary';
 
 export function SocialPage() {
     const theme = useTheme();
@@ -49,37 +52,75 @@ export function SocialPage() {
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
 
     // Store state
-    const rooms = useSocialStore((state) => state.rooms);
-    const currentRoom = useSocialStore((state) => state.currentRoom);
-    const collections = useSocialStore((state) => state.collections);
-    const currentCollectionId = useSocialStore((state) => state.currentCollectionId);
-    const links = useSocialStore((state) => state.links);
-    const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
-    const isLoadingRooms = useSocialStore((state) => state.isLoadingRooms);
-    const error = useSocialStore((state) => state.error);
+    // Consolidated State Selector
+    const {
+        rooms,
+        currentRoom,
+        collections,
+        currentCollectionId,
+        links,
+        isLoadingContent,
+        isLoadingRooms,
+        error,
+        viewedLinkIds,
+        roomKeys,
+        commentCounts,
+        hasMoreLinks,
+        isLoadingLinks,
+    } = useSocialStore(
+        useShallow((state) => ({
+            rooms: state.rooms,
+            currentRoom: state.currentRoom,
+            collections: state.collections,
+            currentCollectionId: state.currentCollectionId,
+            links: state.links,
+            isLoadingContent: state.isLoadingContent,
+            isLoadingRooms: state.isLoadingRooms,
+            error: state.error,
+            viewedLinkIds: state.viewedLinkIds,
+            roomKeys: state.roomKeys,
+            commentCounts: state.commentCounts,
+            hasMoreLinks: state.hasMoreLinks,
+            isLoadingLinks: state.isLoadingLinks,
+        }))
+    );
 
-    // Actions
-
-    const fetchRooms = useSocialStore((state) => state.fetchRooms);
-    const clearError = useSocialStore((state) => state.clearError);
-    const selectRoom = useSocialStore((state) => state.selectRoom);
-    const selectCollection = useSocialStore((state) => state.selectCollection);
-    const createRoom = useSocialStore((state) => state.createRoom);
-    const postLink = useSocialStore((state) => state.postLink);
-    const deleteLink = useSocialStore((state) => state.deleteLink);
-    const createCollection = useSocialStore((state) => state.createCollection);
-    const deleteCollection = useSocialStore((state) => state.deleteCollection);
-    const moveLink = useSocialStore((state) => state.moveLink);
-    const createInvite = useSocialStore((state) => state.createInvite);
-    const markLinkViewed = useSocialStore((state) => state.markLinkViewed);
-    const unmarkLinkViewed = useSocialStore((state) => state.unmarkLinkViewed);
-    const getUnviewedCountByCollection = useSocialStore((state) => state.getUnviewedCountByCollection);
-    const viewedLinkIds = useSocialStore((state) => state.viewedLinkIds);
-    const roomKeys = useSocialStore((state) => state.roomKeys);
-    const commentCounts = useSocialStore((state) => state.commentCounts);
-    const hasMoreLinks = useSocialStore((state) => state.hasMoreLinks);
-    const isLoadingLinks = useSocialStore((state) => state.isLoadingLinks);
-    const loadMoreLinks = useSocialStore((state) => state.loadMoreLinks);
+    // Consolidated Actions Selector
+    const {
+        fetchRooms,
+        clearError,
+        selectRoom,
+        selectCollection,
+        createRoom,
+        postLink,
+        deleteLink,
+        createCollection,
+        deleteCollection,
+        moveLink,
+        createInvite,
+        markLinkViewed,
+        unmarkLinkViewed,
+        getUnviewedCountByCollection,
+        loadAllLinks,
+    } = useSocialStore(
+        useShallow((state) => ({
+            fetchRooms: state.fetchRooms,
+            clearError: state.clearError,
+            selectRoom: state.selectRoom,
+            selectCollection: state.selectCollection,
+            createRoom: state.createRoom,
+            postLink: state.postLink,
+            deleteLink: state.deleteLink,
+            createCollection: state.createCollection,
+            deleteCollection: state.deleteCollection,
+            moveLink: state.moveLink,
+            createInvite: state.createInvite,
+            markLinkViewed: state.markLinkViewed,
+            unmarkLinkViewed: state.unmarkLinkViewed,
+            getUnviewedCountByCollection: state.getUnviewedCountByCollection,
+            loadAllLinks: state.loadAllLinks,
+        }))
+    );
 
     // Get current user ID for delete permissions
     const currentUserId = useSessionStore((state) => state.user?._id);
@@ -96,8 +137,14 @@ export function SocialPage() {
     const [dropTargetId, setDropTargetId] = useState<string | null>(null);
     const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedUploader, setSelectedUploader] = useState<string | null>(null);
+    const [viewFilter, setViewFilter] = useState<'all' | 'viewed' | 'unviewed'>('all');
+    const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
+    const [showMoveDialog, setShowMoveDialog] = useState(false);
+    const [linkToMove, setLinkToMove] = useState<LinkPost | null>(null);
+    const [isMovingLink, setIsMovingLink] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [postLinkError, setPostLinkError] = useState<string | null>(null);
     const [snackbar, setSnackbar] = useState<SnackbarState>({
         open: false,
         message: '',
@@ -108,6 +155,10 @@ export function SocialPage() {
     // Mobile Responsive State
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+    // Share Intent State
+    const [pendingShareUrl, setPendingShareUrl] = useState<string | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // View mode: 'rooms' shows room cards, 'room-content' shows collections/links
     const viewMode = roomId ? 'room-content' : 'rooms';
@@ -133,6 +184,58 @@ export function SocialPage() {
             }
         };
     }, [currentRoom]);
+
+    // Hot Share Listener: Listen for AEGIS_SHARE_INTENT events from browser extension
+    useEffect(() => {
+        const handleShareIntent = (event: CustomEvent<{ url: string }>) => {
+            const { url } = event.detail;
+            if (!url) return;
+
+            if (currentRoom) {
+                // Room is active, open the dialog immediately
+                setNewLinkUrl(url);
+                setShowPostLinkDialog(true);
+            } else {
+                // No room selected, save for later
+                setPendingShareUrl(url);
+                showSnackbar('Select a room to share this link', 'info');
+            }
+        };
+
+        window.addEventListener('AEGIS_SHARE_INTENT', handleShareIntent as EventListener);
+        return () => {
+            window.removeEventListener('AEGIS_SHARE_INTENT', handleShareIntent as EventListener);
+        };
+    }, [currentRoom]);
+
+    // Cold Share Logic: Check for share_url query parameter on load
+    useEffect(() => {
+        const shareUrl = searchParams.get('share_url');
+        if (shareUrl) {
+            // Clean the URL to prevent re-triggering on refresh
+            searchParams.delete('share_url');
+            setSearchParams(searchParams, { replace: true });
+
+            if (currentRoom) {
+                // Room is already active (e.g., via deep link), open dialog immediately
+                setNewLinkUrl(shareUrl);
+                setShowPostLinkDialog(true);
+            } else {
+                // Save for when user enters a room
+                setPendingShareUrl(shareUrl);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run on mount
+
+    // Room Entry Logic: Open dialog when user enters a room with pending share URL
+    useEffect(() => {
+        if (currentRoom && pendingShareUrl) {
+            setNewLinkUrl(pendingShareUrl);
+            setShowPostLinkDialog(true);
+            setPendingShareUrl(null);
+        }
+    }, [currentRoom, pendingShareUrl]);
 
     // Fetch rooms on mount
     useEffect(() => {
@@ -185,8 +288,24 @@ export function SocialPage() {
     const handleSelectRoom = useCallback(async (selectedRoomId: string) => {
         setOptimisticRoomId(selectedRoomId);
         navigate(`/dashboard/social/${selectedRoomId}`);
-        await selectRoom(selectedRoomId);
-    }, [selectRoom, navigate]);
+        // selectRoom is handled by useEffect when roomId changes
+    }, [navigate]);
+
+    const handleSelectCollection = useCallback((id: string) => {
+        selectCollection(id);
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('c', id);
+        setSearchParams(newParams, { replace: true });
+    }, [selectCollection, searchParams, setSearchParams]);
+
+    useEffect(() => {
+        const urlCollectionId = searchParams.get('c');
+        if (urlCollectionId && roomId && collections.length > 0 && currentCollectionId !== urlCollectionId) {
+            if (collections.some(c => c._id === urlCollectionId)) {
+                selectCollection(urlCollectionId);
+            }
+        }
+    }, [searchParams, roomId, collections, currentCollectionId, selectCollection]);
 
     const handleCreateRoom = async (name: string, description: string) => {
         try {
@@ -209,19 +328,23 @@ export function SocialPage() {
 
         try {
             setIsPostingLink(true);
+            setPostLinkError(null);
             await postLink(linkToPost.trim());
             setNewLinkUrl('');
             setShowPostLinkDialog(false);
             showSnackbar('Link shared successfully', 'success');
         } catch (error: any) {
             const message = error.response?.data?.message || error.message || 'Failed to post link';
-            showSnackbar(message, 'error');
+            setPostLinkError(message);
+            if (!isMobile) {
+                showSnackbar(message, 'error');
+            }
         } finally {
             setIsPostingLink(false);
         }
     };
 
-    const handleCreateCollection = async (name: string) => {
+    const handleCreateCollection = useCallback(async (name: string) => {
         if (!name.trim() || isCreatingCollection) return;
 
         setIsCreatingCollection(true);
@@ -234,9 +357,9 @@ export function SocialPage() {
         } finally {
             setIsCreatingCollection(false);
         }
-    };
+    }, [isCreatingCollection, createCollection, showSnackbar]);
 
-    const handleDrop = async (collectionId: string) => {
+    const handleDrop = useCallback(async (collectionId: string) => {
         if (!draggedLinkId) return;
 
         const linkToMove = links.find(l => l._id === draggedLinkId);
@@ -251,9 +374,30 @@ export function SocialPage() {
 
         setDraggedLinkId(null);
         setDropTargetId(null);
-    };
+    }, [draggedLinkId, links, moveLink, showSnackbar]);
 
-    const handleCollectionContextMenu = (event: React.MouseEvent, collectionId: string) => {
+    const handleMoveLink = useCallback(async (collectionId: string) => {
+        if (!linkToMove || isMovingLink) return;
+
+        setIsMovingLink(true);
+        try {
+            await moveLink(linkToMove._id, collectionId);
+            setShowMoveDialog(false);
+            setLinkToMove(null);
+            showSnackbar('Link moved successfully', 'success');
+        } catch (error: any) {
+            showSnackbar(error.message || 'Failed to move link', 'error');
+        } finally {
+            setIsMovingLink(false);
+        }
+    }, [linkToMove, isMovingLink, moveLink, showSnackbar]);
+
+    const handleOpenMoveDialog = useCallback((link: LinkPost) => {
+        setLinkToMove(link);
+        setShowMoveDialog(true);
+    }, []);
+
+    const handleCollectionContextMenu = useCallback((event: React.MouseEvent, collectionId: string) => {
         event.preventDefault();
         event.stopPropagation();
         setCollectionContextMenu({
@@ -261,7 +405,7 @@ export function SocialPage() {
             mouseY: event.clientY,
             collectionId,
         });
-    };
+    }, []);
 
     // Long press for mobile delete
     const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -269,19 +413,19 @@ export function SocialPage() {
     // Ref for links container to scroll to top on collection change
     const linksContainerRef = useRef<HTMLDivElement>(null);
 
-    const handleCollectionTouchStart = (collectionId: string) => {
+    const handleCollectionTouchStart = useCallback((collectionId: string) => {
         longPressTimerRef.current = setTimeout(() => {
             setCollectionToDelete(collectionId);
             setDeleteConfirmOpen(true);
         }, 600); // 600ms long press
-    };
+    }, []);
 
-    const handleCollectionTouchEnd = () => {
+    const handleCollectionTouchEnd = useCallback(() => {
         if (longPressTimerRef.current) {
             clearTimeout(longPressTimerRef.current);
             longPressTimerRef.current = null;
         }
-    };
+    }, []);
 
     const handleDeleteCollection = async () => {
         if (!collectionToDelete) return;
@@ -296,6 +440,16 @@ export function SocialPage() {
         setIsDeletingCollection(false);
         setDeleteConfirmOpen(false);
         setCollectionToDelete(null);
+    };
+
+    const handleDeleteLink = async (linkId: string) => {
+        try {
+            await deleteLink(linkId);
+            showSnackbar('Link deleted successfully', 'success');
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.message || 'Failed to delete link';
+            showSnackbar(message, 'error');
+        }
     };
 
     const handleCopyInvite = async () => {
@@ -323,10 +477,6 @@ export function SocialPage() {
     const filteredLinks = useMemo(() => {
         let filtered = links;
 
-        if (currentCollectionId) {
-            filtered = filtered.filter((l) => l.collectionId === currentCollectionId);
-        }
-
         if (selectedUploader) {
             filtered = filtered.filter((l) =>
                 typeof l.userId === 'object' && l.userId._id === selectedUploader
@@ -343,8 +493,20 @@ export function SocialPage() {
             });
         }
 
-        return filtered;
-    }, [links, currentCollectionId, selectedUploader, searchQuery]);
+        if (viewFilter !== 'all') {
+            filtered = filtered.filter((l) => {
+                const isViewed = viewedLinkIds.has(l._id);
+                return viewFilter === 'viewed' ? isViewed : !isViewed;
+            });
+        }
+
+        // Apply Sorting
+        return [...filtered].sort((a, b) => {
+            const timeA = new Date(a.createdAt).getTime();
+            const timeB = new Date(b.createdAt).getTime();
+            return sortOrder === 'latest' ? timeB - timeA : timeA - timeB;
+        });
+    }, [links, currentCollectionId, selectedUploader, viewFilter, searchQuery, viewedLinkIds, sortOrder]);
 
     const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
         setFilterAnchorEl(event.currentTarget);
@@ -453,26 +615,32 @@ export function SocialPage() {
                             exit={{ opacity: 0 }}
                             sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}
                         >
-                            <SocialHeader
-                                viewMode={viewMode}
-                                isMobile={isMobile}
-                                optimisticRoomId={optimisticRoomId}
-                                currentRoom={currentRoom}
-                                handleExitRoom={handleExitRoom}
-                                searchQuery={searchQuery}
-                                setSearchQuery={setSearchQuery}
-                                handleFilterClick={handleFilterClick}
-                                selectedUploader={selectedUploader}
-                                handleCopyInvite={handleCopyInvite}
-                                filterAnchorEl={filterAnchorEl}
-                                handleFilterClose={handleFilterClose}
-                                handleSelectUploader={handleSelectUploader}
-                                getUniqueUploaders={getUniqueUploaders}
-                                newLinkUrl={newLinkUrl}
-                                setNewLinkUrl={setNewLinkUrl}
-                                handlePostLink={handlePostLink}
-                                isPostingLink={isPostingLink}
-                            />
+                            <SocialErrorBoundary componentName="Header">
+                                <SocialHeader
+                                    viewMode={viewMode}
+                                    isMobile={isMobile}
+                                    optimisticRoomId={optimisticRoomId}
+                                    currentRoom={currentRoom}
+                                    handleExitRoom={handleExitRoom}
+                                    searchQuery={searchQuery}
+                                    setSearchQuery={setSearchQuery}
+                                    handleFilterClick={handleFilterClick}
+                                    selectedUploader={selectedUploader}
+                                    handleCopyInvite={handleCopyInvite}
+                                    filterAnchorEl={filterAnchorEl}
+                                    handleFilterClose={handleFilterClose}
+                                    handleSelectUploader={handleSelectUploader}
+                                    viewFilter={viewFilter}
+                                    handleViewFilterChange={setViewFilter}
+                                    getUniqueUploaders={getUniqueUploaders}
+                                    newLinkUrl={newLinkUrl}
+                                    setNewLinkUrl={setNewLinkUrl}
+                                    handlePostLink={handlePostLink}
+                                    isPostingLink={isPostingLink}
+                                    sortOrder={sortOrder}
+                                    handleSortOrderChange={setSortOrder}
+                                />
+                            </SocialErrorBoundary>
 
                             {/* Main Content Area */}
                             <Box
@@ -485,54 +653,59 @@ export function SocialPage() {
                                     px: viewMode === 'rooms' ? 1 : 0,
                                 }}
                             >
-                                <AnimatePresence mode="wait">
-                                    {viewMode === 'rooms' ? (
-                                        <Box
-                                            key="rooms-grid"
-                                            sx={{
-                                                display: 'grid',
-                                                gridTemplateColumns: {
-                                                    xs: '1fr',
-                                                    sm: 'repeat(2, 1fr)',
-                                                    md: 'repeat(3, 1fr)',
-                                                    lg: 'repeat(4, 1fr)',
-                                                },
-                                                gap: 2,
-                                                pb: isMobile ? 12 : 2,
-                                            }}
-                                        >
-                                            {isLoadingRooms ? (
-                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, gridColumn: '1 / -1' }}>
-                                                    <CircularProgress />
-                                                </Box>
-                                            ) : (
-                                                <>
-                                                    {rooms.map((room) => (
+                                {viewMode === 'rooms' ? (
+                                    <Box
+                                        key="rooms-grid"
+                                        component={motion.div}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ duration: 0.3 }}
+                                        sx={{
+                                            display: 'grid',
+                                            gridTemplateColumns: {
+                                                xs: '1fr',
+                                                sm: 'repeat(2, 1fr)',
+                                                md: 'repeat(3, 1fr)',
+                                                lg: 'repeat(4, 1fr)',
+                                            },
+                                            gap: 2,
+                                            pb: isMobile ? 12 : 2,
+                                        }}
+                                    >
+                                        {isLoadingRooms ? (
+                                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, gridColumn: '1 / -1' }}>
+                                                <CircularProgress />
+                                            </Box>
+                                        ) : (
+                                            <>
+                                                {rooms.map((room, index) => (
+                                                    <SocialErrorBoundary key={room._id} componentName="Room Card">
                                                         <RoomCard
-                                                            key={room._id}
                                                             room={room}
                                                             onSelect={() => handleSelectRoom(room._id)}
+                                                            index={index}
                                                         />
-                                                    ))}
-                                                    <CreateRoomCard onClick={() => setShowCreateDialog(true)} />
-                                                </>
-                                            )}
-                                        </Box>
-                                    ) : (
-                                        <Box
-                                            key="room-content"
-                                            component={motion.div}
-                                            initial={!isMobile ? { opacity: 0, y: 5, scale: 0.99 } : undefined}
-                                            animate={!isMobile ? { opacity: 1, y: 0, scale: 1 } : undefined}
-                                            transition={{ duration: 0.2, ease: "easeInOut" }}
-                                            sx={{ display: 'flex', gap: 2, height: '100%' }}
-                                        >
+                                                    </SocialErrorBoundary>
+                                                ))}
+                                                <CreateRoomCard 
+                                                    onClick={() => setShowCreateDialog(true)} 
+                                                    index={rooms.length}
+                                                />
+                                            </>
+                                        )}
+                                    </Box>
+                                ) : (
+                                    <Box
+                                        key="room-content"
+                                        sx={{ display: 'flex', gap: 2, height: '100%' }}
+                                    >
+                                        <SocialErrorBoundary componentName="Sidebar">
                                             <SocialSidebar
                                                 isMobile={isMobile}
                                                 mobileDrawerOpen={mobileDrawerOpen}
                                                 setMobileDrawerOpen={setMobileDrawerOpen}
                                                 collections={collections}
-                                                selectCollection={selectCollection}
+                                                selectCollection={handleSelectCollection}
                                                 currentCollectionId={currentCollectionId}
                                                 handleCollectionContextMenu={handleCollectionContextMenu}
                                                 handleCollectionTouchStart={handleCollectionTouchStart}
@@ -544,7 +717,9 @@ export function SocialPage() {
                                                 getUnviewedCountByCollection={getUnviewedCountByCollection}
                                                 setShowCollectionDialog={setShowCollectionDialog}
                                             />
+                                        </SocialErrorBoundary>
 
+                                        <SocialErrorBoundary componentName="Links Container">
                                             <LinksContainer
                                                 linksContainerRef={linksContainerRef}
                                                 isMobile={isMobile}
@@ -556,7 +731,7 @@ export function SocialPage() {
                                                 isLoadingContent={isLoadingContent}
                                                 isLoadingLinks={isLoadingLinks}
                                                 filteredLinks={filteredLinks}
-                                                deleteLink={deleteLink}
+                                                deleteLink={handleDeleteLink}
                                                 setDraggedLinkId={setDraggedLinkId}
                                                 markLinkViewed={markLinkViewed}
                                                 unmarkLinkViewed={unmarkLinkViewed}
@@ -565,11 +740,12 @@ export function SocialPage() {
                                                 commentCounts={commentCounts}
                                                 currentUserId={currentUserId}
                                                 hasMoreLinks={hasMoreLinks}
-                                                loadMoreLinks={loadMoreLinks}
+                                                loadAllLinks={loadAllLinks}
+                                                onMoveLink={handleOpenMoveDialog}
                                             />
-                                        </Box>
-                                    )}
-                                </AnimatePresence>
+                                        </SocialErrorBoundary>
+                                    </Box>
+                                )}
                             </Box>
 
                             {/* Create Room Dialog */}
@@ -592,14 +768,31 @@ export function SocialPage() {
                             {/* Post Link Dialog */}
                             < PostLinkDialog
                                 open={showPostLinkDialog}
-                                onClose={() => setShowPostLinkDialog(false)}
+                                onClose={() => {
+                                    setShowPostLinkDialog(false);
+                                    setPostLinkError(null);
+                                }}
                                 onSubmit={handlePostLink}
                                 isLoading={isPostingLink}
+                                error={postLinkError}
+                            />
+
+                            {/* Move Link Dialog */}
+                            <MoveLinkDialog
+                                open={showMoveDialog}
+                                onClose={() => {
+                                    setShowMoveDialog(false);
+                                    setLinkToMove(null);
+                                }}
+                                onSubmit={handleMoveLink}
+                                collections={collections}
+                                currentCollectionId={linkToMove?.collectionId || null}
+                                isLoading={isMovingLink}
                             />
 
                             {/* Mobile FAB */}
                             {
-                                isMobile && currentRoom && (
+                                isMobile && viewMode === 'room-content' && currentRoom && (
                                     <Fab
                                         color="primary"
                                         aria-label="add link"
@@ -663,6 +856,7 @@ export function SocialPage() {
                     autoHideDuration={4000}
                     onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
                     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    sx={{ zIndex: SOCIAL_SNACKBAR_Z_INDEX }}
                 >
                     <Alert
                         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}

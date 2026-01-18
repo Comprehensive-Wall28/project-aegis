@@ -11,7 +11,7 @@ import { LinkCommentRepository } from '../repositories/LinkCommentRepository';
 import { IRoom, IRoomMember } from '../models/Room';
 import { ICollection } from '../models/Collection';
 import { ILinkPost, IPreviewData } from '../models/LinkPost';
-import { advancedScrape } from '../utils/scraper';
+import { advancedScrape, smartScrape } from '../utils/scraper';
 import logger from '../utils/logger';
 import SocketManager from '../utils/SocketManager';
 
@@ -224,17 +224,20 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             }
 
             const member = room.members.find(m => m.userId.toString() === userId);
-            const collections = await this.collectionRepo.findByRoom(roomId);
 
-            // Fetch viewed counts by collection for this user in this room
-            // Using the new compound index: { roomId: 1, userId: 1, collectionId: 1 }
-            const viewedByCollection = await this.linkViewRepo.findMany({
-                userId: { $eq: userId as any },
-                roomId: { $eq: roomId as any }
-            } as any, {
-                select: 'collectionId',
-                lean: true
-            });
+            // OPTIMIZATION: Run collections and viewedByCollection queries in parallel
+            const [collections, viewedByCollection] = await Promise.all([
+                this.collectionRepo.findByRoom(roomId),
+                // Fetch viewed counts by collection for this user in this room
+                // Using the compound index: { roomId: 1, userId: 1, collectionId: 1 }
+                this.linkViewRepo.findMany({
+                    userId: { $eq: userId as any },
+                    roomId: { $eq: roomId as any }
+                } as any, {
+                    select: 'collectionId',
+                    lean: true
+                })
+            ]);
 
             const viewedCounts: Record<string, number> = {};
             viewedByCollection.forEach((v: any) => {
@@ -244,9 +247,19 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 }
             });
 
-            // Get total links per collection in one aggregation
+            // OPTIMIZATION: Run collectionStats and initial links fetch in parallel
             const collectionIds = collections.map(c => c._id.toString());
-            const collectionStats = await this.linkPostRepo.groupCountByCollections(collectionIds);
+            const firstCollectionId = collections.length > 0 ? collections[0]._id.toString() : null;
+            const limit = 12;
+
+            const [collectionStats, initialLinksResult] = await Promise.all([
+                // Get total links per collection in one aggregation
+                this.linkPostRepo.groupCountByCollections(collectionIds),
+                // Fetch initial links for first collection (or empty if no collections)
+                firstCollectionId
+                    ? this.linkPostRepo.findByCollectionCursor(firstCollectionId, limit)
+                    : Promise.resolve({ links: [], totalCount: 0 })
+            ]);
 
             const unviewedCounts: Record<string, number> = {};
             collections.forEach(c => unviewedCounts[c._id.toString()] = 0);
@@ -258,19 +271,13 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 unviewedCounts[cid] = Math.max(0, total - viewed);
             });
 
-            // Reduce API roundtrips: Include initial links for the first collection if it exists
-            let initialLinks: ILinkPost[] = [];
+            // Get viewed status and comments for initial links
+            const initialLinks = initialLinksResult.links;
             let initialViewedLinkIds: string[] = [];
             let initialCommentCounts: Record<string, number> = {};
 
-            if (collections.length > 0) {
-                const firstCollectionId = collections[0]._id.toString();
-                const limit = 30;
-                const { links } = await this.linkPostRepo.findByCollectionCursor(firstCollectionId, limit);
-                initialLinks = links;
-
-                // Get viewed status and comments for these initial links
-                const initialIds = links.map((l: ILinkPost) => l._id.toString());
+            if (initialLinks.length > 0) {
+                const initialIds = initialLinks.map((l: ILinkPost) => l._id.toString());
                 const [viewed, comments] = await Promise.all([
                     this.linkViewRepo.findViewedLinkIds(userId, initialIds),
                     this.linkCommentRepo.countByLinkIds(initialIds)
@@ -585,6 +592,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             // Broadcast movement to room
             SocketManager.broadcastToRoom(targetCollection.roomId.toString(), 'LINK_MOVED', {
                 linkId,
+                oldCollectionId: linkPost.collectionId.toString(),
                 newCollectionId: collectionId,
                 link: updated
             });
@@ -614,11 +622,19 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Room not found or not a member', 403);
             }
 
+            const currentCount = await this.collectionRepo.countByRoom(roomId);
+
             const collection = await this.collectionRepo.create({
                 roomId: roomId as any,
                 name: data.name,
+                order: currentCount,
                 type: data.type || 'links'
             } as any);
+
+            // Broadcast collection creation
+            SocketManager.broadcastToRoom(roomId, 'COLLECTION_CREATED', {
+                collection
+            });
 
             return collection;
         } catch (error) {
@@ -656,6 +672,12 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 roomId: room._id.toString()
             });
 
+            // Broadcast collection deletion
+            SocketManager.broadcastToRoom(room._id.toString(), 'COLLECTION_DELETED', {
+                collectionId,
+                roomId: room._id.toString()
+            });
+
             logger.info(`Collection ${collectionId} deleted by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -664,15 +686,47 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
         }
     }
 
+    async reorderCollections(userId: string, roomId: string, collectionIds: string[]): Promise<void> {
+        try {
+            const room = await this.repository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new ServiceError('Room not found or not a member', 403);
+            }
+
+            // Update orders in bulk or sequentially
+            const updatePromises = collectionIds.map((id, index) =>
+                this.collectionRepo.updateById(id, { $set: { order: index } } as any)
+            );
+
+            await Promise.all(updatePromises);
+
+            // Broadcast new order
+            SocketManager.broadcastToRoom(roomId, 'COLLECTIONS_REORDERED', {
+                roomId,
+                collectionIds
+            });
+
+            logger.info(`Collections reordered in room ${roomId} by user ${userId}`);
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Reorder collections error:', error);
+            throw new ServiceError('Failed to reorder collections', 500);
+        }
+    }
+
     // ============== Comment Operations ==============
 
-    async getComments(userId: string, linkId: string): Promise<any[]> {
+    async getComments(
+        userId: string,
+        linkId: string,
+        limit: number = 20,
+        beforeCursor?: { createdAt: string; id: string }
+    ): Promise<{ comments: any[]; totalCount: number; hasMore: boolean }> {
         try {
             const linkPost = await this.linkPostRepo.findById(linkId);
             if (!linkPost) {
                 throw new ServiceError('Link not found', 404);
             }
-
             const collection = await this.collectionRepo.findById(linkPost.collectionId.toString());
             if (!collection) {
                 throw new ServiceError('Collection not found', 404);
@@ -683,9 +737,22 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Not a member of this room', 403);
             }
 
-            const comments = await this.linkCommentRepo.findByLinkId(linkId);
+            const cursor = beforeCursor ? {
+                createdAt: new Date(beforeCursor.createdAt),
+                id: beforeCursor.id
+            } : undefined;
 
-            return comments;
+            const { comments, totalCount } = await this.linkCommentRepo.findByLinkIdWithPagination(
+                linkId,
+                limit,
+                cursor
+            );
+
+            return {
+                comments,
+                totalCount,
+                hasMore: comments.length === limit
+            };
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Get comments error:', error);
@@ -813,7 +880,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             }
 
             // Fetch fresh
-            const scrapeResult = await advancedScrape(targetUrl);
+            const scrapeResult = await smartScrape(targetUrl);
             previewData = {
                 ...scrapeResult,
                 title: scrapeResult.title || '',
@@ -887,6 +954,22 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             }
         } catch (error) {
             logger.error(`Background scraper failed for link ${linkId}:`, error);
+
+            // Critical: Update status to 'failed' in DB so UI stops spinning
+            try {
+                const updatedLink = await this.linkPostRepo.updateById(linkId, {
+                    $set: { 'previewData.scrapeStatus': 'failed' }
+                } as any);
+
+                if (updatedLink) {
+                    await updatedLink.populate('userId', 'username');
+                    SocketManager.broadcastToRoom(roomId, 'LINK_UPDATED', {
+                        link: updatedLink
+                    });
+                }
+            } catch (innerError) {
+                logger.error(`Final fail-safe for link ${linkId} failed:`, innerError);
+            }
         }
     }
 }

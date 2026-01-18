@@ -17,6 +17,7 @@ import {
     Stack
 } from '@mui/material';
 import integrityService from '@/services/integrityService';
+import { pqcWorkerManager } from '@/lib/pqcWorkerManager';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type VerificationStatus = 'idle' | 'verifying' | 'verified' | 'tampered';
@@ -68,9 +69,9 @@ export function IntegrityMonitor() {
 
             const logs = await integrityService.getGPALogs();
             const hashes = logs.map(log => log.recordHash);
-            const calculatedRoot = integrityService.calculateMerkleRoot(hashes);
 
-            await new Promise(resolve => setTimeout(resolve, 2500));
+            // Offload Merkle root calculation to worker
+            const calculatedRoot = await pqcWorkerManager.calculateMerkleRoot(hashes);
 
             const isValid = merkleRoot ? calculatedRoot.length > 0 || merkleRoot.length > 0 : true;
 
@@ -80,7 +81,6 @@ export function IntegrityMonitor() {
             setTimeout(() => setStatus('idle'), 5000);
         } catch (err) {
             console.error('Verification failed:', err);
-            await new Promise(resolve => setTimeout(resolve, 2500));
             setStatus('verified');
             setLastVerified(new Date());
             setTimeout(() => setStatus('idle'), 5000);

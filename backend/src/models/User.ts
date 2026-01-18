@@ -3,6 +3,9 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IUserPreferences {
     sessionTimeout: number; // minutes
     encryptionLevel: 'STANDARD' | 'HIGH' | 'PARANOID';
+    backgroundImage?: string | null;
+    backgroundBlur?: number;
+    backgroundOpacity?: number;
 }
 
 export interface IWebAuthnCredential {
@@ -40,7 +43,10 @@ const UserSchema: Schema = new Schema({
 
     preferences: {
         sessionTimeout: { type: Number, default: 60, min: 5, max: 480 },
-        encryptionLevel: { type: String, enum: ['STANDARD', 'HIGH', 'PARANOID'], default: 'STANDARD' }
+        encryptionLevel: { type: String, enum: ['STANDARD', 'HIGH', 'PARANOID'], default: 'STANDARD' },
+        backgroundImage: { type: String, default: null },
+        backgroundBlur: { type: Number, default: 8, min: 0, max: 20 },
+        backgroundOpacity: { type: Number, default: 0.4, min: 0, max: 1 }
     },
 
     webauthnCredentials: [{

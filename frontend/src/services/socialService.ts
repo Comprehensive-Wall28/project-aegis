@@ -72,6 +72,22 @@ export interface LinkComment {
     createdAt: string;
 }
 
+export const retryOperation = async <T>(
+    operation: () => Promise<T>,
+    retries = 3,
+    delay = 1000
+): Promise<T> => {
+    try {
+        return await operation();
+    } catch (error) {
+        if (retries > 0) {
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            return retryOperation(operation, retries - 1, delay * 2);
+        }
+        throw error;
+    }
+};
+
 const socialService = {
     /**
      * Get all rooms the user is a member of
@@ -216,10 +232,28 @@ const socialService = {
     },
 
     /**
-     * Get all comments for a link
+     * Get comments for a link with pagination
      */
-    getComments: async (linkId: string): Promise<LinkComment[]> => {
-        const response = await apiClient.get<LinkComment[]>(`/social/links/${linkId}/comments`);
+    getComments: async (
+        linkId: string,
+        limit: number = 20,
+        beforeCursor?: { createdAt: string; id: string }
+    ): Promise<{
+        comments: LinkComment[];
+        totalCount: number;
+        hasMore: boolean;
+    }> => {
+        const response = await apiClient.get<{
+            comments: LinkComment[];
+            totalCount: number;
+            hasMore: boolean;
+        }>(`/social/links/${linkId}/comments`, {
+            params: {
+                limit,
+                cursorCreatedAt: beforeCursor?.createdAt,
+                cursorId: beforeCursor?.id
+            }
+        });
         return response.data;
     },
 
@@ -243,6 +277,15 @@ const socialService = {
      */
     deleteCollection: async (collectionId: string): Promise<void> => {
         await apiClient.delete(`/social/collections/${collectionId}`);
+    },
+
+    /**
+     * Reorder collections in a room
+     */
+    reorderCollections: async (roomId: string, collectionIds: string[]): Promise<void> => {
+        await apiClient.patch(`/social/rooms/${roomId}/collections/reorder`, {
+            collectionIds,
+        });
     },
 };
 

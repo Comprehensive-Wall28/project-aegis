@@ -17,6 +17,7 @@ import { UserRepository } from '../repositories/UserRepository';
 import { IUser, IWebAuthnCredential } from '../models/User';
 import logger from '../utils/logger';
 import { logFailedAuth } from '../utils/auditLogger';
+import { encryptToken } from '../utils/cryptoUtils';
 
 // DTOs
 export interface RegisterDTO {
@@ -37,6 +38,9 @@ export interface UpdateProfileDTO {
     preferences?: {
         sessionTimeout?: number;
         encryptionLevel?: string;
+        backgroundImage?: string | null;
+        backgroundBlur?: number;
+        backgroundOpacity?: number;
     };
 }
 
@@ -45,7 +49,13 @@ export interface UserResponse {
     username: string;
     email: string;
     pqcPublicKey: string;
-    preferences: { sessionTimeout: number; encryptionLevel: string };
+    preferences: {
+        sessionTimeout: number;
+        encryptionLevel: string;
+        backgroundImage?: string | null;
+        backgroundBlur?: number;
+        backgroundOpacity?: number;
+    };
     hasPassword: boolean;
     webauthnCredentials: Array<{
         credentialID: string;
@@ -62,32 +72,11 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         super(new UserRepository());
     }
 
-    private getCookieEncryptionKey(): Buffer {
-        const secret = process.env.COOKIE_ENCRYPTION_KEY || process.env.JWT_SECRET;
-        if (!secret) {
-            throw new Error('Missing encryption key');
-        }
-        return crypto.scryptSync(secret, 'salt', 32);
-    }
-
-    private encryptToken(plaintext: string): string {
-        const key = this.getCookieEncryptionKey();
-        const iv = crypto.randomBytes(12);
-        const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-
-        const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
-        const authTag = cipher.getAuthTag();
-
-        // Combine IV, encrypted content, and auth tag
-        const combined = Buffer.concat([iv, encrypted, authTag]);
-        return combined.toString('base64');
-    }
-
     private generateToken(id: string, username: string): string {
         const jwtToken = jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
             expiresIn: '365d'
         });
-        return this.encryptToken(jwtToken);
+        return encryptToken(jwtToken);
     }
 
     private formatUserResponse(user: IUser): UserResponse {
@@ -96,7 +85,13 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             username: user.username,
             email: user.email,
             pqcPublicKey: user.pqcPublicKey,
-            preferences: user.preferences || { sessionTimeout: 60, encryptionLevel: 'STANDARD' },
+            preferences: user.preferences || {
+                sessionTimeout: 60,
+                encryptionLevel: 'STANDARD',
+                backgroundImage: null,
+                backgroundBlur: 8,
+                backgroundOpacity: 0.4
+            },
             hasPassword: !!user.passwordHash,
             webauthnCredentials: user.webauthnCredentials.map(c => ({
                 credentialID: c.credentialID,
@@ -114,8 +109,10 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Missing required fields', 400);
             }
 
-            const existingByEmail = await this.repository.findByEmail(data.email);
-            const existingByUsername = await this.repository.findByUsername(data.username);
+            const [existingByEmail, existingByUsername] = await Promise.all([
+                this.repository.findByEmail(data.email),
+                this.repository.findByUsername(data.username)
+            ]);
 
             if (existingByEmail || existingByUsername) {
                 logger.warn(`Failed registration: Email ${data.email} or username ${data.username} exists`);
@@ -274,14 +271,12 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
             if (data.preferences && typeof data.preferences === 'object') {
-                updateFields.preferences = {};
-
                 if (data.preferences.sessionTimeout !== undefined) {
                     const timeout = Number(data.preferences.sessionTimeout);
                     if (isNaN(timeout) || timeout < 5 || timeout > 480) {
                         throw new ServiceError('Session timeout must be between 5 and 480 minutes', 400);
                     }
-                    updateFields.preferences.sessionTimeout = timeout;
+                    updateFields['preferences.sessionTimeout'] = timeout;
                 }
 
                 if (data.preferences.encryptionLevel !== undefined) {
@@ -290,11 +285,31 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                     if (!validLevels.includes(level)) {
                         throw new ServiceError('Invalid encryption level', 400);
                     }
-                    updateFields.preferences.encryptionLevel = level;
+                    updateFields['preferences.encryptionLevel'] = level;
                 }
 
-                if (Object.keys(updateFields.preferences).length === 0) {
-                    delete updateFields.preferences;
+                if (data.preferences.backgroundImage !== undefined) {
+                    const bgImage = data.preferences.backgroundImage;
+                    if (bgImage !== null && typeof bgImage !== 'string') {
+                        throw new ServiceError('Background image must be a string ID or null', 400);
+                    }
+                    updateFields['preferences.backgroundImage'] = bgImage;
+                }
+
+                if (data.preferences.backgroundBlur !== undefined) {
+                    const blur = Number(data.preferences.backgroundBlur);
+                    if (isNaN(blur) || blur < 0 || blur > 50) {
+                        throw new ServiceError('Background blur must be between 0 and 50', 400);
+                    }
+                    updateFields['preferences.backgroundBlur'] = blur;
+                }
+
+                if (data.preferences.backgroundOpacity !== undefined) {
+                    const opacity = Number(data.preferences.backgroundOpacity);
+                    if (isNaN(opacity) || opacity < 0 || opacity > 1) {
+                        throw new ServiceError('Background opacity must be between 0 and 1', 400);
+                    }
+                    updateFields['preferences.backgroundOpacity'] = opacity;
                 }
             }
 

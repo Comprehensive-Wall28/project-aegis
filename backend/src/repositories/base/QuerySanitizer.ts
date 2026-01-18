@@ -120,9 +120,14 @@ export class QuerySanitizer {
                 continue;
             }
 
-            // Recursively sanitize nested objects
+            // Recursively sanitize nested objects, but skip primitives and special types
             if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                sanitized[key] = this.sanitizeQuery(value);
+                // Do not recurse into Date or ObjectId instances as they are safe and have no enumerable properties
+                if (value instanceof Date || value instanceof mongoose.Types.ObjectId) {
+                    sanitized[key] = value;
+                } else {
+                    sanitized[key] = this.sanitizeQuery(value);
+                }
             } else if (Array.isArray(value)) {
                 // Handle arrays (like $and, $or, $in)
                 if (key === '$and' || key === '$or') {

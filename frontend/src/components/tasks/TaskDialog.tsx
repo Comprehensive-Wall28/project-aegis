@@ -132,8 +132,8 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
                         required
                         variant="outlined"
                         placeholder="What needs to be done?"
-                        InputProps={{
-                            sx: { borderRadius: '12px' }
+                        slotProps={{
+                            input: { sx: { borderRadius: '12px' } }
                         }}
                     />
 
@@ -146,8 +146,8 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
                         rows={3}
                         variant="outlined"
                         placeholder="Add more details..."
-                        InputProps={{
-                            sx: { borderRadius: '12px' }
+                        slotProps={{
+                            input: { sx: { borderRadius: '12px' } }
                         }}
                     />
 
@@ -211,9 +211,9 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
                         value={dueDate}
                         onChange={(e) => setDueDate(e.target.value)}
                         fullWidth
-                        InputLabelProps={{ shrink: true }}
-                        InputProps={{
-                            sx: { borderRadius: '12px', fontFamily: 'JetBrains Mono, monospace' }
+                        slotProps={{
+                            inputLabel: { shrink: true },
+                            input: { sx: { borderRadius: '12px', fontFamily: 'JetBrains Mono, monospace' } }
                         }}
                     />
 
@@ -226,8 +226,8 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
                         rows={2}
                         variant="outlined"
                         placeholder="Private notes (encrypted)..."
-                        InputProps={{
-                            sx: { borderRadius: '12px' }
+                        slotProps={{
+                            input: { sx: { borderRadius: '12px' } }
                         }}
                     />
                 </Box>

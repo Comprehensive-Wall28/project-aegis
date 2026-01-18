@@ -25,7 +25,6 @@ import { useTaskEncryption } from '@/hooks/useTaskEncryption';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { TaskList } from '@/components/tasks/TaskList';
 import { TaskDialog, type TaskDialogData } from '@/components/tasks/TaskDialog';
-import { BackendDown } from '@/components/BackendDown';
 
 type ViewMode = 'kanban' | 'list';
 type SnackbarState = {
@@ -53,7 +52,6 @@ export function TasksPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
-    const [backendError, setBackendError] = useState(false);
     const hasFetched = useRef(false);
 
     const [snackbar, setSnackbar] = useState<SnackbarState>({
@@ -70,11 +68,7 @@ export function TasksPage() {
     useEffect(() => {
         if (pqcEngineStatus === 'operational' && !hasFetched.current) {
             hasFetched.current = true;
-            fetchTasks(undefined, decryptTasks).catch((err) => {
-                if (err.code === 'ERR_NETWORK') {
-                    setBackendError(true);
-                }
-            });
+            fetchTasks(undefined, decryptTasks);
         }
     }, [pqcEngineStatus, fetchTasks, decryptTasks]);
 
@@ -188,16 +182,6 @@ export function TasksPage() {
             showSnackbar(error.message || 'Failed to update task', 'error');
         }
     };
-
-    const handleRetry = () => {
-        setBackendError(false);
-        hasFetched.current = false;
-        fetchTasks(undefined, decryptTasks).catch(() => setBackendError(true));
-    };
-
-    if (backendError) {
-        return <BackendDown onRetry={handleRetry} />;
-    }
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
