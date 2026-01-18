@@ -62,7 +62,7 @@ export const SocialHeader = memo(({
     handleSelectUploader,
     viewFilter,
     handleViewFilterChange,
-    getUniqueUploaders,
+    uniqueUploaders,
     newLinkUrl,
     setNewLinkUrl,
     handlePostLink,
@@ -86,6 +86,11 @@ export const SocialHeader = memo(({
     const handleSortLatest = useCallback(() => { handleSortOrderChange('latest'); handleFilterClose(); }, [handleSortOrderChange, handleFilterClose]);
     const handleSortOldest = useCallback(() => { handleSortOrderChange('oldest'); handleFilterClose(); }, [handleSortOrderChange, handleFilterClose]);
 
+    // Pre-filter uploaders for the menu to keep main render lightweight
+    const filteredUploaders = uniqueUploaders.filter((u: { id: string, username: string }) =>
+        u.username.toLowerCase().includes(uploaderSearch.toLowerCase())
+    );
+
     return (
         <Paper
             variant="glass"
@@ -99,17 +104,17 @@ export const SocialHeader = memo(({
                 minHeight: SOCIAL_HEADER_HEIGHT + 32, // Accommodating padding
             }}
         >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-                <AnimatePresence mode="wait">
+            <Box sx={{ display: 'grid', alignItems: 'center', justifyItems: 'start', gap: 2, flexShrink: 0 }}>
+                <AnimatePresence>
                     {viewMode === 'room-content' && (optimisticRoomId || currentRoom) ? (
                         <Box
                             key="room-header-title-area"
                             component={motion.div}
-                            initial={{ opacity: 0, x: -10 }}
+                            initial={{ opacity: 0, x: -5 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -10, transition: { duration: 0.05 } }}
+                            exit={{ opacity: 0, x: -5, transition: { duration: 0.05 } }}
                             transition={{ duration: 0.15 }}
-                            sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
+                            sx={{ display: 'flex', alignItems: 'center', gap: 2, gridArea: '1/1', width: 'max-content' }}
                         >
                             <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: -0.5 }} aria-label="Exit room">
                                 <ArrowBackIcon />
@@ -135,11 +140,11 @@ export const SocialHeader = memo(({
                         <Box
                             key="social-rooms-title-area"
                             component={motion.div}
-                            initial={{ opacity: 0, x: -10 }}
+                            initial={{ opacity: 0, x: -5 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -10, transition: { duration: 0.05 } }}
+                            exit={{ opacity: 0, x: -5, transition: { duration: 0.05 } }}
                             transition={{ duration: 0.15 }}
-                            sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
+                            sx={{ display: 'flex', alignItems: 'center', gap: 2, gridArea: '1/1', width: 'max-content' }}
                         >
                             <GroupIcon sx={{ color: 'primary.main' }} />
                             <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -158,7 +163,7 @@ export const SocialHeader = memo(({
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 10, transition: { duration: 0.05 } }}
-                        transition={{ duration: 0.2, delay: isMobile ? 0 : 0.05 }}
+                        transition={{ duration: 0.15 }}
                         sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}
                     >
                         {!isMobile && (
@@ -297,7 +302,7 @@ export const SocialHeader = memo(({
                                 Uploaders
                             </ListSubheader>
 
-                            {getUniqueUploaders().length > 8 && (
+                            {uniqueUploaders.length > 8 && (
                                 <Box sx={{ px: 2, pb: 1 }}>
                                     <TextField
                                         size="small"
@@ -335,8 +340,7 @@ export const SocialHeader = memo(({
                                     {selectedUploader === null && <CheckIcon fontSize="small" color="primary" />}
                                 </MenuItem>
 
-                                {getUniqueUploaders()
-                                    .filter(u => u.username.toLowerCase().includes(uploaderSearch.toLowerCase()))
+                                {filteredUploaders
                                     .map((uploader) => (
                                         <MenuItem
                                             key={uploader.id}
@@ -352,7 +356,7 @@ export const SocialHeader = memo(({
                                         </MenuItem>
                                     ))}
 
-                                {getUniqueUploaders().filter(u => u.username.toLowerCase().includes(uploaderSearch.toLowerCase())).length === 0 && (
+                                {filteredUploaders.length === 0 && (
                                     <Box sx={{ py: 2, px: 3, textAlign: 'center' }}>
                                         <Typography variant="caption" color="text.secondary">
                                             No uploaders found

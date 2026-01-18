@@ -17,7 +17,7 @@ export interface SocialHeaderProps {
     handleSelectUploader: (id: string | null) => void;
     viewFilter: 'all' | 'viewed' | 'unviewed';
     handleViewFilterChange: (filter: 'all' | 'viewed' | 'unviewed') => void;
-    getUniqueUploaders: () => { id: string, username: string }[];
+    uniqueUploaders: { id: string, username: string }[];
     newLinkUrl: string;
     setNewLinkUrl: (url: string) => void;
     handlePostLink: () => void;

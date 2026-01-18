@@ -90,7 +90,6 @@ export function SocialPage() {
 
     // Consolidated Actions Selector
     const {
-        fetchRooms,
         clearError,
         selectRoom,
         selectCollection,
@@ -168,7 +167,8 @@ export function SocialPage() {
     const [searchParams, setSearchParams] = useSearchParams();
 
     // View mode: 'rooms' shows room cards, 'room-content' shows collections/links
-    const viewMode = roomId ? 'room-content' : 'rooms';
+    // Use optimisticRoomId to switch instantly
+    const viewMode = (roomId || optimisticRoomId) ? 'room-content' : 'rooms';
 
     // Collection context menu state
     const [collectionContextMenu, setCollectionContextMenu] = useState<{
@@ -248,9 +248,30 @@ export function SocialPage() {
     // Fetch rooms on mount
     useEffect(() => {
         if (pqcEngineStatus === 'operational') {
-            fetchRooms();
+            useSocialStore.getState().fetchRooms();
         }
-    }, [pqcEngineStatus, fetchRooms]);
+    }, [pqcEngineStatus]);
+
+    // Progressive Room Entry:
+    // Defer rendering of heavy content (Sidebar, LinksContainer) by a few frames
+    // to allow the Header animation to start INSTANTLY without main-thread blocking.
+    const [shouldRenderContent, setShouldRenderContent] = useState(false);
+
+    useEffect(() => {
+        if (viewMode === 'room-content') {
+            // Immediate reset first to ensure clean slab
+            setShouldRenderContent(false);
+
+            // Longer delay (120ms) to let the header's 150ms animation
+            // gain significant momentum before heavy link card rendering starts.
+            const timer = setTimeout(() => {
+                setShouldRenderContent(true);
+            }, 120);
+            return () => clearTimeout(timer);
+        } else {
+            setShouldRenderContent(false);
+        }
+    }, [viewMode, roomId]);
 
     // Load room if roomId in URL
     // Clear error when returning to rooms list
@@ -298,9 +319,9 @@ export function SocialPage() {
         linksContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }, [currentCollectionId]);
 
-    const showSnackbar = (message: string, severity: SnackbarState['severity']) => {
+    const showSnackbar = useCallback((message: string, severity: SnackbarState['severity']) => {
         setSnackbar({ open: true, message, severity });
-    };
+    }, []);
 
     // Exit room and return to rooms view
     const handleExitRoom = useCallback(() => {
@@ -347,7 +368,7 @@ export function SocialPage() {
         }
     };
 
-    const handlePostLink = async (url?: string) => {
+    const handlePostLink = useCallback(async (url?: string) => {
         const linkToPost = url || newLinkUrl;
         if (!linkToPost.trim()) return;
 
@@ -367,7 +388,7 @@ export function SocialPage() {
         } finally {
             setIsPostingLink(false);
         }
-    };
+    }, [newLinkUrl, postLink, isMobile, showSnackbar]);
 
     const handleCreateCollection = useCallback(async (name: string) => {
         if (!name.trim() || isCreatingCollection) return;
@@ -477,7 +498,7 @@ export function SocialPage() {
         }
     };
 
-    const handleCopyInvite = async () => {
+    const handleCopyInvite = useCallback(async () => {
         if (!currentRoom) return;
 
         try {
@@ -487,9 +508,9 @@ export function SocialPage() {
         } catch (error: any) {
             showSnackbar(error.message || 'Failed to create invite', 'error');
         }
-    };
+    }, [currentRoom, createInvite, showSnackbar]);
 
-    const getUniqueUploaders = useCallback(() => {
+    const uniqueUploaders = useMemo(() => {
         const uploaders = new Map<string, string>(); // id -> username
         links.forEach(link => {
             if (typeof link.userId === 'object') {
@@ -652,7 +673,7 @@ export function SocialPage() {
                                     handleSelectUploader={handleSelectUploader}
                                     viewFilter={viewFilter}
                                     handleViewFilterChange={setViewFilter}
-                                    getUniqueUploaders={getUniqueUploaders}
+                                    uniqueUploaders={uniqueUploaders}
                                     newLinkUrl={newLinkUrl}
                                     setNewLinkUrl={setNewLinkUrl}
                                     handlePostLink={handlePostLink}
@@ -736,161 +757,169 @@ export function SocialPage() {
                                         key="room-content"
                                         sx={{ display: 'flex', gap: 2, height: '100%' }}
                                     >
-                                        <SocialErrorBoundary componentName="Sidebar">
-                                            <SocialSidebar
-                                                isMobile={isMobile}
-                                                mobileDrawerOpen={mobileDrawerOpen}
-                                                setMobileDrawerOpen={setMobileDrawerOpen}
-                                                collections={collections}
-                                                selectCollection={handleSelectCollection}
-                                                currentCollectionId={currentCollectionId}
-                                                handleCollectionContextMenu={handleCollectionContextMenu}
-                                                handleCollectionTouchStart={handleCollectionTouchStart}
-                                                handleCollectionTouchEnd={handleCollectionTouchEnd}
-                                                isLoadingContent={isLoadingContent}
-                                                dropTargetId={dropTargetId}
-                                                setDropTargetId={setDropTargetId}
-                                                handleDrop={handleDrop}
-                                                getUnviewedCountByCollection={getUnviewedCountByCollection}
-                                                setShowCollectionDialog={setShowCollectionDialog}
-                                            />
-                                        </SocialErrorBoundary>
+                                        {/* Progressive Loading: Render lightweight skeleton until header animation starts */}
+                                        {shouldRenderContent ? (
+                                            <>
+                                                <SocialErrorBoundary componentName="Sidebar">
+                                                    <SocialSidebar
+                                                        isMobile={isMobile}
+                                                        mobileDrawerOpen={mobileDrawerOpen}
+                                                        setMobileDrawerOpen={setMobileDrawerOpen}
+                                                        collections={collections}
+                                                        selectCollection={handleSelectCollection}
+                                                        currentCollectionId={currentCollectionId}
+                                                        handleCollectionContextMenu={handleCollectionContextMenu}
+                                                        handleCollectionTouchStart={handleCollectionTouchStart}
+                                                        handleCollectionTouchEnd={handleCollectionTouchEnd}
+                                                        isLoadingContent={isLoadingContent}
+                                                        dropTargetId={dropTargetId}
+                                                        setDropTargetId={setDropTargetId}
+                                                        handleDrop={handleDrop}
+                                                        getUnviewedCountByCollection={getUnviewedCountByCollection}
+                                                        setShowCollectionDialog={setShowCollectionDialog}
+                                                    />
+                                                </SocialErrorBoundary>
 
-                                        <SocialErrorBoundary componentName="Links Container">
-                                            <LinksContainer
-                                                linksContainerRef={linksContainerRef}
-                                                isMobile={isMobile}
-                                                currentCollectionId={currentCollectionId}
-                                                collections={collections}
-                                                setMobileDrawerOpen={setMobileDrawerOpen}
-                                                searchQuery={searchQuery}
-                                                setSearchQuery={setSearchQuery}
-                                                isLoadingContent={isLoadingContent}
-                                                isLoadingLinks={isLoadingLinks}
-                                                isSearchingLinks={isSearchingLinks}
-                                                filteredLinks={filteredLinks}
-                                                deleteLink={handleDeleteLink}
-                                                setDraggedLinkId={setDraggedLinkId}
-                                                markLinkViewed={markLinkViewed}
-                                                unmarkLinkViewed={unmarkLinkViewed}
-                                                setCommentsLink={setCommentsLink}
-                                                viewedLinkIds={viewedLinkIds}
-                                                commentCounts={commentCounts}
-                                                currentUserId={currentUserId}
-                                                hasMoreLinks={hasMoreLinks}
-                                                loadAllLinks={loadAllLinks}
-                                                onMoveLink={handleOpenMoveDialog}
-                                            />
-                                        </SocialErrorBoundary>
+                                                <SocialErrorBoundary componentName="Links Container">
+                                                    <LinksContainer
+                                                        linksContainerRef={linksContainerRef}
+                                                        isMobile={isMobile}
+                                                        currentCollectionId={currentCollectionId}
+                                                        collections={collections}
+                                                        setMobileDrawerOpen={setMobileDrawerOpen}
+                                                        searchQuery={searchQuery}
+                                                        setSearchQuery={setSearchQuery}
+                                                        isLoadingContent={isLoadingContent}
+                                                        isLoadingLinks={isLoadingLinks}
+                                                        isSearchingLinks={isSearchingLinks}
+                                                        filteredLinks={filteredLinks}
+                                                        deleteLink={handleDeleteLink}
+                                                        setDraggedLinkId={setDraggedLinkId}
+                                                        markLinkViewed={markLinkViewed}
+                                                        unmarkLinkViewed={unmarkLinkViewed}
+                                                        setCommentsLink={setCommentsLink}
+                                                        viewedLinkIds={viewedLinkIds}
+                                                        commentCounts={commentCounts}
+                                                        currentUserId={currentUserId}
+                                                        hasMoreLinks={hasMoreLinks}
+                                                        loadAllLinks={loadAllLinks}
+                                                        onMoveLink={handleOpenMoveDialog}
+                                                    />
+                                                </SocialErrorBoundary>
+                                            </>
+                                        ) : (
+                                            // Layout Placeholder during the 50ms transition window
+                                            // This prevents the header from jumping if layout changes
+                                            <Box sx={{ flex: 1 }} />
+                                        )}
                                     </Box>
                                 )}
-                            </Box>
 
-                            {/* Create Room Dialog */}
-                            < CreateRoomDialog
-                                open={showCreateDialog}
-                                onClose={() => setShowCreateDialog(false)
-                                }
-                                onSubmit={handleCreateRoom}
-                                isLoading={isCreating}
-                            />
-
-                            {/* Create Collection Dialog */}
-                            < CreateCollectionDialog
-                                open={showCollectionDialog}
-                                onClose={() => setShowCollectionDialog(false)}
-                                onSubmit={handleCreateCollection}
-                                isLoading={isCreatingCollection}
-                            />
-
-                            {/* Post Link Dialog */}
-                            < PostLinkDialog
-                                open={showPostLinkDialog}
-                                onClose={() => {
-                                    setShowPostLinkDialog(false);
-                                    setPostLinkError(null);
-                                }}
-                                onSubmit={handlePostLink}
-                                isLoading={isPostingLink}
-                                error={postLinkError}
-                            />
-
-                            {/* Move Link Dialog */}
-                            <MoveLinkDialog
-                                open={showMoveDialog}
-                                onClose={() => {
-                                    setShowMoveDialog(false);
-                                    setLinkToMove(null);
-                                }}
-                                onSubmit={handleMoveLink}
-                                collections={collections}
-                                currentCollectionId={linkToMove?.collectionId || null}
-                                isLoading={isMovingLink}
-                            />
-
-                            {/* Mobile FAB */}
-                            {
-                                isMobile && viewMode === 'room-content' && currentRoom && (
-                                    <Fab
-                                        color="primary"
-                                        aria-label="add link"
-                                        onClick={() => setShowPostLinkDialog(true)}
-                                        sx={{
-                                            position: 'fixed',
-                                            bottom: 24,
-                                            right: 24,
-                                            zIndex: 100,
-                                        }}
-                                    >
-                                        <AddIcon />
-                                    </Fab>
-                                )
-                            }
-
-                            {/* Collection Context Menu */}
-                            <Menu
-                                open={collectionContextMenu !== null}
-                                onClose={() => setCollectionContextMenu(null)}
-                                anchorReference="anchorPosition"
-                                anchorPosition={
-                                    collectionContextMenu
-                                        ? { top: collectionContextMenu.mouseY, left: collectionContextMenu.mouseX }
-                                        : undefined
-                                }
-                            >
-                                <MenuItem onClick={() => {
-                                    if (collectionContextMenu) {
-                                        setCollectionToDelete(collectionContextMenu.collectionId);
+                                {/* Create Room Dialog */}
+                                <CreateRoomDialog
+                                    open={showCreateDialog}
+                                    onClose={() => setShowCreateDialog(false)
                                     }
-                                    setCollectionContextMenu(null);
-                                    setDeleteConfirmOpen(true);
-                                }} sx={{ color: 'error.main', gap: 1 }}>
-                                    <DeleteIcon fontSize="small" />
-                                    Delete Collection
-                                </MenuItem>
-                            </Menu>
+                                    onSubmit={handleCreateRoom}
+                                    isLoading={isCreating}
+                                />
 
-                            {/* Delete Collection Confirmation Dialog */}
-                            <ConfirmDialog
-                                open={deleteConfirmOpen}
-                                title="Delete Collection"
-                                message="Are you sure you want to delete this collection? All links in this collection will be permanently deleted."
-                                confirmText="Delete"
-                                onConfirm={handleDeleteCollection}
-                                onCancel={() => {
-                                    setDeleteConfirmOpen(false);
-                                    setCollectionToDelete(null);
-                                }}
-                                isLoading={isDeletingCollection}
-                                variant="danger"
-                            />
-                        </Box >
-                    )
-                    }
-                </AnimatePresence >
+                                {/* Create Collection Dialog */}
+                                <CreateCollectionDialog
+                                    open={showCollectionDialog}
+                                    onClose={() => setShowCollectionDialog(false)}
+                                    onSubmit={handleCreateCollection}
+                                    isLoading={isCreatingCollection}
+                                />
+
+                                {/* Post Link Dialog */}
+                                <PostLinkDialog
+                                    open={showPostLinkDialog}
+                                    onClose={() => {
+                                        setShowPostLinkDialog(false);
+                                        setPostLinkError(null);
+                                    }}
+                                    onSubmit={handlePostLink}
+                                    isLoading={isPostingLink}
+                                    error={postLinkError}
+                                />
+
+                                {/* Move Link Dialog */}
+                                <MoveLinkDialog
+                                    open={showMoveDialog}
+                                    onClose={() => {
+                                        setShowMoveDialog(false);
+                                        setLinkToMove(null);
+                                    }}
+                                    onSubmit={handleMoveLink}
+                                    collections={collections}
+                                    currentCollectionId={linkToMove?.collectionId || null}
+                                    isLoading={isMovingLink}
+                                />
+
+                                {/* Mobile FAB */}
+                                {
+                                    isMobile && viewMode === 'room-content' && currentRoom && (
+                                        <Fab
+                                            color="primary"
+                                            aria-label="add link"
+                                            onClick={() => setShowPostLinkDialog(true)}
+                                            sx={{
+                                                position: 'fixed',
+                                                bottom: 24,
+                                                right: 24,
+                                                zIndex: 100,
+                                            }}
+                                        >
+                                            <AddIcon />
+                                        </Fab>
+                                    )
+                                }
+
+                                {/* Collection Context Menu */}
+                                <Menu
+                                    open={collectionContextMenu !== null}
+                                    onClose={() => setCollectionContextMenu(null)}
+                                    anchorReference="anchorPosition"
+                                    anchorPosition={
+                                        collectionContextMenu
+                                            ? { top: collectionContextMenu.mouseY, left: collectionContextMenu.mouseX }
+                                            : undefined
+                                    }
+                                >
+                                    <MenuItem onClick={() => {
+                                        if (collectionContextMenu) {
+                                            setCollectionToDelete(collectionContextMenu.collectionId);
+                                        }
+                                        setCollectionContextMenu(null);
+                                        setDeleteConfirmOpen(true);
+                                    }} sx={{ color: 'error.main', gap: 1 }}>
+                                        <DeleteIcon fontSize="small" />
+                                        Delete Collection
+                                    </MenuItem>
+                                </Menu>
+
+                                {/* Delete Collection Confirmation Dialog */}
+                                <ConfirmDialog
+                                    open={deleteConfirmOpen}
+                                    title="Delete Collection"
+                                    message="Are you sure you want to delete this collection? All links in this collection will be permanently deleted."
+                                    confirmText="Delete"
+                                    onConfirm={handleDeleteCollection}
+                                    onCancel={() => {
+                                        setDeleteConfirmOpen(false);
+                                        setCollectionToDelete(null);
+                                    }}
+                                    isLoading={isDeletingCollection}
+                                    variant="danger"
+                                />
+                            </Box>
+                        </Box>
+                    )}
+                </AnimatePresence>
 
                 {/* Snackbar */}
-                < Snackbar
+                <Snackbar
                     open={snackbar.open}
                     autoHideDuration={4000}
                     onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
@@ -905,7 +934,7 @@ export function SocialPage() {
                     >
                         {snackbar.message}
                     </Alert>
-                </Snackbar >
+                </Snackbar>
 
                 {/* Comments Overlay */}
                 {
@@ -930,7 +959,7 @@ export function SocialPage() {
                         />
                     )
                 }
-            </Box >
-        </Box >
+            </Box>
+        </Box>
     );
 }
