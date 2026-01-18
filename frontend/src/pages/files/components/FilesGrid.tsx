@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Box, Typography, CircularProgress, Grid } from '@mui/material';
 import { FolderOpen as FolderOpenIcon } from '@mui/icons-material';
 import type { FileMetadata } from '@/services/vaultService';
@@ -50,32 +50,26 @@ export function FilesGrid({
     dragOverId
 }: FilesGridProps) {
     const [displayLimit, setDisplayLimit] = useState(20);
-    const sentinelRef = useRef<HTMLDivElement>(null);
+    const observerRef = useRef<IntersectionObserver | null>(null);
 
     // Reset limit when folder changes
     useEffect(() => {
         setDisplayLimit(40);
     }, [currentFolderId]);
 
-    // Lazy load observer
-    useEffect(() => {
-        const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting) {
-                setDisplayLimit(prev => prev + 20);
-            }
-        }, { threshold: 0.1 });
+    // Lazy load observer using callback ref
+    const onSentinel = useCallback((node: HTMLDivElement | null) => {
+        if (observerRef.current) observerRef.current.disconnect();
 
-        const currentSentinel = sentinelRef.current;
-        if (currentSentinel) {
-            observer.observe(currentSentinel);
+        if (node) {
+            observerRef.current = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    setDisplayLimit(prev => prev + 20);
+                }
+            }, { threshold: 0.1 });
+            observerRef.current.observe(node);
         }
-
-        return () => {
-            if (currentSentinel) {
-                observer.unobserve(currentSentinel);
-            }
-        };
-    }, [files.length]);
+    }, []);
 
     const gridSize = useMemo<GridSizeConfig>(() => {
         switch (viewPreset) {
@@ -161,7 +155,7 @@ export function FilesGrid({
                         ))}
                     </Grid>
                     {files.length > displayLimit && (
-                        <Box ref={sentinelRef} sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+                        <Box ref={onSentinel} sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
                             <CircularProgress size={24} />
                         </Box>
                     )}
