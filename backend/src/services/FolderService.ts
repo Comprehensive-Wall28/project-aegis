@@ -295,7 +295,7 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
      */
     async moveFiles(
         userId: string,
-        updates: { fileId: string; encryptedKey: string }[],
+        updates: { fileId: string; encryptedKey: string; encapsulatedKey: string }[],
         folderId: string | null
     ): Promise<number> {
         try {
@@ -318,6 +318,7 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             const bulkUpdates = updates.map(u => ({
                 fileId: u.fileId,
                 encryptedKey: u.encryptedKey,
+                encapsulatedKey: u.encapsulatedKey,
                 folderId: normalizedFolderId
             }));
 

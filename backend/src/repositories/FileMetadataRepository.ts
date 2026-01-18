@@ -112,7 +112,7 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
      * Bulk move files with new encrypted keys
      */
     async bulkMoveFiles(
-        updates: { fileId: string; encryptedKey: string; folderId: string | null }[],
+        updates: { fileId: string; encryptedKey: string; encapsulatedKey: string; folderId: string | null }[],
         ownerId: string
     ): Promise<number> {
         if (updates.length === 0) return 0;
@@ -123,6 +123,7 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
                 update: {
                     $set: {
                         encryptedSymmetricKey: update.encryptedKey,
+                        encapsulatedKey: update.encapsulatedKey,
                         folderId: update.folderId
                     }
                 }

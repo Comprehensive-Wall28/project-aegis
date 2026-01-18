@@ -279,7 +279,9 @@ export function FilesPage() {
             }
 
             // 2. Process Files (Decrypt -> Re-encrypt)
-            const updates: { fileId: string; encryptedKey: string }[] = [];
+            const updates: { fileId: string; encryptedKey: string; encapsulatedKey: string }[] = [];
+
+            const newEncapsulatedKey = targetFolderId ? 'FOLDER' : 'AES-KW';
 
             for (const id of ids) {
                 const file = files.find(f => f._id === id);
@@ -308,7 +310,7 @@ export function FilesPage() {
                 if (!sourceKey) throw new Error('Could not resolve source key');
                 const fileKey = await unwrapKey(file.encryptedSymmetricKey, sourceKey);
                 const newEncryptedKey = await wrapKey(fileKey, targetKey);
-                updates.push({ fileId: file._id, encryptedKey: newEncryptedKey });
+                updates.push({ fileId: file._id, encryptedKey: newEncryptedKey, encapsulatedKey: newEncapsulatedKey });
             }
 
             // 3. Send Batch Update
