@@ -57,12 +57,12 @@ export function FilesGrid({
 }: FilesGridProps) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const [displayLimit, setDisplayLimit] = useState(30);
+    const [displayLimit, setDisplayLimit] = useState(20);
     const [sentinelNode, setSentinelNode] = useState<HTMLElement | null>(null);
 
     // Reset limit when folder changes
     useEffect(() => {
-        setDisplayLimit(30);
+        setDisplayLimit(20);
     }, [currentFolderId]);
 
     useEffect(() => {
@@ -70,7 +70,7 @@ export function FilesGrid({
 
         const observer = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting) {
-                setDisplayLimit(prev => prev + 20);
+                setDisplayLimit(prev => prev + 15);
             }
         }, { threshold: 0.1, rootMargin: '200px' });
 
