@@ -51,8 +51,9 @@ interface SocialState {
     selectRoom: (roomId: string) => Promise<void>;
     refreshCurrentRoom: () => Promise<void>;
     selectCollection: (collectionId: string) => Promise<void>;
-    fetchCollectionLinks: (collectionId: string, isLoadMore?: boolean, silent?: boolean) => Promise<void>;
+    fetchCollectionLinks: (collectionId: string, isLoadMore?: boolean, silent?: boolean, limit?: number) => Promise<void>;
     loadMoreLinks: () => Promise<void>;
+    loadAllLinks: () => Promise<void>;
     createRoom: (name: string, description: string, icon?: string) => Promise<Room>;
     joinRoom: (inviteCode: string, roomKey: CryptoKey) => Promise<void>;
     postLink: (url: string) => Promise<LinkPost>;
@@ -424,7 +425,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         await get().fetchCollectionLinks(collectionId, false);
     },
 
-    fetchCollectionLinks: async (collectionId: string, isLoadMore: boolean = false, silent: boolean = false) => {
+    fetchCollectionLinks: async (collectionId: string, isLoadMore: boolean = false, silent: boolean = false, limit: number = 12) => {
         const state = get();
         if (!state.currentRoom) return;
 
@@ -446,7 +447,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
             const result = await socialService.getCollectionLinks(
                 state.currentRoom._id,
                 collectionId,
-                12,
+                limit,
                 beforeCursor
             );
 
@@ -524,6 +525,13 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         if (!state.currentCollectionId || !state.hasMoreLinks || state.isLoadingLinks) return;
 
         await get().fetchCollectionLinks(state.currentCollectionId, true);
+    },
+
+    loadAllLinks: async () => {
+        const state = get();
+        if (!state.currentCollectionId || !state.hasMoreLinks || state.isLoadingLinks) return;
+
+        await get().fetchCollectionLinks(state.currentCollectionId, true, false, 500);
     },
 
     createRoom: async (name: string, description: string, icon?: string) => {

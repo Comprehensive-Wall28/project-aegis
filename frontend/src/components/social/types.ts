@@ -78,6 +78,7 @@ export interface LinksContainerProps {
     currentUserId: string | undefined;
     hasMoreLinks: boolean;
     loadMoreLinks: () => void;
+    loadAllLinks: () => void;
 }
 
 export interface LinkCardProps {

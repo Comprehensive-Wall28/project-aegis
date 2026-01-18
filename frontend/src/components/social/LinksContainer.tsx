@@ -46,6 +46,7 @@ export const LinksContainer = memo(({
     currentUserId,
     hasMoreLinks,
     loadMoreLinks,
+    loadAllLinks,
 }: LinksContainerProps) => {
     const theme = useTheme();
 
@@ -61,6 +62,7 @@ export const LinksContainer = memo(({
     const handleUnview = useCallback((id: string) => unmarkLinkViewed(id), [unmarkLinkViewed]);
     const handleCommentsClick = useCallback((link: LinkPost) => setCommentsLink(link), [setCommentsLink]);
     const handleLoadMore = useCallback(() => loadMoreLinks(), [loadMoreLinks]);
+    const handleLoadAll = useCallback(() => loadAllLinks(), [loadAllLinks]);
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
     const handleClearSearch = useCallback(() => setSearchQuery(''), [setSearchQuery]);
 
@@ -178,7 +180,7 @@ export const LinksContainer = memo(({
                     </Box>
 
                     {hasMoreLinks && (
-                        <Box sx={{ mt: 3, mb: 2, display: 'flex', justifyContent: 'center' }}>
+                        <Box sx={{ mt: 3, mb: 2, display: 'flex', justifyContent: 'center', gap: 2 }}>
                             <Button
                                 variant="outlined"
                                 onClick={handleLoadMore}
@@ -195,6 +197,21 @@ export const LinksContainer = memo(({
                                 }}
                             >
                                 {isLoadingLinks ? 'Loading...' : 'Load More'}
+                            </Button>
+                            <Button
+                                variant="contained"
+                                onClick={handleLoadAll}
+                                disabled={isLoadingLinks}
+                                sx={{
+                                    borderRadius: '12px',
+                                    px: 4,
+                                    bgcolor: alpha(theme.palette.primary.main, 0.9),
+                                    '&:hover': {
+                                        bgcolor: theme.palette.primary.main,
+                                    }
+                                }}
+                            >
+                                {isLoadingLinks ? 'Loading...' : 'Load All'}
                             </Button>
                         </Box>
                     )}

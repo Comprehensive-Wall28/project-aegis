@@ -82,6 +82,7 @@ export function SocialPage() {
     const hasMoreLinks = useSocialStore((state) => state.hasMoreLinks);
     const isLoadingLinks = useSocialStore((state) => state.isLoadingLinks);
     const loadMoreLinks = useSocialStore((state) => state.loadMoreLinks);
+    const loadAllLinks = useSocialStore((state) => state.loadAllLinks);
 
     // Get current user ID for delete permissions
     const currentUserId = useSessionStore((state) => state.user?._id);
@@ -650,6 +651,7 @@ export function SocialPage() {
                                                 currentUserId={currentUserId}
                                                 hasMoreLinks={hasMoreLinks}
                                                 loadMoreLinks={loadMoreLinks}
+                                                loadAllLinks={loadAllLinks}
                                             />
                                         </SocialErrorBoundary>
                                     </Box>
