@@ -29,7 +29,13 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    // Only cache GET requests
+    if (event.request.method !== 'GET') return;
+
     const url = new URL(event.request.url);
+
+    // Bypassing API calls for general shell caching
+    if (url.pathname.startsWith('/api/')) return;
 
     // 1. Cache-First for hashed static assets (JS/CSS)
     if (url.pathname.startsWith(STATIC_ASSETS)) {
