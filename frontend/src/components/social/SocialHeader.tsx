@@ -1,4 +1,4 @@
-import { memo, useCallback, type ChangeEvent } from 'react';
+import { memo, useCallback, useState, type ChangeEvent } from 'react';
 import {
     Box,
     Paper,
@@ -16,6 +16,8 @@ import {
     Skeleton,
     Divider,
     ListSubheader,
+    ListItemIcon,
+    ListItemText,
 } from '@mui/material';
 import {
     Group as GroupIcon,
@@ -26,6 +28,12 @@ import {
     Close as CloseIcon,
     Share as ShareIcon,
     ArrowBack as ArrowBackIcon,
+    AccessTime as TimeIcon,
+    Visibility as VisibilityIcon,
+    VisibilityOff as VisibilityOffIcon,
+    Person as PersonIcon,
+    Check as CheckIcon,
+    History as HistoryIcon,
 } from '@mui/icons-material';
 import { useSocialStore } from '@/stores/useSocialStore';
 import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
@@ -62,6 +70,7 @@ export const SocialHeader = memo(({
     handleSortOrderChange,
 }: SocialHeaderProps) => {
     const theme = useTheme();
+    const [uploaderSearch, setUploaderSearch] = useState('');
     const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
     const { name: decryptedName, isDecrypting } = useDecryptedRoomMetadata(currentRoom);
 
@@ -182,81 +191,142 @@ export const SocialHeader = memo(({
                         anchorEl={filterAnchorEl}
                         open={Boolean(filterAnchorEl)}
                         onClose={handleFilterClose}
+                        disableScrollLock
                         PaperProps={{
                             variant: 'solid',
                             elevation: 8,
                             sx: {
-                                minWidth: 220,
+                                minWidth: 260,
                                 mt: 1,
                                 bgcolor: theme.palette.background.paper,
                                 backgroundImage: 'none',
                                 border: `1px solid ${theme.palette.divider}`,
+                                borderRadius: SOCIAL_RADIUS_MEDIUM,
                                 '& .MuiList-root': {
                                     pt: 0,
-                                }
+                                },
                             }
                         }}
                     >
-                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '36px' }}>
+                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '40px', color: 'primary.main', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Sort Order
                         </ListSubheader>
-                        <MenuItem
-                            onClick={handleSortLatest}
-                            selected={sortOrder === 'latest'}
-                        >
-                            Latest First
-                        </MenuItem>
-                        <MenuItem
-                            onClick={handleSortOldest}
-                            selected={sortOrder === 'oldest'}
-                        >
-                            Oldest First
+
+                        <MenuItem onClick={handleSortLatest} selected={sortOrder === 'latest'} sx={{ py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <HistoryIcon fontSize="small" color={sortOrder === 'latest' ? 'primary' : 'inherit'} />
+                            </ListItemIcon>
+                            <ListItemText primary="Latest First" primaryTypographyProps={{ variant: 'body2', fontWeight: sortOrder === 'latest' ? 600 : 400 }} />
+                            {sortOrder === 'latest' && <CheckIcon fontSize="small" color="primary" />}
                         </MenuItem>
 
-                        <Divider sx={{ my: 1 }} />
+                        <MenuItem onClick={handleSortOldest} selected={sortOrder === 'oldest'} sx={{ py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <TimeIcon fontSize="small" color={sortOrder === 'oldest' ? 'primary' : 'inherit'} />
+                            </ListItemIcon>
+                            <ListItemText primary="Oldest First" primaryTypographyProps={{ variant: 'body2', fontWeight: sortOrder === 'oldest' ? 600 : 400 }} />
+                            {sortOrder === 'oldest' && <CheckIcon fontSize="small" color="primary" />}
+                        </MenuItem>
 
-                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '36px' }}>
+                        <Divider sx={{ my: 1, opacity: 0.6 }} />
+
+                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '40px', color: 'primary.main', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             View Status
                         </ListSubheader>
-                        <MenuItem
-                            onClick={handleViewFilterAll}
-                            selected={viewFilter === 'all'}
-                        >
-                            All Links
-                        </MenuItem>
-                        <MenuItem
-                            onClick={handleViewFilterViewed}
-                            selected={viewFilter === 'viewed'}
-                        >
-                            Viewed
-                        </MenuItem>
-                        <MenuItem
-                            onClick={handleViewFilterUnviewed}
-                            selected={viewFilter === 'unviewed'}
-                        >
-                            Unviewed
+
+                        <MenuItem onClick={handleViewFilterAll} selected={viewFilter === 'all'} sx={{ py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <FilterListIcon fontSize="small" color={viewFilter === 'all' ? 'primary' : 'inherit'} />
+                            </ListItemIcon>
+                            <ListItemText primary="All Links" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'all' ? 600 : 400 }} />
+                            {viewFilter === 'all' && <CheckIcon fontSize="small" color="primary" />}
                         </MenuItem>
 
-                        <Divider sx={{ my: 1 }} />
+                        <MenuItem onClick={handleViewFilterViewed} selected={viewFilter === 'viewed'} sx={{ py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <VisibilityIcon fontSize="small" color={viewFilter === 'viewed' ? 'primary' : 'inherit'} />
+                            </ListItemIcon>
+                            <ListItemText primary="Viewed" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'viewed' ? 600 : 400 }} />
+                            {viewFilter === 'viewed' && <CheckIcon fontSize="small" color="primary" />}
+                        </MenuItem>
 
-                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '36px' }}>
+                        <MenuItem onClick={handleViewFilterUnviewed} selected={viewFilter === 'unviewed'} sx={{ py: 1 }}>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <VisibilityOffIcon fontSize="small" color={viewFilter === 'unviewed' ? 'primary' : 'inherit'} />
+                            </ListItemIcon>
+                            <ListItemText primary="Unviewed" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'unviewed' ? 600 : 400 }} />
+                            {viewFilter === 'unviewed' && <CheckIcon fontSize="small" color="primary" />}
+                        </MenuItem>
+
+                        <Divider sx={{ my: 1, opacity: 0.6 }} />
+
+                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '40px', color: 'primary.main', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Uploaders
                         </ListSubheader>
-                        <MenuItem
-                            onClick={() => handleSelectUploader(null)}
-                            selected={selectedUploader === null}
-                        >
-                            All Uploaders
-                        </MenuItem>
-                        {getUniqueUploaders().map((uploader) => (
-                            <MenuItem
-                                key={uploader.id}
-                                onClick={() => handleUploaderSelect(uploader.id)}
-                                selected={selectedUploader === uploader.id}
-                            >
-                                {uploader.username}
+
+                        {getUniqueUploaders().length > 8 && (
+                            <Box sx={{ px: 2, pb: 1 }}>
+                                <TextField
+                                    size="small"
+                                    fullWidth
+                                    placeholder="Filter uploaders..."
+                                    value={uploaderSearch}
+                                    onChange={(e) => setUploaderSearch(e.target.value)}
+                                    autoFocus
+                                    slotProps={{
+                                        input: {
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <SearchIcon fontSize="small" />
+                                                </InputAdornment>
+                                            ),
+                                        }
+                                    }}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: SOCIAL_RADIUS_SMALL,
+                                            height: 32,
+                                            fontSize: '0.8125rem',
+                                        }
+                                    }}
+                                />
+                            </Box>
+                        )}
+
+                        <Box sx={{ maxHeight: 240, overflowY: 'auto' }}>
+                            <MenuItem onClick={() => handleSelectUploader(null)} selected={selectedUploader === null} sx={{ py: 1 }}>
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                    <GroupIcon fontSize="small" color={selectedUploader === null ? 'primary' : 'inherit'} />
+                                </ListItemIcon>
+                                <ListItemText primary="All Uploaders" primaryTypographyProps={{ variant: 'body2', fontWeight: selectedUploader === null ? 600 : 400 }} />
+                                {selectedUploader === null && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
-                        ))}
+
+                            {getUniqueUploaders()
+                                .filter(u => u.username.toLowerCase().includes(uploaderSearch.toLowerCase()))
+                                .map((uploader) => (
+                                    <MenuItem
+                                        key={uploader.id}
+                                        onClick={() => handleUploaderSelect(uploader.id)}
+                                        selected={selectedUploader === uploader.id}
+                                        sx={{ py: 1 }}
+                                    >
+                                        <ListItemIcon sx={{ minWidth: 36 }}>
+                                            <PersonIcon fontSize="small" color={selectedUploader === uploader.id ? 'primary' : 'inherit'} />
+                                        </ListItemIcon>
+                                        <ListItemText primary={uploader.username} primaryTypographyProps={{ variant: 'body2', fontWeight: selectedUploader === uploader.id ? 600 : 400 }} />
+                                        {selectedUploader === uploader.id && <CheckIcon fontSize="small" color="primary" />}
+                                    </MenuItem>
+                                ))}
+
+                            {getUniqueUploaders().filter(u => u.username.toLowerCase().includes(uploaderSearch.toLowerCase())).length === 0 && (
+                                <Box sx={{ py: 2, px: 3, textAlign: 'center' }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                        No uploaders found
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Box>
                     </Menu>
 
                     {!isMobile && (
@@ -289,17 +359,28 @@ export const SocialHeader = memo(({
                                 variant="contained"
                                 onClick={() => handlePostLink()}
                                 disabled={!newLinkUrl.trim() || isPostingLink}
-                                sx={{ borderRadius: SOCIAL_RADIUS_MEDIUM, flexShrink: 0 }}
+                                sx={{
+                                    borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                    flexShrink: 0,
+                                    minWidth: 90,
+                                    height: 40,
+                                    boxShadow: theme.shadows[2],
+                                }}
                                 aria-label="Post link"
                             >
-                                {isPostingLink ? <CircularProgress size={18} /> : 'Post'}
+                                {isPostingLink ? <CircularProgress size={20} color="inherit" /> : 'Post'}
                             </Button>
 
                             <Button
                                 variant="outlined"
                                 startIcon={<CopyIcon />}
                                 onClick={handleCopyInvite}
-                                sx={{ borderRadius: SOCIAL_RADIUS_MEDIUM, flexShrink: 0 }}
+                                sx={{
+                                    borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                    flexShrink: 0,
+                                    height: 40,
+                                    px: 2,
+                                }}
                             >
                                 Invite
                             </Button>
