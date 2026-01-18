@@ -3,7 +3,7 @@ import { Box, Typography, CircularProgress, Grid } from '@mui/material';
 import { FolderOpen as FolderOpenIcon } from '@mui/icons-material';
 import type { FileMetadata } from '@/services/vaultService';
 import type { Folder } from '@/services/folderService';
-import type { ViewPreset } from '../types';
+import type { ViewPreset, GridSizeConfig, IconScalingConfig, TypoScalingConfig } from '../types';
 import { FolderGridItem } from './FolderGridItem';
 import { FileGridItem } from './FileGridItem';
 
@@ -78,7 +78,7 @@ export function FilesGrid({
         };
     }, [files.length]);
 
-    const gridSize = useMemo(() => {
+    const gridSize = useMemo<GridSizeConfig>(() => {
         switch (viewPreset) {
             case 'compact': return { xs: 6, sm: 4, md: 3, lg: 2 };
             case 'comfort': return { xs: 12, sm: 6, md: 4, lg: 3 };
@@ -87,7 +87,7 @@ export function FilesGrid({
         }
     }, [viewPreset]);
 
-    const iconScaling = useMemo(() => {
+    const iconScaling = useMemo<IconScalingConfig>(() => {
         switch (viewPreset) {
             case 'compact': return { size: 48, padding: 1.5, badge: 14 };
             case 'comfort': return { size: 80, padding: 2.5, badge: 20 };
@@ -96,7 +96,7 @@ export function FilesGrid({
         }
     }, [viewPreset]);
 
-    const typoScaling = useMemo(() => {
+    const typoScaling = useMemo<TypoScalingConfig>(() => {
         switch (viewPreset) {
             case 'compact': return { name: 'caption', size: 11, mb: 0.5 };
             case 'comfort': return { name: 'body1', size: 24, mb: 1 };

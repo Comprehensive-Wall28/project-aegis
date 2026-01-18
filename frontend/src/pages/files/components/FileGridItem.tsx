@@ -6,13 +6,14 @@ import {
     MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import type { FileMetadata } from '@/services/vaultService';
+import type { GridSizeConfig, IconScalingConfig, TypoScalingConfig } from '../types';
 import { getFileIconInfo, formatFileSize } from '../utils';
 
 interface FileGridItemProps {
     file: FileMetadata;
-    gridSize: any;
-    iconScaling: any;
-    typoScaling: any;
+    gridSize: GridSizeConfig;
+    iconScaling: IconScalingConfig;
+    typoScaling: TypoScalingConfig;
     isSelected: boolean;
     isDownloading: boolean;
     isDeleting: boolean;

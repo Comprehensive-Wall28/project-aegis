@@ -8,12 +8,13 @@ import {
     MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import type { Folder } from '@/services/folderService';
+import type { GridSizeConfig, IconScalingConfig, TypoScalingConfig } from '../types';
 
 interface FolderGridItemProps {
     folder: Folder;
-    gridSize: any;
-    iconScaling: any;
-    typoScaling: any;
+    gridSize: GridSizeConfig;
+    iconScaling: IconScalingConfig;
+    typoScaling: TypoScalingConfig;
     dragOverId: string | null;
     onNavigate: (folder: Folder) => void;
     onContextMenu: (e: React.MouseEvent, target: any) => void;
