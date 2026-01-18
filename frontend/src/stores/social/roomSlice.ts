@@ -262,4 +262,16 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
     clearError: () => {
         set({ error: null });
     },
+
+    clearRoomContent: () => {
+        set({
+            currentRoom: null,
+            collections: [],
+            links: [],
+            currentCollectionId: null,
+            isLoadingContent: false,
+            error: null,
+            linksCache: {},
+        });
+    },
 });

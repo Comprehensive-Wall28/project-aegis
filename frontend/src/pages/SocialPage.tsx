@@ -7,6 +7,7 @@ import {
     alpha,
     useTheme,
     CircularProgress,
+    LinearProgress,
     Snackbar,
     Alert,
     Menu,
@@ -67,6 +68,7 @@ export function SocialPage() {
         commentCounts,
         hasMoreLinks,
         isLoadingLinks,
+        isSearchingLinks,
     } = useSocialStore(
         useShallow((state) => ({
             rooms: state.rooms,
@@ -82,6 +84,7 @@ export function SocialPage() {
             commentCounts: state.commentCounts,
             hasMoreLinks: state.hasMoreLinks,
             isLoadingLinks: state.isLoadingLinks,
+            isSearchingLinks: state.isSearchingLinks,
         }))
     );
 
@@ -102,6 +105,8 @@ export function SocialPage() {
         unmarkLinkViewed,
         getUnviewedCountByCollection,
         loadAllLinks,
+        searchRoomLinks,
+        clearRoomContent,
     } = useSocialStore(
         useShallow((state) => ({
             fetchRooms: state.fetchRooms,
@@ -119,6 +124,8 @@ export function SocialPage() {
             unmarkLinkViewed: state.unmarkLinkViewed,
             getUnviewedCountByCollection: state.getUnviewedCountByCollection,
             loadAllLinks: state.loadAllLinks,
+            searchRoomLinks: state.searchRoomLinks,
+            clearRoomContent: state.clearRoomContent,
         }))
     );
 
@@ -181,9 +188,10 @@ export function SocialPage() {
         return () => {
             if (currentRoom) {
                 socketService.leaveRoom(currentRoom._id);
+                clearRoomContent();
             }
         };
-    }, [currentRoom]);
+    }, [currentRoom, clearRoomContent]);
 
     // Hot Share Listener: Listen for AEGIS_SHARE_INTENT events from browser extension
     useEffect(() => {
@@ -258,6 +266,22 @@ export function SocialPage() {
         }
     }, [roomId, pqcEngineStatus, selectRoom]);
 
+    // Global Room Search: Automatically search across all collections
+    // when a query is active, offloading to the server for scalability.
+    useEffect(() => {
+        if (searchQuery.trim().length >= 2) {
+            const timer = setTimeout(() => {
+                searchRoomLinks(searchQuery.trim());
+            }, 400); // 400ms debounce
+            return () => clearTimeout(timer);
+        } else if (searchQuery.trim().length === 0 && currentCollectionId) {
+            // Revert to current collection view when search is cleared.
+            // We pass 'true' to force a re-fetch since search results 
+            // have overwritten the 'links' cache.
+            selectCollection(currentCollectionId, true);
+        }
+    }, [searchQuery, searchRoomLinks, currentCollectionId, selectCollection]);
+
     // Switch to room-content view when a room is selected
 
 
@@ -282,8 +306,9 @@ export function SocialPage() {
     const handleExitRoom = useCallback(() => {
         setOptimisticRoomId(null);
         clearError();
+        clearRoomContent();
         navigate('/dashboard/social');
-    }, [navigate, clearError]);
+    }, [navigate, clearError, clearRoomContent]);
 
     const handleSelectRoom = useCallback(async (selectedRoomId: string) => {
         setOptimisticRoomId(selectedRoomId);
@@ -483,16 +508,11 @@ export function SocialPage() {
             );
         }
 
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            filtered = filtered.filter((l) => {
-                const title = (l.previewData?.title || '').toLowerCase();
-                const url = l.url.toLowerCase();
-                const username = typeof l.userId === 'object' ? l.userId.username.toLowerCase() : '';
-                return title.includes(query) || url.includes(query) || username.includes(query);
-            });
-        }
+        // 1. Search Filtering: Now purely server-side.
+        // The server returns the definitive set of links for the query.
+        // We skip local filtering to prevent UI flicker between local/server results.
 
+        // 2. Filter by viewed status (if not 'all')
         if (viewFilter !== 'all') {
             filtered = filtered.filter((l) => {
                 const isViewed = viewedLinkIds.has(l._id);
@@ -659,7 +679,7 @@ export function SocialPage() {
                                         component={motion.div}
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
-                                        transition={{ duration: 0.3 }}
+                                        transition={{ duration: 0.2 }}
                                         sx={{
                                             display: 'grid',
                                             gridTemplateColumns: {
@@ -670,29 +690,46 @@ export function SocialPage() {
                                             },
                                             gap: 2,
                                             pb: isMobile ? 12 : 2,
+                                            position: 'relative'
                                         }}
                                     >
-                                        {isLoadingRooms ? (
-                                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, gridColumn: '1 / -1' }}>
-                                                <CircularProgress />
-                                            </Box>
-                                        ) : (
-                                            <>
-                                                {rooms.map((room, index) => (
-                                                    <SocialErrorBoundary key={room._id} componentName="Room Card">
-                                                        <RoomCard
-                                                            room={room}
-                                                            onSelect={() => handleSelectRoom(room._id)}
-                                                            index={index}
-                                                        />
-                                                    </SocialErrorBoundary>
-                                                ))}
-                                                <CreateRoomCard 
-                                                    onClick={() => setShowCreateDialog(true)} 
-                                                    index={rooms.length}
+                                        <AnimatePresence>
+                                            {isLoadingRooms && (
+                                                <Box
+                                                    component={motion.div}
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    exit={{ opacity: 0 }}
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: -8,
+                                                        left: 0,
+                                                        right: 0,
+                                                        height: 4,
+                                                        zIndex: 10,
+                                                        overflow: 'hidden',
+                                                        borderRadius: '4px'
+                                                    }}
+                                                >
+                                                    <LinearProgress />
+                                                </Box>
+                                            )}
+                                        </AnimatePresence>
+
+                                        {rooms.map((room, index) => (
+                                            <SocialErrorBoundary key={room._id} componentName="Room Card">
+                                                <RoomCard
+                                                    room={room}
+                                                    onSelect={() => handleSelectRoom(room._id)}
+                                                    index={index}
                                                 />
-                                            </>
-                                        )}
+                                            </SocialErrorBoundary>
+                                        ))}
+
+                                        <CreateRoomCard
+                                            onClick={() => setShowCreateDialog(true)}
+                                            index={rooms.length}
+                                        />
                                     </Box>
                                 ) : (
                                     <Box
@@ -730,6 +767,7 @@ export function SocialPage() {
                                                 setSearchQuery={setSearchQuery}
                                                 isLoadingContent={isLoadingContent}
                                                 isLoadingLinks={isLoadingLinks}
+                                                isSearchingLinks={isSearchingLinks}
                                                 filteredLinks={filteredLinks}
                                                 deleteLink={handleDeleteLink}
                                                 setDraggedLinkId={setDraggedLinkId}
@@ -846,12 +884,13 @@ export function SocialPage() {
                                 isLoading={isDeletingCollection}
                                 variant="danger"
                             />
-                        </Box>
-                    )}
-                </AnimatePresence>
+                        </Box >
+                    )
+                    }
+                </AnimatePresence >
 
                 {/* Snackbar */}
-                <Snackbar
+                < Snackbar
                     open={snackbar.open}
                     autoHideDuration={4000}
                     onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
@@ -866,7 +905,7 @@ export function SocialPage() {
                     >
                         {snackbar.message}
                     </Alert>
-                </Snackbar>
+                </Snackbar >
 
                 {/* Comments Overlay */}
                 {

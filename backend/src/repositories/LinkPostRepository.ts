@@ -101,4 +101,28 @@ export class LinkPostRepository extends BaseRepository<ILinkPost> {
         ]);
         return results;
     }
+
+    /**
+     * Search links across multiple collections with basic regex matching
+     */
+    async searchLinks(
+        collectionIds: string[],
+        searchQuery: string,
+        limit: number = 50
+    ): Promise<ILinkPost[]> {
+        const query: any = {
+            collectionId: { $in: collectionIds.map(id => new mongoose.Types.ObjectId(id)) },
+            $or: [
+                { url: { $regex: searchQuery, $options: 'i' } },
+                { 'previewData.title': { $regex: searchQuery, $options: 'i' } },
+                { 'previewData.description': { $regex: searchQuery, $options: 'i' } }
+            ]
+        };
+
+        return this.findMany(query as SafeFilter<ILinkPost>, {
+            sort: { createdAt: -1 },
+            populate: { path: 'userId', select: 'username' },
+            limit
+        });
+    }
 }

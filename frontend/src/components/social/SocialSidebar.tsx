@@ -267,7 +267,7 @@ export const SocialSidebar = memo(({
         <motion.div
             initial={isDesktop ? { opacity: 0, y: 10 } : false}
             animate={isDesktop ? { opacity: 1, y: 0 } : undefined}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
             style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
         >
             <Paper
@@ -301,31 +301,31 @@ export const SocialSidebar = memo(({
                     </IconButton>
                 </Box>
 
-            <Box sx={{
-                flex: 1,
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1,
-                mx: -0.5,
-                px: 0.5,
-            }}>
-                {isLoadingContent ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                        <CollectionSkeleton key={`col-skel-${i}`} />
-                    ))
-                ) : (
-                    <Reorder.Group
-                        axis="y"
-                        values={localCollections}
-                        onReorder={handleLocalReorder}
-                        style={{ padding: 0 }}
-                        layoutId="sidebar-collections"
-                    >
-                        {localCollections.map((collection) => renderCollectionItem(collection))}
-                    </Reorder.Group>
-                )}
-            </Box>
+                <Box sx={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1,
+                    mx: -0.5,
+                    px: 0.5,
+                }}>
+                    {isLoadingContent ? (
+                        Array.from({ length: 5 }).map((_, i) => (
+                            <CollectionSkeleton key={`col-skel-${i}`} />
+                        ))
+                    ) : (
+                        <Reorder.Group
+                            axis="y"
+                            values={localCollections}
+                            onReorder={handleLocalReorder}
+                            style={{ padding: 0 }}
+                            layoutId="sidebar-collections"
+                        >
+                            {localCollections.map((collection) => renderCollectionItem(collection))}
+                        </Reorder.Group>
+                    )}
+                </Box>
             </Paper>
         </motion.div>
     );

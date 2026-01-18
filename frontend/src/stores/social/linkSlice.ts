@@ -9,6 +9,7 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
     commentCounts: {},
     unviewedCounts: {},
     isLoadingLinks: false,
+    isSearchingLinks: false,
     hasMoreLinks: false,
 
     fetchCollectionLinks: async (collectionId: string, isLoadMore: boolean = false, silent: boolean = false, limit: number = 12) => {
@@ -138,6 +139,28 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
         if (!state.currentCollectionId || !state.hasMoreLinks || state.isLoadingLinks) return;
 
         await get().fetchCollectionLinks(state.currentCollectionId, true, false, 500);
+    },
+
+    searchRoomLinks: async (query: string, limit: number = 50) => {
+        const state = get();
+        if (!state.currentRoom) return;
+
+        set({ isSearchingLinks: true });
+
+        try {
+            const result = await socialService.searchRoomLinks(state.currentRoom._id, query, limit);
+
+            set((prev) => ({
+                links: result.links,
+                viewedLinkIds: new Set([...prev.viewedLinkIds, ...(result.viewedLinkIds || [])]),
+                commentCounts: { ...prev.commentCounts, ...(result.commentCounts || {}) },
+                isSearchingLinks: false,
+                hasMoreLinks: false // Search results are usually fixed limit
+            }));
+        } catch (error) {
+            console.error('Failed to search room links:', error);
+            set({ isSearchingLinks: false });
+        }
     },
 
     postLink: async (url: string) => {

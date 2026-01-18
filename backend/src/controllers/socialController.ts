@@ -108,6 +108,30 @@ export const getCollectionLinks = async (req: AuthRequest, res: Response, next: 
     }
 };
 
+export const searchRoomLinks = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+        const query = req.query.q as string;
+        const limit = parseInt(req.query.limit as string) || 50;
+
+        if (!query) {
+            return res.status(200).json({ links: [], viewedLinkIds: [], commentCounts: {} });
+        }
+
+        const result = await socialService.searchRoomLinks(
+            req.user.id,
+            req.params.roomId,
+            query,
+            limit
+        );
+        res.status(200).json(result);
+    } catch (error) {
+        handleError(error, res, next);
+    }
+};
+
 // ============== Link Endpoints ==============
 
 export const postLink = async (req: AuthRequest, res: Response, next: NextFunction) => {

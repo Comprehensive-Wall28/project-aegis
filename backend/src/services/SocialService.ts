@@ -373,6 +373,56 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
         }
     }
 
+    /**
+     * Search links across all collections in a room
+     */
+    async searchRoomLinks(
+        userId: string,
+        roomId: string,
+        searchQuery: string,
+        limit: number = 50
+    ): Promise<{
+        links: any[];
+        viewedLinkIds: string[];
+        commentCounts: Record<string, number>;
+    }> {
+        try {
+            // Verify room access
+            const room = await this.repository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new ServiceError('Room not found or access denied', 404);
+            }
+
+            // Get all collections for the room
+            const collections = await this.collectionRepo.findByRoom(roomId);
+            const collectionIds = collections.map(c => c._id.toString());
+
+            if (collectionIds.length === 0) {
+                return { links: [], viewedLinkIds: [], commentCounts: {} };
+            }
+
+            // Search in repository
+            const links = await this.linkPostRepo.searchLinks(collectionIds, searchQuery, limit);
+
+            // Get metadata for results
+            const linkIds = links.map((l: ILinkPost) => l._id.toString());
+            const [viewedLinkIds, commentCounts] = await Promise.all([
+                this.linkViewRepo.findViewedLinkIds(userId, linkIds),
+                this.linkCommentRepo.countByLinkIds(linkIds)
+            ]);
+
+            return {
+                links,
+                viewedLinkIds,
+                commentCounts
+            };
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Search room links error:', error);
+            throw new ServiceError('Failed to search room links', 500);
+        }
+    }
+
     // ============== Link Operations ==============
 
     async postLink(

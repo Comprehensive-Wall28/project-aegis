@@ -21,7 +21,37 @@ const getProxiedUrl = (originalUrl: string) => {
     return `${API_URL}/api/social/proxy-image?url=${encodeURIComponent(originalUrl)}`;
 };
 
-export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick }: LinkCardProps) => {
+const renderHighlightedText = (text: string, query?: string) => {
+    if (!query || !query.trim()) return text;
+
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return (
+        <>
+            {parts.map((part, i) => (
+                part.toLowerCase() === query.toLowerCase() ? (
+                    <Box
+                        key={i}
+                        component="span"
+                        sx={{
+                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.2),
+                            color: (theme) => theme.palette.primary.main,
+                            px: 0.5,
+                            mx: -0.5,
+                            borderRadius: '4px',
+                            fontWeight: 700,
+                        }}
+                    >
+                        {part}
+                    </Box>
+                ) : (
+                    part
+                )
+            ))}
+        </>
+    );
+};
+
+export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick, highlight }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
@@ -269,7 +299,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                 overflow: 'hidden',
                             }}
                         >
-                            {previewData.title || url}
+                            {renderHighlightedText(previewData.title || url, highlight)}
                         </Typography>
 
                         <Box
@@ -511,7 +541,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     </Typography>
 
                                     <Typography variant="body1" color="text.secondary" sx={{ mb: 3, whiteSpace: 'pre-wrap', flexGrow: 1 }}>
-                                        {previewData.description || 'No description available for this link.'}
+                                        {renderHighlightedText(previewData.description || 'No description available for this link.', highlight)}
                                     </Typography>
 
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 'auto' }}>
