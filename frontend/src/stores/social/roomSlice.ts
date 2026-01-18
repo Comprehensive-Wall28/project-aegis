@@ -120,7 +120,6 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
                 rooms: updatedRooms,
                 currentCollectionId: firstCollectionId,
                 hasMoreLinks: (content.links?.length || 0) >= 12, // Match backend limit
-                linksCache: {}, // Clear cache on room switch
             });
 
             // Join socket room
