@@ -47,6 +47,7 @@ export const LinksContainer = memo(({
     hasMoreLinks,
     loadMoreLinks,
     loadAllLinks,
+    onMoveLink,
 }: LinksContainerProps) => {
     const theme = useTheme();
 
@@ -64,7 +65,11 @@ export const LinksContainer = memo(({
     const handleLoadMore = useCallback(() => loadMoreLinks(), [loadMoreLinks]);
     const handleLoadAll = useCallback(() => loadAllLinks(), [loadAllLinks]);
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
-    const handleClearSearch = useCallback(() => setSearchQuery(''), [setSearchQuery]);
+    const handleClearSearch = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSearchQuery('');
+    }, [setSearchQuery]);
+    const handleMoveClick = useCallback((link: LinkPost) => onMoveLink?.(link), [onMoveLink]);
 
     return (
         <Box
@@ -176,6 +181,7 @@ export const LinksContainer = memo(({
                                     canDelete={
                                         currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
                                     }
+                                    onMoveClick={handleMoveClick}
                                 />
                             </SocialErrorBoundary>
                         ))}

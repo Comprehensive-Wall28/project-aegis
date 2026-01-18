@@ -32,7 +32,7 @@ import type { LinkPost } from '@/services/socialService';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Modular Components
-import { CreateRoomDialog, CreateCollectionDialog, PostLinkDialog } from '@/components/social/SocialDialogs';
+import { CreateRoomDialog, CreateCollectionDialog, PostLinkDialog, MoveLinkDialog } from '@/components/social/SocialDialogs';
 import { RoomCard, CreateRoomCard } from '@/components/social/RoomCards';
 import { SocialHeader } from '@/components/social/SocialHeader';
 import { SocialSidebar } from '@/components/social/SocialSidebar';
@@ -140,6 +140,10 @@ export function SocialPage() {
     const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedUploader, setSelectedUploader] = useState<string | null>(null);
     const [viewFilter, setViewFilter] = useState<'all' | 'viewed' | 'unviewed'>('all');
+    const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
+    const [showMoveDialog, setShowMoveDialog] = useState(false);
+    const [linkToMove, setLinkToMove] = useState<LinkPost | null>(null);
+    const [isMovingLink, setIsMovingLink] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [postLinkError, setPostLinkError] = useState<string | null>(null);
@@ -289,6 +293,22 @@ export function SocialPage() {
         // selectRoom is handled by useEffect when roomId changes
     }, [navigate]);
 
+    const handleSelectCollection = useCallback((id: string) => {
+        selectCollection(id);
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('c', id);
+        setSearchParams(newParams, { replace: true });
+    }, [selectCollection, searchParams, setSearchParams]);
+
+    useEffect(() => {
+        const urlCollectionId = searchParams.get('c');
+        if (urlCollectionId && roomId && collections.length > 0 && currentCollectionId !== urlCollectionId) {
+            if (collections.some(c => c._id === urlCollectionId)) {
+                selectCollection(urlCollectionId);
+            }
+        }
+    }, [searchParams, roomId, collections, currentCollectionId, selectCollection]);
+
     const handleCreateRoom = async (name: string, description: string) => {
         try {
             setIsCreating(true);
@@ -357,6 +377,27 @@ export function SocialPage() {
         setDraggedLinkId(null);
         setDropTargetId(null);
     }, [draggedLinkId, links, moveLink, showSnackbar]);
+
+    const handleMoveLink = useCallback(async (collectionId: string) => {
+        if (!linkToMove || isMovingLink) return;
+
+        setIsMovingLink(true);
+        try {
+            await moveLink(linkToMove._id, collectionId);
+            setShowMoveDialog(false);
+            setLinkToMove(null);
+            showSnackbar('Link moved successfully', 'success');
+        } catch (error: any) {
+            showSnackbar(error.message || 'Failed to move link', 'error');
+        } finally {
+            setIsMovingLink(false);
+        }
+    }, [linkToMove, isMovingLink, moveLink, showSnackbar]);
+
+    const handleOpenMoveDialog = useCallback((link: LinkPost) => {
+        setLinkToMove(link);
+        setShowMoveDialog(true);
+    }, []);
 
     const handleCollectionContextMenu = useCallback((event: React.MouseEvent, collectionId: string) => {
         event.preventDefault();
@@ -438,10 +479,6 @@ export function SocialPage() {
     const filteredLinks = useMemo(() => {
         let filtered = links;
 
-        if (currentCollectionId) {
-            filtered = filtered.filter((l) => l.collectionId === currentCollectionId);
-        }
-
         if (selectedUploader) {
             filtered = filtered.filter((l) =>
                 typeof l.userId === 'object' && l.userId._id === selectedUploader
@@ -465,8 +502,13 @@ export function SocialPage() {
             });
         }
 
-        return filtered;
-    }, [links, currentCollectionId, selectedUploader, viewFilter, searchQuery, viewedLinkIds]);
+        // Apply Sorting
+        return [...filtered].sort((a, b) => {
+            const timeA = new Date(a.createdAt).getTime();
+            const timeB = new Date(b.createdAt).getTime();
+            return sortOrder === 'latest' ? timeB - timeA : timeA - timeB;
+        });
+    }, [links, currentCollectionId, selectedUploader, viewFilter, searchQuery, viewedLinkIds, sortOrder]);
 
     const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
         setFilterAnchorEl(event.currentTarget);
@@ -597,6 +639,8 @@ export function SocialPage() {
                                     setNewLinkUrl={setNewLinkUrl}
                                     handlePostLink={handlePostLink}
                                     isPostingLink={isPostingLink}
+                                    sortOrder={sortOrder}
+                                    handleSortOrderChange={setSortOrder}
                                 />
                             </SocialErrorBoundary>
 
@@ -655,7 +699,7 @@ export function SocialPage() {
                                                 mobileDrawerOpen={mobileDrawerOpen}
                                                 setMobileDrawerOpen={setMobileDrawerOpen}
                                                 collections={collections}
-                                                selectCollection={selectCollection}
+                                                selectCollection={handleSelectCollection}
                                                 currentCollectionId={currentCollectionId}
                                                 handleCollectionContextMenu={handleCollectionContextMenu}
                                                 handleCollectionTouchStart={handleCollectionTouchStart}
@@ -692,6 +736,7 @@ export function SocialPage() {
                                                 hasMoreLinks={hasMoreLinks}
                                                 loadMoreLinks={loadMoreLinks}
                                                 loadAllLinks={loadAllLinks}
+                                                onMoveLink={handleOpenMoveDialog}
                                             />
                                         </SocialErrorBoundary>
                                     </Box>
@@ -727,9 +772,22 @@ export function SocialPage() {
                                 error={postLinkError}
                             />
 
+                            {/* Move Link Dialog */}
+                            <MoveLinkDialog
+                                open={showMoveDialog}
+                                onClose={() => {
+                                    setShowMoveDialog(false);
+                                    setLinkToMove(null);
+                                }}
+                                onSubmit={handleMoveLink}
+                                collections={collections}
+                                currentCollectionId={linkToMove?.collectionId || null}
+                                isLoading={isMovingLink}
+                            />
+
                             {/* Mobile FAB */}
                             {
-                                isMobile && currentRoom && (
+                                isMobile && viewMode === 'room-content' && currentRoom && (
                                     <Fab
                                         color="primary"
                                         aria-label="add link"

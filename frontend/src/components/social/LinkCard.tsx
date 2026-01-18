@@ -1,6 +1,6 @@
 import { useState, memo } from 'react';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon } from '@mui/icons-material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import type { LinkCardProps } from './types';
@@ -21,7 +21,7 @@ const getProxiedUrl = (originalUrl: string) => {
     return `${API_URL}/api/social/proxy-image?url=${encodeURIComponent(originalUrl)}`;
 };
 
-export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete }: LinkCardProps) => {
+export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
@@ -344,6 +344,19 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     >
                                         <CommentsIcon fontSize="small" />
                                     </Badge>
+                                </IconButton>
+
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onMoveClick?.(link);
+                                    }}
+                                    sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                                    aria-label="Move link"
+                                    title="Move to Collection"
+                                >
+                                    <MoveIcon fontSize="small" />
                                 </IconButton>
 
                                 {canDelete && (

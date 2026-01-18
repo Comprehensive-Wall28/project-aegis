@@ -58,6 +58,8 @@ export const SocialHeader = memo(({
     setNewLinkUrl,
     handlePostLink,
     isPostingLink,
+    sortOrder,
+    handleSortOrderChange,
 }: SocialHeaderProps) => {
     const theme = useTheme();
     const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
@@ -71,6 +73,8 @@ export const SocialHeader = memo(({
     const handleViewFilterAll = useCallback(() => { handleViewFilterChange('all'); handleFilterClose(); }, [handleViewFilterChange, handleFilterClose]);
     const handleViewFilterViewed = useCallback(() => { handleViewFilterChange('viewed'); handleFilterClose(); }, [handleViewFilterChange, handleFilterClose]);
     const handleViewFilterUnviewed = useCallback(() => { handleViewFilterChange('unviewed'); handleFilterClose(); }, [handleViewFilterChange, handleFilterClose]);
+    const handleSortLatest = useCallback(() => { handleSortOrderChange('latest'); handleFilterClose(); }, [handleSortOrderChange, handleFilterClose]);
+    const handleSortOldest = useCallback(() => { handleSortOrderChange('oldest'); handleFilterClose(); }, [handleSortOrderChange, handleFilterClose]);
 
     return (
         <Paper
@@ -193,6 +197,24 @@ export const SocialHeader = memo(({
                             }
                         }}
                     >
+                        <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '36px' }}>
+                            Sort Order
+                        </ListSubheader>
+                        <MenuItem
+                            onClick={handleSortLatest}
+                            selected={sortOrder === 'latest'}
+                        >
+                            Latest First
+                        </MenuItem>
+                        <MenuItem
+                            onClick={handleSortOldest}
+                            selected={sortOrder === 'oldest'}
+                        >
+                            Oldest First
+                        </MenuItem>
+
+                        <Divider sx={{ my: 1 }} />
+
                         <ListSubheader sx={{ bgcolor: 'transparent', fontWeight: 600, lineHeight: '36px' }}>
                             View Status
                         </ListSubheader>

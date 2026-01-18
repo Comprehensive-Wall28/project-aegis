@@ -19,7 +19,8 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import type { CreateRoomDialogProps, CreateCollectionDialogProps, PostLinkDialogProps } from './types';
+import type { CreateRoomDialogProps, CreateCollectionDialogProps, PostLinkDialogProps, MoveLinkDialogProps } from './types';
+import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
 import { DialogPortal } from './DialogPortal';
 import {
     SOCIAL_DIALOG_Z_INDEX,
@@ -358,3 +359,120 @@ export const PostLinkDialog = memo(({
         </DialogPortal>
     );
 });
+// Move Link Dialog
+export const MoveLinkDialog = memo(({
+    open,
+    onClose,
+    onSubmit,
+    collections,
+    currentCollectionId,
+    isLoading
+}: MoveLinkDialogProps) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    return (
+        <DialogPortal>
+            <AnimatePresence>
+                {open && (
+                    <Box
+                        component={motion.div}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        sx={{
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: SOCIAL_DIALOG_Z_INDEX,
+                            bgcolor: 'rgba(0,0,0,0.8)',
+                            backdropFilter: isMobile ? 'none' : 'blur(8px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: isMobile ? 0 : 2,
+                        }}
+                    >
+                        <Paper
+                            variant={isMobile ? "solid" : "glass"}
+                            component={motion.div}
+                            initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                                width: '100%',
+                                maxWidth: isMobile ? '100%' : 400,
+                                height: isMobile ? '100%' : 'auto',
+                                maxHeight: isMobile ? '100%' : '80vh',
+                                overflow: 'hidden',
+                                borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                            }}
+                        >
+                            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>Move to Collection</Typography>
+                                <IconButton onClick={onClose} aria-label="Close">
+                                    <CloseIcon />
+                                </IconButton>
+                            </Box>
+
+                            <Box sx={{ p: 1, flex: 1, overflowY: 'auto' }}>
+                                {collections.map((collection) => (
+                                    <CollectionOption
+                                        key={collection._id}
+                                        collection={collection}
+                                        isActive={collection._id === currentCollectionId}
+                                        onClick={() => onSubmit(collection._id)}
+                                    />
+                                ))}
+                            </Box>
+
+                            <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'flex-end' }}>
+                                <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
+                            </Box>
+                        </Paper>
+                    </Box>
+                )}
+            </AnimatePresence>
+        </DialogPortal>
+    );
+});
+
+// Helper component for MoveLinkDialog options
+const CollectionOption = ({ collection, isActive, onClick }: { collection: any, isActive: boolean, onClick: () => void }) => {
+    const theme = useTheme();
+    const { name: decryptedName, isDecrypting } = useDecryptedCollectionMetadata(collection);
+
+    return (
+        <Button
+            fullWidth
+            onClick={onClick}
+            disabled={isActive}
+            sx={{
+                justifyContent: 'flex-start',
+                textAlign: 'left',
+                p: 2,
+                borderRadius: SOCIAL_RADIUS_SMALL,
+                mb: 0.5,
+                bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                color: isActive ? 'primary.main' : 'text.primary',
+                '&:hover': {
+                    bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.primary.main, 0.05),
+                },
+                textTransform: 'none',
+            }}
+        >
+            <Typography variant="body1" sx={{ fontWeight: isActive ? 600 : 400 }}>
+                {isDecrypting ? '...' : (decryptedName || 'Untitled Collection')}
+            </Typography>
+            {isActive && (
+                <Typography variant="caption" sx={{ ml: 'auto', opacity: 0.6 }}>
+                    Current
+                </Typography>
+            )}
+        </Button>
+    );
+};

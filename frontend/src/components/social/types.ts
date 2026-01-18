@@ -22,6 +22,8 @@ export interface SocialHeaderProps {
     setNewLinkUrl: (url: string) => void;
     handlePostLink: () => void;
     isPostingLink: boolean;
+    sortOrder: 'latest' | 'oldest';
+    handleSortOrderChange: (order: 'latest' | 'oldest') => void;
 }
 
 export interface CollectionItemProps {
@@ -79,6 +81,7 @@ export interface LinksContainerProps {
     hasMoreLinks: boolean;
     loadMoreLinks: () => void;
     loadAllLinks: () => void;
+    onMoveLink?: (link: LinkPost) => void;
 }
 
 export interface LinkCardProps {
@@ -91,6 +94,7 @@ export interface LinkCardProps {
     isViewed?: boolean;
     commentCount?: number;
     canDelete?: boolean;
+    onMoveClick?: (link: LinkPost) => void;
 }
 
 export interface CommentsOverlayProps {
@@ -122,6 +126,15 @@ export interface PostLinkDialogProps {
     onSubmit: (url: string) => void;
     isLoading: boolean;
     error?: string | null;
+}
+
+export interface MoveLinkDialogProps {
+    open: boolean;
+    onClose: () => void;
+    onSubmit: (collectionId: string) => void;
+    collections: Collection[];
+    currentCollectionId: string | null;
+    isLoading: boolean;
 }
 
 export interface RoomCardProps {
