@@ -6,12 +6,13 @@ import {
     MoreVert as MoreVertIcon,
     CheckCircle as CheckCircleIcon,
     RadioButtonUnchecked as UncheckedIcon,
-    DriveFileMove as MoveIcon
+    DriveFileMove as MoveIcon,
+    Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { motion, type Variants } from 'framer-motion';
 import type { FileMetadata } from '@/services/vaultService';
 import type { GridSizeConfig, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
-import { getFileIconInfo, formatFileSize } from '../utils';
+import { getFileIconInfo, formatFileSize, isPreviewable } from '../utils';
 
 const itemVariants: Variants = {
     hidden: { opacity: 0, y: 15 },
@@ -108,6 +109,27 @@ export const FileGridItem = memo(({
                         }
                     }}
                 >
+                    {isPreviewable(file.originalFileName) && (
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                color: 'text.secondary',
+                                opacity: 0.6,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                borderRadius: '50%',
+                                p: 0.5,
+                                pointerEvents: 'none'
+                            }}
+                        >
+                            <VisibilityIcon sx={{ fontSize: 16 }} />
+                        </Box>
+                    )}
+
                     <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}>
                         <FileTypeIcon sx={{ fontSize: iconScaling.size, color: color }} />
                     </Box>

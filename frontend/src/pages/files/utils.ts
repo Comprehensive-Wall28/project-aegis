@@ -12,6 +12,15 @@ import {
     TextSnippet as TextIcon,
 } from '@mui/icons-material';
 
+export function isPreviewable(fileName: string): boolean {
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+    const previewableExtensions = [
+        'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico', // Images
+        'pdf' // PDF
+    ];
+    return previewableExtensions.includes(ext);
+}
+
 export function formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';
     const k = 1024;
