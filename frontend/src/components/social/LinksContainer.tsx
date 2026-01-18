@@ -182,7 +182,7 @@ export const LinksContainer = memo(({
                 <AnimatePresence mode="wait" initial={false}>
                     {filteredLinks.length > 0 ? (
                         <Box
-                            key={currentCollectionId || 'links-grid'}
+                            key="links-grid"
                             component={motion.div}
                             initial={{ opacity: 0, scale: 0.99 }}
                             animate={{ opacity: 1, scale: 1 }}
