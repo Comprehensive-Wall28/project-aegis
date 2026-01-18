@@ -130,7 +130,13 @@ export function DashboardLayout() {
 
     return (
         <Box
-            sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}
+            sx={{
+                height: '100vh',
+                bgcolor: 'background.default',
+                display: 'flex',
+                overflow: 'hidden',
+                position: 'relative'
+            }}
         >
             {/* Soft Ambient Background Glow - Fixed 'Orb' issue by using wide ellipse */}
             {/* Soft Ambient Background Glow - Fixed 'Orb' issue by using wide ellipse */}
@@ -199,7 +205,7 @@ export function DashboardLayout() {
                 </Box>
 
                 {/* Content Area ('The Stage') */}
-                <Box sx={{ flexGrow: 1, m: { xs: 1, sm: 2 }, mt: { xs: 0, sm: 0 }, overflow: 'hidden' }}>
+                <Box sx={{ flexGrow: 1, p: { xs: 1, sm: 2 }, pt: 0, overflow: 'hidden' }}>
                     <Paper
                         elevation={0}
                         component={motion.div}
