@@ -8,9 +8,23 @@ import {
     RadioButtonUnchecked as UncheckedIcon,
     DriveFileMove as MoveIcon
 } from '@mui/icons-material';
+import { motion, type Variants } from 'framer-motion';
 import type { FileMetadata } from '@/services/vaultService';
 import type { GridSizeConfig, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
 import { getFileIconInfo, formatFileSize } from '../utils';
+
+const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            type: 'spring',
+            stiffness: 300,
+            damping: 30
+        }
+    }
+};
 
 interface FileGridItemProps {
     file: FileMetadata;
@@ -47,8 +61,10 @@ export const FileGridItem = memo(({
     const { icon: FileTypeIcon, color } = getFileIconInfo(file.originalFileName);
 
     return (
-        <Grid size={gridSize}>
-            <Box style={{ height: '100%' }}>
+        <Grid size={gridSize} component={motion.div} variants={itemVariants}>
+            <Box
+                sx={{ height: '100%' }}
+            >
                 <Paper
                     elevation={0}
                     draggable

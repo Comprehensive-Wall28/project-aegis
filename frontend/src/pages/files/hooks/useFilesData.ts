@@ -29,38 +29,28 @@ export function useFilesData() {
         try {
             setIsLoading(true);
             setBackendError(false);
-            const [filesData, foldersData] = await Promise.all([
+
+            // Fetch everything in parallel: files, subfolders, and if needed, current folder metadata for path breadcrumbs
+            const promises: [Promise<FileMetadata[]>, Promise<Folder[]>, Promise<Folder | null>] = [
                 vaultService.getRecentFiles(currentFolderId),
-                folderService.getFolders(currentFolderId)
-            ]);
+                folderService.getFolders(currentFolderId),
+                currentFolderId ? folderService.getFolder(currentFolderId) : Promise.resolve(null)
+            ];
+
+            const [filesData, foldersData, currentFolder] = await Promise.all(promises);
 
             setFiles(filesData);
             setFolders(foldersData);
 
-            // If we are deep linked (have a folder ID), we need to fetch the folder details to reconstruct path
-            if (currentFolderId) {
-                try {
-                    const currentFolder = await folderService.getFolder(currentFolderId);
-                    // If the backend returns the path (ancestors), use it
-                    if (currentFolder.path) {
-                        setFolderPath([...currentFolder.path, currentFolder]);
-                    }
-                } catch (e: any) {
-                    console.error("Failed to fetch folder details for path", e);
-                    // If folder not found or invalid format, redirect to root
-                    if (e.response?.status === 404 || e.response?.status === 400) {
-                        setBackendError(false);
-                        navigate('/dashboard/files?error=folder_not_found', { replace: true });
-                        return;
-                    }
-                }
+            if (currentFolder && currentFolder.path) {
+                setFolderPath([...currentFolder.path, currentFolder]);
             } else {
                 setFolderPath([]);
             }
 
         } catch (err: any) {
             console.error('Failed to fetch files:', err);
-            // Check if it was the main fetch that failed due to invalid folder ID which might bubble up
+            // Handle specific folder not found errors (e.g. from deep link)
             if (err.response?.status === 404 || err.response?.status === 400) {
                 navigate('/dashboard/files?error=folder_not_found', { replace: true });
                 return;
@@ -70,7 +60,8 @@ export function useFilesData() {
         } finally {
             setIsLoading(false);
         }
-    }, [currentFolderId, navigate]); // Check dependency array, folderPath might cause issues if included but logic seems to handle it
+    }, [currentFolderId, navigate]);
+    // Check dependency array, folderPath might cause issues if included but logic seems to handle it
 
     useEffect(() => {
         fetchData();

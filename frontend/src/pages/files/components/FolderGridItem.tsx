@@ -7,8 +7,22 @@ import {
     FolderShared as SharedIcon,
     MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
+import { motion, type Variants } from 'framer-motion';
 import type { Folder } from '@/services/folderService';
 import type { GridSizeConfig, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
+
+const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            type: 'spring',
+            stiffness: 300,
+            damping: 30
+        }
+    }
+};
 
 interface FolderGridItemProps {
     folder: Folder;
@@ -40,8 +54,10 @@ export const FolderGridItem = memo(({
     const theme = useTheme();
 
     return (
-        <Grid size={gridSize}>
-            <Box style={{ height: '100%' }}>
+        <Grid size={gridSize} component={motion.div} variants={itemVariants}>
+            <Box
+                sx={{ height: '100%' }}
+            >
                 <Paper
                     elevation={0}
                     onClick={() => onNavigate(folder)}

@@ -1,11 +1,23 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Box, Typography, CircularProgress, Grid } from '@mui/material';
 import { FolderOpen as FolderOpenIcon } from '@mui/icons-material';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+
 import type { FileMetadata } from '@/services/vaultService';
 import type { Folder } from '@/services/folderService';
 import type { ViewPreset, GridSizeConfig, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
 import { FolderGridItem } from './FolderGridItem';
 import { FileGridItem } from './FileGridItem';
+
+const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.05
+        }
+    }
+};
 
 interface FilesGridProps {
     isLoading: boolean;
@@ -27,7 +39,6 @@ interface FilesGridProps {
     onDrop: (targetId: string, droppedFileId: string) => void;
     onToggleSelect: (id: string) => void;
     onMove: (file: FileMetadata) => void;
-
     dragOverId: string | null;
 }
 
@@ -53,12 +64,12 @@ export function FilesGrid({
     onMove,
     dragOverId
 }: FilesGridProps) {
-    const [displayLimit, setDisplayLimit] = useState(20);
+    const [displayLimit, setDisplayLimit] = useState(30);
     const observerRef = useRef<IntersectionObserver | null>(null);
 
     // Reset limit when folder changes
     useEffect(() => {
-        setDisplayLimit(40);
+        setDisplayLimit(30);
     }, [currentFolderId]);
 
     // Lazy load observer using callback ref
@@ -104,69 +115,92 @@ export function FilesGrid({
 
     return (
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }} onContextMenu={(e) => onContextMenu(e, { type: 'empty' })}>
-            {isLoading ? (
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 4, width: '100%', opacity: 0.8 }}>
-                    <CircularProgress thickness={5} size={40} />
-                    <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600, mt: 2 }}>
-                        Loading secure vault...
-                    </Typography>
-                </Box>
-            ) : (files.length === 0 && folders.length === 0) ? (
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 4, textAlign: 'center', width: '100%', opacity: 0.7 }}>
-                    <FolderOpenIcon sx={{ fontSize: 80, color: 'text.secondary', opacity: 0.2, mb: 2 }} />
-                    <Typography variant="h5" color="text.secondary" sx={{ fontWeight: 800, mb: 1 }}>
-                        Your vault is empty
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 400 }}>
-                        Drag and drop files here or use the "New" button to get started.
-                    </Typography>
-                </Box>
-            ) : (
-                <>
-                    <Grid container spacing={2}>
-                        {folders.map((folder) => (
-                            <FolderGridItem
-                                key={`folder-${folder._id}`}
-                                folder={folder}
-                                gridSize={gridSize}
-                                iconScaling={iconScaling}
-                                typoScaling={typoScaling}
-                                dragOverId={dragOverId}
-                                onNavigate={onNavigate}
-                                onContextMenu={onContextMenu}
-                                onShare={onShare}
-                                onDelete={onDeleteFolder}
-                                onDragOver={onDragOver}
-                                onDrop={onDrop}
-                            />
-                        ))}
+            <AnimatePresence mode="wait">
+                {isLoading ? (
+                    <Box
+                        key="loading"
+                        component={motion.div}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 4, width: '100%', opacity: 0.5 }}
+                    >
+                        <CircularProgress thickness={5} size={32} />
+                        <Typography color="text.secondary" variant="caption" sx={{ fontWeight: 800, mt: 2, letterSpacing: 1.5, fontFamily: 'JetBrains Mono' }}>
+                            RESOLVING_VAULT_METADATA
+                        </Typography>
+                    </Box>
+                ) : (files.length === 0 && folders.length === 0) ? (
+                    <Box
+                        key="empty"
+                        component={motion.div}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 4, textAlign: 'center', width: '100%', opacity: 0.7 }}
+                    >
+                        <FolderOpenIcon sx={{ fontSize: 80, color: 'text.secondary', opacity: 0.1, mb: 2 }} />
+                        <Typography variant="h5" color="text.secondary" sx={{ fontWeight: 800, mb: 1 }}>
+                            Your vault is empty
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 400, fontWeight: 500 }}>
+                            Drag and drop files here or use the "New" button to get started.
+                        </Typography>
+                    </Box>
+                ) : (
+                    <>
+                        <Grid
+                            container
+                            spacing={2}
+                            component={motion.div}
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="visible"
+                            key="grid"
+                        >
+                            {folders.map((folder) => (
+                                <FolderGridItem
+                                    key={`folder-${folder._id}`}
+                                    folder={folder}
+                                    gridSize={gridSize}
+                                    iconScaling={iconScaling}
+                                    typoScaling={typoScaling}
+                                    dragOverId={dragOverId}
+                                    onNavigate={onNavigate}
+                                    onContextMenu={onContextMenu}
+                                    onShare={onShare}
+                                    onDelete={onDeleteFolder}
+                                    onDragOver={onDragOver}
+                                    onDrop={onDrop}
+                                />
+                            ))}
 
-                        {files.slice(0, displayLimit).map((file) => (
-                            <FileGridItem
-                                key={file._id}
-                                file={file}
-                                gridSize={gridSize}
-                                iconScaling={iconScaling}
-                                typoScaling={typoScaling}
-                                isSelected={selectedIds.has(file._id)}
-                                isDownloading={downloadingId === file._id}
-                                isDeleting={deletingIds.has(file._id)}
-                                onFileClick={onFileClick}
-                                onContextMenu={onContextMenu}
-                                onDownload={onDownload}
-                                onDelete={onDeleteFile}
-                                onToggleSelect={onToggleSelect}
-                                onMove={onMove}
-                            />
-                        ))}
-                    </Grid>
-                    {files.length > displayLimit && (
-                        <Box ref={onSentinel} sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-                            <CircularProgress size={24} />
-                        </Box>
-                    )}
-                </>
-            )}
-        </Box>
+                            {files.slice(0, displayLimit).map((file) => (
+                                <FileGridItem
+                                    key={file._id}
+                                    file={file}
+                                    gridSize={gridSize}
+                                    iconScaling={iconScaling}
+                                    typoScaling={typoScaling}
+                                    isSelected={selectedIds.has(file._id)}
+                                    isDownloading={downloadingId === file._id}
+                                    isDeleting={deletingIds.has(file._id)}
+                                    onFileClick={onFileClick}
+                                    onContextMenu={onContextMenu}
+                                    onDownload={onDownload}
+                                    onDelete={onDeleteFile}
+                                    onToggleSelect={onToggleSelect}
+                                    onMove={onMove}
+                                />
+                            ))}
+                        </Grid>
+                        {files.length > displayLimit && (
+                            <Box ref={onSentinel} sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+                                <CircularProgress size={24} />
+                            </Box>
+                        )}
+                    </>
+                )}
+            </AnimatePresence>
+        </Box >
     );
 }
