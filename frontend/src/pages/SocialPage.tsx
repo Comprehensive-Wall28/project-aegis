@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 import {
     Box,
     Typography,
@@ -51,38 +52,77 @@ export function SocialPage() {
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
 
     // Store state
-    const rooms = useSocialStore((state) => state.rooms);
-    const currentRoom = useSocialStore((state) => state.currentRoom);
-    const collections = useSocialStore((state) => state.collections);
-    const currentCollectionId = useSocialStore((state) => state.currentCollectionId);
-    const links = useSocialStore((state) => state.links);
-    const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
-    const isLoadingRooms = useSocialStore((state) => state.isLoadingRooms);
-    const error = useSocialStore((state) => state.error);
+    // Consolidated State Selector
+    const {
+        rooms,
+        currentRoom,
+        collections,
+        currentCollectionId,
+        links,
+        isLoadingContent,
+        isLoadingRooms,
+        error,
+        viewedLinkIds,
+        roomKeys,
+        commentCounts,
+        hasMoreLinks,
+        isLoadingLinks,
+    } = useSocialStore(
+        useShallow((state) => ({
+            rooms: state.rooms,
+            currentRoom: state.currentRoom,
+            collections: state.collections,
+            currentCollectionId: state.currentCollectionId,
+            links: state.links,
+            isLoadingContent: state.isLoadingContent,
+            isLoadingRooms: state.isLoadingRooms,
+            error: state.error,
+            viewedLinkIds: state.viewedLinkIds,
+            roomKeys: state.roomKeys,
+            commentCounts: state.commentCounts,
+            hasMoreLinks: state.hasMoreLinks,
+            isLoadingLinks: state.isLoadingLinks,
+        }))
+    );
 
-    // Actions
-
-    const fetchRooms = useSocialStore((state) => state.fetchRooms);
-    const clearError = useSocialStore((state) => state.clearError);
-    const selectRoom = useSocialStore((state) => state.selectRoom);
-    const selectCollection = useSocialStore((state) => state.selectCollection);
-    const createRoom = useSocialStore((state) => state.createRoom);
-    const postLink = useSocialStore((state) => state.postLink);
-    const deleteLink = useSocialStore((state) => state.deleteLink);
-    const createCollection = useSocialStore((state) => state.createCollection);
-    const deleteCollection = useSocialStore((state) => state.deleteCollection);
-    const moveLink = useSocialStore((state) => state.moveLink);
-    const createInvite = useSocialStore((state) => state.createInvite);
-    const markLinkViewed = useSocialStore((state) => state.markLinkViewed);
-    const unmarkLinkViewed = useSocialStore((state) => state.unmarkLinkViewed);
-    const getUnviewedCountByCollection = useSocialStore((state) => state.getUnviewedCountByCollection);
-    const viewedLinkIds = useSocialStore((state) => state.viewedLinkIds);
-    const roomKeys = useSocialStore((state) => state.roomKeys);
-    const commentCounts = useSocialStore((state) => state.commentCounts);
-    const hasMoreLinks = useSocialStore((state) => state.hasMoreLinks);
-    const isLoadingLinks = useSocialStore((state) => state.isLoadingLinks);
-    const loadMoreLinks = useSocialStore((state) => state.loadMoreLinks);
-    const loadAllLinks = useSocialStore((state) => state.loadAllLinks);
+    // Consolidated Actions Selector
+    const {
+        fetchRooms,
+        clearError,
+        selectRoom,
+        selectCollection,
+        createRoom,
+        postLink,
+        deleteLink,
+        createCollection,
+        deleteCollection,
+        moveLink,
+        createInvite,
+        markLinkViewed,
+        unmarkLinkViewed,
+        getUnviewedCountByCollection,
+        loadMoreLinks,
+        loadAllLinks,
+    } = useSocialStore(
+        useShallow((state) => ({
+            fetchRooms: state.fetchRooms,
+            clearError: state.clearError,
+            selectRoom: state.selectRoom,
+            selectCollection: state.selectCollection,
+            createRoom: state.createRoom,
+            postLink: state.postLink,
+            deleteLink: state.deleteLink,
+            createCollection: state.createCollection,
+            deleteCollection: state.deleteCollection,
+            moveLink: state.moveLink,
+            createInvite: state.createInvite,
+            markLinkViewed: state.markLinkViewed,
+            unmarkLinkViewed: state.unmarkLinkViewed,
+            getUnviewedCountByCollection: state.getUnviewedCountByCollection,
+            loadMoreLinks: state.loadMoreLinks,
+            loadAllLinks: state.loadAllLinks,
+        }))
+    );
 
     // Get current user ID for delete permissions
     const currentUserId = useSessionStore((state) => state.user?._id);
