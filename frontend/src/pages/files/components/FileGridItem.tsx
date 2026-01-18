@@ -6,7 +6,7 @@ import {
     MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import type { FileMetadata } from '@/services/vaultService';
-import type { GridSizeConfig, IconScalingConfig, TypoScalingConfig } from '../types';
+import type { GridSizeConfig, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
 import { getFileIconInfo, formatFileSize } from '../utils';
 
 interface FileGridItemProps {
@@ -18,7 +18,7 @@ interface FileGridItemProps {
     isDownloading: boolean;
     isDeleting: boolean;
     onFileClick: (file: FileMetadata, e: React.MouseEvent) => void;
-    onContextMenu: (e: React.MouseEvent, target: any) => void;
+    onContextMenu: (e: React.MouseEvent, target: ContextMenuTarget) => void;
     onDownload: (file: FileMetadata) => void;
     onDelete: (id: string) => void;
     onDragStart: (id: string) => void;

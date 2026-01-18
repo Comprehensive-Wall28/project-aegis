@@ -8,6 +8,7 @@ import {
 } from '@mui/icons-material';
 import type { FileMetadata } from '@/services/vaultService';
 import type { Folder } from '@/services/folderService';
+import type { ContextMenuTarget } from '../types';
 import authService from '@/services/authService';
 import { usePreferenceStore } from '@/stores/preferenceStore';
 
@@ -49,8 +50,9 @@ export function useFileContextMenu({
     const isImageFile = (file: FileMetadata) => file.mimeType?.startsWith('image/');
 
     const getMenuItems = () => {
-        const targetId = contextMenu.target?.id;
-        const targetType = contextMenu.target?.type;
+        const target = contextMenu.target as ContextMenuTarget | null;
+        const targetId = target?.id;
+        const targetType = target?.type;
 
         // File context menu
         if (targetType === 'file' && targetId) {
@@ -100,13 +102,13 @@ export function useFileContextMenu({
             return [
                 {
                     label: 'Open', icon: <FolderOpenIcon fontSize="small" />, onClick: () => {
-                        const folder = folders.find(f => f._id === contextMenu.target?.id);
+                        const folder = folders.find(f => f._id === target?.id);
                         if (folder) navigateToFolder(folder);
                     }
                 },
                 {
                     label: 'Rename', icon: <RenameIcon fontSize="small" />, onClick: () => {
-                        const folder = folders.find(f => f._id === contextMenu.target?.id);
+                        const folder = folders.find(f => f._id === target?.id);
                         if (folder) {
                             setNewFolderName(folder.name);
                             setRenameFolderDialog({ open: true, folder });
@@ -115,20 +117,20 @@ export function useFileContextMenu({
                 },
                 {
                     label: 'Share', icon: <ShareIcon fontSize="small" />, onClick: () => {
-                        const folder = folders.find(f => f._id === contextMenu.target?.id);
+                        const folder = folders.find(f => f._id === target?.id);
                         if (folder) setShareDialog({ open: true, item: folder, type: 'folder' });
                     }
                 },
                 {
                     label: 'Change Color', icon: <PaletteIcon fontSize="small" />, onClick: () => {
-                        if (contextMenu.target?.id) {
-                            setColorPickerFolderId(contextMenu.target.id);
+                        if (target?.id) {
+                            setColorPickerFolderId(target.id);
                         }
                     }
                 },
                 {
                     label: 'Delete', icon: <DeleteIcon fontSize="small" />, onClick: () => {
-                        if (contextMenu.target?.id) handleDeleteFolder(contextMenu.target.id);
+                        if (target?.id) handleDeleteFolder(target.id);
                     }
                 },
             ];

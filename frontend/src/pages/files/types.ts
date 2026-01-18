@@ -18,3 +18,8 @@ export interface TypoScalingConfig {
     size: number;
     mb: number;
 }
+
+export interface ContextMenuTarget {
+    type: 'file' | 'folder' | 'empty';
+    id?: string;
+}

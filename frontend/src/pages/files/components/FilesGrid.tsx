@@ -3,7 +3,7 @@ import { Box, Typography, CircularProgress, Grid } from '@mui/material';
 import { FolderOpen as FolderOpenIcon } from '@mui/icons-material';
 import type { FileMetadata } from '@/services/vaultService';
 import type { Folder } from '@/services/folderService';
-import type { ViewPreset, GridSizeConfig, IconScalingConfig, TypoScalingConfig } from '../types';
+import type { ViewPreset, GridSizeConfig, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
 import { FolderGridItem } from './FolderGridItem';
 import { FileGridItem } from './FileGridItem';
 
@@ -18,7 +18,7 @@ interface FilesGridProps {
     currentFolderId: string | null;
     onNavigate: (folder: Folder) => void;
     onFileClick: (file: FileMetadata, e: React.MouseEvent) => void;
-    onContextMenu: (e: React.MouseEvent, target: any) => void;
+    onContextMenu: (e: React.MouseEvent, target: ContextMenuTarget) => void;
     onShare: (item: FileMetadata | Folder) => void;
     onDeleteFile: (id: string) => void;
     onDeleteFolder: (id: string) => void;
