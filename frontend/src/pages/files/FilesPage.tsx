@@ -446,6 +446,10 @@ export function FilesPage() {
                 onMassDelete={handleMassDelete}
                 onNewFolder={useCallback(() => setNewFolderDialog(true), [])}
                 onToggleUpload={useCallback(() => setShowUpload(prev => !prev), [])}
+                onMove={useCallback(() => {
+                    setFilesToMove(Array.from(selectedIds));
+                    setMoveToFolderDialog(true);
+                }, [selectedIds])}
             />
 
             <FilesToolbar
@@ -520,6 +524,10 @@ export function FilesPage() {
                 onDragOver={setDragOverId}
                 onDrop={(targetId, droppedId) => handleInternalDrop(targetId, droppedId, selectedIds)}
                 onToggleSelect={toggleSelect}
+                onMove={(file) => {
+                    setFilesToMove([file._id]);
+                    setMoveToFolderDialog(true);
+                }}
                 dragOverId={dragOverId}
             />
 
@@ -547,7 +555,6 @@ export function FilesPage() {
                 open={moveToFolderDialog}
                 onClose={() => setMoveToFolderDialog(false)}
                 currentFolderId={currentFolderId}
-                folders={filteredFolders} // Should this be all folders? using filtered for now
                 fileCount={filesToMove.length}
                 onMove={(targetId) => handleMoveToFolder(targetId)}
             />

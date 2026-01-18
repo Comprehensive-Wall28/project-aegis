@@ -5,6 +5,7 @@ import {
     Delete as TrashIcon,
     CreateNewFolder as CreateFolderIcon,
     FileUpload as UploadIcon,
+    DriveFileMove as MoveIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,6 +16,7 @@ interface FilesHeaderProps {
     onMassDelete: () => void;
     onNewFolder: () => void;
     onToggleUpload: () => void;
+    onMove: () => void;
 }
 
 export function FilesHeader({
@@ -24,6 +26,7 @@ export function FilesHeader({
     onMassDelete,
     onNewFolder,
     onToggleUpload,
+    onMove,
 }: FilesHeaderProps) {
     const theme = useTheme();
 
@@ -42,6 +45,11 @@ export function FilesHeader({
         onToggleUpload();
     }, [onToggleUpload]);
 
+    const handleMoveClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.blur();
+        onMove();
+    }, [onMove]);
+
     return (
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 2 }}>
             <Box>
@@ -56,20 +64,33 @@ export function FilesHeader({
             <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
                 <AnimatePresence>
                     {selectedCount > 0 && (
-                        <Button
-                            component={motion.button}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            variant="contained"
-                            color="error"
-                            size="small"
-                            startIcon={<TrashIcon />}
-                            onClick={handleMassDeleteClick}
-                            sx={{ fontWeight: 700, borderRadius: '8px', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-                        >
-                            Delete ({selectedCount})
-                        </Button>
+                        <Stack component={motion.div} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} direction="row" spacing={1}>
+                            <Button
+                                variant="contained"
+                                color="warning"
+                                size="small"
+                                startIcon={<MoveIcon />}
+                                onClick={handleMoveClick}
+                                sx={{
+                                    fontWeight: 700,
+                                    borderRadius: '8px',
+                                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                    boxShadow: `0 4px 12px ${alpha(theme.palette.warning.main, 0.3)}`
+                                }}
+                            >
+                                Move ({selectedCount})
+                            </Button>
+                            <Button
+                                variant="contained"
+                                color="error"
+                                size="small"
+                                startIcon={<TrashIcon />}
+                                onClick={handleMassDeleteClick}
+                                sx={{ fontWeight: 700, borderRadius: '8px', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                            >
+                                Delete
+                            </Button>
+                        </Stack>
                     )}
                 </AnimatePresence>
                 <Button
