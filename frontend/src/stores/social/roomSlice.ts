@@ -183,31 +183,39 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
 
         setCryptoStatus('encrypting');
 
-        const roomKey = await generateRoomKey();
-        const encryptedName = await encryptWithAES(roomKey, name);
-        const encryptedDescription = await encryptWithAES(roomKey, description);
-        const encryptedIcon = icon ? await encryptWithAES(roomKey, icon) : '';
+        try {
+            const roomKey = await generateRoomKey();
+            const encryptedName = await encryptWithAES(roomKey, name);
+            const encryptedDescription = await encryptWithAES(roomKey, description);
+            const encryptedIcon = icon ? await encryptWithAES(roomKey, icon) : '';
 
-        const encryptedRoomKey = await encryptRoomKeyWithPQC(roomKey, sessionUser.publicKey);
+            const encryptedRoomKey = await encryptRoomKeyWithPQC(roomKey, sessionUser.publicKey);
 
-        setCryptoStatus('idle');
+            // Allow checking status before network call
+            setCryptoStatus('idle');
 
-        const room = await socialService.createRoom({
-            name: encryptedName,
-            description: encryptedDescription,
-            icon: encryptedIcon,
-            encryptedRoomKey,
-        });
+            const room = await socialService.createRoom({
+                name: encryptedName,
+                description: encryptedDescription,
+                icon: encryptedIcon,
+                encryptedRoomKey,
+            });
 
-        const state = get();
-        state.roomKeys.set(room._id, roomKey);
+            const state = get();
+            state.roomKeys.set(room._id, roomKey);
 
-        set({
-            rooms: [...state.rooms, room],
-            currentRoom: room,
-        });
+            set({
+                rooms: [...state.rooms, room],
+                currentRoom: room,
+            });
 
-        return room;
+            return room;
+        } catch (error) {
+            console.error('Failed to create room:', error);
+            throw error;
+        } finally {
+            setCryptoStatus('idle');
+        }
     },
 
     joinRoom: async (inviteCode: string, roomKey: CryptoKey) => {
@@ -218,12 +226,20 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
         }
 
         setCryptoStatus('encrypting');
-        const encryptedRoomKey = await encryptRoomKeyWithPQC(roomKey, sessionUser.publicKey);
-        setCryptoStatus('idle');
 
-        const result = await socialService.joinRoom(inviteCode, encryptedRoomKey);
-        await get().selectRoom(result.roomId);
-        set({ pendingInvite: null });
+        try {
+            const encryptedRoomKey = await encryptRoomKeyWithPQC(roomKey, sessionUser.publicKey);
+            setCryptoStatus('idle');
+
+            const result = await socialService.joinRoom(inviteCode, encryptedRoomKey);
+            await get().selectRoom(result.roomId);
+            set({ pendingInvite: null });
+        } catch (error) {
+            console.error('Failed to join room:', error);
+            throw error;
+        } finally {
+            setCryptoStatus('idle');
+        }
     },
 
     createInvite: async (roomId: string) => {

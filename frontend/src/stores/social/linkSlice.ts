@@ -46,8 +46,8 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
                     return prev;
                 }
 
+                // Calculate new links
                 let newLinks = prev.links;
-
                 if (!isLoadMore) {
                     // Initial Load / Refresh
                     if (silent) {
@@ -68,21 +68,28 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
                     newLinks = [...prev.links, ...uniqueNewLinks];
                 }
 
+                // Calculate other state updates
+                const newViewedLinkIds = (!isLoadMore && !silent)
+                    ? new Set(result.viewedLinkIds)
+                    : new Set([...prev.viewedLinkIds, ...result.viewedLinkIds]);
+
+                const newCommentCounts = { ...prev.commentCounts, ...result.commentCounts };
+
+                const newLinksCache = {
+                    ...prev.linksCache,
+                    [collectionId]: {
+                        links: newLinks,
+                        hasMore: result.hasMore
+                    }
+                };
+
                 return {
                     links: newLinks,
-                    viewedLinkIds: (!isLoadMore && !silent)
-                        ? new Set(result.viewedLinkIds)
-                        : new Set([...prev.viewedLinkIds, ...result.viewedLinkIds]),
-                    commentCounts: { ...prev.commentCounts, ...result.commentCounts },
+                    viewedLinkIds: newViewedLinkIds,
+                    commentCounts: newCommentCounts,
                     hasMoreLinks: result.hasMore,
                     isLoadingLinks: false,
-                    linksCache: {
-                        ...prev.linksCache,
-                        [collectionId]: {
-                            links: newLinks,
-                            hasMore: result.hasMore
-                        }
-                    }
+                    linksCache: newLinksCache
                 };
             });
         } catch (error) {
@@ -114,21 +121,26 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
             throw new Error('No room selected');
         }
 
-        const linkPost = await socialService.postLink(
-            state.currentRoom._id,
-            url,
-            state.currentCollectionId || undefined
-        );
+        try {
+            const linkPost = await socialService.postLink(
+                state.currentRoom._id,
+                url,
+                state.currentCollectionId || undefined
+            );
 
-        set((prev) => {
-            const existingLink = prev.links.find(l => l._id === linkPost._id);
-            if (existingLink) {
-                return prev;
-            }
-            return { links: [linkPost, ...prev.links] };
-        });
+            set((prev) => {
+                const existingLink = prev.links.find(l => l._id === linkPost._id);
+                if (existingLink) {
+                    return prev;
+                }
+                return { links: [linkPost, ...prev.links] };
+            });
 
-        return linkPost;
+            return linkPost;
+        } catch (error) {
+            console.error('Failed to post link:', error);
+            throw error;
+        }
     },
 
     deleteLink: async (linkId: string) => {

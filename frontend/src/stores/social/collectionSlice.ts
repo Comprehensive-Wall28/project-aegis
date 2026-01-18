@@ -41,16 +41,24 @@ export const createCollectionSlice: StateCreator<SocialState, [], [], Pick<Socia
         if (!roomKey) throw new Error('Room key not available');
 
         setCryptoStatus('encrypting');
-        const encryptedName = await encryptWithAES(roomKey, name);
-        setCryptoStatus('idle');
 
-        const collection = await socialService.createCollection(
-            state.currentRoom._id,
-            encryptedName
-        );
+        try {
+            const encryptedName = await encryptWithAES(roomKey, name);
+            setCryptoStatus('idle');
 
-        set({ collections: [...state.collections, collection] });
-        return collection;
+            const collection = await socialService.createCollection(
+                state.currentRoom._id,
+                encryptedName
+            );
+
+            set({ collections: [...state.collections, collection] });
+            return collection;
+        } catch (error) {
+            console.error('Failed to create collection:', error);
+            throw error;
+        } finally {
+            setCryptoStatus('idle');
+        }
     },
 
     deleteCollection: async (collectionId: string) => {
