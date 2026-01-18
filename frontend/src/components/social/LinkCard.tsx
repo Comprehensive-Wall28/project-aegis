@@ -26,7 +26,10 @@ const getProxiedUrl = (originalUrl: string) => {
 const renderHighlightedText = (text: string, query?: string) => {
     if (!query || !query.trim()) return text;
 
-    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    // Simple regex escape
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'));
     return (
         <>
             {parts.map((part, i) => (
