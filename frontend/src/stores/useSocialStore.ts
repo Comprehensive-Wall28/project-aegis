@@ -337,7 +337,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
                 commentCounts: content.commentCounts || {},
                 rooms: updatedRooms,
                 currentCollectionId: firstCollectionId,
-                hasMoreLinks: (content.links?.length || 0) === 30, // Assume more if first page is full
+                hasMoreLinks: (content.links?.length || 0) >= 12, // Match backend limit
                 linksCache: {}, // Clear cache on room switch to avoid stale data
             });
 

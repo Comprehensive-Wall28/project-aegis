@@ -182,6 +182,21 @@ export const LinksContainer = memo(({
                     {hasMoreLinks && (
                         <Box sx={{ mt: 3, mb: 2, display: 'flex', justifyContent: 'center', gap: 2 }}>
                             <Button
+                                variant="contained"
+                                onClick={handleLoadAll}
+                                disabled={isLoadingLinks}
+                                sx={{
+                                    borderRadius: '12px',
+                                    px: 4,
+                                    bgcolor: alpha(theme.palette.primary.main, 0.9),
+                                    '&:hover': {
+                                        bgcolor: theme.palette.primary.main,
+                                    }
+                                }}
+                            >
+                                {isLoadingLinks ? <CircularProgress size={20} color="inherit" /> : 'Load All'}
+                            </Button>
+                            <Button
                                 variant="outlined"
                                 onClick={handleLoadMore}
                                 disabled={isLoadingLinks}
@@ -197,21 +212,6 @@ export const LinksContainer = memo(({
                                 }}
                             >
                                 {isLoadingLinks ? 'Loading...' : 'Load More'}
-                            </Button>
-                            <Button
-                                variant="contained"
-                                onClick={handleLoadAll}
-                                disabled={isLoadingLinks}
-                                sx={{
-                                    borderRadius: '12px',
-                                    px: 4,
-                                    bgcolor: alpha(theme.palette.primary.main, 0.9),
-                                    '&:hover': {
-                                        bgcolor: theme.palette.primary.main,
-                                    }
-                                }}
-                            >
-                                {isLoadingLinks ? 'Loading...' : 'Load All'}
                             </Button>
                         </Box>
                     )}
