@@ -10,8 +10,8 @@ export function Dashboard() {
         visible: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.08,
-                delayChildren: 0.2
+                staggerChildren: 0.05,
+                delayChildren: 0.1
             }
         }
     };
@@ -43,12 +43,12 @@ export function Dashboard() {
             >
                 <Grid container spacing={{ xs: 2, md: 3 }}>
                     {/* 1. Vault Quick-View: Main Feature (Top Left) - Spans 8 cols */}
-                    <Grid size={{ xs: 12, lg: 8 }} sx={{ minHeight: { lg: 400 } }}>
+                    <Grid size={{ xs: 12, lg: 8 }} sx={{ minHeight: { lg: 400 }, display: 'flex', flexDirection: 'column' }}>
                         <motion.div
                             variants={itemVariants}
-                            style={{ height: '100%' }}
+                            style={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}
                         >
-                            <Box sx={{ height: '100%' }}>
+                            <Box sx={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
                                 <VaultQuickView />
                             </Box>
                         </motion.div>
@@ -58,24 +58,24 @@ export function Dashboard() {
                     <Grid size={{ xs: 12, lg: 4 }}>
                         <Grid container spacing={3} direction="column" sx={{ height: '100%' }}>
                             {/* GPA Snapshot */}
-                            <Grid size={12} sx={{ flex: 1 }}>
+                            <Grid size={12} sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                 <motion.div
                                     variants={itemVariants}
-                                    style={{ height: '100%' }}
+                                    style={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}
                                 >
-                                    <Box sx={{ height: '100%' }}>
+                                    <Box sx={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
                                         <GPASnapshot />
                                     </Box>
                                 </motion.div>
                             </Grid>
 
                             {/* Live Activity Widget */}
-                            <Grid size={12} sx={{ flex: 1 }}>
+                            <Grid size={12} sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                 <motion.div
                                     variants={itemVariants}
-                                    style={{ height: '100%' }}
+                                    style={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}
                                 >
-                                    <Box sx={{ height: '100%' }}>
+                                    <Box sx={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
                                         <LiveActivityWidget />
                                     </Box>
                                 </motion.div>

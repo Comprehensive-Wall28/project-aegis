@@ -21,20 +21,14 @@ class PQCWorkerManager {
         const requestId = id !== undefined ? id : -1;
         const request = this.pendingRequests.get(requestId);
 
-        if (type === 'error') {
-            if (request) {
-                request.reject(new Error(error));
-                this.pendingRequests.delete(requestId);
-            }
-            return;
-        }
+        if (!request) return;
 
-        if (type === 'keygen_result' || type === 'derive_pqc_seed_result' || type === 'get_discovery_key_result' || type === 'encapsulate_result' || type === 'decapsulate_result') {
-            if (request) {
-                request.resolve(event.data);
-                this.pendingRequests.delete(requestId);
-            }
+        if (type === 'error') {
+            request.reject(new Error(error));
+        } else {
+            request.resolve(event.data);
         }
+        this.pendingRequests.delete(requestId);
     }
 
     private sendRequest(type: string, data: any): Promise<any> {
@@ -103,7 +97,27 @@ class PQCWorkerManager {
         };
     }
 
-    // Aliases for backward compatibility if needed, but preferably we should update callers
+    /**
+     * HIGHLY EXPENSIVE: Decrypt multiple courses using PQC and AES in worker
+     */
+    async batchDecryptCourses(courses: any[], privateKeyHex: string): Promise<any[]> {
+        const hexToBytes = (hex: string) =>
+            new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
+
+        const privateKey = hexToBytes(privateKeyHex);
+        const result = await this.sendRequest('batch_decrypt_courses', { courses, privateKey });
+        return result.courses;
+    }
+
+    /**
+     * Expensive: Calculate Merkle Root in worker
+     */
+    async calculateMerkleRoot(hashes: string[]): Promise<string> {
+        const result = await this.sendRequest('calculate_merkle_root', { hashes });
+        return result.root;
+    }
+
+    // Aliases for backward compatibility
     async decryptRoomKey(encRoomKey: string, privKey: string) { return this.decapsulate(encRoomKey, privKey); }
     async encryptRoomKey(pubKey: string) { return this.encapsulate(pubKey); }
 }

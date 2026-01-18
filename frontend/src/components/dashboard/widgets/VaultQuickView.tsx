@@ -19,7 +19,7 @@ export function VaultQuickView() {
     return (
         <Paper
             sx={{
-                p: 3,
+                p: { xs: 2.5, sm: 3 },
                 height: '100%',
                 borderRadius: '16px',
                 bgcolor: alpha(theme.palette.background.paper, 0.4),
@@ -31,8 +31,6 @@ export function VaultQuickView() {
                 overflow: 'hidden',
                 boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
                 transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
-                transform: 'translateZ(0)',
-                willChange: 'transform, opacity'
             }}
         >
             {/* Header */}
@@ -85,10 +83,10 @@ export function VaultQuickView() {
             </Box>
 
             {/* Content: Flex 1 to fill available space */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: { xs: 2.5, sm: 3 }, height: '100%' }}>
                 {/* Upload Zone */}
-                <Box sx={{ flex: 1, minHeight: 180 }}>
-                    <UploadZone onUploadComplete={() => { }} />
+                <Box sx={{ flex: 1, minHeight: { xs: 240, sm: 280, md: 300 }, display: 'flex', flexDirection: 'column' }}>
+                    <UploadZone onUploadComplete={() => { }} sx={{ flex: 1 }} />
                 </Box>
             </Box>
         </Paper>

@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef } from 'react';
 import {
     School as GraduationCapIcon
 } from '@mui/icons-material';
@@ -6,64 +5,23 @@ import {
     Box,
     Typography,
     Button,
-    CircularProgress,
     Paper,
     alpha,
-    useTheme
+    useTheme,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import gpaService from '@/services/gpaService';
 import { usePreferenceStore } from '@/stores/preferenceStore';
-import { useSessionStore } from '@/stores/sessionStore';
-import { useCourseEncryption } from '@/hooks/useCourseEncryption';
-import { calculateNormalGPA, calculateGermanGPA } from '@/lib/gpaUtils';
 import { motion } from 'framer-motion';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 export function GPASnapshot() {
-    const [currentGPA, setCurrentGPA] = useState<number | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [hasError, setHasError] = useState(false);
-    const hasFetched = useRef(false); // Prevent duplicate fetches
     const theme = useTheme();
     const navigate = useNavigate();
     const gpaSystem = usePreferenceStore((state) => state.gpaSystem);
     const isSidebarCollapsed = usePreferenceStore((state) => state.isSidebarCollapsed);
-    const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
-    const { decryptCourses } = useCourseEncryption();
 
-    useEffect(() => {
-        // Only fetch once when PQC engine becomes operational
-        if (pqcEngineStatus === 'operational' && !hasFetched.current) {
-            hasFetched.current = true;
-            fetchGPAData();
-        }
-    }, [pqcEngineStatus]);
-
-    const fetchGPAData = async () => {
-        try {
-            setIsLoading(true);
-            setHasError(false);
-            // Fetch encrypted courses and decrypt client-side
-            const encryptedCourses = await gpaService.getEncryptedCourses();
-
-            if (encryptedCourses.length > 0) {
-                const decryptedCourses = await decryptCourses(encryptedCourses);
-                // Calculate GPA client-side
-                const gpa = gpaSystem === 'GERMAN'
-                    ? calculateGermanGPA(decryptedCourses)
-                    : calculateNormalGPA(decryptedCourses);
-                setCurrentGPA(gpa);
-            } else {
-                setCurrentGPA(0);
-            }
-        } catch (err) {
-            console.error('Failed to fetch GPA:', err);
-            setHasError(true);
-            setCurrentGPA(null);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // Use the optimized dashboard stats hook
+    const { currentGPA, hasError } = useDashboardStats();
 
     // For German system: 1.0 is best, 4.0 is minimum pass.
     // Progress gauge should show how close you are to 1.0 from 4.0.
@@ -99,25 +57,6 @@ export function GPASnapshot() {
 
     const statusColor = getStatusColor();
 
-    if (pqcEngineStatus !== 'operational') {
-        return (
-            <Paper
-                sx={{
-                    p: 3,
-                    height: '100%',
-                    borderRadius: '24px',
-                    bgcolor: alpha(theme.palette.background.paper, 0.5),
-                    backdropFilter: 'blur(16px)',
-                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
-                <CircularProgress size={24} />
-            </Paper>
-        );
-    }
 
     return (
         <Paper
@@ -234,78 +173,72 @@ export function GPASnapshot() {
                     alignItems: 'flex-end',
                     mb: { xs: 1, md: 0 }
                 }}>
-                    {isLoading ? (
-                        <CircularProgress size={32} thickness={5} sx={{ color: statusColor }} />
-                    ) : (
-                        <>
-                            <svg width="100%" height="100%" viewBox="0 0 180 110">
-                                <defs>
-                                    <linearGradient id="snapshot-gauge-gradient" x1="0" y1="0" x2="1" y2="0">
-                                        <stop offset="0%" stopColor={statusColor} stopOpacity={0.7} />
-                                        <stop offset="50%" stopColor={statusColor} stopOpacity={1} />
-                                        <stop offset="100%" stopColor={statusColor} stopOpacity={0.7} />
-                                    </linearGradient>
-                                    <filter id="gauge-glow">
-                                        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                                        <feMerge>
-                                            <feMergeNode in="coloredBlur" />
-                                            <feMergeNode in="SourceGraphic" />
-                                        </feMerge>
-                                    </filter>
-                                </defs>
-                                {/* Background Arc */}
-                                <path
-                                    d="M 15 100 A 75 75 0 0 1 165 100"
-                                    fill="none"
-                                    stroke={alpha(theme.palette.divider, 0.05)}
-                                    strokeWidth="14"
-                                    strokeLinecap="round"
-                                />
-                                {/* Progress Arc */}
-                                <motion.path
-                                    d="M 15 100 A 75 75 0 0 1 165 100"
-                                    fill="none"
-                                    stroke="url(#snapshot-gauge-gradient)"
-                                    strokeWidth="14"
-                                    strokeLinecap="round"
-                                    filter="url(#gauge-glow)"
-                                    initial={{ pathLength: 0 }}
-                                    animate={{ pathLength: gpaPercentage / 100 }}
-                                    transition={{ duration: 2, ease: [0.34, 1.56, 0.64, 1] }}
-                                />
-                            </svg>
-                            <Box sx={{
-                                position: 'absolute',
-                                bottom: 1,
-                                textAlign: 'center',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center'
-                            }}>
-                                <Typography variant="h3" sx={{
-                                    fontWeight: 900,
-                                    lineHeight: 1,
-                                    letterSpacing: '-0.04em',
-                                    fontSize: { xs: '2.4rem', lg: isSidebarCollapsed ? '2.4rem' : '2.0rem', xl: '2.4rem' },
-                                    color: theme.palette.text.primary,
-                                    mb: 0.5,
-                                    textShadow: `0 0 20px ${alpha(statusColor, 0.4)}`
-                                }}>
-                                    {currentGPA ? currentGPA.toFixed(2) : '—'}
-                                </Typography>
-                                <Typography variant="caption" sx={{
-                                    color: 'text.secondary',
-                                    fontWeight: 800,
-                                    opacity: 0.6,
-                                    fontSize: '0.65rem',
-                                    letterSpacing: '0.1em',
-                                    textTransform: 'uppercase'
-                                }}>
-                                    {isGerman ? `Target ${nMax.toFixed(2)}` : 'Academic GPA'}
-                                </Typography>
-                            </Box>
-                        </>
-                    )}
+                    <svg width="100%" height="100%" viewBox="0 0 180 110">
+                        <defs>
+                            <linearGradient id="snapshot-gauge-gradient" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stopColor={statusColor} stopOpacity={0.7} />
+                                <stop offset="50%" stopColor={statusColor} stopOpacity={1} />
+                                <stop offset="100%" stopColor={statusColor} stopOpacity={0.7} />
+                            </linearGradient>
+                            <filter id="gauge-glow">
+                                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+                        {/* Background Arc */}
+                        <path
+                            d="M 15 100 A 75 75 0 0 1 165 100"
+                            fill="none"
+                            stroke={alpha(theme.palette.divider, 0.05)}
+                            strokeWidth="14"
+                            strokeLinecap="round"
+                        />
+                        {/* Progress Arc */}
+                        <motion.path
+                            d="M 15 100 A 75 75 0 0 1 165 100"
+                            fill="none"
+                            stroke="url(#snapshot-gauge-gradient)"
+                            strokeWidth="14"
+                            strokeLinecap="round"
+                            filter="url(#gauge-glow)"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: gpaPercentage / 100 }}
+                            transition={{ duration: 2, ease: [0.34, 1.56, 0.64, 1] }}
+                        />
+                    </svg>
+                    <Box sx={{
+                        position: 'absolute',
+                        bottom: 1,
+                        textAlign: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center'
+                    }}>
+                        <Typography variant="h3" sx={{
+                            fontWeight: 900,
+                            lineHeight: 1,
+                            letterSpacing: '-0.04em',
+                            fontSize: { xs: '2.4rem', lg: isSidebarCollapsed ? '2.4rem' : '2.0rem', xl: '2.4rem' },
+                            color: theme.palette.text.primary,
+                            mb: 0.5,
+                            textShadow: `0 0 20px ${alpha(statusColor, 0.4)}`
+                        }}>
+                            {currentGPA !== null ? currentGPA.toFixed(2) : '—'}
+                        </Typography>
+                        <Typography variant="caption" sx={{
+                            color: 'text.secondary',
+                            fontWeight: 800,
+                            opacity: 0.6,
+                            fontSize: '0.65rem',
+                            letterSpacing: '0.1em',
+                            textTransform: 'uppercase'
+                        }}>
+                            {isGerman ? `Target ${nMax.toFixed(2)}` : 'Academic GPA'}
+                        </Typography>
+                    </Box>
                 </Box>
             </Box>
         </Paper>
