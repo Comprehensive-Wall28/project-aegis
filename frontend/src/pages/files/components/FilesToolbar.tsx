@@ -1,4 +1,4 @@
-import { Box, Stack, TextField, InputAdornment, Button, useTheme, alpha } from '@mui/material';
+import { Box, TextField, InputAdornment, Button, useTheme, alpha } from '@mui/material';
 import {
     Search as SearchIcon,
     CheckBox as CheckSquareIcon,

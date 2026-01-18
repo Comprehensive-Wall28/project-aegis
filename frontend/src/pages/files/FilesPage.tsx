@@ -86,7 +86,7 @@ export function FilesPage() {
 
 
     // Local UI State
-    const [viewPreset, setViewPreset] = useState<ViewPreset>('standard');
+    const [viewPreset] = useState<ViewPreset>('standard');
     const [showUpload, setShowUpload] = useState(false);
     const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
