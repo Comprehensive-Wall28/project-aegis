@@ -59,20 +59,20 @@ export function FilesGrid({
 
     const gridSize = useMemo<Record<string, number>>(() => {
         switch (viewPreset) {
-            case 'compact': return { xs: 100, sm: 25, md: 16.66, lg: 12.5 }; // 1, 4, 6, 8 items
+            case 'compact': return { xs: 100, sm: 25, md: 20, lg: 14.28 };     // 1, 4, 5, 7 items
             case 'comfort': return { xs: 100, sm: 50, md: 33.33, lg: 25 };     // 1, 2, 3, 4 items
             case 'detailed': return { xs: 100, sm: 100, md: 50, lg: 33.33 };   // 1, 1, 2, 3 items
-            case 'standard': return { xs: 100, sm: 33.33, md: 25, lg: 20 };     // 1, 3, 4, 5 items
+            case 'standard': return { xs: 100, sm: 33.33, md: 25, lg: 20 };    // 1, 3, 4, 5 items
             default: return { xs: 100, sm: 33.33, md: 25, lg: 20 };
         }
     }, [viewPreset]);
 
     const iconScaling = useMemo<IconScalingConfig>(() => {
         switch (viewPreset) {
-            case 'compact': return { size: 36, padding: 1, badge: 12 };
-            case 'comfort': return { size: 80, padding: 2.5, badge: 20 };
-            case 'detailed': return { size: 64, padding: 3.5, badge: 24 };
-            default: return { size: 64, padding: 2, badge: 18 };
+            case 'compact': return { size: 32, padding: 0.75, badge: 10 };
+            case 'comfort': return { size: 64, padding: 1.75, badge: 16 };
+            case 'detailed': return { size: 52, padding: 2.5, badge: 20 };
+            default: return { size: 48, padding: 1.5, badge: 14 };
         }
     }, [viewPreset]);
 
