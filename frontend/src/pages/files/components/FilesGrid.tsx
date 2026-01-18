@@ -8,6 +8,7 @@ import type { Folder } from '@/services/folderService';
 import type { ViewPreset, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
 import { FolderGridItem } from './FolderGridItem';
 import { FileGridItem } from './FileGridItem';
+import { useLazyLoad } from '../hooks/useLazyLoad';
 
 interface FilesGridProps {
     isLoading: boolean;
@@ -92,6 +93,12 @@ export function FilesGrid({
         ];
     }, [folders, files]);
 
+    // Lazy loading - load 24 items initially, then 24 more as user scrolls
+    const { visibleItems, hasMore, sentinelRef } = useLazyLoad(allData, {
+        batchSize: 24,
+        rootMargin: '400px', // Start loading before sentinel is visible
+    });
+
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
             <AnimatePresence mode="wait">
@@ -140,7 +147,7 @@ export function FilesGrid({
                             width: '100%'
                         }}
                     >
-                        {allData.map((item) => {
+                        {visibleItems.map((item) => {
                             if (item.type === 'folder') {
                                 const folder = item.data as Folder;
                                 return (
@@ -198,6 +205,26 @@ export function FilesGrid({
                                 );
                             }
                         })}
+
+                        {/* Lazy load sentinel - triggers loading more items when visible */}
+                        {hasMore && (
+                            <Box
+                                ref={sentinelRef}
+                                sx={{
+                                    gridColumn: '1 / -1',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    py: 3,
+                                    gap: 1,
+                                }}
+                            >
+                                <CircularProgress size={20} thickness={4} />
+                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                    Loading more...
+                                </Typography>
+                            </Box>
+                        )}
                     </Box>
                 )}
             </AnimatePresence>
