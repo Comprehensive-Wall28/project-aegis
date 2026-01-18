@@ -203,28 +203,32 @@ export const SocialHeader = memo(({
                             )}
 
                             <Tooltip title="Filter Links">
-                                <IconButton
-                                    onClick={handleFilterClick}
-                                    disabled={!currentRoom}
-                                    sx={{
-                                        color: (selectedUploader || viewFilter !== 'all') ? 'primary.main' : 'text.secondary',
-                                        bgcolor: (selectedUploader || viewFilter !== 'all') ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                                        '&:hover': {
-                                            color: 'primary.main',
-                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                        }
-                                    }}
-                                    aria-label="Filter links"
-                                >
-                                    <FilterListIcon />
-                                </IconButton>
+                                <span>
+                                    <IconButton
+                                        onClick={handleFilterClick}
+                                        disabled={!currentRoom}
+                                        sx={{
+                                            color: (selectedUploader || viewFilter !== 'all') ? 'primary.main' : 'text.secondary',
+                                            bgcolor: (selectedUploader || viewFilter !== 'all') ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                            '&:hover': {
+                                                color: 'primary.main',
+                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                            }
+                                        }}
+                                        aria-label="Filter links"
+                                    >
+                                        <FilterListIcon />
+                                    </IconButton>
+                                </span>
                             </Tooltip>
 
                             {isMobile && (
                                 <Tooltip title="Copy Invite Link">
-                                    <IconButton onClick={handleCopyInvite} color="primary" disabled={!currentRoom} aria-label="Copy invite link">
-                                        <ShareIcon />
-                                    </IconButton>
+                                    <span>
+                                        <IconButton onClick={handleCopyInvite} color="primary" disabled={!currentRoom} aria-label="Copy invite link">
+                                            <ShareIcon />
+                                        </IconButton>
+                                    </span>
                                 </Tooltip>
                             )}
                         </Box>
