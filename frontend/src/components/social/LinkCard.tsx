@@ -1,5 +1,5 @@
 import { useState, memo } from 'react';
-import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress } from '@mui/material';
+import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress, Tooltip } from '@mui/material';
 import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,6 +12,8 @@ import {
     SOCIAL_RADIUS_XLARGE,
     SOCIAL_RADIUS_SMALL
 } from './constants';
+import { formatRelativeTime, formatFullDateTime } from '@/utils/dateUtils';
+
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
@@ -544,24 +546,51 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                         {renderHighlightedText(previewData.description || 'No description available for this link.', highlight)}
                                     </Typography>
 
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 'auto' }}>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        alignItems: { xs: 'flex-start', sm: 'center' },
+                                        gap: 2,
+                                        mt: 'auto',
+                                        flexDirection: { xs: 'column', sm: 'row' }
+                                    }}>
                                         <Button
                                             variant="contained"
                                             size="large"
                                             startIcon={previewData.scrapeStatus === 'scraping' ? <CircularProgress size={16} color="inherit" /> : <LinkIcon />}
                                             onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
                                             disabled={previewData.scrapeStatus === 'scraping'}
+                                            sx={{ width: { xs: '100%', sm: 'auto' } }}
                                         >
                                             {previewData.scrapeStatus === 'scraping' ? 'Scraping...' : 'Visit Website'}
                                         </Button>
 
-                                        <Box sx={{ ml: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                            <Typography variant="caption" color="text.secondary">
-                                                Shared by
-                                            </Typography>
-                                            <Typography variant="subtitle2">
-                                                {username}
-                                            </Typography>
+                                        <Box sx={{
+                                            ml: { sm: 'auto' },
+                                            display: 'flex',
+                                            alignItems: { xs: 'flex-start', sm: 'flex-end' },
+                                            gap: { xs: 2, sm: 3 },
+                                            width: { xs: '100%', sm: 'auto' },
+                                            justifyContent: { xs: 'space-between', sm: 'flex-end' }
+                                        }}>
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', sm: 'flex-end' } }}>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    Shared by
+                                                </Typography>
+                                                <Typography variant="subtitle2">
+                                                    {username}
+                                                </Typography>
+                                            </Box>
+
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', sm: 'flex-end' } }}>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    Shared
+                                                </Typography>
+                                                <Tooltip title={formatFullDateTime(link.createdAt)}>
+                                                    <Typography variant="subtitle2" sx={{ cursor: 'help' }}>
+                                                        {formatRelativeTime(link.createdAt)}
+                                                    </Typography>
+                                                </Tooltip>
+                                            </Box>
                                         </Box>
                                     </Box>
                                 </Box>
