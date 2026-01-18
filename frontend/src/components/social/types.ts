@@ -79,7 +79,6 @@ export interface LinksContainerProps {
     commentCounts: Record<string, number>;
     currentUserId: string | undefined;
     hasMoreLinks: boolean;
-    loadMoreLinks: () => void;
     loadAllLinks: () => void;
     onMoveLink?: (link: LinkPost) => void;
 }

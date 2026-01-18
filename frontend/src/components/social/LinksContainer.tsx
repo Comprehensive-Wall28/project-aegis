@@ -45,7 +45,6 @@ export const LinksContainer = memo(({
     commentCounts,
     currentUserId,
     hasMoreLinks,
-    loadMoreLinks,
     loadAllLinks,
     onMoveLink,
 }: LinksContainerProps) => {
@@ -62,7 +61,6 @@ export const LinksContainer = memo(({
     const handleView = useCallback((id: string) => markLinkViewed(id), [markLinkViewed]);
     const handleUnview = useCallback((id: string) => unmarkLinkViewed(id), [unmarkLinkViewed]);
     const handleCommentsClick = useCallback((link: LinkPost) => setCommentsLink(link), [setCommentsLink]);
-    const handleLoadMore = useCallback(() => loadMoreLinks(), [loadMoreLinks]);
     const handleLoadAll = useCallback(() => loadAllLinks(), [loadAllLinks]);
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
     const handleClearSearch = useCallback((e: React.MouseEvent) => {
@@ -195,31 +193,17 @@ export const LinksContainer = memo(({
                                 disabled={isLoadingLinks}
                                 sx={{
                                     borderRadius: '12px',
-                                    px: 4,
+                                    px: 6,
+                                    py: 1,
                                     bgcolor: alpha(theme.palette.primary.main, 0.9),
                                     '&:hover': {
                                         bgcolor: theme.palette.primary.main,
-                                    }
+                                    },
+                                    textTransform: 'none',
+                                    fontWeight: 600
                                 }}
                             >
-                                {isLoadingLinks ? <CircularProgress size={20} color="inherit" /> : 'Load All'}
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                onClick={handleLoadMore}
-                                disabled={isLoadingLinks}
-                                startIcon={isLoadingLinks ? <CircularProgress size={20} /> : null}
-                                sx={{
-                                    borderRadius: '12px',
-                                    px: 4,
-                                    borderColor: alpha(theme.palette.primary.main, 0.3),
-                                    '&:hover': {
-                                        borderColor: theme.palette.primary.main,
-                                        bgcolor: alpha(theme.palette.primary.main, 0.05),
-                                    }
-                                }}
-                            >
-                                {isLoadingLinks ? 'Loading...' : 'Load More'}
+                                {isLoadingLinks ? <CircularProgress size={20} color="inherit" /> : 'Load All Links'}
                             </Button>
                         </Box>
                     )}

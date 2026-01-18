@@ -101,7 +101,6 @@ export function SocialPage() {
         markLinkViewed,
         unmarkLinkViewed,
         getUnviewedCountByCollection,
-        loadMoreLinks,
         loadAllLinks,
     } = useSocialStore(
         useShallow((state) => ({
@@ -119,7 +118,6 @@ export function SocialPage() {
             markLinkViewed: state.markLinkViewed,
             unmarkLinkViewed: state.unmarkLinkViewed,
             getUnviewedCountByCollection: state.getUnviewedCountByCollection,
-            loadMoreLinks: state.loadMoreLinks,
             loadAllLinks: state.loadAllLinks,
         }))
     );
@@ -734,7 +732,6 @@ export function SocialPage() {
                                                 commentCounts={commentCounts}
                                                 currentUserId={currentUserId}
                                                 hasMoreLinks={hasMoreLinks}
-                                                loadMoreLinks={loadMoreLinks}
                                                 loadAllLinks={loadAllLinks}
                                                 onMoveLink={handleOpenMoveDialog}
                                             />
