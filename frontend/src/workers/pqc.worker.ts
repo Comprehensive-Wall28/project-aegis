@@ -55,6 +55,26 @@ self.onmessage = async (event: MessageEvent) => {
                 id
             }, [publicKey.buffer, secretKey.buffer] as any);
         }
+        else if (type === 'encapsulate') {
+            const { publicKey } = event.data;
+            const { cipherText, sharedSecret } = ml_kem768.encapsulate(publicKey);
+
+            self.postMessage({
+                type: 'encapsulate_result',
+                cipherText,
+                sharedSecret,
+                id
+            }, [cipherText.buffer, sharedSecret.buffer] as any);
+        } else if (type === 'decapsulate') {
+            const { cipherText, privateKey } = event.data;
+            const sharedSecret = ml_kem768.decapsulate(cipherText, privateKey);
+
+            self.postMessage({
+                type: 'decapsulate_result',
+                sharedSecret,
+                id
+            }, [sharedSecret.buffer] as any);
+        }
     } catch (error) {
         self.postMessage({
             type: 'error',

@@ -1,5 +1,4 @@
-// @ts-ignore - Module likely exists but types are missing in environment
-import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
+import { pqcWorkerManager } from '@/lib/pqcWorkerManager';
 
 // Helper: Convert hex string to Uint8Array
 export const hexToBytes = (hex: string): Uint8Array => {
@@ -68,12 +67,11 @@ export const encryptRoomKeyWithPQC = async (
     roomKey: CryptoKey,
     publicKeyHex: string
 ): Promise<string> => {
-    const publicKey = hexToBytes(publicKeyHex);
     const rawKey = await window.crypto.subtle.exportKey('raw', roomKey);
     const rawKeyBytes = new Uint8Array(rawKey);
 
-    // Use ML-KEM to encapsulate
-    const { cipherText, sharedSecret } = ml_kem768.encapsulate(publicKey);
+    // Use Worker to encapsulate (heavy op)
+    const { cipherText, sharedSecret } = await pqcWorkerManager.encryptRoomKey(publicKeyHex);
 
     // XOR the room key with the shared secret (first 32 bytes)
     const encryptedKey = new Uint8Array(32);
@@ -95,14 +93,16 @@ export const decryptRoomKeyWithPQC = async (
     privateKeyHex: string
 ): Promise<CryptoKey> => {
     const combined = hexToBytes(encryptedRoomKey);
-    const privateKey = hexToBytes(privateKeyHex);
 
     // ML-KEM-768 ciphertext is 1088 bytes
-    const cipherText = combined.slice(0, 1088);
+    const cipherTextBytes = combined.slice(0, 1088);
     const encryptedKey = combined.slice(1088);
 
-    // Decapsulate to get shared secret
-    const sharedSecret = ml_kem768.decapsulate(cipherText, privateKey);
+    // Convert ciphertext to hex for the worker
+    const cipherTextHex = bytesToHex(cipherTextBytes);
+
+    // Use Worker to decapsulate (heavy op)
+    const sharedSecret = await pqcWorkerManager.decryptRoomKey(cipherTextHex, privateKeyHex);
 
     // XOR to recover room key
     const rawKey = new Uint8Array(32);

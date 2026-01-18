@@ -29,7 +29,7 @@ class PQCWorkerManager {
             return;
         }
 
-        if (type === 'keygen_result' || type === 'derive_pqc_seed_result' || type === 'get_discovery_key_result') {
+        if (type === 'keygen_result' || type === 'derive_pqc_seed_result' || type === 'get_discovery_key_result' || type === 'encapsulate_result' || type === 'decapsulate_result') {
             if (request) {
                 request.resolve(event.data);
                 this.pendingRequests.delete(requestId);
@@ -71,6 +71,37 @@ class PQCWorkerManager {
         return {
             publicKey: result.publicKey,
             secretKey: result.secretKey
+        };
+    }
+    /**
+     * Expensive: Decrypt room key using ML-KEM-768 decapsulation
+     */
+    async decryptRoomKey(encryptedRoomKeyHex: string, privateKeyHex: string): Promise<Uint8Array> {
+        // Helper to convert hex to Uint8Array
+        const hexToBytes = (hex: string) =>
+            new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
+
+        const cipherText = hexToBytes(encryptedRoomKeyHex);
+        const privateKey = hexToBytes(privateKeyHex);
+
+        const result = await this.sendRequest('decapsulate', { cipherText, privateKey });
+        return result.sharedSecret;
+    }
+
+    /**
+     * Expensive: Encrypt room key using ML-KEM-768 encapsulation
+     */
+    async encryptRoomKey(publicKeyHex: string): Promise<{ sharedSecret: Uint8Array; cipherText: Uint8Array }> {
+        // Helper to convert hex to Uint8Array
+        const hexToBytes = (hex: string) =>
+            new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
+
+        const publicKey = hexToBytes(publicKeyHex);
+        const result = await this.sendRequest('encapsulate', { publicKey });
+
+        return {
+            sharedSecret: result.sharedSecret,
+            cipherText: result.cipherText
         };
     }
 }
