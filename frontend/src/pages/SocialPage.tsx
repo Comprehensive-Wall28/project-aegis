@@ -656,6 +656,10 @@ export function SocialPage() {
                                 {viewMode === 'rooms' ? (
                                     <Box
                                         key="rooms-grid"
+                                        component={motion.div}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ duration: 0.3 }}
                                         sx={{
                                             display: 'grid',
                                             gridTemplateColumns: {
@@ -674,15 +678,19 @@ export function SocialPage() {
                                             </Box>
                                         ) : (
                                             <>
-                                                {rooms.map((room) => (
+                                                {rooms.map((room, index) => (
                                                     <SocialErrorBoundary key={room._id} componentName="Room Card">
                                                         <RoomCard
                                                             room={room}
                                                             onSelect={() => handleSelectRoom(room._id)}
+                                                            index={index}
                                                         />
                                                     </SocialErrorBoundary>
                                                 ))}
-                                                <CreateRoomCard onClick={() => setShowCreateDialog(true)} />
+                                                <CreateRoomCard 
+                                                    onClick={() => setShowCreateDialog(true)} 
+                                                    index={rooms.length}
+                                                />
                                             </>
                                         )}
                                     </Box>

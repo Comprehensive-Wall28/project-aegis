@@ -11,6 +11,7 @@ import {
     Button,
     Badge,
     Skeleton,
+    useMediaQuery,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -18,7 +19,7 @@ import {
     Close as CloseIcon,
 } from '@mui/icons-material';
 import { CollectionSkeleton } from './SocialSkeletons';
-import { Reorder } from 'framer-motion';
+import { Reorder, motion } from 'framer-motion';
 import { useSocialStore } from '@/stores/useSocialStore';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
 
@@ -150,10 +151,11 @@ export const SocialSidebar = memo(({
     getUnviewedCountByCollection,
     setShowCollectionDialog,
 }: SocialSidebarProps) => {
-
+    const theme = useTheme();
     const reorderCollections = useSocialStore(state => state.reorderCollections);
     const [localCollections, setLocalCollections] = useState(collections);
     const [isDragging, setIsDragging] = useState(false);
+    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
     // Sync local state with props when NOT dragging
     useEffect(() => {
@@ -262,36 +264,42 @@ export const SocialSidebar = memo(({
     }
 
     return (
-        <Paper
-            variant="glass"
-            sx={{
-                width: SOCIAL_SIDEBAR_WIDTH,
-                flexShrink: 0,
-                borderRadius: SOCIAL_RADIUS_LARGE,
-                p: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1,
-                height: '100%',
-                overflow: 'hidden',
-            }}
+        <motion.div
+            initial={isDesktop ? { opacity: 0, y: 10 } : false}
+            animate={isDesktop ? { opacity: 1, y: 0 } : undefined}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
         >
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexShrink: 0 }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    Collections
-                </Typography>
-                <IconButton
-                    size="small"
-                    onClick={() => setShowCollectionDialog(true)}
-                    sx={{
-                        color: 'text.secondary',
-                        '&:hover': { color: 'primary.main' }
-                    }}
-                    aria-label="Create collection"
-                >
-                    <AddIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-            </Box>
+            <Paper
+                variant="glass"
+                sx={{
+                    width: SOCIAL_SIDEBAR_WIDTH,
+                    flexShrink: 0,
+                    borderRadius: SOCIAL_RADIUS_LARGE,
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1,
+                    height: '100%',
+                    overflow: 'hidden',
+                }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexShrink: 0 }}>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        Collections
+                    </Typography>
+                    <IconButton
+                        size="small"
+                        onClick={() => setShowCollectionDialog(true)}
+                        sx={{
+                            color: 'text.secondary',
+                            '&:hover': { color: 'primary.main' }
+                        }}
+                        aria-label="Create collection"
+                    >
+                        <AddIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                </Box>
 
             <Box sx={{
                 flex: 1,
@@ -318,6 +326,7 @@ export const SocialSidebar = memo(({
                     </Reorder.Group>
                 )}
             </Box>
-        </Paper >
+            </Paper>
+        </motion.div>
     );
 });

@@ -10,6 +10,7 @@ import {
     InputAdornment,
     CircularProgress,
     Skeleton,
+    useMediaQuery,
 } from '@mui/material';
 import {
     Folder as CollectionIcon,
@@ -17,6 +18,7 @@ import {
     Close as CloseIcon,
     Link as LinkIcon,
 } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import { LinkCardSkeleton } from './SocialSkeletons';
 import { LinkCard } from './LinkCard';
 import { SocialErrorBoundary } from './SocialErrorBoundary';
@@ -49,6 +51,7 @@ export const LinksContainer = memo(({
     onMoveLink,
 }: LinksContainerProps) => {
     const theme = useTheme();
+    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
     const currentCollection = useMemo(() =>
         collections.find(c => c._id === currentCollectionId) || null
@@ -70,19 +73,25 @@ export const LinksContainer = memo(({
     const handleMoveClick = useCallback((link: LinkPost) => onMoveLink?.(link), [onMoveLink]);
 
     return (
-        <Box
-            ref={linksContainerRef}
-            sx={{
-                flex: 1,
-                minWidth: 0,
-                height: '100%',
-                overflowX: 'hidden',
-                overflowY: 'auto',
-                pr: 1,
-                pt: 1,
-                px: 1,
-                pb: isMobile ? 12 : 2,
-            }}>
+        <motion.div
+            initial={isDesktop ? { opacity: 0 } : false}
+            animate={isDesktop ? { opacity: 1 } : undefined}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            style={{ flex: 1, minWidth: 0, height: '100%', display: 'flex', flexDirection: 'column' }}
+        >
+            <Box
+                ref={linksContainerRef}
+                sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    height: '100%',
+                    overflowX: 'hidden',
+                    overflowY: 'auto',
+                    pr: 1,
+                    pt: 1,
+                    px: 1,
+                    pb: isMobile ? 12 : 2,
+                }}>
             {isMobile && (
                 <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                     <Button
@@ -225,6 +234,7 @@ export const LinksContainer = memo(({
                     </Typography>
                 </Box>
             )}
-        </Box>
+            </Box>
+        </motion.div>
     );
 });

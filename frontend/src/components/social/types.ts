@@ -139,8 +139,10 @@ export interface MoveLinkDialogProps {
 export interface RoomCardProps {
     room: Room;
     onSelect: () => void;
+    index?: number;
 }
 
 export interface CreateRoomCardProps {
     onClick: () => void;
+    index?: number;
 }

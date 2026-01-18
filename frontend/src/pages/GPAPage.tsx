@@ -59,7 +59,6 @@ export function GPAPage() {
         unmigratedCount,
         isMigrating,
         migrationProgress,
-        fetchData,
         handleMigration,
         handleAddCourse,
         handleDeleteCourse,
