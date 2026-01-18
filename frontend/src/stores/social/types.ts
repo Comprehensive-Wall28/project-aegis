@@ -61,6 +61,7 @@ export interface CryptoSlice {
 
 export interface SocketSlice {
     socketListenersAttached: boolean;
+    cleanupSocketListeners: () => void;
     setupSocketListeners: () => void;
 }
 

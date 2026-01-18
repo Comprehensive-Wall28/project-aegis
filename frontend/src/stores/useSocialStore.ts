@@ -15,7 +15,8 @@ export const useSocialStore = create<SocialState>()((...a) => ({
     ...createSocketSlice(...a),
 
     clearSocial: () => {
-        const [set] = a;
+        const [set, get] = a;
+        get().cleanupSocketListeners();
         socketService.disconnect();
         set({
             rooms: [],

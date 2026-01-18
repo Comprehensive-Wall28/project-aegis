@@ -6,10 +6,7 @@ import type { Collection, LinkPost } from '@/services/socialService';
 export const createSocketSlice: StateCreator<SocialState, [], [], Pick<SocialState, keyof import('./types').SocketSlice>> = (set, get) => ({
     socketListenersAttached: false,
 
-    setupSocketListeners: () => {
-        const state = get();
-        if (state.socketListenersAttached) return;
-
+    cleanupSocketListeners: () => {
         socketService.removeAllListeners('NEW_LINK');
         socketService.removeAllListeners('NEW_COMMENT');
         socketService.removeAllListeners('LINK_UPDATED');
@@ -18,6 +15,14 @@ export const createSocketSlice: StateCreator<SocialState, [], [], Pick<SocialSta
         socketService.removeAllListeners('COLLECTION_CREATED');
         socketService.removeAllListeners('COLLECTION_DELETED');
         socketService.removeAllListeners('COLLECTIONS_REORDERED');
+        set({ socketListenersAttached: false });
+    },
+
+    setupSocketListeners: () => {
+        const state = get();
+        if (state.socketListenersAttached) return;
+
+        get().cleanupSocketListeners();
 
         socketService.on('COLLECTION_CREATED', (data: { collection: Collection }) => {
             set((prev) => {
