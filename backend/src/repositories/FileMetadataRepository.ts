@@ -108,4 +108,28 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
             ownerId: { $eq: ownerId as any }
         } as SafeFilter<IFileMetadata>);
     }
+    /**
+     * Bulk move files with new encrypted keys
+     */
+    async bulkMoveFiles(
+        updates: { fileId: string; encryptedKey: string; folderId: string | null }[],
+        ownerId: string
+    ): Promise<number> {
+        if (updates.length === 0) return 0;
+
+        const operations = updates.map(update => ({
+            updateOne: {
+                filter: { _id: update.fileId, ownerId: ownerId },
+                update: {
+                    $set: {
+                        encryptedSymmetricKey: update.encryptedKey,
+                        folderId: update.folderId
+                    }
+                }
+            }
+        }));
+
+        const result = await this.model.bulkWrite(operations as any);
+        return result.modifiedCount || 0;
+    }
 }

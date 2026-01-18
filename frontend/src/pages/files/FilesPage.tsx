@@ -22,7 +22,7 @@ import vaultService, { type FileMetadata } from '@/services/vaultService';
 import folderService, { type Folder } from '@/services/folderService';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useFolderKeyStore } from '@/stores/useFolderKeyStore';
-import { generateFolderKey, wrapKey } from '@/lib/cryptoUtils';
+import { generateFolderKey, wrapKey, unwrapKey } from '@/lib/cryptoUtils';
 import { type ViewPreset } from './types';
 
 // Components
@@ -253,18 +253,79 @@ export function FilesPage() {
     const handleMoveToFolder = useCallback(async (targetFolderId: string | null, idsToOverride?: string[]) => {
         const ids = idsToOverride || filesToMove;
         if (ids.length === 0) return;
+
         try {
-            await folderService.moveFiles(ids, targetFolderId);
+            const { user } = useSessionStore.getState();
+            if (!user?.vaultKey) {
+                setNotification({ open: true, message: 'Vault locked. Please re-login.', type: 'error' });
+                return;
+            }
+
+            // 1. Resolve Target Key
+            let targetKey: CryptoKey;
+            if (!targetFolderId) {
+                targetKey = user.vaultKey;
+            } else {
+                // Try to find in current list first
+                let targetFolder = folders.find(f => f._id === targetFolderId);
+                // If not found (e.g. moving to ancestor not in current view), fetch it
+                if (!targetFolder) {
+                    // Start Loading state?
+                    targetFolder = await folderService.getFolder(targetFolderId);
+                }
+
+                if (!targetFolder.encryptedSessionKey) {
+                    throw new Error('Target folder has no encryption key');
+                }
+                targetKey = await unwrapKey(targetFolder.encryptedSessionKey, user.vaultKey, 'AES-GCM');
+            }
+
+            // 2. Process Files (Decrypt -> Re-encrypt)
+            const updates: { fileId: string; encryptedKey: string }[] = [];
+
+            for (const id of ids) {
+                const file = files.find(f => f._id === id);
+                if (!file) continue;
+
+                let sourceKey: CryptoKey | undefined;
+
+                // Get Source Key
+                if (!file.folderId) {
+                    sourceKey = user.vaultKey;
+                } else {
+                    // Try store first
+                    sourceKey = useFolderKeyStore.getState().keys.get(file.folderId);
+
+                    // If missing (e.g. search result from another folder), fetch it
+                    if (!sourceKey) {
+                        const sourceFolder = await folderService.getFolder(file.folderId);
+                        if (!sourceFolder.encryptedSessionKey) throw new Error(`Source folder ${file.folderId} locked`);
+                        sourceKey = await unwrapKey(sourceFolder.encryptedSessionKey, user.vaultKey, 'AES-GCM');
+                        // Cache for future
+                        useFolderKeyStore.getState().setKey(file.folderId, sourceKey);
+                    }
+                }
+
+                // Re-wrap
+                if (!sourceKey) throw new Error('Could not resolve source key');
+                const fileKey = await unwrapKey(file.encryptedSymmetricKey, sourceKey);
+                const newEncryptedKey = await wrapKey(fileKey, targetKey);
+                updates.push({ fileId: file._id, encryptedKey: newEncryptedKey });
+            }
+
+            // 3. Send Batch Update
+            await folderService.moveFiles(updates, targetFolderId);
+
             setFilesToMove([]);
             clearSelection();
             setMoveToFolderDialog(false);
             fetchData();
-            setNotification({ open: true, message: `Moved ${ids.length} files successfully`, type: 'success' });
+            setNotification({ open: true, message: `Moved ${updates.length} files successfully`, type: 'success' });
         } catch (err: any) {
             console.error('Failed to move files:', err);
-            setNotification({ open: true, message: err.response?.data?.message || 'Failed to move files', type: 'error' });
+            setNotification({ open: true, message: err.message || 'Failed to move files', type: 'error' });
         }
-    }, [filesToMove, clearSelection, fetchData]);
+    }, [filesToMove, clearSelection, fetchData, files, folders, setFilesToMove, setMoveToFolderDialog]);
 
     const handleFolderColorChange = useCallback(async (color: string) => {
         if (!colorPickerFolderId) return;
@@ -458,6 +519,7 @@ export function FilesPage() {
                 onDownload={handleDownload}
                 onDragOver={setDragOverId}
                 onDrop={(targetId, droppedId) => handleInternalDrop(targetId, droppedId, selectedIds)}
+                onToggleSelect={toggleSelect}
                 dragOverId={dragOverId}
             />
 

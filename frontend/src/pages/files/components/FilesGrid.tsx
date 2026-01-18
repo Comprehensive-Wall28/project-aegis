@@ -25,6 +25,7 @@ interface FilesGridProps {
     onDownload: (file: FileMetadata) => void;
     onDragOver: (id: string | null) => void;
     onDrop: (targetId: string, droppedFileId: string) => void;
+    onToggleSelect: (id: string) => void;
 
     dragOverId: string | null;
 }
@@ -47,6 +48,7 @@ export function FilesGrid({
     onDownload,
     onDragOver,
     onDrop,
+    onToggleSelect,
     dragOverId
 }: FilesGridProps) {
     const [displayLimit, setDisplayLimit] = useState(20);
@@ -151,6 +153,7 @@ export function FilesGrid({
                                 onContextMenu={onContextMenu}
                                 onDownload={onDownload}
                                 onDelete={onDeleteFile}
+                                onToggleSelect={onToggleSelect}
                             />
                         ))}
                     </Grid>

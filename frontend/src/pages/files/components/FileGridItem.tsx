@@ -4,6 +4,8 @@ import {
     Delete as TrashIcon,
     Download as DownloadIcon,
     MoreVert as MoreVertIcon,
+    CheckCircle as CheckCircleIcon,
+    RadioButtonUnchecked as UncheckedIcon
 } from '@mui/icons-material';
 import type { FileMetadata } from '@/services/vaultService';
 import type { GridSizeConfig, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
@@ -21,6 +23,7 @@ interface FileGridItemProps {
     onContextMenu: (e: React.MouseEvent, target: ContextMenuTarget) => void;
     onDownload: (file: FileMetadata) => void;
     onDelete: (id: string) => void;
+    onToggleSelect: (id: string) => void;
 }
 
 export const FileGridItem = memo(({
@@ -34,7 +37,8 @@ export const FileGridItem = memo(({
     onFileClick,
     onContextMenu,
     onDownload,
-    onDelete
+    onDelete,
+    onToggleSelect
 }: FileGridItemProps) => {
     const theme = useTheme();
     const { icon: FileTypeIcon, color } = getFileIconInfo(file.originalFileName);
@@ -72,11 +76,21 @@ export const FileGridItem = memo(({
                             bgcolor: isSelected
                                 ? alpha(theme.palette.primary.main, 0.15)
                                 : alpha(theme.palette.background.paper, 0.6),
-                            borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.3)
+                            borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.3),
+                            '& .selection-indicator': { opacity: 1 }
                         }
                     }}
                 >
-                    <Box sx={{ position: 'absolute', top: 12, left: 12, opacity: isSelected ? 1 : 0, transition: 'opacity 0.2s' }}>
+                    <Box
+                        className="selection-indicator"
+                        sx={{
+                            position: 'absolute',
+                            top: 12,
+                            left: 12,
+                            opacity: isSelected ? 1 : 0,
+                            transition: 'opacity 0.2s'
+                        }}
+                    >
                         <Checkbox
                             checked={isSelected}
                             size="small"
@@ -118,6 +132,17 @@ export const FileGridItem = memo(({
                         justifyContent="center"
                         onClick={e => e.stopPropagation()}
                     >
+                        <IconButton
+                            size="small"
+                            onClick={() => onToggleSelect(file._id)}
+                            sx={{
+                                color: isSelected ? 'primary.main' : 'text.secondary',
+                                p: 0.5,
+                                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
+                            }}
+                        >
+                            {isSelected ? <CheckCircleIcon fontSize="small" /> : <UncheckedIcon fontSize="small" />}
+                        </IconButton>
                         <IconButton
                             size="small"
                             onClick={() => onDownload(file)}

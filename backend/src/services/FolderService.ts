@@ -291,16 +291,16 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
     }
 
     /**
-     * Move files to a folder
+     * Move files to a folder (with re-encryption)
      */
     async moveFiles(
         userId: string,
-        fileIds: string[],
+        updates: { fileId: string; encryptedKey: string }[],
         folderId: string | null
     ): Promise<number> {
         try {
-            if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
-                throw new ServiceError('File IDs are required', 400);
+            if (!updates || !Array.isArray(updates) || updates.length === 0) {
+                throw new ServiceError('File updates are required', 400);
             }
 
             // Normalize folderId
@@ -315,13 +315,13 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
                 }
             }
 
-            const result = await this.fileMetadataRepo.updateMany(
-                {
-                    _id: { $in: fileIds as any },
-                    ownerId: { $eq: userId as any }
-                } as any,
-                { folderId: normalizedFolderId } as any
-            );
+            const bulkUpdates = updates.map(u => ({
+                fileId: u.fileId,
+                encryptedKey: u.encryptedKey,
+                folderId: normalizedFolderId
+            }));
+
+            const result = await this.fileMetadataRepo.bulkMoveFiles(bulkUpdates, userId);
 
             logger.info(`Moved ${result} files to folder ${normalizedFolderId || 'root'} for user ${userId}`);
             return result;

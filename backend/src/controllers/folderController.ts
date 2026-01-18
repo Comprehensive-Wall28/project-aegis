@@ -114,8 +114,8 @@ export const moveFiles = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const { fileIds, folderId } = req.body;
-        const modifiedCount = await folderService.moveFiles(req.user.id, fileIds, folderId);
+        const { updates, folderId } = req.body;
+        const modifiedCount = await folderService.moveFiles(req.user.id, updates, folderId);
 
         res.status(200).json({
             message: `Moved ${modifiedCount} file(s)`,
