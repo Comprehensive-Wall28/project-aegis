@@ -120,14 +120,17 @@ export function IntegrityMonitor() {
 
     return (
         <Paper
-            variant="glass"
+            elevation={0}
             sx={{
                 height: '100%',
                 p: 3,
                 display: 'flex',
                 flexDirection: 'column',
                 position: 'relative',
-                overflow: 'hidden', borderRadius: '16px'
+                overflow: 'hidden',
+                borderRadius: '16px',
+                bgcolor: theme.palette.background.paper,
+                border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
             }}
             className="text-sharp"
         >
@@ -142,8 +145,7 @@ export function IntegrityMonitor() {
                         sx={{
                             position: 'absolute',
                             inset: 0,
-                            bgcolor: alpha(theme.palette.background.default, 0.6),
-                            backdropFilter: 'none',
+                            bgcolor: theme.palette.background.default,
                             zIndex: 10,
                             display: 'flex',
                             flexDirection: 'column',
@@ -197,11 +199,11 @@ export function IntegrityMonitor() {
                         borderRadius: '20px',
                         bgcolor: alpha(statusDisplay.color === 'primary.main' ? theme.palette.primary.main :
                             statusDisplay.color === 'info.main' ? theme.palette.info.main :
-                                statusDisplay.color === 'error.main' ? theme.palette.error.main : theme.palette.common.white, 0.05),
+                                statusDisplay.color === 'error.main' ? theme.palette.error.main : theme.palette.common.white, 0.15),
                         color: statusDisplay.color,
                         border: `1px solid ${alpha(statusDisplay.color === 'primary.main' ? theme.palette.primary.main :
                             statusDisplay.color === 'info.main' ? theme.palette.info.main :
-                                statusDisplay.color === 'error.main' ? theme.palette.error.main : theme.palette.common.white, 0.15)}`
+                                statusDisplay.color === 'error.main' ? theme.palette.error.main : theme.palette.common.white, 0.25)}`
                     }}
                 >
                     {statusDisplay.icon}
@@ -225,7 +227,7 @@ export function IntegrityMonitor() {
                                 p: 2,
                                 borderRadius: '12px',
                                 bgcolor: alpha(theme.palette.common.white, 0.02),
-                                border: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+                                border: `1px solid ${alpha(theme.palette.divider, 0.4)}`,
                                 mb: 2,
                                 flexShrink: 0,
                                 transition: 'all 0.3s ease',
@@ -253,8 +255,8 @@ export function IntegrityMonitor() {
                     <Box sx={{
                         flex: 1,
                         borderRadius: '12px',
-                        bgcolor: alpha(theme.palette.common.black, 0.4),
-                        border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                        bgcolor: '#000000',
+                        border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
                         overflow: 'hidden',
                         display: 'flex',
                         flexDirection: 'column',
@@ -346,7 +348,7 @@ export function IntegrityMonitor() {
                     borderRadius: '10px',
                     transition: 'all 0.3s ease',
                     ...(status !== 'verifying' && status !== 'verified' && {
-                        boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.25)}`,
+                        boxShadow: `0 0 30px ${alpha(theme.palette.primary.main, 0.5)}`,
                         '&:hover': {
                             boxShadow: `0 0 30px ${alpha(theme.palette.primary.main, 0.4)}`,
                             transform: 'translateY(-2px)'

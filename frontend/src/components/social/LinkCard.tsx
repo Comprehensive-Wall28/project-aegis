@@ -147,7 +147,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                 }}
             >
                 <Paper
-                    variant="glass"
+                    elevation={0}
                     sx={{
                         overflow: 'hidden',
                         borderRadius: SOCIAL_RADIUS_XLARGE,
@@ -229,8 +229,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
-                                    backdropFilter: 'blur(4px)',
+                                    bgcolor: theme.palette.background.paper,
                                     zIndex: 2,
                                     gap: 1.5,
                                 }}
@@ -427,8 +426,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                 position: 'fixed',
                                 inset: 0,
                                 zIndex: SOCIAL_DIALOG_Z_INDEX,
-                                bgcolor: 'rgba(0,0,0,0.8)',
-                                backdropFilter: 'blur(8px)',
+                                bgcolor: 'rgba(0,0,0,0.85)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -436,7 +434,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                             }}
                         >
                             <Paper
-                                variant="glass"
+                                elevation={0}
                                 component={motion.div}
                                 initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
@@ -451,8 +449,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     borderRadius: { xs: 0, sm: SOCIAL_RADIUS_XLARGE },
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    bgcolor: alpha(theme.palette.background.paper, 0.8),
-                                    backdropFilter: 'blur(20px)',
+                                    bgcolor: theme.palette.background.paper,
                                     boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
                                 }}
                             >

@@ -271,7 +271,7 @@ export const SocialSidebar = memo(({
             style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
         >
             <Paper
-                variant="glass"
+                elevation={1}
                 sx={{
                     width: SOCIAL_SIDEBAR_WIDTH,
                     flexShrink: 0,

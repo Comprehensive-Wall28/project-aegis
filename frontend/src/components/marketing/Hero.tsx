@@ -155,8 +155,8 @@ export function Hero() {
                                 fontSize: '1rem',
                                 fontWeight: 700,
                                 borderRadius: 3,
-                                borderColor: alpha(theme.palette.divider, 0.1),
-                                bgcolor: alpha(theme.palette.background.paper, 0.05),
+                                borderColor: alpha(theme.palette.divider, 0.2),
+                                bgcolor: theme.palette.background.paper,
                                 '&:hover': {
                                     borderColor: theme.palette.primary.main,
                                     bgcolor: alpha(theme.palette.primary.main, 0.05)
@@ -173,7 +173,6 @@ export function Hero() {
                         component={motion.div}
                         variants={itemVariants}
                         elevation={24}
-                        variant="glass"
                         sx={{
                             mt: 10,
                             width: '100%',
@@ -203,7 +202,7 @@ export function Hero() {
                                             <Box sx={{
                                                 p: 0.75,
                                                 borderRadius: '50%',
-                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                bgcolor: alpha(theme.palette.primary.main, 0.2),
                                                 display: 'flex'
                                             }}>
                                                 <item.Icon sx={{ fontSize: 16, color: 'primary.main' }} />
@@ -224,21 +223,21 @@ export function Hero() {
                                         <Grid size={{ xs: 6 }} key={feature.title}>
                                             <Box sx={{
                                                 p: 2,
-                                                bgcolor: alpha(feature.color, 0.05),
+                                                bgcolor: alpha(feature.color, 0.1),
                                                 borderRadius: 2,
-                                                border: `1px solid ${alpha(feature.color, 0.1)}`,
+                                                border: `1px solid ${alpha(feature.color, 0.25)}`,
                                                 transition: 'all 0.2s ease',
                                                 '&:hover': {
                                                     transform: 'translateY(-2px)',
-                                                    bgcolor: alpha(feature.color, 0.08),
-                                                    border: `1px solid ${alpha(feature.color, 0.3)}`,
-                                                    boxShadow: `0 4px 12px ${alpha(feature.color, 0.15)}`
+                                                    bgcolor: alpha(feature.color, 0.15),
+                                                    border: `1px solid ${alpha(feature.color, 0.35)}`,
+                                                    boxShadow: `0 4px 12px ${alpha(feature.color, 0.2)}`
                                                 }
                                             }}>
                                                 <Box sx={{
                                                     p: 1.25,
                                                     borderRadius: '50%',
-                                                    bgcolor: alpha(feature.color, 0.1),
+                                                    bgcolor: alpha(feature.color, 0.2),
                                                     display: 'inline-flex',
                                                     mb: 1.5
                                                 }}>

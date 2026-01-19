@@ -130,8 +130,8 @@ export const PublicLinkSettings: React.FC<PublicLinkSettingsProps> = ({ onNotifi
                             size="small"
                             sx={{
                                 color: theme.palette.primary.main,
-                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) }
+                                bgcolor: alpha(theme.palette.primary.main, 0.2),
+                                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.25) }
                             }}
                         >
                             {loading ? <CircularProgress size={18} color="inherit" /> : <RefreshIcon fontSize="small" />}
@@ -144,8 +144,8 @@ export const PublicLinkSettings: React.FC<PublicLinkSettingsProps> = ({ onNotifi
             <Paper sx={{
                 p: 2,
                 mb: 3,
-                bgcolor: alpha(theme.palette.primary.main, 0.05),
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                bgcolor: alpha(theme.palette.primary.main, 0.15),
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
                 borderRadius: '12px',
                 display: 'flex',
                 gap: 2,
@@ -163,10 +163,10 @@ export const PublicLinkSettings: React.FC<PublicLinkSettingsProps> = ({ onNotifi
 
             {/* Loading State (initial) */}
             {loading && links.length === 0 && (
-                <Paper sx={{ borderRadius: '16px', overflow: 'hidden', border: `1px solid ${alpha(theme.palette.divider, 0.1)}`, bgcolor: alpha(theme.palette.background.paper, 0.4) }}>
+                <Paper sx={{ borderRadius: '16px', overflow: 'hidden', border: `1px solid ${alpha(theme.palette.divider, 0.08)}`, bgcolor: theme.palette.background.paper }}>
                     <List disablePadding>
                         {[1, 2, 3, 4, 5].map((i) => (
-                            <ListItem key={i} sx={{ borderBottom: i < 5 ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : 'none', py: 2 }}>
+                            <ListItem key={i} sx={{ borderBottom: i < 5 ? `1px solid ${alpha(theme.palette.divider, 0.06)}` : 'none', py: 2 }}>
                                 <Box sx={{ mr: 2 }}>
                                     <Skeleton variant="circular" width={24} height={24} sx={{ bgcolor: alpha(theme.palette.common.white, 0.05) }} />
                                 </Box>
@@ -185,8 +185,8 @@ export const PublicLinkSettings: React.FC<PublicLinkSettingsProps> = ({ onNotifi
                 <Paper sx={{
                     p: 4,
                     textAlign: 'center',
-                    bgcolor: alpha(theme.palette.common.white, 0.02),
-                    border: `1px dashed ${alpha(theme.palette.divider, 0.2)}`,
+                    bgcolor: alpha(theme.palette.common.white, 0.08),
+                    border: `1px dashed ${alpha(theme.palette.divider, 0.15)}`,
                     borderRadius: '16px'
                 }}>
                     <LinkIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
@@ -199,15 +199,14 @@ export const PublicLinkSettings: React.FC<PublicLinkSettingsProps> = ({ onNotifi
                 <Paper sx={{
                     borderRadius: '16px',
                     overflow: 'hidden',
-                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                    bgcolor: alpha(theme.palette.background.paper, 0.4),
-                    backdropFilter: 'blur(10px)',
+                    border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+                    bgcolor: theme.palette.background.paper,
                     position: 'relative',
                     opacity: loading ? 0.7 : 1,
                     transition: 'opacity 0.2s'
                 }}>
                     {loading && (
-                        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1, bgcolor: alpha(theme.palette.background.paper, 0.2) }}>
+                        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1, bgcolor: alpha(theme.palette.background.paper, 0.85) }}>
                             <CircularProgress size={24} />
                         </Box>
                     )}
@@ -217,8 +216,8 @@ export const PublicLinkSettings: React.FC<PublicLinkSettingsProps> = ({ onNotifi
                                 key={link._id}
                                 disablePadding
                                 sx={{
-                                    borderBottom: index < links.length - 1 ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : 'none',
-                                    '&:hover': { bgcolor: alpha(theme.palette.common.white, 0.02) },
+                                    borderBottom: index < links.length - 1 ? `1px solid ${alpha(theme.palette.divider, 0.06)}` : 'none',
+                                    '&:hover': { bgcolor: alpha(theme.palette.common.white, 0.08) },
                                     display: 'flex',
                                     alignItems: 'center',
                                     p: { xs: 1.5, sm: 2 },

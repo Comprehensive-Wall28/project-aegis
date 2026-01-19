@@ -64,9 +64,8 @@ export function GPASnapshot() {
                 p: { xs: 2, sm: 3 },
                 height: '100%',
                 borderRadius: '24px',
-                bgcolor: alpha(theme.palette.background.paper, 0.4),
-                backdropFilter: 'blur(8px)',
-                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                bgcolor: theme.palette.background.paper,
+                border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
                 display: 'flex',
                 flexDirection: 'column',
                 position: 'relative',
@@ -129,7 +128,7 @@ export function GPASnapshot() {
                             color: 'text.secondary',
                             fontWeight: 600,
                             fontSize: { xs: '0.75rem', lg: isSidebarCollapsed ? '0.75rem' : '0.65rem', xl: '0.75rem' },
-                            opacity: 0.7
+                            opacity: 0.9
                         }}>
                             {hasError ? 'Sync failed. Retry required.' : 'Secure Academic Overview'}
                         </Typography>
@@ -146,13 +145,12 @@ export function GPASnapshot() {
                             fontSize: { xs: '0.8rem', lg: isSidebarCollapsed ? '0.8rem' : '0.7rem', xl: '0.8rem' },
                             px: { xs: 3, lg: isSidebarCollapsed ? 3 : 1.5, xl: 3 },
                             py: { xs: 1, lg: isSidebarCollapsed ? 1 : 0.5, xl: 1 },
-                            bgcolor: alpha(theme.palette.text.primary, 0.05),
+                            bgcolor: alpha(theme.palette.text.primary, 0.1),
                             color: theme.palette.text.primary,
-                            border: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
-                            backdropFilter: 'blur(4px)',
+                            border: `1px solid ${alpha(theme.palette.text.primary, 0.2)}`,
                             '&:hover': {
-                                bgcolor: alpha(theme.palette.text.primary, 0.1),
-                                border: `1px solid ${alpha(theme.palette.text.primary, 0.2)}`,
+                                bgcolor: alpha(theme.palette.text.primary, 0.15),
+                                border: `1px solid ${alpha(theme.palette.text.primary, 0.3)}`,
                                 transform: 'translateX(4px)',
                             },
                             transition: 'all 0.3s ease',
@@ -192,7 +190,7 @@ export function GPASnapshot() {
                         <path
                             d="M 15 100 A 75 75 0 0 1 165 100"
                             fill="none"
-                            stroke={alpha(theme.palette.divider, 0.05)}
+                            stroke={alpha(theme.palette.divider, 0.15)}
                             strokeWidth="14"
                             strokeLinecap="round"
                         />
@@ -231,7 +229,7 @@ export function GPASnapshot() {
                         <Typography variant="caption" sx={{
                             color: 'text.secondary',
                             fontWeight: 800,
-                            opacity: 0.6,
+                            opacity: 0.8,
                             fontSize: '0.65rem',
                             letterSpacing: '0.1em',
                             textTransform: 'uppercase'

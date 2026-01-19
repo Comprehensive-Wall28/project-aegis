@@ -79,9 +79,8 @@ export function AppearanceSettings({ onNotification }: AppearanceSettingsProps) 
     const sharedPaperStyles = {
         p: { xs: 2, sm: 4 },
         borderRadius: '16px',
-        bgcolor: alpha(muiTheme.palette.background.paper, 0.4),
-        backdropFilter: 'blur(12px)',
-        border: `1px solid ${alpha(muiTheme.palette.common.white, 0.05)}`,
+        bgcolor: muiTheme.palette.background.paper,
+        border: `1px solid ${alpha(muiTheme.palette.divider, 0.08)}`,
         boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
     };
 
@@ -140,8 +139,8 @@ export function AppearanceSettings({ onNotification }: AppearanceSettingsProps) 
                                     cursor: 'pointer',
                                     p: 1.5,
                                     borderRadius: '12px',
-                                    border: `2px solid ${isSelected ? muiTheme.palette.primary.main : alpha(muiTheme.palette.common.white, 0.1)}`,
-                                    bgcolor: isSelected ? alpha(muiTheme.palette.primary.main, 0.1) : 'transparent',
+                                    border: `2px solid ${isSelected ? muiTheme.palette.primary.main : alpha(muiTheme.palette.divider, 0.06)}`,
+                                    bgcolor: isSelected ? alpha(muiTheme.palette.primary.main, 0.2) : 'transparent',
                                     transition: 'all 0.2s ease',
                                     position: 'relative',
                                     '&:hover': {
@@ -178,7 +177,7 @@ export function AppearanceSettings({ onNotification }: AppearanceSettingsProps) 
                                         borderRadius: '8px',
                                         overflow: 'hidden',
                                         mb: 1.5,
-                                        border: `1px solid ${alpha(muiTheme.palette.common.white, 0.1)}`,
+                                        border: `1px solid ${alpha(muiTheme.palette.divider, 0.06)}`,
                                     }}
                                 >
                                     {/* Background layer */}

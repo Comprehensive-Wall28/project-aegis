@@ -80,11 +80,10 @@ export function Landing() {
                     position: 'fixed',
                     bottom: 32,
                     right: 32,
-                    bgcolor: alpha(theme.palette.background.paper, 0.8),
+                    bgcolor: theme.palette.background.paper,
                     color: 'primary.main',
                     border: `2px solid ${alpha(theme.palette.primary.main, 0.5)}`,
                     boxShadow: 'none',
-                    backdropFilter: 'blur(8px)',
                     transition: 'all 0.3s ease-in-out',
                     '&:hover': {
                         bgcolor: alpha(theme.palette.primary.main, 0.15),

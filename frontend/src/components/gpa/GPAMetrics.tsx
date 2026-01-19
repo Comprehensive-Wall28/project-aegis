@@ -60,8 +60,7 @@ export const GPAMetrics = ({ cumulativeGPA, totalCredits, totalCourses }: GPAMet
                         sx={{
                             p: { xs: 2, sm: 3 },
                             borderRadius: '24px',
-                            bgcolor: alpha(theme.palette.background.paper, 0.4),
-                            backdropFilter: 'blur(12px)',
+                            bgcolor: theme.palette.background.paper,
                             border: `1px solid ${metric.borderColor}`,
                             height: '100%',
                             minHeight: 140,

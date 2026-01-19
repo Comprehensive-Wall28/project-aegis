@@ -60,8 +60,7 @@ export const CreateRoomDialog = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.8)',
-                            backdropFilter: isMobile ? 'none' : 'blur(8px)',
+                            bgcolor: 'rgba(0,0,0,0.85)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -69,7 +68,7 @@ export const CreateRoomDialog = memo(({
                         }}
                     >
                         <Paper
-                            variant={isMobile ? "solid" : "glass"}
+                            elevation={0}
                             component={motion.div}
                             initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
                             animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
@@ -85,7 +84,7 @@ export const CreateRoomDialog = memo(({
                                 borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                                bgcolor: theme.palette.background.paper,
                             }}
                         >
                             <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -173,8 +172,7 @@ export const CreateCollectionDialog = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.8)',
-                            backdropFilter: isMobile ? 'none' : 'blur(8px)',
+                            bgcolor: 'rgba(0,0,0,0.85)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -182,7 +180,7 @@ export const CreateCollectionDialog = memo(({
                         }}
                     >
                         <Paper
-                            variant={isMobile ? "solid" : "glass"}
+                            elevation={0}
                             component={motion.div}
                             initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
                             animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
@@ -198,7 +196,7 @@ export const CreateCollectionDialog = memo(({
                                 borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                                bgcolor: theme.palette.background.paper,
                             }}
                         >
                             <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -272,8 +270,7 @@ export const PostLinkDialog = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.8)',
-                            backdropFilter: isMobile ? 'none' : 'blur(8px)',
+                            bgcolor: 'rgba(0,0,0,0.85)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -281,7 +278,7 @@ export const PostLinkDialog = memo(({
                         }}
                     >
                         <Paper
-                            variant={isMobile ? "solid" : "glass"}
+                            elevation={0}
                             component={motion.div}
                             initial={isMobile ? { y: '100%' } : { scale: 0.8, opacity: 0 }}
                             animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
@@ -297,7 +294,7 @@ export const PostLinkDialog = memo(({
                                 borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                                bgcolor: theme.palette.background.paper,
                             }}
                         >
                             <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -385,8 +382,7 @@ export const MoveLinkDialog = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.8)',
-                            backdropFilter: isMobile ? 'none' : 'blur(8px)',
+                            bgcolor: 'rgba(0,0,0,0.85)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -394,7 +390,7 @@ export const MoveLinkDialog = memo(({
                         }}
                     >
                         <Paper
-                            variant={isMobile ? "solid" : "glass"}
+                            elevation={0}
                             component={motion.div}
                             initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
                             animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
@@ -409,7 +405,7 @@ export const MoveLinkDialog = memo(({
                                 borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                bgcolor: isMobile ? theme.palette.background.paper : alpha(theme.palette.background.paper, 0.95),
+                                bgcolor: theme.palette.background.paper,
                             }}
                         >
                             <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

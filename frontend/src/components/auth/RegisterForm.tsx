@@ -154,8 +154,8 @@ export function RegisterForm({
                                     py: 1,
                                     px: 2,
                                     borderRadius: 2,
-                                    bgcolor: alpha(theme.palette.success.main, 0.1),
-                                    border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                                    bgcolor: alpha(theme.palette.success.main, 0.15),
+                                    border: `1px solid ${alpha(theme.palette.success.main, 0.3)}`,
                                     textAlign: 'center'
                                 }}
                             >

@@ -610,7 +610,7 @@ export function SocialPage() {
                                     width: 100,
                                     height: 100,
                                     borderRadius: '30px',
-                                    bgcolor: alpha(theme.palette.error.main, 0.1),
+                                    bgcolor: alpha(theme.palette.error.main, 0.15),
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',

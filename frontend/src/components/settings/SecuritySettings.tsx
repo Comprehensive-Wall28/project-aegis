@@ -166,9 +166,8 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
     const sharedPaperStyles = {
         p: { xs: 2, sm: 4 },
         borderRadius: '16px',
-        bgcolor: alpha(theme.palette.background.paper, 0.4),
-        backdropFilter: 'blur(12px)',
-        border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+        bgcolor: theme.palette.background.paper,
+        border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
         boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
     };
 
@@ -209,7 +208,7 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                                 value={sessionTimeout}
                                 label="Auto-logout after"
                                 onChange={(e) => setSessionTimeout(e.target.value as number)}
-                                sx={{ borderRadius: '12px', bgcolor: alpha(theme.palette.common.white, 0.03) }}
+                                sx={{ borderRadius: '12px', bgcolor: alpha(theme.palette.common.white, 0.08) }}
                             >
                                 {SESSION_TIMEOUT_OPTIONS.map((option) => (
                                     <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
@@ -229,7 +228,7 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                             exclusive
                             onChange={(_, value) => value && setEncryptionLevel(value)}
                             fullWidth
-                            sx={{ bgcolor: alpha(theme.palette.common.white, 0.02), borderRadius: '12px', p: 0.5 }}
+                            sx={{ bgcolor: alpha(theme.palette.common.white, 0.08), borderRadius: '12px', p: 0.5 }}
                         >
                             {ENCRYPTION_LEVELS.map((level) => (
                                 <ToggleButton
@@ -238,9 +237,9 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                                     sx={{
                                         flex: 1, py: 1.5, borderRadius: '10px !important', border: 'none', textTransform: 'none',
                                         '&.Mui-selected': {
-                                            bgcolor: alpha(theme.palette.primary.main, 0.15),
+                                            bgcolor: alpha(theme.palette.primary.main, 0.2),
                                             color: theme.palette.primary.main,
-                                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) },
+                                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.3) },
                                         },
                                     }}
                                 >
@@ -304,8 +303,8 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                             sx={{
                                 p: 2,
                                 borderRadius: '12px',
-                                bgcolor: alpha(theme.palette.common.white, 0.03),
-                                border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+                                bgcolor: alpha(theme.palette.common.white, 0.08),
+                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
@@ -330,7 +329,7 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                                         onClick={handleCopyPublicKey}
                                         disabled={!user?.publicKey}
                                         sx={{
-                                            bgcolor: copied ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.primary.main, 0.1),
+                                            bgcolor: copied ? alpha(theme.palette.success.main, 0.2) : alpha(theme.palette.primary.main, 0.2),
                                             color: copied ? theme.palette.success.main : theme.palette.primary.main,
                                             '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) },
                                         }}
@@ -351,9 +350,9 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                             sx={{
                                 mt: 2,
                                 borderRadius: '12px', textTransform: 'none', fontWeight: 600, fontSize: '13px',
-                                borderColor: alpha(theme.palette.common.white, 0.1),
+                                borderColor: alpha(theme.palette.common.white, 0.2),
                                 color: 'text.secondary',
-                                '&:disabled': { borderColor: alpha(theme.palette.common.white, 0.05), color: alpha(theme.palette.text.secondary, 0.5) },
+                                '&:disabled': { borderColor: alpha(theme.palette.common.white, 0.1), color: alpha(theme.palette.text.secondary, 0.5) },
                             }}
                         >
                             Key Rotation (Coming Soon)
@@ -384,8 +383,8 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                                 sx={{
                                     p: 2,
                                     borderRadius: '12px',
-                                    bgcolor: alpha(theme.palette.common.white, 0.03),
-                                    border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                                    bgcolor: alpha(theme.palette.common.white, 0.08),
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 2
@@ -407,7 +406,7 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                                         {cred.credentialID.slice(0, 16)}...
                                     </Typography>
                                 </Box>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', bgcolor: alpha(theme.palette.common.white, 0.05), px: 1, py: 0.5, borderRadius: '4px' }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', bgcolor: alpha(theme.palette.common.white, 0.15), px: 1, py: 0.5, borderRadius: '4px' }}>
                                     Counter: {cred.counter}
                                 </Typography>
                                 <Tooltip title="Remove Passkey">

@@ -149,8 +149,8 @@ export function DashboardLayout() {
                     zIndex: 0,
                     background: bgUrl
                         ? `url(${bgUrl}) center/cover no-repeat fixed`
-                        : `radial-gradient(ellipse 120% 50% at 50% -20%, ${alpha(theme.palette.primary.main, 0.2)} 0%, transparent 100%)`,
-                    opacity: bgUrl ? (backgroundOpacity ?? 0.4) : 0.12,
+                        : theme.palette.background.default,
+                    opacity: bgUrl ? (backgroundOpacity ?? 0.4) : 1,
                     filter: bgUrl ? `blur(${backgroundBlur ?? 8}px) brightness(0.7)` : 'none',
                     transition: 'background 0.5s ease-in-out, opacity 0.5s ease-in-out, filter 0.5s ease-in-out',
                     pointerEvents: 'none'
@@ -222,7 +222,7 @@ export function DashboardLayout() {
                             overflow: 'hidden',
                             // Solid stage for professionalism and performance
                             bgcolor: theme.palette.background.paper,
-                            border: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
+                            border: `1px solid ${alpha(theme.palette.primary.main, 0.05)}`,
                             boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`,
                         }}
                     >

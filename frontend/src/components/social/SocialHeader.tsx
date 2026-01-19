@@ -93,7 +93,7 @@ export const SocialHeader = memo(({
 
     return (
         <Paper
-            variant="glass"
+            elevation={1}
             sx={{
                 p: 2,
                 borderRadius: isMobile ? SOCIAL_RADIUS_SMALL : SOCIAL_RADIUS_XLARGE,
@@ -195,7 +195,7 @@ export const SocialHeader = memo(({
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
                                                 borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                                bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                                bgcolor: theme.palette.background.default,
                                             }
                                         }}
                                     />

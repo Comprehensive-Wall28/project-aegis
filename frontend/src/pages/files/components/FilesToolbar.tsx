@@ -36,8 +36,7 @@ export function FilesToolbar({
                     maxWidth: { xs: '100%', md: 320 },
                     '& .MuiOutlinedInput-root': {
                         borderRadius: '12px',
-                        bgcolor: alpha(theme.palette.background.paper, 0.5),
-                        backdropFilter: 'blur(8px)',
+                        bgcolor: theme.palette.background.paper,
                         border: `1px solid ${alpha(theme.palette.divider, 0.5)}`
                     }
                 }}

@@ -261,9 +261,9 @@ export function CalendarPage() {
                 sx={{
                     p: { xs: 0.5, sm: 1.5 },
                     borderRadius: { xs: '16px', sm: '24px' },
-                    bgcolor: alpha(theme.palette.background.paper, 0.6),
+                    bgcolor: theme.palette.background.paper,
                     // backdropFilter removed for performance
-                    border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+                    border: `1px solid ${alpha(theme.palette.common.white, 0.12)}`,
                     overflow: 'hidden',
                     position: 'relative',
                     zIndex: 1,
@@ -314,8 +314,8 @@ export function CalendarPage() {
                         height: { xs: '450px !important', sm: 'auto !important' }
                     },
                     '& .fc-col-header-cell': {
-                        bgcolor: `${alpha(theme.palette.background.paper, 0.4)} !important`,
-                        borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.08)} !important`,
+                        bgcolor: `${theme.palette.background.paper} !important`,
+                        borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)} !important`,
                     },
                     '& .fc-col-header-cell-cushion': {
                         py: { xs: 1, sm: 1.5 },
@@ -378,8 +378,7 @@ export function CalendarPage() {
                             content: '""',
                             position: 'absolute',
                             inset: 0,
-                            background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)',
-                            backdropFilter: 'blur(4px)',
+                            background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
                             zIndex: 0,
                         },
                         '&:hover': {
@@ -415,9 +414,8 @@ export function CalendarPage() {
                         px: { xs: 1, sm: 2.5 },
                         py: { xs: 0.5, sm: 1.2 },
                         fontSize: { xs: '0.7rem', sm: '0.875rem' },
-                        bgcolor: `${alpha(theme.palette.background.paper, 0.3)} !important`,
-                        backdropFilter: 'blur(12px)',
-                        border: `1px solid ${alpha(theme.palette.common.white, 0.08)} !important`,
+                        bgcolor: `${theme.palette.background.paper} !important`,
+                        border: `1px solid ${alpha(theme.palette.common.white, 0.15)} !important`,
                         color: `${theme.palette.text.primary} !important`,
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         boxShadow: 'none',
@@ -427,9 +425,9 @@ export function CalendarPage() {
                             transform: 'translateY(-1px)',
                         },
                         '&:active, &:focus, &.fc-button-active': {
-                            bgcolor: `${alpha(theme.palette.primary.main, 0.15)} !important`,
-                            borderColor: `${theme.palette.primary.main} !important`,
-                            color: `${theme.palette.primary.main} !important`,
+                            bgcolor: theme.palette.primary.main,
+                            borderColor: theme.palette.primary.main,
+                            color: theme.palette.primary.contrastText,
                             boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.25)} !important`,
                             zIndex: 5,
                         },

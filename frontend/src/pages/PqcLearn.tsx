@@ -89,9 +89,9 @@ export function PqcLearn() {
                     startIcon={<ArrowBack />}
                     onClick={() => navigate('/')}
                     sx={{
-                        backdropFilter: 'blur(10px)',
-                        bgcolor: alpha(theme.palette.background.paper, 0.5),
-                        '&:hover': { bgcolor: alpha(theme.palette.background.paper, 0.8) }
+                        bgcolor: theme.palette.background.paper,
+                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        '&:hover': { bgcolor: alpha(theme.palette.background.paper, 0.95) }
                     }}
                 >
                     Back to Home

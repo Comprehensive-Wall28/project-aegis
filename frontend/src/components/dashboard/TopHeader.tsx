@@ -155,7 +155,7 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                             p: 0.5,
                             pr: 1.5,
                             borderRadius: 4,
-                            '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.05) },
+                            '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.1) },
                             gap: 1.5,
                             display: 'flex',
                             alignItems: 'center'
@@ -165,7 +165,7 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                             sx={{
                                 width: 32,
                                 height: 32,
-                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                bgcolor: alpha(theme.palette.primary.main, 0.15),
                                 color: theme.palette.primary.main
                             }}
                         >
@@ -204,7 +204,7 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                                 bgcolor: theme.palette.background.paper,
                                 backgroundImage: 'none',
                                 boxShadow: theme.shadows[20],
-                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                border: `1px solid ${alpha(theme.palette.divider, 0.25)}`,
                             }
                         }}
                         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
@@ -225,7 +225,7 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                             </ListItemIcon>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>Settings</Typography>
                         </MenuItem>
-                        <MenuItem onClick={handleLogout} sx={{ borderRadius: 3, gap: 1.5, py: 1, color: 'error.main', '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) } }}>
+                        <MenuItem onClick={handleLogout} sx={{ borderRadius: 3, gap: 1.5, py: 1, color: 'error.main', '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.15) } }}>
                             <ListItemIcon sx={{ minWidth: 0, color: 'inherit' }}>
                                 <LogOutIcon sx={{ fontSize: 18 }} />
                             </ListItemIcon>

@@ -123,10 +123,10 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
                             sx={{
                                 p: 2,
                                 borderRadius: '20px',
-                                bgcolor: alpha(theme.palette.background.paper, isOver ? 0.5 : 0.3),
+                                bgcolor: alpha(theme.palette.background.paper, isOver ? 0.7 : 0.5),
                                 border: `2px dashed ${isOver
                                     ? alpha(column.color, 0.5)
-                                    : alpha(theme.palette.common.white, 0.08)}`,
+                                    : alpha(theme.palette.common.white, 0.15)}`,
                                 transition: 'all 0.2s ease',
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -142,7 +142,7 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
                                     justifyContent: 'space-between',
                                     mb: 2,
                                     pb: 2,
-                                    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
                                 }}
                             >
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -167,7 +167,7 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
                                         badgeContent={columnTasks.length}
                                         sx={{
                                             '& .MuiBadge-badge': {
-                                                bgcolor: alpha(column.color, 0.2),
+                                                bgcolor: alpha(column.color, 0.3),
                                                 color: column.color,
                                                 fontWeight: 700,
                                                 fontSize: '0.7rem',
@@ -188,7 +188,7 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
                                         borderRadius: '10px',
                                         textTransform: 'none',
                                         fontSize: '0.75rem',
-                                        bgcolor: alpha(theme.palette.common.white, 0.05),
+                                        bgcolor: alpha(theme.palette.common.white, 0.15),
                                         '&:hover': {
                                             bgcolor: alpha(column.color, 0.15),
                                         },
@@ -214,7 +214,7 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
                                         bgcolor: 'transparent',
                                     },
                                     '&::-webkit-scrollbar-thumb': {
-                                        bgcolor: alpha(theme.palette.common.white, 0.1),
+                                        bgcolor: alpha(theme.palette.common.white, 0.25),
                                         borderRadius: 2,
                                     },
                                 }}

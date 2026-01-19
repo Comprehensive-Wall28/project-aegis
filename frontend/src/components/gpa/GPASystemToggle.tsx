@@ -14,9 +14,8 @@ export const GPASystemToggle = ({ gpaSystem, onChange, disabled }: GPASystemTogg
             sx={{
                 p: 0.5,
                 borderRadius: '16px',
-                bgcolor: alpha(theme.palette.background.paper, 0.3),
-                backdropFilter: 'blur(12px)',
-                border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+                bgcolor: theme.palette.background.paper,
+                border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
                 alignSelf: { xs: 'stretch', md: 'auto' },
             }}
         >

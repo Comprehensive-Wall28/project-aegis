@@ -150,7 +150,7 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    borderBottom: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : 'none'
+                    borderBottom: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.2)}` : 'none'
                 }}
             >
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
@@ -164,7 +164,7 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
             <DialogContent
                 dividers={!isMobile}
                 sx={{
-                    borderColor: alpha(theme.palette.divider, 0.1),
+                    borderColor: alpha(theme.palette.divider, 0.2),
                     p: isMobile ? 2 : 2.5,
                 }}
             >
@@ -316,7 +316,7 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
                 </Box>
             </DialogContent>
 
-            <DialogActions sx={{ p: isMobile ? 2 : 3, justifyContent: 'space-between', borderTop: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : 'none' }}>
+            <DialogActions sx={{ p: isMobile ? 2 : 3, justifyContent: 'space-between', borderTop: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.2)}` : 'none' }}>
                 <Box>
                     {isEditMode && task?._id && onDelete && (
                         <Button

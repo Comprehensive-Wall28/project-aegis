@@ -85,7 +85,7 @@ export function HowItWorks() {
                         sx={{
                             color: 'text.secondary',
                             fontWeight: 500,
-                            opacity: 0.8
+                            opacity: 1.0
                         }}
                     >
                         Three simple steps to quantum-safe productivity. No complexity, no compromises.
@@ -121,7 +121,7 @@ export function HowItWorks() {
                             sx={{ flex: 1, position: 'relative', zIndex: 1 }}
                         >
                             <Paper
-                                variant="glass"
+                                elevation={2}
                                 sx={{
                                     p: { xs: 3, md: 4 },
                                     textAlign: 'center',
@@ -133,7 +133,7 @@ export function HowItWorks() {
                                     '&:hover': {
                                         transform: 'translateY(-8px)',
                                         borderColor: step.color,
-                                        boxShadow: `0 20px 40px ${alpha(step.color, 0.15)}`
+                                        boxShadow: `0 20px 40px ${alpha(step.color, 0.25)}`
                                     }
                                 }}
                             >
@@ -160,7 +160,7 @@ export function HowItWorks() {
                                     mb: 2,
                                     p: 2,
                                     borderRadius: '50%',
-                                    bgcolor: alpha(step.color, 0.1),
+                                    bgcolor: alpha(step.color, 0.2),
                                     display: 'flex'
                                 }}>
                                     <step.icon sx={{ fontSize: 40, color: step.color }} />
@@ -199,14 +199,14 @@ export function HowItWorks() {
                 }}>
                     <Paper
                         component={motion.div}
-                        variant="glass"
+                        elevation={4}
                         initial={{ opacity: 0, scale: 0.95 }}
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5 }}
                         sx={{
                             p: { xs: 4, md: 6 },
-                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                            border: `1px solid ${alpha(theme.palette.divider, 0.25)}`,
                             borderRadius: 4
                         }}
                     >

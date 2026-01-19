@@ -1,4 +1,4 @@
-import { createTheme, alpha } from '@mui/material/styles';
+import { createTheme } from '@mui/material/styles';
 
 declare module '@mui/material/Paper' {
     interface PaperPropsVariantOverrides {
@@ -34,7 +34,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#f8fafc', // Slate 50
                 secondary: '#94a3b8', // Slate 400
             },
-            divider: 'rgba(148, 163, 184, 0.1)',
+            divider: 'rgba(148, 163, 184, 0.08)',
         },
         catppuccin: {
             background: {
@@ -52,7 +52,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#cdd6f4',
                 secondary: '#a6adc8',
             },
-            divider: 'rgba(205, 214, 244, 0.1)',
+            divider: 'rgba(205, 214, 244, 0.08)',
         },
         purple: {
             background: {
@@ -70,7 +70,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#faf5ff', // Purple 50
                 secondary: '#a78bfa', // Violet 400 (Darker than 300)
             },
-            divider: 'rgba(147, 51, 234, 0.12)',
+            divider: 'rgba(147, 51, 234, 0.1)',
         },
         amoled: {
             background: {
@@ -88,7 +88,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#ffffff',
                 secondary: '#a1a1aa',
             },
-            divider: 'rgba(255, 255, 255, 0.2)',
+            divider: 'rgba(255, 255, 255, 0.08)',
         },
         light: {
             background: {
@@ -172,7 +172,7 @@ export const getTheme = (mode: ThemeMode) => {
             success: {
                 main: '#9ece6a',
             },
-            divider: 'rgba(56, 62, 90, 0.6)', // Higher contrast Storm blue-gray for better definition
+            divider: 'rgba(56, 62, 90, 0.15)', // Lowered from 0.3 for better balance
         },
     };
 
@@ -211,11 +211,11 @@ export const getTheme = (mode: ThemeMode) => {
                             background: 'transparent',
                         },
                         '&::-webkit-scrollbar-thumb': {
-                            background: 'rgba(255, 255, 255, 0.1)',
+                            background: 'rgba(255, 255, 255, 0.25)',
                             borderRadius: 4,
                         },
                         '&::-webkit-scrollbar-thumb:hover': {
-                            background: 'rgba(255, 255, 255, 0.2)',
+                            background: 'rgba(255, 255, 255, 0.4)',
                         },
                     },
                 },
@@ -246,9 +246,7 @@ export const getTheme = (mode: ThemeMode) => {
                     {
                         props: { variant: 'glass' as any },
                         style: {
-                            background: alpha(selectedPalette.background.paper, 0.5),
-                            backdropFilter: 'blur(16px)',
-                            WebkitBackdropFilter: 'blur(16px)',
+                            background: selectedPalette.background.paper,
                             border: `1px solid ${selectedPalette.divider}`,
                         },
                     },
@@ -265,10 +263,8 @@ export const getTheme = (mode: ThemeMode) => {
                     {
                         props: { variant: 'translucent' as any },
                         style: {
-                            background: alpha(selectedPalette.background.paper, 0.75), // Increased from 0.7
-                            border: `1px solid ${alpha(selectedPalette.divider, 0.1)}`,
-                            backdropFilter: 'blur(6px)', // Reduced from 10px
-                            WebkitBackdropFilter: 'blur(6px)',
+                            background: selectedPalette.background.paper,
+                            border: `1px solid ${selectedPalette.divider}`,
                         },
                     },
                 ],

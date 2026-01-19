@@ -60,8 +60,8 @@ export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
             sx={{
                 p: 2,
                 borderRadius: '16px',
-                bgcolor: alpha(theme.palette.background.paper, isDragging ? 0.95 : 0.7),
-                border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+                bgcolor: alpha(theme.palette.background.paper, isDragging ? 1.0 : 0.9),
+                border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
                 cursor: 'pointer',
                 transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                 position: 'relative',
@@ -140,7 +140,7 @@ export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
                         height: 22,
                         fontSize: '0.65rem',
                         fontWeight: 600,
-                        bgcolor: alpha(priorityColor, 0.15),
+                        bgcolor: alpha(priorityColor, 0.25),
                         color: priorityColor,
                         border: `1px solid ${alpha(priorityColor, 0.3)}`,
                     }}

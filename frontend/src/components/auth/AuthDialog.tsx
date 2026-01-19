@@ -74,7 +74,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
                             zIndex: theme.zIndex.modal
                         }}
                     />
@@ -126,7 +126,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                     zIndex: 10,
                                     '&:hover': {
                                         color: 'text.primary',
-                                        bgcolor: alpha(theme.palette.action.hover, 0.1)
+                                        bgcolor: alpha(theme.palette.action.hover, 0.15)
                                     }
                                 }}
                             >

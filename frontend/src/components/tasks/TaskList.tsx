@@ -116,8 +116,8 @@ export const TaskList = ({ tasks, onTaskClick, onStatusToggle, onDelete, groupBy
                                                 p: 2,
                                                 mb: 1.5,
                                                 borderRadius: '12px',
-                                                bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                                border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+                                                bgcolor: alpha(theme.palette.background.paper, 0.8),
+                                                border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
                                                 cursor: 'pointer',
                                                 transition: 'border-color 0.2s ease, background-color 0.2s ease',
                                                 display: 'flex',
@@ -125,8 +125,8 @@ export const TaskList = ({ tasks, onTaskClick, onStatusToggle, onDelete, groupBy
                                                 gap: 2,
                                                 willChange: 'transform, opacity',
                                                 '&:hover': {
-                                                    bgcolor: alpha(theme.palette.background.paper, 0.7),
-                                                    borderColor: alpha(theme.palette.primary.main, 0.2),
+                                                    bgcolor: alpha(theme.palette.background.paper, 0.95),
+                                                    borderColor: alpha(theme.palette.primary.main, 0.35),
                                                 },
                                             }}
                                         >
@@ -139,7 +139,7 @@ export const TaskList = ({ tasks, onTaskClick, onStatusToggle, onDelete, groupBy
                                                 }}
                                                 sx={{
                                                     p: 0.5,
-                                                    color: alpha(theme.palette.common.white, 0.2),
+                                                    color: alpha(theme.palette.common.white, 0.45),
                                                     '&.Mui-checked': {
                                                         color: alpha('#4caf50', 0.7),
                                                     },
@@ -201,7 +201,7 @@ export const TaskList = ({ tasks, onTaskClick, onStatusToggle, onDelete, groupBy
                                                         height: 22,
                                                         fontSize: '0.65rem',
                                                         fontWeight: 700,
-                                                        bgcolor: alpha(PRIORITY_COLORS[task.priority], 0.15),
+                                                        bgcolor: alpha(PRIORITY_COLORS[task.priority], 0.25),
                                                         color: PRIORITY_COLORS[task.priority],
                                                     }}
                                                 />

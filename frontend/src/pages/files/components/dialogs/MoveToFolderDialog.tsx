@@ -86,9 +86,8 @@ export function MoveToFolderDialog({
             PaperProps={{
                 sx: {
                     borderRadius: '24px',
-                    bgcolor: alpha(theme.palette.background.paper, 0.9),
-                    backdropFilter: 'blur(20px)',
-                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                    bgcolor: theme.palette.background.paper,
+                    border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
                 }
             }}
         >
@@ -126,7 +125,7 @@ export function MoveToFolderDialog({
                     minHeight: 240,
                     maxHeight: 400,
                     overflow: 'auto',
-                    bgcolor: alpha(theme.palette.background.default, 0.3),
+                    bgcolor: theme.palette.background.default,
                     borderRadius: '16px',
                     p: 1
                 }}>
@@ -154,7 +153,7 @@ export function MoveToFolderDialog({
                                         borderRadius: '12px',
                                         color: 'text.primary',
                                         '&:hover': {
-                                            bgcolor: alpha(theme.palette.primary.main, 0.05),
+                                            bgcolor: alpha(theme.palette.primary.main, 0.15),
                                         }
                                     }}
                                     startIcon={<FolderIcon sx={{ color: 'warning.main' }} />}
