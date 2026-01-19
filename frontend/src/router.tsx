@@ -20,6 +20,7 @@ const PublicSharedFilePage = lazy(() => import('@/pages/PublicSharedFilePage').t
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { RouteErrorBoundary } from '@/components/error/RouteErrorBoundary';
+import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
 import { BackendStatusProvider } from '@/contexts/BackendStatusContext';
 import { getTheme } from './theme';
 import { useThemeStore } from '@/stores/themeStore';
@@ -73,7 +74,11 @@ function ZKPVerifier() {
 
 const router = createBrowserRouter([
     {
-        element: <RootLayout />,
+        element: (
+            <GlobalErrorBoundary>
+                <RootLayout />
+            </GlobalErrorBoundary>
+        ),
         children: [
             {
                 path: '/',
