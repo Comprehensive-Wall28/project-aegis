@@ -100,7 +100,9 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
                 display: 'grid',
                 gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
                 gap: 3,
-                minHeight: 500,
+                flex: 1,
+                minHeight: 0, // Allow shrinking if needed
+                height: '100%',
             }}
         >
             {COLUMNS.map((column) => {
@@ -128,7 +130,7 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
                                 transition: 'all 0.2s ease',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                minHeight: { xs: 300, md: 500 },
+                                minHeight: { xs: 200, md: 250 },
                                 height: '100%',
                             }}
                         >

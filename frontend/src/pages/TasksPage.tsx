@@ -184,7 +184,7 @@ export function TasksPage() {
     };
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%' }}>
             {/* Header */}
             <Box
                 sx={{
@@ -214,7 +214,7 @@ export function TasksPage() {
                         color="text.secondary"
                         sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                     >
-                        PQC-encrypted task management for secure productivity
+                        PQC-encrypted task management
                     </Typography>
                 </Box>
 
@@ -299,7 +299,8 @@ export function TasksPage() {
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        minHeight: 500,
+                        flex: 1,
+                        minHeight: 300,
                         gap: 2,
                         bgcolor: alpha(theme.palette.background.paper, 0.1),
                         borderRadius: '16px',
@@ -314,7 +315,14 @@ export function TasksPage() {
                     </Typography>
                 </Box>
             ) : (
-                <>
+                <Box
+                    sx={{
+                        flex: 1,
+                        minHeight: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }}
+                >
                     {viewMode === 'kanban' ? (
                         <KanbanBoard
                             tasks={tasks}
@@ -330,6 +338,7 @@ export function TasksPage() {
                                 bgcolor: alpha(theme.palette.background.paper, 0.4),
                                 backdropFilter: 'blur(8px)',
                                 border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+                                flex: 1,
                             }}
                         >
                             <TaskList
@@ -340,7 +349,7 @@ export function TasksPage() {
                             />
                         </Paper>
                     )}
-                </>
+                </Box>
             )}
 
             {/* Task Dialog */}
