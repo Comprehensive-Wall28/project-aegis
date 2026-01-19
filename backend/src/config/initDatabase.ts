@@ -17,7 +17,7 @@ const secondaryUri = config.mongoUriSecondary;
 if (secondaryUri) {
     dbManager.connect('secondary', secondaryUri);
 } else {
-    console.warn('MONGO_URI_SECONDARY not set, logging functionality may fail or fallback needed');
+    logger.warn('MONGO_URI_SECONDARY not set, logging functionality may fail or fallback needed');
 }
 
 export default dbManager;
