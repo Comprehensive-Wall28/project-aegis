@@ -9,6 +9,7 @@ import {
     Snackbar,
     Alert,
     Stack,
+    useMediaQuery,
 } from '@mui/material';
 import { CalendarMonth as CalendarIcon } from '@mui/icons-material';
 import FullCalendar from '@fullcalendar/react';
@@ -22,6 +23,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 
 export function CalendarPage() {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
     const events = useCalendarStore((state) => state.events);
     const isLoading = useCalendarStore((state) => state.isLoading);
@@ -234,11 +236,11 @@ export function CalendarPage() {
     }
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: { xs: 1, md: 0 }, pt: { md: 1 } }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: { xs: 0, md: 0 }, pt: { xs: 1, md: 1 } }}>
             <Box
-                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', justifyContent: 'space-between' }}
             >
-                <Box>
+                <Box sx={{ px: { xs: 1, sm: 0 } }}>
                     <Typography
                         variant="h4"
                         sx={{
@@ -246,10 +248,10 @@ export function CalendarPage() {
                             display: 'flex',
                             alignItems: 'center',
                             gap: 1.5,
-                            fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
+                            fontSize: { xs: '1.25rem', sm: '2rem', md: '2.125rem' }
                         }}
                     >
-                        <CalendarIcon sx={{ fontSize: { xs: 28, md: 32 }, color: 'primary.main' }} /> Secure Calendar
+                        <CalendarIcon sx={{ fontSize: { xs: 24, md: 32 }, color: 'primary.main' }} /> Secure Calendar
                     </Typography>
                 </Box>
             </Box>
@@ -258,10 +260,10 @@ export function CalendarPage() {
                 elevation={0}
                 sx={{
                     p: { xs: 0.5, sm: 1.5 },
-                    borderRadius: '24px',
+                    borderRadius: { xs: '16px', sm: '24px' },
                     bgcolor: alpha(theme.palette.background.paper, 0.6),
                     // backdropFilter removed for performance
-                    border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                    border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
                     overflow: 'hidden',
                     position: 'relative',
                     zIndex: 1,
@@ -279,8 +281,8 @@ export function CalendarPage() {
                     },
                     '& .fc-toolbar': {
                         flexDirection: { xs: 'column', sm: 'row' },
-                        gap: { xs: 2, sm: 0 },
-                        mb: { xs: 2, sm: 3 },
+                        gap: { xs: 1, sm: 0 },
+                        mb: { xs: 1.5, sm: 3 },
                         px: { xs: 1, sm: 0 },
                     },
                     '& .fc-day': {
@@ -295,9 +297,9 @@ export function CalendarPage() {
                         background: 'transparent !important',
                     },
                     '& .fc-scrollgrid': {
-                        border: `1px solid ${alpha(theme.palette.common.white, 0.08)} !important`,
+                        border: `1px solid ${alpha(theme.palette.common.white, 0.05)} !important`,
                         background: 'transparent !important',
-                        borderRadius: '16px',
+                        borderRadius: { xs: '8px', sm: '16px' },
                         overflow: 'hidden',
                     },
                     '& .fc-daygrid-day': {
@@ -410,9 +412,9 @@ export function CalendarPage() {
                         borderRadius: '12px !important',
                         fontWeight: 700,
                         textTransform: 'capitalize',
-                        px: { xs: 1.5, sm: 2.5 },
-                        py: { xs: 0.8, sm: 1.2 },
-                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        px: { xs: 1, sm: 2.5 },
+                        py: { xs: 0.5, sm: 1.2 },
+                        fontSize: { xs: '0.7rem', sm: '0.875rem' },
                         bgcolor: `${alpha(theme.palette.background.paper, 0.3)} !important`,
                         backdropFilter: 'blur(12px)',
                         border: `1px solid ${alpha(theme.palette.common.white, 0.08)} !important`,
@@ -475,9 +477,9 @@ export function CalendarPage() {
                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                     initialView="dayGridMonth"
                     headerToolbar={{
-                        left: 'prev,next today',
+                        left: isMobile ? 'prev,next' : 'prev,next today',
                         center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                        right: isMobile ? 'dayGridMonth,timeGridDay' : 'dayGridMonth,timeGridWeek,timeGridDay'
                     }}
                     editable={true}
                     selectable={true}
@@ -492,6 +494,8 @@ export function CalendarPage() {
                     eventDisplay="block"
                     eventContent={renderEventContent}
                     height="auto"
+                    dayHeaderFormat={{ weekday: isMobile ? 'narrow' : 'short' }}
+                    weekends={!isMobile} // Hide weekends on mobile to reduce columns from 7 to 5
                 />
             </Paper>
 

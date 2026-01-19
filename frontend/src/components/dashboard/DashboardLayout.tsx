@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { SystemStatusBar } from './SystemStatusBar';
@@ -26,6 +26,8 @@ export function DashboardLayout() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const theme = useTheme();
     const user = useSessionStore((state) => state.user);
+    const location = useLocation();
+    const isCalendarPage = location.pathname.includes('/calendar');
 
     // Sync user preferences to local store on login/update
     useEffect(() => {
@@ -201,7 +203,7 @@ export function DashboardLayout() {
                 {/* Headers Section */}
                 <Box sx={{ zIndex: 10, flexShrink: 0 }}>
                     <TopHeader onMobileMenuOpen={() => setIsMobileMenuOpen(true)} />
-                    <SystemStatusBar />
+                    {!isCalendarPage && <SystemStatusBar />}
                 </Box>
 
                 {/* Content Area ('The Stage') */}
@@ -227,7 +229,7 @@ export function DashboardLayout() {
                         <Box
                             sx={{
                                 flexGrow: 1,
-                                p: { xs: 2, sm: 3, md: 6 },
+                                p: { xs: isCalendarPage ? 1.5 : 2, sm: 3, md: 6 },
                                 overflowY: 'auto',
                                 '&::-webkit-scrollbar': { width: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: 3 }
