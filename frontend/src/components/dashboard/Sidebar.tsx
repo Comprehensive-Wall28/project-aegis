@@ -39,9 +39,9 @@ const navItems = [
     { name: 'Vault', href: '/dashboard', icon: VaultIcon },
     { name: 'Social', icon: ShareIcon, href: '/dashboard/social' },
     { name: 'Files', href: '/dashboard/files', icon: FolderOpenIcon },
+    { name: 'Tasks', href: '/dashboard/tasks', icon: TasksIcon },
     { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
     { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
-    { name: 'Tasks', href: '/dashboard/tasks', icon: TasksIcon },
     // { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
     { name: 'Security', href: '/dashboard/security', icon: SettingsIcon },
 ];
