@@ -2,20 +2,15 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Box,
     Typography,
-    Paper,
     alpha,
     useTheme,
     Button,
-    ToggleButtonGroup,
-    ToggleButton,
     CircularProgress,
     Snackbar,
     Alert,
 } from '@mui/material';
 import {
     CheckCircle as TasksIcon,
-    ViewKanban as KanbanIcon,
-    ViewList as ListIcon,
     Add as AddIcon,
 } from '@mui/icons-material';
 // No framer-motion imports needed here anymore
@@ -23,10 +18,8 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useTaskStore } from '@/stores/useTaskStore';
 import { useTaskEncryption } from '@/hooks/useTaskEncryption';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
-import { TaskList } from '@/components/tasks/TaskList';
 import { TaskDialog, type TaskDialogData } from '@/components/tasks/TaskDialog';
 
-type ViewMode = 'kanban' | 'list';
 type SnackbarState = {
     open: boolean;
     message: string;
@@ -48,7 +41,6 @@ export function TasksPage() {
 
     const { encryptTaskData, decryptTasks, decryptTaskData, generateRecordHash } = useTaskEncryption();
 
-    const [viewMode, setViewMode] = useState<ViewMode>('kanban');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -173,15 +165,6 @@ export function TasksPage() {
         }
     };
 
-    const handleStatusToggle = async (taskId: string, currentStatus: string) => {
-        const newStatus = currentStatus === 'done' ? 'todo' : 'done';
-        try {
-            await reorderTasks([{ id: taskId, status: newStatus, order: 0 }]);
-            showSnackbar(`Task marked as ${newStatus === 'done' ? 'complete' : 'incomplete'}`, 'success');
-        } catch (error: any) {
-            showSnackbar(error.message || 'Failed to update task', 'error');
-        }
-    };
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%' }}>
@@ -220,54 +203,6 @@ export function TasksPage() {
 
                 {pqcEngineStatus === 'operational' && !isLoading && (
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                        {/* View Mode Toggle */}
-                        <Paper
-                            sx={{
-                                p: 0.5,
-                                borderRadius: '14px',
-                                bgcolor: theme.palette.background.paper,
-                                border: `1px solid ${theme.palette.divider}`,
-                            }}
-                        >
-                            <ToggleButtonGroup
-                                value={viewMode}
-                                exclusive
-                                onChange={(_, value) => value && setViewMode(value)}
-                                size="small"
-                                sx={{
-                                    '& .MuiToggleButtonGroup-grouped': {
-                                        border: 'none',
-                                        borderRadius: '10px !important',
-                                        px: 2.5,
-                                        py: 0.75,
-                                        fontSize: '0.8rem',
-                                        fontWeight: 600,
-                                        textTransform: 'none',
-                                        color: alpha(theme.palette.text.primary, 0.6),
-                                        transition: 'all 0.2s ease',
-                                        '&:hover': {
-                                            bgcolor: alpha(theme.palette.common.white, 0.05),
-                                        },
-                                        '&.Mui-selected': {
-                                            bgcolor: alpha(theme.palette.primary.main, 0.15),
-                                            color: theme.palette.primary.main,
-                                            '&:hover': {
-                                                bgcolor: alpha(theme.palette.primary.main, 0.2),
-                                            },
-                                        },
-                                    },
-                                }}
-                            >
-                                <ToggleButton value="kanban">
-                                    <KanbanIcon sx={{ mr: 0.75, fontSize: 16 }} />
-                                    Kanban
-                                </ToggleButton>
-                                <ToggleButton value="list">
-                                    <ListIcon sx={{ mr: 0.75, fontSize: 16 }} />
-                                    List
-                                </ToggleButton>
-                            </ToggleButtonGroup>
-                        </Paper>
 
                         {/* Add Task Button */}
                         <Button
@@ -322,31 +257,12 @@ export function TasksPage() {
                         flexDirection: 'column',
                     }}
                 >
-                    {viewMode === 'kanban' ? (
-                        <KanbanBoard
-                            tasks={tasks}
-                            onTaskClick={handleTaskClick}
-                            onAddTask={handleAddTask}
-                            onTaskMove={handleTaskMove}
-                        />
-                    ) : (
-                        <Paper
-                            sx={{
-                                p: 3,
-                                borderRadius: '20px',
-                                bgcolor: theme.palette.background.paper,
-                                border: `1px solid ${theme.palette.divider}`,
-                                flex: 1,
-                            }}
-                        >
-                            <TaskList
-                                tasks={tasks}
-                                onTaskClick={handleTaskClick}
-                                onStatusToggle={handleStatusToggle}
-                                onDelete={handleDeleteTask}
-                            />
-                        </Paper>
-                    )}
+                    <KanbanBoard
+                        tasks={tasks}
+                        onTaskClick={handleTaskClick}
+                        onAddTask={handleAddTask}
+                        onTaskMove={handleTaskMove}
+                    />
                 </Box>
             )}
 
