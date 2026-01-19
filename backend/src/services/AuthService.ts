@@ -112,8 +112,10 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Missing required fields', 400);
             }
 
+            const normalizedEmail = data.email.toLowerCase().trim();
+
             const [existingByEmail, existingByUsername] = await Promise.all([
-                this.repository.findByEmail(data.email),
+                this.repository.findByEmail(normalizedEmail),
                 this.repository.findByUsername(data.username)
             ]);
 
@@ -127,7 +129,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
             const user = await this.repository.create({
                 username: data.username,
-                email: data.email,
+                email: normalizedEmail,
                 pqcPublicKey: data.pqcPublicKey,
                 passwordHash,
                 passwordHashVersion
@@ -157,10 +159,11 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Missing credentials', 400);
             }
 
-            const user = await this.repository.findByEmail(data.email);
+            const normalizedEmail = data.email.toLowerCase().trim();
+            const user = await this.repository.findByEmail(normalizedEmail);
             if (!user || !user.passwordHash) {
-                logger.warn(`Failed login for email: ${data.email} (user not found)`);
-                await logFailedAuth(data.email, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
+                logger.warn(`Failed login for email: ${normalizedEmail} (user not found)`);
+                await logFailedAuth(normalizedEmail, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
                 throw new ServiceError('Invalid credentials', 401);
             }
 
@@ -193,8 +196,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
             if (!verified) {
-                logger.warn(`Failed login for email: ${data.email} (invalid password)`);
-                await logFailedAuth(data.email, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
+                logger.warn(`Failed login for email: ${normalizedEmail} (invalid password)`);
+                await logFailedAuth(normalizedEmail, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
                 throw new ServiceError('Invalid credentials', 401);
             }
 
@@ -456,7 +459,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Email required', 400);
             }
 
-            const user = await this.repository.findByEmail(email);
+            const normalizedEmail = email.toLowerCase().trim();
+            const user = await this.repository.findByEmail(normalizedEmail);
             if (!user) {
                 throw new ServiceError('User not found', 404);
             }
@@ -491,7 +495,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Email and body required', 400);
             }
 
-            const user = await this.repository.findByEmail(email);
+            const normalizedEmail = email.toLowerCase().trim();
+            const user = await this.repository.findByEmail(normalizedEmail);
             if (!user || !user.currentChallenge) {
                 throw new ServiceError('Authentication challenge not found', 400);
             }

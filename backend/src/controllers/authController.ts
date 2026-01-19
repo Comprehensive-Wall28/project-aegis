@@ -34,6 +34,9 @@ export const registerUser = async (req: Request, res: Response) => {
 
 export const loginUser = async (req: Request, res: Response) => {
     try {
+        if (req.body.email) {
+            req.body.email = req.body.email.toLowerCase().trim();
+        }
         const result = await authService.login(req.body, req, setCookie(res));
 
         if ('status' in result && result.status === '2FA_REQUIRED') {
@@ -147,7 +150,8 @@ export const getAuthenticationOptions = async (req: Request, res: Response) => {
 export const verifyAuthentication = async (req: Request, res: Response) => {
     try {
         const { email, body } = req.body;
-        const result = await authService.verifyAuthentication(email, body, req, setCookie(res));
+        const normalizedEmail = email ? email.toLowerCase().trim() : email;
+        const result = await authService.verifyAuthentication(normalizedEmail, body, req, setCookie(res));
         res.json({ ...result, message: 'Login successful' });
     } catch (error) {
         handleError(error, res);

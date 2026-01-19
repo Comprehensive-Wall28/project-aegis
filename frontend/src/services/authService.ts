@@ -48,12 +48,15 @@ async function hashLegacy(password: string): Promise<string> {
 
 const authService = {
     login: async (email: string, passwordRaw: string): Promise<AuthResponse> => {
+        // 0. Normalize email
+        const normalizedEmail = email.toLowerCase().trim();
+
         // 1. Client-side hashing: Argon2 (new) + SHA-256 (legacy)
-        const argon2HashPromise = pqcWorkerManager.getArgon2Hash(passwordRaw, `${email}aegis-auth-salt`);
+        const argon2HashPromise = pqcWorkerManager.getArgon2Hash(passwordRaw, `${normalizedEmail}aegis-auth-salt`);
         const legacyHashPromise = hashLegacy(passwordRaw);
 
         // 2. Optimization: Start PQC V2 discovery key derivation in parallel
-        const v2PublicKeyPromise = pqcWorkerManager.getPQCDiscoveryKey(passwordRaw, email);
+        const v2PublicKeyPromise = pqcWorkerManager.getPQCDiscoveryKey(passwordRaw, normalizedEmail);
 
         // Wait for hashes and PQC key
         const [argon2Hash, legacyHash, v2PublicKey] = await Promise.all([
@@ -64,7 +67,7 @@ const authService = {
 
         // 3. Call backend login
         const response = await apiClient.post<any>('/auth/login', {
-            email,
+            email: normalizedEmail,
             argon2Hash,
             legacyHash
         });
@@ -74,7 +77,7 @@ const authService = {
         let pqcSeed: Uint8Array;
         if (v2PublicKey === userData.pqcPublicKey) {
             // New account (V2)
-            pqcSeed = await pqcWorkerManager.derivePQCSeed(passwordRaw, email);
+            pqcSeed = await pqcWorkerManager.derivePQCSeed(passwordRaw, normalizedEmail);
             console.log("PQC Seed derived using V2 (email) salt (Worker)");
         } else {
             // Existing account or password mismatch (V1)
@@ -89,13 +92,16 @@ const authService = {
     },
 
     register: async (username: string, email: string, passwordRaw: string): Promise<AuthResponse> => {
+        // 0. Normalize email
+        const normalizedEmail = email.toLowerCase().trim();
+
         // 1. Client-side hashing: Argon2 (new) + SHA-256 (legacy)
-        const argon2HashPromise = pqcWorkerManager.getArgon2Hash(passwordRaw, `${email}aegis-auth-salt`);
+        const argon2HashPromise = pqcWorkerManager.getArgon2Hash(passwordRaw, `${normalizedEmail}aegis-auth-salt`);
         const legacyHashPromise = hashLegacy(passwordRaw);
 
         // 2. Generate Deterministic PQC Keypair using V2 (email) salt (via Worker)
-        const pqcDiscoveryKeyPromise = pqcWorkerManager.getPQCDiscoveryKey(passwordRaw, email);
-        const pqcSeedPromise = pqcWorkerManager.derivePQCSeed(passwordRaw, email);
+        const pqcDiscoveryKeyPromise = pqcWorkerManager.getPQCDiscoveryKey(passwordRaw, normalizedEmail);
+        const pqcSeedPromise = pqcWorkerManager.derivePQCSeed(passwordRaw, normalizedEmail);
 
         // Wait for all cryptographic operations
         const [argon2Hash, legacyHash, pqcPublicKey, pqcSeed] = await Promise.all([
@@ -108,7 +114,7 @@ const authService = {
         // 3. Send to backend
         const response = await apiClient.post<AuthResponse>('/auth/register', {
             username,
-            email,
+            email: normalizedEmail,
             pqcPublicKey,
             argon2Hash,
             legacyHash,
@@ -168,8 +174,11 @@ const authService = {
 
     loginWithPasskey: async (email: string, passwordRaw: string): Promise<AuthResponse> => {
         try {
+            // 0. Normalize email
+            const normalizedEmail = email.toLowerCase().trim();
+
             // 1. Get options from backend
-            const optionsResponse = await apiClient.post('/auth/webauthn/login-options', { email });
+            const optionsResponse = await apiClient.post('/auth/webauthn/login-options', { email: normalizedEmail });
             const options = optionsResponse.data;
 
             // 2. Start authentication in browser
@@ -177,18 +186,18 @@ const authService = {
 
             // 3. Verify with backend
             const verifyResponse = await apiClient.post<AuthResponse>('/auth/webauthn/login-verify', {
-                email,
+                email: normalizedEmail,
                 body: credential
             });
 
             const userData = verifyResponse.data;
 
             // 4. Derive PQC Seed with fallback (same as regular login)
-            const v2PublicKey = await pqcWorkerManager.getPQCDiscoveryKey(passwordRaw, email);
+            const v2PublicKey = await pqcWorkerManager.getPQCDiscoveryKey(passwordRaw, normalizedEmail);
 
             let pqcSeed: Uint8Array;
             if (v2PublicKey === userData.pqcPublicKey) {
-                pqcSeed = await pqcWorkerManager.derivePQCSeed(passwordRaw, email);
+                pqcSeed = await pqcWorkerManager.derivePQCSeed(passwordRaw, normalizedEmail);
                 console.log("PQC Seed (Passkey) derived using V2 (email) salt (Worker)");
             } else {
                 pqcSeed = await pqcWorkerManager.derivePQCSeed(passwordRaw);
