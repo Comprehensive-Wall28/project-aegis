@@ -95,8 +95,8 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
 
             // Create file metadata record
             const fileRecord = await this.repository.create({
-                ownerId: userId as any,
-                folderId: data.folderId || null,
+                ownerId: new mongoose.Types.ObjectId(userId),
+                folderId: data.folderId ? new mongoose.Types.ObjectId(data.folderId) : null,
                 fileName: data.fileName,
                 originalFileName: data.originalFileName,
                 fileSize: data.fileSize,
@@ -105,7 +105,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 mimeType: data.mimeType,
                 uploadStreamId,
                 status: 'pending'
-            } as any);
+            } as Partial<IFileMetadata>);
 
             logger.info(`Vault upload initiated: ${data.originalFileName} by User ${userId}`);
 
@@ -177,7 +177,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 // Update user storage usage
                 await this.userRepository.updateById(userId, {
                     $inc: { totalStorageUsed: fileRecord.fileSize }
-                } as any);
+                });
 
                 logger.info(`Vault upload completed: ${fileId} -> Google Drive ${googleDriveFileId}`);
                 return { complete: true, googleDriveFileId };
@@ -302,12 +302,12 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
 
             // Root level files
             return await this.repository.findByOwnerAndFolder(userId, null);
-        } catch (error: any) {
+        } catch (error: unknown) {
             if (error instanceof ServiceError) throw error;
 
             // Check for CastError explicitly if initial check somehow failed or for other fields
-            if (error.name === 'CastError') {
-                logger.warn(`CastError in getUserFiles: ${error.message}`);
+            if (error && typeof error === 'object' && 'name' in error && error.name === 'CastError') {
+                logger.warn(`CastError in getUserFiles: ${(error as any).message}`);
                 throw new ServiceError('Invalid ID format', 400);
             }
 
@@ -343,7 +343,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             if (fileRecord.status === 'completed') {
                 await this.userRepository.updateById(userId, {
                     $inc: { totalStorageUsed: -fileRecord.fileSize }
-                } as any);
+                });
             }
 
             logger.info(`Vault file deleted: ${fileRecord.fileName} (${fileId}) by User ${userId}`);

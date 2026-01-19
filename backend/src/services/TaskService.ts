@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Request } from 'express';
 import { BaseService, ServiceError } from './base/BaseService';
 import { TaskRepository } from '../repositories/TaskRepository';
@@ -119,7 +120,7 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
 
             // Create the task
             const task = await this.repository.create({
-                userId: userId as any,
+                userId: new mongoose.Types.ObjectId(userId),
                 encryptedData: data.encryptedData,
                 encapsulatedKey: data.encapsulatedKey,
                 encryptedSymmetricKey: data.encryptedSymmetricKey,
@@ -128,7 +129,7 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
                 status,
                 order: newOrder,
                 recordHash: data.recordHash
-            });
+            } as Partial<ITask>);
 
             // Audit log
             await this.logAction(userId, 'TASK_CREATE', 'SUCCESS', req, {

@@ -1,4 +1,9 @@
-import { Document, UpdateQuery } from 'mongoose';
+import mongoose, { Document, UpdateQuery } from 'mongoose';
+
+/**
+ * Helper to allow string IDs where ObjectIds are expected in queries
+ */
+type WithStringId<V> = V extends mongoose.Types.ObjectId | undefined | null ? V | string : V;
 
 /**
  * Query options for repository find operations
@@ -25,15 +30,16 @@ export interface PopulateOptions {
  */
 export type SafeFilter<T> = {
     [K in keyof Partial<T>]?:
-    | T[K]
-    | { $eq: T[K] }
-    | { $ne: T[K] }
-    | { $in: T[K][] }
-    | { $nin: T[K][] }
-    | { $gt: T[K] }
-    | { $gte: T[K] }
-    | { $lt: T[K] }
-    | { $lte: T[K] }
+    | WithStringId<T[K]>
+    | null
+    | { $eq: WithStringId<T[K]> | null }
+    | { $ne: WithStringId<T[K]> | null }
+    | { $in: (WithStringId<T[K]> | null)[] }
+    | { $nin: (WithStringId<T[K]> | null)[] }
+    | { $gt: WithStringId<T[K]> }
+    | { $gte: WithStringId<T[K]> }
+    | { $lt: WithStringId<T[K]> }
+    | { $lte: WithStringId<T[K]> }
     | { $exists: boolean };
 } & {
     _id?: string | { $eq: string } | { $in: string[] };

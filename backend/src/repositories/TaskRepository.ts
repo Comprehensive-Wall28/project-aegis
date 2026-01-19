@@ -19,7 +19,7 @@ export class TaskRepository extends BaseRepository<ITask> {
         options: QueryOptions = {}
     ): Promise<ITask[]> {
         const filter: SafeFilter<ITask> = {
-            userId: { $eq: userId as any }
+            userId: { $eq: userId }
         };
 
         if (filters?.status) {
@@ -41,7 +41,7 @@ export class TaskRepository extends BaseRepository<ITask> {
      */
     async findByUserAndStatus(userId: string, status: string): Promise<ITask[]> {
         return this.findMany({
-            userId: { $eq: userId as any },
+            userId: { $eq: userId },
             status: { $eq: status as any }
         }, {
             sort: { order: 1 }
@@ -54,7 +54,7 @@ export class TaskRepository extends BaseRepository<ITask> {
     async getMaxOrderInColumn(userId: string, status: string): Promise<number> {
         const result = await this.findOne(
             {
-                userId: { $eq: userId as any },
+                userId: { $eq: userId },
                 status: { $eq: status as any }
             },
             {
@@ -77,7 +77,7 @@ export class TaskRepository extends BaseRepository<ITask> {
             updateOne: {
                 filter: {
                     _id: update.id,
-                    userId: { $eq: userId as any }
+                    userId: { $eq: userId }
                 } as SafeFilter<ITask>,
                 update: {
                     $set: {
@@ -97,7 +97,7 @@ export class TaskRepository extends BaseRepository<ITask> {
     async deleteByIdAndUser(taskId: string, userId: string): Promise<boolean> {
         return this.deleteOne({
             _id: taskId,
-            userId: { $eq: userId as any }
+            userId: { $eq: userId }
         } as SafeFilter<ITask>);
     }
 
@@ -112,7 +112,7 @@ export class TaskRepository extends BaseRepository<ITask> {
         return this.updateOne(
             {
                 _id: taskId,
-                userId: { $eq: userId as any }
+                userId: { $eq: userId }
             } as SafeFilter<ITask>,
             { $set: data },
             { returnNew: true }
