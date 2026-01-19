@@ -31,6 +31,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { clearStoredSeed } from '@/lib/cryptoUtils';
 import { AuthDialog } from '@/components/auth/AuthDialog';
+import { useAuthModalStore } from '@/stores/authModalStore';
 
 export function Navbar() {
     const theme = useTheme();
@@ -40,9 +41,8 @@ export function Navbar() {
     const { theme: currentTheme, toggleTheme } = useThemeStore();
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    // Auth Dialog State
-    const [isAuthOpen, setIsAuthOpen] = useState(false);
-    const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+    // Auth Dialog Global State
+    const { isOpen: isAuthOpen, mode: authMode, openModal, closeModal } = useAuthModalStore();
 
     // Security: Scrub any PQC keys from localStorage (fix for leaked keys)
     useEffect(() => {
@@ -67,12 +67,11 @@ export function Navbar() {
     // Check if we should show login dialog from redirect
     useEffect(() => {
         if (location.state?.showLogin) {
-            setAuthMode('login');
-            setIsAuthOpen(true);
+            openModal('login');
             // Clear status to prevent popup from reopening on refresh
             navigate(location.pathname, { replace: true, state: { ...location.state, showLogin: undefined } });
         }
-    }, [location.state, location.pathname, navigate]);
+    }, [location.state, location.pathname, navigate, openModal]);
 
     const handleLogout = async () => {
         await authService.logout();
@@ -81,8 +80,7 @@ export function Navbar() {
     };
 
     const openAuth = (mode: 'login' | 'register') => {
-        setAuthMode(mode);
-        setIsAuthOpen(true);
+        openModal(mode);
     };
 
     return (
@@ -329,7 +327,7 @@ export function Navbar() {
             {/* Replaced Dialog with AuthDialog */}
             <AuthDialog
                 open={isAuthOpen}
-                onClose={() => setIsAuthOpen(false)}
+                onClose={closeModal}
                 initialMode={authMode}
             />
         </>

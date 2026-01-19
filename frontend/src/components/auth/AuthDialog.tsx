@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -25,6 +26,18 @@ const MotionPaper = motion.create(Paper);
 export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogProps) {
     const theme = useTheme();
     const { state, actions } = useAuthForm(open, initialMode, onClose);
+
+    // Lock body scroll when dialog is open
+    useEffect(() => {
+        if (open) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [open]);
 
     // Animation variants
     const backdropVariants = {
