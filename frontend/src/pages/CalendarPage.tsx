@@ -452,6 +452,25 @@ export function CalendarPage() {
                             borderColor: `${theme.palette.secondary.main} !important`,
                         }
                     },
+                    '& .fc-prev-button, & .fc-next-button': {
+                        boxShadow: 'none !important',
+                        outline: 'none !important',
+                        '&:active, &:focus, &:focus-visible': {
+                            boxShadow: 'none !important',
+                            outline: 'none !important',
+                            bgcolor: 'transparent !important',
+                            color: `${theme.palette.primary.main} !important`,
+                        },
+                        '&:hover': {
+                            bgcolor: 'transparent !important',
+                            color: `${theme.palette.primary.main} !important`,
+                        },
+                        '&:disabled': {
+                            boxShadow: 'none !important',
+                            outline: 'none !important',
+                            opacity: 0.3,
+                        }
+                    },
                     '& .fc-scroller': {
                         msOverflowStyle: 'none',
                         scrollbarWidth: 'none',

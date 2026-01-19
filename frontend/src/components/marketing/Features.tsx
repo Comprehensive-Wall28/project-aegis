@@ -62,14 +62,14 @@ const securityFeatures = [
         color: "#0ea5e9", // Sky blue
     },
     {
-        title: "Merkle Integrity",
-        description: "Tamper-proof verifiable logs using Merkle-Tree hashing. Verify the integrity of your data instantly.",
+        title: "Verifiable Data Integrity",
+        description: "Ensure your data hasn't been altered using Merkle-Tree hashing verification. Verify the integrity of your data instantly.",
         icon: GitGraphIcon,
         color: "#0ea5e9", // Sky blue
     },
     {
-        title: "Zero-Knowledge",
-        description: "Prove your credentials without revealing raw data. Your private information stays private.",
+        title: "Zero-Access",
+        description: "Your encryption keys are derived on your device. We never see your password or unencrypted data.",
         icon: FileKeyIcon,
         color: "#0ea5e9", // Sky blue
     },

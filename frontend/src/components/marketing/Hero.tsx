@@ -178,7 +178,7 @@ export function Hero() {
                         }}
                     >
                         A stateless productivity suite powered by ML-KEM encryption.
-                        Experience total data sovereignty with zero-knowledge architecture.
+                        Experience total data sovereignty with private-by-design architecture.
                     </Typography>
 
                     <Box
@@ -275,7 +275,7 @@ export function Hero() {
                                     {[
                                         { Icon: LockIcon, text: 'Client-side Encryption' },
                                         { Icon: SecurityIcon, text: 'Quantum-Safe Keys' },
-                                        { Icon: PrivacyIcon, text: 'Zero-Knowledge Design' }
+                                        { Icon: PrivacyIcon, text: 'Zero-Access Architecture' }
                                     ].map((item) => (
                                         <Box key={item.text} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                             <Box sx={{
