@@ -4,13 +4,13 @@ import { Box, CircularProgress, ThemeProvider, CssBaseline } from '@mui/material
 
 import { Landing } from '@/pages/Landing';
 import { Dashboard } from '@/pages/Dashboard';
+import { FilesPage } from '@/pages/FilesPage';
+import { TasksPage } from '@/pages/TasksPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import { GPAPage } from '@/pages/GPAPage';
 
 // Lazy load page components
-const FilesPage = lazy(() => import('@/pages/FilesPage').then(m => ({ default: m.FilesPage })));
 const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })));
-const TasksPage = lazy(() => import('@/pages/TasksPage').then(m => ({ default: m.TasksPage })));
-const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const SocialPage = lazy(() => import('@/pages/SocialPage').then(m => ({ default: m.SocialPage })));
 const InviteLanding = lazy(() => import('@/pages/InviteLanding').then(m => ({ default: m.InviteLanding })));
 const PqcLearn = lazy(() => import('@/pages/PqcLearn').then(m => ({ default: m.PqcLearn })));
@@ -136,20 +136,12 @@ const router = createBrowserRouter([
                     },
                     {
                         path: 'files',
-                        element: (
-                            <SuspensePage>
-                                <FilesPage />
-                            </SuspensePage>
-                        ),
+                        element: <FilesPage />,
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
                         path: 'files/:folderId',
-                        element: (
-                            <SuspensePage>
-                                <FilesPage />
-                            </SuspensePage>
-                        ),
+                        element: <FilesPage />,
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
@@ -173,20 +165,12 @@ const router = createBrowserRouter([
                     },
                     {
                         path: 'tasks',
-                        element: (
-                            <SuspensePage>
-                                <TasksPage />
-                            </SuspensePage>
-                        ),
+                        element: <TasksPage />,
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
                         path: 'security',
-                        element: (
-                            <SuspensePage>
-                                <SettingsPage />
-                            </SuspensePage>
-                        ),
+                        element: <SettingsPage />,
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
