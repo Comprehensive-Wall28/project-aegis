@@ -146,8 +146,8 @@ export const getTheme = (mode: ThemeMode) => {
         },
         tokyonight: {
             background: {
-                default: '#16161e', // Even darker for outer depth
-                paper: '#1a1b26',   // Tokyo Night (Night) - Darker center area
+                default: '#13141b', // Even darker for outer depth
+                paper: '#181923',   // Tokyo Night (Night) - Darker center area
             },
             primary: {
                 main: '#7aa2f7',    // Tokyo Night Blue

@@ -94,7 +94,10 @@ export function Navbar() {
                     width: 'calc(100% - 32px)',
                     maxWidth: 1400,
                     borderRadius: 4,
-                    bgcolor: theme.palette.background.paper,
+                    // Glass Effect
+                    bgcolor: alpha(theme.palette.background.paper, 0.7),
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
                     border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                     boxShadow: theme.shadows[4],
                     backgroundImage: 'none',

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aegis-cache-v2';
+const CACHE_NAME = 'aegis-cache-v3';
 const STATIC_ASSETS = '/assets/';
 const FONT_ASSETS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
@@ -70,7 +70,22 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 3. Stale-While-Revalidate for everything else (App Shell, internal pages)
+    // 3. Network-First for Navigation Requests (HTML) to ensure latest app version
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request).then((response) => {
+                return caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, response.clone());
+                    return response;
+                });
+            }).catch(() => {
+                return caches.match(event.request);
+            })
+        );
+        return;
+    }
+
+    // 4. Stale-While-Revalidate for everything else (Images, manifest, etc.)
     event.respondWith(
         caches.match(event.request).then((cached) => {
             const fetched = fetch(event.request).then((response) => {

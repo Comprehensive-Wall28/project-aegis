@@ -406,18 +406,20 @@ export function CalendarPage() {
                         bgcolor: `${theme.palette.background.paper} !important`,
                         border: `1px solid ${alpha(theme.palette.common.white, 0.07)} !important`,
                         color: `${theme.palette.text.primary} !important`,
-                        boxShadow: 'none',
+                        boxShadow: 'none !important',
+                        outline: 'none !important',
                         '&:hover': {
                             bgcolor: 'transparent !important',
                             borderColor: `${theme.palette.primary.main} !important`,
                             color: `${theme.palette.primary.main} !important`,
+                            boxShadow: 'none !important',
                         },
-                        '&:active, &:focus, &.fc-button-active': {
-                            bgcolor: 'transparent !important',
+                        '&:active, &:focus, &:focus-visible, &.fc-button-active': {
+                            bgcolor: `${theme.palette.primary.main} !important`,
                             borderColor: `${theme.palette.primary.main} !important`,
-                            color: `${theme.palette.primary.main} !important`,
+                            color: `${theme.palette.primary.contrastText} !important`,
                             zIndex: 5,
-                            boxShadow: 'none',
+                            boxShadow: 'none !important',
                             outline: 'none !important',
                         },
                         '&:disabled': {
