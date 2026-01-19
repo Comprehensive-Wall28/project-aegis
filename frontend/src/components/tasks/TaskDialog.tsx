@@ -63,6 +63,7 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     // Group state to avoid cascading updates notification and simplify management
     const [formData, setFormData] = useState<TaskDialogData>({
@@ -76,6 +77,7 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
 
     useEffect(() => {
         if (open) {
+            setIsEditMode(!!task?._id);
             if (task) {
                 setFormData({
                     title: task.title || '',
@@ -152,7 +154,7 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
                 }}
             >
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {task?._id ? 'Edit Task' : 'New Encrypted Task'}
+                    {isEditMode ? 'Edit Task' : 'New Encrypted Task'}
                 </Typography>
                 <IconButton onClick={onClose} size="small" edge="end">
                     <CloseIcon />
@@ -262,7 +264,6 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
                         label="Due Date"
                         value={formData.dueDate ? dayjs(formData.dueDate) : null}
                         onOpen={() => setIsPickerOpen(true)}
-                        onClose={() => setIsPickerOpen(false)}
                         onChange={(newValue) => {
                             setFormData(prev => ({
                                 ...prev,
@@ -283,6 +284,9 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
                                 }
                             },
                             dialog: {
+                                TransitionProps: {
+                                    onExited: () => setIsPickerOpen(false)
+                                } as any,
                                 sx: {
                                     '& .MuiPaper-root': {
                                         borderRadius: '24px',
@@ -314,7 +318,7 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
 
             <DialogActions sx={{ p: isMobile ? 2 : 3, justifyContent: 'space-between', borderTop: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : 'none' }}>
                 <Box>
-                    {task?._id && onDelete && (
+                    {isEditMode && task?._id && onDelete && (
                         <Button
                             onClick={() => onDelete(task._id)}
                             color="error"
@@ -342,7 +346,7 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
                             gap: 1
                         }}
                     >
-                        {isSaving ? 'Saving...' : (task?._id ? 'Update' : 'Create')}
+                        {isSaving ? 'Saving...' : (isEditMode ? 'Update' : 'Create')}
                         {!isMobile && (
                             <Box
                                 component="span"
