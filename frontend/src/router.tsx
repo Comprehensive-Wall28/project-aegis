@@ -1,26 +1,55 @@
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
+import { lazy, Suspense, useMemo, useEffect } from 'react';
+import { Box, CircularProgress, ThemeProvider, CssBaseline } from '@mui/material';
+
 import { Landing } from '@/pages/Landing';
-import { Dashboard } from '@/pages/Dashboard';
-import { FilesPage } from '@/pages/FilesPage';
-import { GPAPage } from '@/pages/GPAPage';
-import { CalendarPage } from '@/pages/CalendarPage';
-import { TasksPage } from '@/pages/TasksPage';
-import { SettingsPage } from '@/pages/SettingsPage';
-import { SocialPage } from '@/pages/SocialPage';
-import { InviteLanding } from '@/pages/InviteLanding';
-import { PqcLearn } from '@/pages/PqcLearn';
-import { NotFound } from '@/pages/NotFound';
-import { BackendDownPage } from '@/pages/BackendDown';
-import { PublicSharedFilePage } from '@/pages/PublicSharedFilePage';
+
+// Lazy load page components
+const Dashboard = lazy(() => import('@/pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const FilesPage = lazy(() => import('@/pages/FilesPage').then(m => ({ default: m.FilesPage })));
+const GPAPage = lazy(() => import('@/pages/GPAPage').then(m => ({ default: m.GPAPage })));
+const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })));
+const TasksPage = lazy(() => import('@/pages/TasksPage').then(m => ({ default: m.TasksPage })));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const SocialPage = lazy(() => import('@/pages/SocialPage').then(m => ({ default: m.SocialPage })));
+const InviteLanding = lazy(() => import('@/pages/InviteLanding').then(m => ({ default: m.InviteLanding })));
+const PqcLearn = lazy(() => import('@/pages/PqcLearn').then(m => ({ default: m.PqcLearn })));
+const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })));
+const BackendDownPage = lazy(() => import('@/pages/BackendDown').then(m => ({ default: m.BackendDownPage })));
+const PublicSharedFilePage = lazy(() => import('@/pages/PublicSharedFilePage').then(m => ({ default: m.PublicSharedFilePage })));
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { RouteErrorBoundary } from '@/components/error/RouteErrorBoundary';
 import { BackendStatusProvider } from '@/contexts/BackendStatusContext';
-import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme';
 import { useThemeStore } from '@/stores/themeStore';
 import { useSessionStore } from '@/stores/sessionStore';
-import { useMemo, useEffect } from 'react';
+
+// Loading component for Suspense fallback
+function PageLoader() {
+    return (
+        <Box
+            sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '60vh',
+                width: '100%',
+            }}
+        >
+            <CircularProgress size={40} thickness={4} sx={{ color: 'primary.main' }} />
+        </Box>
+    );
+}
+
+// Wrapper to simplify Suspense usage
+function SuspensePage({ children }: { children: React.ReactNode }) {
+    return (
+        <Suspense fallback={<PageLoader />}>
+            {children}
+        </Suspense>
+    );
+}
 
 // Root layout that provides backend status context to all routes
 function RootLayout() {
@@ -53,21 +82,37 @@ const router = createBrowserRouter([
             },
             {
                 path: '/backend-down',
-                element: <BackendDownPage />,
+                element: (
+                    <SuspensePage>
+                        <BackendDownPage />
+                    </SuspensePage>
+                ),
             },
             {
                 path: '/pqc-learn',
-                element: <PqcLearn />,
+                element: (
+                    <SuspensePage>
+                        <PqcLearn />
+                    </SuspensePage>
+                ),
                 errorElement: <RouteErrorBoundary />,
             },
             {
                 path: '/invite/:code',
-                element: <InviteLanding />,
+                element: (
+                    <SuspensePage>
+                        <InviteLanding />
+                    </SuspensePage>
+                ),
                 errorElement: <RouteErrorBoundary />,
             },
             {
                 path: '/share/view/:token',
-                element: <PublicSharedFilePage />,
+                element: (
+                    <SuspensePage>
+                        <PublicSharedFilePage />
+                    </SuspensePage>
+                ),
                 errorElement: <RouteErrorBoundary />,
             },
             {
@@ -81,22 +126,38 @@ const router = createBrowserRouter([
                 children: [
                     {
                         index: true,
-                        element: <Dashboard />,
+                        element: (
+                            <SuspensePage>
+                                <Dashboard />
+                            </SuspensePage>
+                        ),
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
                         path: 'files',
-                        element: <FilesPage />,
+                        element: (
+                            <SuspensePage>
+                                <FilesPage />
+                            </SuspensePage>
+                        ),
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
                         path: 'files/:folderId',
-                        element: <FilesPage />,
+                        element: (
+                            <SuspensePage>
+                                <FilesPage />
+                            </SuspensePage>
+                        ),
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
                         path: 'gpa',
-                        element: <GPAPage />,
+                        element: (
+                            <SuspensePage>
+                                <GPAPage />
+                            </SuspensePage>
+                        ),
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
@@ -106,34 +167,58 @@ const router = createBrowserRouter([
                     },
                     {
                         path: 'calendar',
-                        element: <CalendarPage />,
+                        element: (
+                            <SuspensePage>
+                                <CalendarPage />
+                            </SuspensePage>
+                        ),
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
                         path: 'tasks',
-                        element: <TasksPage />,
+                        element: (
+                            <SuspensePage>
+                                <TasksPage />
+                            </SuspensePage>
+                        ),
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
                         path: 'security',
-                        element: <SettingsPage />,
+                        element: (
+                            <SuspensePage>
+                                <SettingsPage />
+                            </SuspensePage>
+                        ),
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
                         path: 'social',
-                        element: <SocialPage />,
+                        element: (
+                            <SuspensePage>
+                                <SocialPage />
+                            </SuspensePage>
+                        ),
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
                         path: 'social/:roomId',
-                        element: <SocialPage />,
+                        element: (
+                            <SuspensePage>
+                                <SocialPage />
+                            </SuspensePage>
+                        ),
                         errorElement: <RouteErrorBoundary />,
                     },
                 ],
             },
             {
                 path: '*',
-                element: <NotFound />,
+                element: (
+                    <SuspensePage>
+                        <NotFound />
+                    </SuspensePage>
+                ),
             },
         ],
     },
