@@ -19,7 +19,7 @@ import {
     type SelectChangeEvent,
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { MobileDateTimePicker } from '@mui/x-date-pickers/MobileDateTimePicker';
 import dayjs from 'dayjs';
 import type { Task } from '../../services/taskService';
 
@@ -62,6 +62,7 @@ const formatDateForInput = (dateInput: string | Date | undefined) => {
 export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSaving }: TaskDialogProps) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
 
     // Group state to avoid cascading updates notification and simplify management
     const [formData, setFormData] = useState<TaskDialogData>({
@@ -128,6 +129,7 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
             fullWidth
             maxWidth="sm"
             fullScreen={isMobile}
+            disableEnforceFocus={isPickerOpen}
             PaperProps={{
                 variant: 'solid',
                 sx: {
@@ -256,13 +258,15 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
                         </FormControl>
                     </Box>
 
-                    <DateTimePicker
+                    <MobileDateTimePicker
                         label="Due Date"
                         value={formData.dueDate ? dayjs(formData.dueDate) : null}
+                        onOpen={() => setIsPickerOpen(true)}
+                        onClose={() => setIsPickerOpen(false)}
                         onChange={(newValue) => {
                             setFormData(prev => ({
                                 ...prev,
-                                dueDate: newValue ? newValue.toISOString() : ''
+                                dueDate: newValue ? (newValue as dayjs.Dayjs).toISOString() : ''
                             }));
                         }}
                         slotProps={{
@@ -278,21 +282,14 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
                                     }
                                 }
                             },
-                            popper: {
-                                placement: 'bottom-end',
+                            dialog: {
                                 sx: {
                                     '& .MuiPaper-root': {
-                                        borderRadius: '16px',
-                                        mt: 1,
-                                        boxShadow: theme.shadows[10],
-                                        bgcolor: theme.palette.background.paper, // Ensure opaque
+                                        borderRadius: '24px',
+                                        bgcolor: theme.palette.background.paper,
                                         backgroundImage: 'none',
+                                        boxShadow: theme.shadows[20],
                                     }
-                                }
-                            },
-                            mobilePaper: {
-                                sx: {
-                                    borderRadius: '24px 24px 0 0',
                                 }
                             }
                         }}
