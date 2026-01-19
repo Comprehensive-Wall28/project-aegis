@@ -36,22 +36,18 @@ export const uploadChunk = async (req: AuthRequest, res: Response) => {
 
         const fileId = req.query.fileId as string;
         const contentRange = req.headers['content-range'] as string;
+        const contentLength = parseInt(req.headers['content-length'] || '0', 10);
 
-        // Create chunk data getter that collects from request stream
-        const getChunkData = (): Promise<Buffer> => {
-            return new Promise((resolve, reject) => {
-                const chunks: Buffer[] = [];
-                req.on('data', (chunk: Buffer) => chunks.push(chunk));
-                req.on('end', () => resolve(Buffer.concat(chunks)));
-                req.on('error', (err) => reject(err));
-            });
-        };
+        if (contentLength === 0) {
+            throw new ServiceError('Missing Content-Length', 400);
+        }
 
         const result = await vaultService.uploadChunk(
             req.user.id,
             fileId,
             contentRange,
-            getChunkData
+            req, // Pass the request stream directly
+            contentLength
         );
 
         if (result.complete) {

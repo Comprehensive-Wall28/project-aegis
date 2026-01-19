@@ -139,7 +139,8 @@ export const initiateUpload = async (
 /**
  * Append a chunk to an active upload session using resumable upload protocol.
  * @param sessionId - The upload session ID
- * @param chunk - The chunk data as Buffer
+ * @param chunk - The chunk data as Buffer or Readable stream
+ * @param chunkLength - Length of the chunk in bytes
  * @param rangeStart - Start byte position
  * @param rangeEnd - End byte position
  * @param totalSize - Total expected file size
@@ -147,7 +148,8 @@ export const initiateUpload = async (
  */
 export const appendChunk = async (
     sessionId: string,
-    chunk: Buffer,
+    chunk: Buffer | Readable,
+    chunkLength: number,
     rangeStart: number,
     rangeEnd: number,
     totalSize: number
@@ -159,19 +161,20 @@ export const appendChunk = async (
     }
 
     // Update received size
-    session.receivedSize += chunk.length;
+    session.receivedSize += chunkLength;
 
     // Perform PUT request with Content-Range header
     const response = await fetch(session.sessionUrl, {
         method: 'PUT',
         headers: {
-            'Content-Length': String(chunk.length),
+            'Content-Length': String(chunkLength),
             'Content-Range': `bytes ${rangeStart}-${rangeEnd}/${totalSize}`
         },
-        body: new Uint8Array(chunk)
-    });
+        body: chunk instanceof Buffer ? new Uint8Array(chunk) : (Readable.toWeb(chunk as Readable) as any),
+        duplex: 'half'
+    } as any);
 
-    logger.info(`Google Drive chunk uploaded: sessionId=${sessionId}, chunkSize=${chunk.length}, received=${session.receivedSize}/${totalSize}, status=${response.status}`);
+    logger.info(`Google Drive chunk uploaded: sessionId=${sessionId}, chunkSize=${chunkLength}, received=${session.receivedSize}/${totalSize}, status=${response.status}`);
 
     // 200 or 201 means upload complete
     if (response.status === 200 || response.status === 201) {

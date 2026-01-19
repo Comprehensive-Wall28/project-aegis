@@ -131,7 +131,8 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
         userId: string,
         fileId: string,
         contentRange: string,
-        getChunkData: () => Promise<Buffer>
+        chunk: Readable | Buffer,
+        chunkLength: number
     ): Promise<ChunkUploadResult> {
         try {
             if (!fileId || !contentRange) {
@@ -153,9 +154,6 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             const rangeEnd = parseInt(rangeMatch[2], 10);
             const totalSize = parseInt(rangeMatch[3], 10);
 
-            // Get chunk data
-            const chunkBuffer = await getChunkData();
-
             // Update status to uploading if still pending
             if (fileRecord.status === 'pending') {
                 await this.repository.updateUploadStatus(fileId, 'uploading');
@@ -164,7 +162,8 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             // Append chunk to Google Drive upload session
             const { complete, receivedSize } = await appendChunk(
                 fileRecord.uploadStreamId,
-                chunkBuffer,
+                chunk,
+                chunkLength,
                 rangeStart,
                 rangeEnd,
                 totalSize
