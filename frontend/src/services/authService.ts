@@ -68,8 +68,8 @@ const authService = {
         // 3. Call backend login
         const response = await apiClient.post<any>('/auth/login', {
             email: normalizedEmail,
-            argon2Hash,
-            legacyHash
+            argon2Hash: argon2Hash.toLowerCase(),
+            legacyHash: legacyHash.toLowerCase()
         });
         const userData = response.data;
 
@@ -116,8 +116,8 @@ const authService = {
             username,
             email: normalizedEmail,
             pqcPublicKey,
-            argon2Hash,
-            legacyHash,
+            argon2Hash: argon2Hash.toLowerCase(),
+            legacyHash: legacyHash.toLowerCase(),
         });
 
         return {

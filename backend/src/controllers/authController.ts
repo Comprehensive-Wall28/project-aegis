@@ -37,6 +37,12 @@ export const loginUser = async (req: Request, res: Response) => {
         if (req.body.email) {
             req.body.email = req.body.email.toLowerCase().trim();
         }
+        if (req.body.argon2Hash) {
+            req.body.argon2Hash = req.body.argon2Hash.toLowerCase();
+        }
+        if (req.body.legacyHash) {
+            req.body.legacyHash = req.body.legacyHash.toLowerCase();
+        }
         const result = await authService.login(req.body, req, setCookie(res));
 
         if ('status' in result && result.status === '2FA_REQUIRED') {

@@ -160,6 +160,9 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
             const normalizedEmail = data.email.toLowerCase().trim();
+            const argon2Hash = data.argon2Hash.toLowerCase();
+            const legacyHash = data.legacyHash?.toLowerCase();
+
             const user = await this.repository.findByEmail(normalizedEmail);
             if (!user || !user.passwordHash) {
                 logger.warn(`Failed login for email: ${normalizedEmail} (user not found)`);
@@ -172,17 +175,17 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
             if (hashVersion === 1) {
                 // Migration path: verify against legacyHash if provided
-                if (data.legacyHash) {
-                    verified = await argon2.verify(user.passwordHash, data.legacyHash);
+                if (legacyHash) {
+                    verified = await argon2.verify(user.passwordHash, legacyHash);
                 } else {
                     // Fallback to argon2Hash if legacyHash not provided (unlikely during migration window)
-                    verified = await argon2.verify(user.passwordHash, data.argon2Hash);
+                    verified = await argon2.verify(user.passwordHash, argon2Hash);
                 }
 
                 if (verified) {
                     // Success! Migrate to version 2
                     logger.info(`Migrating user ${user.email} to password hash version 2`);
-                    const newPasswordHash = await argon2.hash(data.argon2Hash);
+                    const newPasswordHash = await argon2.hash(argon2Hash);
                     await this.repository.updateById(user._id.toString(), {
                         $set: {
                             passwordHash: newPasswordHash,
@@ -192,7 +195,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 }
             } else {
                 // Version 2: standard verify against argon2Hash
-                verified = await argon2.verify(user.passwordHash, data.argon2Hash);
+                verified = await argon2.verify(user.passwordHash, argon2Hash);
             }
 
             if (!verified) {
@@ -576,7 +579,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('User not found', 404);
             }
 
-            const passwordHash = await argon2.hash(argon2Hash);
+            const normalizedArgon2Hash = argon2Hash.toLowerCase();
+            const passwordHash = await argon2.hash(normalizedArgon2Hash);
             await this.repository.updateById(userId, {
                 $set: {
                     passwordHash,
