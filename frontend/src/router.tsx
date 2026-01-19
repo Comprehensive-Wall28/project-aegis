@@ -10,10 +10,12 @@ import { FilesPage } from '@/pages/FilesPage';
 import { TasksPage } from '@/pages/TasksPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { GPAPage } from '@/pages/GPAPage';
+import { CalendarPage } from '@/pages/CalendarPage';
+import { SocialPage } from '@/pages/SocialPage';
 
 // Lazy load page components
-const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })));
-const SocialPage = lazy(() => import('@/pages/SocialPage').then(m => ({ default: m.SocialPage })));
+// const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })));
+// const SocialPage = lazy(() => import('@/pages/SocialPage').then(m => ({ default: m.SocialPage })));
 const InviteLanding = lazy(() => import('@/pages/InviteLanding').then(m => ({ default: m.InviteLanding })));
 const PqcLearn = lazy(() => import('@/pages/PqcLearn').then(m => ({ default: m.PqcLearn })));
 const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })));
@@ -158,11 +160,7 @@ const router = createBrowserRouter([
                     },
                     {
                         path: 'calendar',
-                        element: (
-                            <SuspensePage>
-                                <CalendarPage />
-                            </SuspensePage>
-                        ),
+                        element: <CalendarPage />,
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
@@ -177,20 +175,12 @@ const router = createBrowserRouter([
                     },
                     {
                         path: 'social',
-                        element: (
-                            <SuspensePage>
-                                <SocialPage />
-                            </SuspensePage>
-                        ),
+                        element: <SocialPage />,
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
                         path: 'social/:roomId',
-                        element: (
-                            <SuspensePage>
-                                <SocialPage />
-                            </SuspensePage>
-                        ),
+                        element: <SocialPage />,
                         errorElement: <RouteErrorBoundary />,
                     },
                 ],
