@@ -10,8 +10,13 @@ interface AuthRequest extends Request {
 export const protect = (req: AuthRequest, res: Response, next: NextFunction) => {
     let token: string | undefined;
 
-    // Check for token in cookies (HTTP-only)
-    if (req.cookies?.token) {
+    // Check for token in Authorization header (Bearer <token>)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+    }
+    // Fallback to cookies (HTTP-only)
+    else if (req.cookies?.token) {
         token = req.cookies.token;
     }
 
