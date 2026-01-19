@@ -203,7 +203,7 @@ export function DashboardLayout() {
                 {/* Headers Section */}
                 <Box sx={{ zIndex: 10, flexShrink: 0 }}>
                     <TopHeader onMobileMenuOpen={() => setIsMobileMenuOpen(true)} />
-                    {!isCalendarPage && <SystemStatusBar />}
+                    <SystemStatusBar />
                 </Box>
 
                 {/* Content Area ('The Stage') */}
@@ -229,13 +229,17 @@ export function DashboardLayout() {
                         <Box
                             sx={{
                                 flexGrow: 1,
-                                p: { xs: isCalendarPage ? 1.5 : 2, sm: 3, md: 6 },
-                                overflowY: 'auto',
+                                p: {
+                                    xs: isCalendarPage ? 0 : 2,
+                                    sm: isCalendarPage ? 0 : 3,
+                                    md: isCalendarPage ? 0 : 6
+                                },
+                                overflowY: isCalendarPage ? 'hidden' : 'auto',
                                 '&::-webkit-scrollbar': { width: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: 3 }
                             }}
                         >
-                            <Box sx={{ maxWidth: 1600, mx: 'auto', width: '100%', height: '100%' }}>
+                            <Box sx={{ maxWidth: isCalendarPage ? 'none' : 1600, mx: 'auto', width: '100%', height: '100%' }}>
                                 <Outlet />
                             </Box>
                         </Box>

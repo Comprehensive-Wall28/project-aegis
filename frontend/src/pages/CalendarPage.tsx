@@ -8,10 +8,11 @@ import {
     CircularProgress,
     Snackbar,
     Alert,
-    Stack,
     useMediaQuery,
+    Popover,
+    IconButton,
 } from '@mui/material';
-import { CalendarMonth as CalendarIcon } from '@mui/icons-material';
+import { CalendarMonth as CalendarIcon, Close as CloseIcon } from '@mui/icons-material';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -37,6 +38,7 @@ export function CalendarPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+    const [popoverState, setPopoverState] = useState<{ anchorEl: HTMLElement | null; date: Date | null }>({ anchorEl: null, date: null });
     const calendarRef = useRef<any>(null);
 
     const showSnackbar = (message: string, severity: 'success' | 'error' = 'success') => {
@@ -63,7 +65,6 @@ export function CalendarPage() {
             allDay: info.allDay,
         });
         setDialogOpen(true);
-        // info.view.calendar.unselect(); // Optional: clears selection
     };
 
     const handleEventClick = (info: any) => {
@@ -77,7 +78,35 @@ export function CalendarPage() {
                 allDay: event.isAllDay,
             });
             setDialogOpen(true);
+            setPopoverState({ anchorEl: null, date: null }); // Close popover if open
         }
+    };
+
+    const handleMoreLinkClick = (args: any) => {
+        args.jsEvent.preventDefault();
+        setPopoverState({ anchorEl: args.jsEvent.target, date: args.date });
+    };
+
+    const handlePopoverClose = () => {
+        setPopoverState({ anchorEl: null, date: null });
+    };
+
+    const getEventsForDate = (date: Date | null) => {
+        if (!date) return [];
+        return events.filter(e => {
+            const eventStart = new Date(e.startDate);
+            const eventEnd = new Date(e.endDate);
+            const target = new Date(date);
+            target.setHours(0, 0, 0, 0);
+
+            // Simple overlap check for day view
+            const startDay = new Date(eventStart);
+            startDay.setHours(0, 0, 0, 0);
+            const endDay = new Date(eventEnd);
+            endDay.setHours(0, 0, 0, 0);
+
+            return target >= startDay && target <= endDay;
+        });
     };
 
     const handleEventDrop = async (info: any) => {
@@ -154,63 +183,34 @@ export function CalendarPage() {
 
     const renderEventContent = (eventInfo: any) => {
         const { event } = eventInfo;
-        const startTime = event.start
-            ? new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-            : '';
 
         return (
             <Box
                 sx={{
                     display: 'flex',
-                    flexDirection: 'column',
+                    alignItems: 'center',
                     width: '100%',
                     overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                    position: 'relative',
-                    zIndex: 2,
+                    bgcolor: alpha(event.backgroundColor, 0.2),
+                    borderLeft: `4px solid ${event.backgroundColor}`,
+                    borderRadius: '4px',
+                    px: 0.8,
+                    py: 0.4,
+                    minHeight: '24px',
                 }}
             >
-                <Stack direction="row" spacing={0.8} alignItems="center">
-                    <Box
-                        sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            bgcolor: event.backgroundColor,
-                            boxShadow: `0 0 10px ${event.backgroundColor}`,
-                            flexShrink: 0
-                        }}
-                    />
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            fontWeight: 700,
-                            color: 'inherit',
-                            fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: 'block',
-                            letterSpacing: '0.2px',
-                        }}
-                    >
-                        {event.title}
-                    </Typography>
-                </Stack>
-                {!event.allDay && startTime && (
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            opacity: 0.7,
-                            fontSize: '0.65rem',
-                            ml: 2,
-                            fontWeight: 500,
-                            fontFamily: 'JetBrains Mono, monospace'
-                        }}
-                    >
-                        {startTime}
-                    </Typography>
-                )}
+                <Typography
+                    variant="caption"
+                    noWrap
+                    sx={{
+                        fontWeight: 600,
+                        color: 'text.primary',
+                        fontSize: '0.75rem',
+                        lineHeight: 1.2
+                    }}
+                >
+                    {event.title}
+                </Typography>
             </Box>
         );
     };
@@ -227,6 +227,8 @@ export function CalendarPage() {
         }));
     }, [events]);
 
+    const popoverEvents = useMemo(() => getEventsForDate(popoverState.date), [popoverState.date, events]);
+
     if (pqcEngineStatus !== 'operational' && isLoading) {
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 400 }}>
@@ -236,11 +238,18 @@ export function CalendarPage() {
     }
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: { xs: 0, md: 0 }, pt: { xs: 1, md: 1 } }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 0 }}>
             <Box
-                sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', justifyContent: 'space-between' }}
+                sx={{
+                    display: { xs: 'none', sm: 'flex' },
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: { xs: 2, sm: 3 },
+                    px: { xs: 2.5, sm: 4 }, // Increased horizontal padding
+                    pb: 1
+                }}
             >
-                <Box sx={{ px: { xs: 1, sm: 0 } }}>
+                <Box>
                     <Typography
                         variant="h4"
                         sx={{
@@ -259,17 +268,19 @@ export function CalendarPage() {
             <Paper
                 elevation={0}
                 sx={{
-                    p: { xs: 0.5, sm: 1.5 },
-                    borderRadius: { xs: '16px', sm: '24px' },
-                    bgcolor: theme.palette.background.paper,
-                    // backdropFilter removed for performance
-                    border: `1px solid ${alpha(theme.palette.common.white, 0.12)}`,
+                    p: 0,
+                    borderRadius: 0,
+                    bgcolor: 'transparent',
+                    border: 'none',
                     overflow: 'hidden',
                     position: 'relative',
                     zIndex: 1,
-                    minHeight: { xs: '500px', md: '650px' },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flex: 1,
+                    minHeight: 0,
                     '& .fc': {
-                        '--fc-border-color': alpha(theme.palette.divider, 0.1),
+                        '--fc-border-color': alpha(theme.palette.divider, 0.05),
                         '--fc-today-bg-color': alpha(theme.palette.primary.main, 0.15),
                         '--fc-event-border-color': 'transparent',
                         '--fc-list-event-hover-bg-color': alpha(theme.palette.primary.main, 0.1),
@@ -283,7 +294,7 @@ export function CalendarPage() {
                         flexDirection: { xs: 'column', sm: 'row' },
                         gap: { xs: 1, sm: 0 },
                         mb: { xs: 1.5, sm: 3 },
-                        px: { xs: 1, sm: 0 },
+                        px: { xs: 2.5, sm: 4 }, // Add horizontal padding to toolbar
                     },
                     '& .fc-day': {
                         cursor: 'pointer',
@@ -293,13 +304,13 @@ export function CalendarPage() {
                         }
                     },
                     '& .fc-theme-standard td, & .fc-theme-standard th': {
-                        borderColor: `${alpha(theme.palette.common.white, 0.08)} !important`,
+                        borderColor: `${alpha(theme.palette.common.white, 0.05)} !important`,
                         background: 'transparent !important',
                     },
                     '& .fc-scrollgrid': {
-                        border: `1px solid ${alpha(theme.palette.common.white, 0.05)} !important`,
+                        border: `1px solid ${alpha(theme.palette.common.white, 0.04)} !important`,
                         background: 'transparent !important',
-                        borderRadius: { xs: '8px', sm: '16px' },
+                        borderRadius: 0,
                         overflow: 'hidden',
                     },
                     '& .fc-daygrid-day': {
@@ -311,11 +322,11 @@ export function CalendarPage() {
                     },
                     '& .fc-view-harness': {
                         background: 'transparent !important',
-                        height: { xs: '450px !important', sm: 'auto !important' }
+                        flex: 1,
                     },
                     '& .fc-col-header-cell': {
                         bgcolor: `${theme.palette.background.paper} !important`,
-                        borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)} !important`,
+                        borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.06)} !important`,
                     },
                     '& .fc-col-header-cell-cushion': {
                         py: { xs: 1, sm: 1.5 },
@@ -354,39 +365,17 @@ export function CalendarPage() {
                         }
                     },
                     '& .fc-daygrid-event': {
-                        borderRadius: '6px',
-                        px: { xs: 0.5, sm: 1 },
-                        py: { xs: 0.2, sm: 0.4 },
-                        fontSize: { xs: '0.65rem', sm: '0.8rem' },
-                        fontWeight: 600,
+                        borderRadius: '4px',
+                        margin: '1px 2px !important',
                         border: 'none !important',
-                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                        mx: '2px !important',
-                        mb: '2px !important',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        bgcolor: 'transparent !important', // We use after for background
-                        '&::before': {
-                            content: '""',
-                            position: 'absolute',
-                            inset: 0,
-                            bgcolor: 'currentColor',
-                            opacity: 0.12,
-                            zIndex: 1,
-                        },
-                        '&::after': {
-                            content: '""',
-                            position: 'absolute',
-                            inset: 0,
-                            background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
-                            zIndex: 0,
-                        },
+                        bgcolor: 'transparent !important',
+                        padding: '0 !important',
+                        boxShadow: 'none !important',
                         '&:hover': {
-                            transform: 'translateY(-2px)',
-                            boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
-                            '&::before': {
-                                opacity: 0.2,
-                            }
+                            backgroundColor: 'transparent !important',
+                        },
+                        '&::before, &::after': {
+                            display: 'none',
                         }
                     },
                     '& .fc-event-main': {
@@ -415,21 +404,21 @@ export function CalendarPage() {
                         py: { xs: 0.5, sm: 1.2 },
                         fontSize: { xs: '0.7rem', sm: '0.875rem' },
                         bgcolor: `${theme.palette.background.paper} !important`,
-                        border: `1px solid ${alpha(theme.palette.common.white, 0.15)} !important`,
+                        border: `1px solid ${alpha(theme.palette.common.white, 0.07)} !important`,
                         color: `${theme.palette.text.primary} !important`,
-                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         boxShadow: 'none',
                         '&:hover': {
-                            bgcolor: `${alpha(theme.palette.primary.main, 0.1)} !important`,
-                            borderColor: `${alpha(theme.palette.primary.main, 0.3)} !important`,
-                            transform: 'translateY(-1px)',
+                            bgcolor: 'transparent !important',
+                            borderColor: `${theme.palette.primary.main} !important`,
+                            color: `${theme.palette.primary.main} !important`,
                         },
                         '&:active, &:focus, &.fc-button-active': {
-                            bgcolor: theme.palette.primary.main,
-                            borderColor: theme.palette.primary.main,
-                            color: theme.palette.primary.contrastText,
-                            boxShadow: `0 0 20px ${alpha(theme.palette.primary.main, 0.25)} !important`,
+                            bgcolor: 'transparent !important',
+                            borderColor: `${theme.palette.primary.main} !important`,
+                            color: `${theme.palette.primary.main} !important`,
                             zIndex: 5,
+                            boxShadow: 'none',
+                            outline: 'none !important',
                         },
                         '&:disabled': {
                             opacity: 0.5,
@@ -456,7 +445,7 @@ export function CalendarPage() {
                     },
                     '& .fc-today-button': {
                         ml: { xs: 0, sm: 2 },
-                        border: `1px solid ${alpha(theme.palette.secondary.main, 0.3)} !important`,
+                        border: `1px solid ${alpha(theme.palette.secondary.main, 0.12)} !important`,
                         '&:hover': {
                             borderColor: `${theme.palette.secondary.main} !important`,
                         }
@@ -466,6 +455,18 @@ export function CalendarPage() {
                         scrollbarWidth: 'none',
                         '&::-webkit-scrollbar': {
                             display: 'none'
+                        }
+                    },
+                    '& .fc-more-link': {
+                        color: `${alpha(theme.palette.text.secondary, 0.8)} !important`,
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        marginTop: '4px',
+                        display: 'block',
+                        paddingLeft: '4px',
+                        '&:hover': {
+                            textDecoration: 'none',
+                            color: `${theme.palette.text.primary} !important`,
                         }
                     }
                 }}
@@ -482,7 +483,7 @@ export function CalendarPage() {
                     editable={true}
                     selectable={true}
                     selectMirror={true}
-                    dayMaxEvents={true}
+                    dayMaxEvents={2}
                     events={calendarEvents}
                     dateClick={handleDateClick}
                     select={handleSelect}
@@ -491,11 +492,96 @@ export function CalendarPage() {
                     eventResize={handleEventDrop}
                     eventDisplay="block"
                     eventContent={renderEventContent}
-                    height="auto"
+                    height="100%"
                     dayHeaderFormat={{ weekday: isMobile ? 'narrow' : 'short' }}
                     weekends={!isMobile} // Hide weekends on mobile to reduce columns from 7 to 5
+                    moreLinkClick={handleMoreLinkClick}
                 />
             </Paper>
+
+            <Popover
+                open={Boolean(popoverState.anchorEl)}
+                anchorEl={popoverState.anchorEl}
+                onClose={handlePopoverClose}
+                anchorOrigin={{
+                    vertical: 'center',
+                    horizontal: 'center',
+                }}
+                transformOrigin={{
+                    vertical: 'center',
+                    horizontal: 'center',
+                }}
+                PaperProps={{
+                    sx: {
+                        borderRadius: '16px',
+                        bgcolor: theme.palette.background.paper,
+                        backgroundImage: 'none',
+                        boxShadow: theme.shadows[8],
+                        border: `1px solid ${theme.palette.divider}`,
+                        minWidth: 280,
+                        maxWidth: 320,
+                        overflow: 'hidden',
+                    }
+                }}
+            >
+                <Box sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                        <Typography variant="h3" sx={{ fontWeight: 400, color: 'text.primary', fontSize: '3rem', lineHeight: 1 }}>
+                            {popoverState.date?.getDate()}
+                        </Typography>
+                        <IconButton
+                            size="small"
+                            onClick={handlePopoverClose}
+                            sx={{
+                                color: 'text.secondary',
+                                '&:hover': { color: 'text.primary', bgcolor: alpha(theme.palette.text.primary, 0.05) }
+                            }}
+                        >
+                            <CloseIcon fontSize="small" />
+                        </IconButton>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 2 }}>
+                        {popoverEvents.map((event) => (
+                            <Box
+                                key={event._id}
+                                onClick={() => handleEventClick({ event: { id: event._id } })}
+                                sx={{
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s',
+                                    '&:hover': { transform: 'translateX(2px)' }
+                                }}
+                            >
+                                {renderEventContent({ event: { ...event, backgroundColor: event.color } })}
+                            </Box>
+                        ))}
+                    </Box>
+
+                    <Typography
+                        onClick={() => {
+                            if (popoverState.date) {
+                                handleDateClick({ dateStr: popoverState.date.toISOString() });
+                                handlePopoverClose();
+                            }
+                        }}
+                        sx={{
+                            textAlign: 'center',
+                            color: 'text.primary',
+                            fontWeight: 700,
+                            fontSize: '0.9rem',
+                            cursor: 'pointer',
+                            py: 1,
+                            borderRadius: '8px',
+                            transition: 'background-color 0.2s',
+                            '&:hover': {
+                                bgcolor: alpha(theme.palette.text.primary, 0.05)
+                            }
+                        }}
+                    >
+                        New Event...
+                    </Typography>
+                </Box>
+            </Popover>
 
             <EventDialog
                 open={dialogOpen}

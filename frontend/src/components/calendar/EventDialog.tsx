@@ -114,7 +114,7 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent dividers sx={{ borderColor: alpha(theme.palette.divider, 0.1) }}>
+            <DialogContent dividers sx={{ borderColor: alpha(theme.palette.divider, 0.06) }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
                     <TextField
                         label="Event Title"
