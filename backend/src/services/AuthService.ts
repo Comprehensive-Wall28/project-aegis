@@ -26,11 +26,13 @@ export interface RegisterDTO {
     email: string;
     pqcPublicKey: string;
     argon2Hash: string;
+    legacyHash?: string; // Optional for migration
 }
 
 export interface LoginDTO {
     email: string;
     argon2Hash: string;
+    legacyHash?: string; // For migration
 }
 
 export interface UpdateProfileDTO {
@@ -121,12 +123,14 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
             const passwordHash = await argon2.hash(data.argon2Hash);
+            const passwordHashVersion = 2; // New accounts are version 2
 
             const user = await this.repository.create({
                 username: data.username,
                 email: data.email,
                 pqcPublicKey: data.pqcPublicKey,
-                passwordHash
+                passwordHash,
+                passwordHashVersion
             } as any);
 
             logger.info(`User registered: ${user._id}`);
@@ -160,7 +164,35 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Invalid credentials', 401);
             }
 
-            if (!(await argon2.verify(user.passwordHash, data.argon2Hash))) {
+            const hashVersion = user.passwordHashVersion || 1;
+            let verified = false;
+
+            if (hashVersion === 1) {
+                // Migration path: verify against legacyHash if provided
+                if (data.legacyHash) {
+                    verified = await argon2.verify(user.passwordHash, data.legacyHash);
+                } else {
+                    // Fallback to argon2Hash if legacyHash not provided (unlikely during migration window)
+                    verified = await argon2.verify(user.passwordHash, data.argon2Hash);
+                }
+
+                if (verified) {
+                    // Success! Migrate to version 2
+                    logger.info(`Migrating user ${user.email} to password hash version 2`);
+                    const newPasswordHash = await argon2.hash(data.argon2Hash);
+                    await this.repository.updateById(user._id.toString(), {
+                        $set: {
+                            passwordHash: newPasswordHash,
+                            passwordHashVersion: 2
+                        }
+                    } as any);
+                }
+            } else {
+                // Version 2: standard verify against argon2Hash
+                verified = await argon2.verify(user.passwordHash, data.argon2Hash);
+            }
+
+            if (!verified) {
                 logger.warn(`Failed login for email: ${data.email} (invalid password)`);
                 await logFailedAuth(data.email, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
                 throw new ServiceError('Invalid credentials', 401);
@@ -540,7 +572,12 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
             const passwordHash = await argon2.hash(argon2Hash);
-            await this.repository.updatePasswordHash(userId, passwordHash);
+            await this.repository.updateById(userId, {
+                $set: {
+                    passwordHash,
+                    passwordHashVersion: 2
+                }
+            } as any);
 
             await this.logAction(userId, 'PASSWORD_UPDATE', 'SUCCESS', req, {
                 note: 'Password re-added'

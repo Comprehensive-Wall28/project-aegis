@@ -1,5 +1,6 @@
-// @ts-ignore
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
+// @ts-ignore
+import argon2 from 'argon2-browser/dist/argon2-bundled.min.js';
 
 /**
  * PQC Web Worker for heavy cryptographic operations.
@@ -52,6 +53,28 @@ self.onmessage = async (event: MessageEvent) => {
                 seed: seedArray,
                 id
             }, [seedArray.buffer] as any);
+        }
+        else if (type === 'hash_argon2') {
+            const { password, salt } = event.data;
+            try {
+                const result = await argon2.hash({
+                    pass: password,
+                    salt: salt,
+                    time: 2, // iterations
+                    mem: 65536, // 64MB
+                    hashLen: 32,
+                    parallelism: 1,
+                    type: argon2.ArgonType.Argon2id
+                });
+
+                self.postMessage({
+                    type: 'hash_argon2_result',
+                    hash: result.hashHex,
+                    id
+                });
+            } catch (err) {
+                throw new Error(`Argon2 hashing failed: ${err}`);
+            }
         }
         else if (type === 'get_discovery_key') {
             const encoder = new TextEncoder();

@@ -58,6 +58,14 @@ class PQCWorkerManager {
     }
 
     /**
+     * Expensive: Generate Argon2 hash in worker
+     */
+    async getArgon2Hash(password: string, salt: string): Promise<string> {
+        const result = await this.sendRequest('hash_argon2', { password, salt });
+        return result.hash;
+    }
+
+    /**
      * Expensive: Generate ML-KEM-768 keypair
      */
     async generateKeys(seed?: Uint8Array): Promise<{ publicKey: Uint8Array; secretKey: Uint8Array }> {

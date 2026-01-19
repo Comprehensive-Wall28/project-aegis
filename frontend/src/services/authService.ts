@@ -13,6 +13,7 @@ import {
 export interface LoginCredentials {
     email: string;
     argon2Hash: string;
+    legacyHash?: string;
 }
 
 export interface RegisterCredentials {
@@ -20,6 +21,7 @@ export interface RegisterCredentials {
     email: string;
     pqcPublicKey: string;
     argon2Hash: string;
+    legacyHash?: string;
 }
 
 export interface AuthResponse {
@@ -35,32 +37,37 @@ export interface AuthResponse {
     options?: any;
 }
 
-// Web Crypto API helper to simulate Argon2 client-side hashing (using SHA-256 for demo)
-async function hashPassword(password: string): Promise<string> {
+// Migration helper: SHA-256 for legacy support
+async function hashLegacy(password: string): Promise<string> {
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 const authService = {
     login: async (email: string, passwordRaw: string): Promise<AuthResponse> => {
-        // 1. Client-side hashing (simulated with SHA-256)
-        const argon2Hash = await hashPassword(passwordRaw);
+        // 1. Client-side hashing: Argon2 (new) + SHA-256 (legacy)
+        const argon2HashPromise = pqcWorkerManager.getArgon2Hash(passwordRaw, `${email}aegis-auth-salt`);
+        const legacyHashPromise = hashLegacy(passwordRaw);
 
-        // 2. Optimization: Start PQC V2 discovery key derivation in parallel with the network request
+        // 2. Optimization: Start PQC V2 discovery key derivation in parallel
         const v2PublicKeyPromise = pqcWorkerManager.getPQCDiscoveryKey(passwordRaw, email);
 
+        // Wait for hashes and PQC key
+        const [argon2Hash, legacyHash, v2PublicKey] = await Promise.all([
+            argon2HashPromise,
+            legacyHashPromise,
+            v2PublicKeyPromise
+        ]);
+
         // 3. Call backend login
-        const responsePromise = apiClient.post<any>('/auth/login', {
+        const response = await apiClient.post<any>('/auth/login', {
             email,
             argon2Hash,
+            legacyHash
         });
-
-        // Wait for both to complete
-        const [v2PublicKey, response] = await Promise.all([v2PublicKeyPromise, responsePromise]);
         const userData = response.data;
 
         // 4. Dual-salt fallback logic for PQC seed
@@ -82,13 +89,20 @@ const authService = {
     },
 
     register: async (username: string, email: string, passwordRaw: string): Promise<AuthResponse> => {
-        // 1. Client-side hashing
-        const argon2Hash = await hashPassword(passwordRaw);
+        // 1. Client-side hashing: Argon2 (new) + SHA-256 (legacy)
+        const argon2HashPromise = pqcWorkerManager.getArgon2Hash(passwordRaw, `${email}aegis-auth-salt`);
+        const legacyHashPromise = hashLegacy(passwordRaw);
 
         // 2. Generate Deterministic PQC Keypair using V2 (email) salt (via Worker)
-        const [pqcPublicKey, pqcSeed] = await Promise.all([
-            pqcWorkerManager.getPQCDiscoveryKey(passwordRaw, email),
-            pqcWorkerManager.derivePQCSeed(passwordRaw, email)
+        const pqcDiscoveryKeyPromise = pqcWorkerManager.getPQCDiscoveryKey(passwordRaw, email);
+        const pqcSeedPromise = pqcWorkerManager.derivePQCSeed(passwordRaw, email);
+
+        // Wait for all cryptographic operations
+        const [argon2Hash, legacyHash, pqcPublicKey, pqcSeed] = await Promise.all([
+            argon2HashPromise,
+            legacyHashPromise,
+            pqcDiscoveryKeyPromise,
+            pqcSeedPromise
         ]);
 
         // 3. Send to backend
@@ -97,6 +111,7 @@ const authService = {
             email,
             pqcPublicKey,
             argon2Hash,
+            legacyHash,
         });
 
         return {

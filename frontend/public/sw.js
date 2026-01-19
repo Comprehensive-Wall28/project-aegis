@@ -34,6 +34,9 @@ self.addEventListener('fetch', (event) => {
 
     const url = new URL(event.request.url);
 
+    // Only handle http and https protocols
+    if (!url.protocol.startsWith('http')) return;
+
     // Bypassing API calls for general shell caching
     if (url.pathname.startsWith('/api/')) return;
 
