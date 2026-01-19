@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import auditService, { type AuditLog } from '@/services/auditService';
 import authService from '@/services/authService';
+import vaultService from '@/services/vaultService';
 import * as cryptoUtils from '@/lib/cryptoUtils';
 import { pqcWorkerManager } from '@/lib/pqcWorkerManager';
 
@@ -287,7 +288,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         if (!currentState.isAuthenticated) return;
 
         try {
-            const { default: vaultService } = await import('@/services/vaultService');
             const data = await vaultService.getStorageStats();
             get().updateUser({ totalStorageUsed: data.totalStorageUsed });
         } catch (error) {

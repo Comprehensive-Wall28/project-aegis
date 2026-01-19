@@ -1,8 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import wasm from 'vite-plugin-wasm'
-import topLevelAwait from 'vite-plugin-top-level-await'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -12,13 +10,7 @@ const APP_VERSION = process.env.VITE_APP_VERSION || pkg.version;
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), wasm(), topLevelAwait()],
-  worker: {
-    plugins: () => [wasm(), topLevelAwait()]
-  },
-  optimizeDeps: {
-    exclude: ['argon2-browser']
-  },
+  plugins: [react(), tailwindcss()],
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(APP_VERSION),
   },

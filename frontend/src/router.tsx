@@ -3,11 +3,11 @@ import { lazy, Suspense, useMemo, useEffect } from 'react';
 import { Box, CircularProgress, ThemeProvider, CssBaseline } from '@mui/material';
 
 import { Landing } from '@/pages/Landing';
+import { Dashboard } from '@/pages/Dashboard';
+import { GPAPage } from '@/pages/GPAPage';
 
 // Lazy load page components
-const Dashboard = lazy(() => import('@/pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const FilesPage = lazy(() => import('@/pages/FilesPage').then(m => ({ default: m.FilesPage })));
-const GPAPage = lazy(() => import('@/pages/GPAPage').then(m => ({ default: m.GPAPage })));
 const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })));
 const TasksPage = lazy(() => import('@/pages/TasksPage').then(m => ({ default: m.TasksPage })));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
@@ -131,11 +131,7 @@ const router = createBrowserRouter([
                 children: [
                     {
                         index: true,
-                        element: (
-                            <SuspensePage>
-                                <Dashboard />
-                            </SuspensePage>
-                        ),
+                        element: <Dashboard />,
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
@@ -158,11 +154,7 @@ const router = createBrowserRouter([
                     },
                     {
                         path: 'gpa',
-                        element: (
-                            <SuspensePage>
-                                <GPAPage />
-                            </SuspensePage>
-                        ),
+                        element: <GPAPage />,
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
