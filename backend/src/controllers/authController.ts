@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService, ServiceError } from '../services';
 import logger from '../utils/logger';
+import { config } from '../config/env';
 
 interface AuthRequest extends Request {
     user?: { id: string; username: string };
@@ -13,10 +14,10 @@ const authService = new AuthService();
 const setCookie = (res: Response) => (token: string) => {
     res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: config.nodeEnv === 'production',
+        sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
         maxAge: 365 * 24 * 60 * 60 * 1000,
-        partitioned: process.env.NODE_ENV === 'production'
+        partitioned: config.nodeEnv === 'production'
     } as any);
 };
 
@@ -91,10 +92,10 @@ export const logoutUser = async (req: AuthRequest, res: Response) => {
 
         res.cookie('token', '', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            secure: config.nodeEnv === 'production',
+            sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
             expires: new Date(0),
-            partitioned: process.env.NODE_ENV === 'production'
+            partitioned: config.nodeEnv === 'production'
         } as any);
         res.json({ message: 'Logged out successfully' });
     } catch (error) {

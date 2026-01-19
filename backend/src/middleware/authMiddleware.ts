@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { decryptToken } from '../utils/cryptoUtils';
+import { config } from '../config/env';
 
 interface AuthRequest extends Request {
     user?: any;
@@ -20,7 +21,7 @@ export const protect = (req: AuthRequest, res: Response, next: NextFunction) => 
 
     try {
         const decryptedToken = decryptToken(token);
-        const decoded = jwt.verify(decryptedToken, process.env.JWT_SECRET || 'secret');
+        const decoded = jwt.verify(decryptedToken, config.jwtSecret);
         req.user = decoded;
         next();
     } catch (error) {

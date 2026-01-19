@@ -1,14 +1,11 @@
 import DatabaseManager from './DatabaseManager';
-import dotenv from 'dotenv';
+import { config } from './env';
 import logger from '../utils/logger';
-
-// Ensure env vars are loaded if this is the entry point
-dotenv.config();
 
 const dbManager = DatabaseManager.getInstance();
 
 // Initialize Primary
-const primaryUri = process.env.MONGO_URI || '';
+const primaryUri = config.mongoUri;
 if (primaryUri) {
     dbManager.connect('primary', primaryUri);
 } else {
@@ -16,7 +13,7 @@ if (primaryUri) {
 }
 
 // Initialize Secondary
-const secondaryUri = process.env.MONGO_URI_SECONDARY;
+const secondaryUri = config.mongoUriSecondary;
 if (secondaryUri) {
     dbManager.connect('secondary', secondaryUri);
 } else {

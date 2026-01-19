@@ -18,6 +18,7 @@ import { IUser, IWebAuthnCredential } from '../models/User';
 import logger from '../utils/logger';
 import { logFailedAuth } from '../utils/auditLogger';
 import { encryptToken } from '../utils/cryptoUtils';
+import { config } from '../config/env';
 
 // DTOs
 export interface RegisterDTO {
@@ -73,7 +74,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
     }
 
     private generateToken(id: string, username: string): string {
-        const jwtToken = jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
+        const jwtToken = jwt.sign({ id, username }, config.jwtSecret, {
             expiresIn: '365d'
         });
         return encryptToken(jwtToken);
@@ -170,7 +171,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             // Check if 2FA required
             if (user.webauthnCredentials && user.webauthnCredentials.length > 0) {
                 const options = await generateAuthenticationOptions({
-                    rpID: process.env.RP_ID || 'localhost',
+                    rpID: config.rpId,
                     allowCredentials: user.webauthnCredentials.map(cred => ({
                         id: cred.credentialID,
                         type: 'public-key',
@@ -352,7 +353,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
             const options = await generateRegistrationOptions({
                 rpName: 'Project Aegis',
-                rpID: process.env.RP_ID || 'localhost',
+                rpID: config.rpId,
                 userID: isoUint8Array.fromUTF8String(user._id.toString()),
                 userName: user.username,
                 attestationType: 'none',
@@ -386,8 +387,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             const verification: VerifiedRegistrationResponse = await verifyRegistrationResponse({
                 response: body,
                 expectedChallenge: user.currentChallenge,
-                expectedOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
-                expectedRPID: process.env.RP_ID || 'localhost'
+                expectedOrigin: config.clientOrigin,
+                expectedRPID: config.rpId
             });
 
             if (verification.verified && verification.registrationInfo) {
@@ -429,7 +430,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
             const options = await generateAuthenticationOptions({
-                rpID: process.env.RP_ID || 'localhost',
+                rpID: config.rpId,
                 allowCredentials: user.webauthnCredentials.map(cred => ({
                     id: cred.credentialID,
                     type: 'public-key',
@@ -471,8 +472,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             const verification: VerifiedAuthenticationResponse = await verifyAuthenticationResponse({
                 response: body,
                 expectedChallenge: user.currentChallenge,
-                expectedOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
-                expectedRPID: process.env.RP_ID || 'localhost',
+                expectedOrigin: config.clientOrigin,
+                expectedRPID: config.rpId,
                 credential: {
                     id: dbCredential.credentialID,
                     publicKey: isoBase64URL.toBuffer(dbCredential.publicKey),

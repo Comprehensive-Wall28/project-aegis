@@ -2,6 +2,7 @@ import { google, drive_v3 } from 'googleapis';
 import { Readable } from 'stream';
 import { OAuth2Client } from 'google-auth-library';
 import logger from '../utils/logger';
+import { config } from '../config/env';
 
 // Types for upload sessions
 interface UploadSession {
@@ -26,9 +27,9 @@ const initializeDriveClient = (): drive_v3.Drive => {
         return driveClient;
     }
 
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+    const clientId = config.googleClientId;
+    const clientSecret = config.googleClientSecret;
+    const refreshToken = config.googleRefreshToken;
 
     if (!clientId || !clientSecret || !refreshToken) {
         throw new Error('Missing OAuth2 credentials: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN are required');
@@ -46,7 +47,7 @@ const initializeDriveClient = (): drive_v3.Drive => {
  * Get the target folder ID from environment variable
  */
 const getFolderId = (): string => {
-    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    const folderId = config.googleDriveFolderId;
     if (!folderId) {
         throw new Error('GOOGLE_DRIVE_FOLDER_ID environment variable is not set');
     }
