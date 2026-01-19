@@ -1,6 +1,8 @@
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
 import { lazy, Suspense, useMemo, useEffect } from 'react';
 import { Box, CircularProgress, ThemeProvider, CssBaseline } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 import { Landing } from '@/pages/Landing';
 import { Dashboard } from '@/pages/Dashboard';
@@ -210,11 +212,13 @@ export function AppRouter() {
     const theme = useMemo(() => getTheme(themeMode), [themeMode]);
 
     return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <AppInitializer />
-            <RouterProvider router={router} />
-        </ThemeProvider>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <AppInitializer />
+                <RouterProvider router={router} />
+            </ThemeProvider>
+        </LocalizationProvider>
     );
 }
 

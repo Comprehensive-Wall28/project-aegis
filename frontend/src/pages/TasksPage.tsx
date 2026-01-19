@@ -225,9 +225,8 @@ export function TasksPage() {
                             sx={{
                                 p: 0.5,
                                 borderRadius: '14px',
-                                bgcolor: alpha(theme.palette.background.paper, 0.3),
-                                backdropFilter: 'blur(8px)',
-                                border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+                                bgcolor: theme.palette.background.paper,
+                                border: `1px solid ${theme.palette.divider}`,
                             }}
                         >
                             <ToggleButtonGroup
@@ -335,9 +334,8 @@ export function TasksPage() {
                             sx={{
                                 p: 3,
                                 borderRadius: '20px',
-                                bgcolor: alpha(theme.palette.background.paper, 0.4),
-                                backdropFilter: 'blur(8px)',
-                                border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+                                bgcolor: theme.palette.background.paper,
+                                border: `1px solid ${theme.palette.divider}`,
                                 flex: 1,
                             }}
                         >
