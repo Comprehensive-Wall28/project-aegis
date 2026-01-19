@@ -13,8 +13,11 @@ import {
     useTheme,
     FormControlLabel,
     Checkbox,
+    useMediaQuery,
 } from '@mui/material';
 import { Close as CloseIcon, Palette as PaletteIcon } from '@mui/icons-material';
+import { MobileDateTimePicker } from '@mui/x-date-pickers/MobileDateTimePicker';
+import dayjs from 'dayjs';
 
 const AEGIS_COLORS = [
     { name: 'Primary Blue', value: '#3f51b5' },
@@ -35,6 +38,8 @@ export interface EventDialogProps {
 
 export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving }: EventDialogProps) => {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [location, setLocation] = useState('');
@@ -45,17 +50,8 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
 
     const formatDateForInput = (dateInput: string | Date | undefined) => {
         if (!dateInput) return '';
-        const d = new Date(dateInput);
-        if (isNaN(d.getTime())) return '';
-
-        // Format to YYYY-MM-DDTHH:mm in local time
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const hours = String(d.getHours()).padStart(2, '0');
-        const minutes = String(d.getMinutes()).padStart(2, '0');
-
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
+        const d = dayjs(dateInput);
+        return d.isValid() ? d.toISOString() : '';
     };
 
     useEffect(() => {
@@ -97,11 +93,15 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
             onClose={onClose}
             fullWidth
             maxWidth="sm"
+            fullScreen={isMobile}
+            disableEnforceFocus={isPickerOpen}
             PaperProps={{
                 variant: 'solid',
                 sx: {
-                    borderRadius: '24px',
+                    borderRadius: isMobile ? 0 : '24px',
                     boxShadow: theme.shadows[20],
+                    backgroundImage: 'none',
+                    bgcolor: theme.palette.background.paper,
                 }
             }}
         >
@@ -128,27 +128,63 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                         }}
                     />
 
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <TextField
+                    <Box sx={{ display: 'flex', gap: 2, flexDirection: isMobile ? 'column' : 'row' }}>
+                        <MobileDateTimePicker
                             label="Start Date & Time"
-                            type="datetime-local"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            fullWidth
+                            value={startDate ? dayjs(startDate) : null}
+                            onOpen={() => setIsPickerOpen(true)}
+                            onChange={(newValue) => setStartDate(newValue ? (newValue as dayjs.Dayjs).toISOString() : '')}
                             slotProps={{
-                                inputLabel: { shrink: true },
-                                input: { sx: { borderRadius: '12px', fontFamily: 'JetBrains Mono, monospace' } }
+                                textField: {
+                                    fullWidth: true,
+                                    variant: 'outlined',
+                                    sx: {
+                                        '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+                                        '& .MuiInputLabel-root': { fontFamily: 'inherit' }
+                                    }
+                                },
+                                dialog: {
+                                    TransitionProps: {
+                                        onExited: () => setIsPickerOpen(false)
+                                    } as any,
+                                    sx: {
+                                        '& .MuiPaper-root': {
+                                            borderRadius: '24px',
+                                            bgcolor: theme.palette.background.paper,
+                                            backgroundImage: 'none',
+                                            boxShadow: theme.shadows[20],
+                                        }
+                                    }
+                                }
                             }}
                         />
-                        <TextField
+                        <MobileDateTimePicker
                             label="End Date & Time"
-                            type="datetime-local"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            fullWidth
+                            value={endDate ? dayjs(endDate) : null}
+                            onOpen={() => setIsPickerOpen(true)}
+                            onChange={(newValue) => setEndDate(newValue ? (newValue as dayjs.Dayjs).toISOString() : '')}
                             slotProps={{
-                                inputLabel: { shrink: true },
-                                input: { sx: { borderRadius: '12px', fontFamily: 'JetBrains Mono, monospace' } }
+                                textField: {
+                                    fullWidth: true,
+                                    variant: 'outlined',
+                                    sx: {
+                                        '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+                                        '& .MuiInputLabel-root': { fontFamily: 'inherit' }
+                                    }
+                                },
+                                dialog: {
+                                    TransitionProps: {
+                                        onExited: () => setIsPickerOpen(false)
+                                    } as any,
+                                    sx: {
+                                        '& .MuiPaper-root': {
+                                            borderRadius: '24px',
+                                            bgcolor: theme.palette.background.paper,
+                                            backgroundImage: 'none',
+                                            boxShadow: theme.shadows[20],
+                                        }
+                                    }
+                                }
                             }}
                         />
                     </Box>
