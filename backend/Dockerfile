@@ -23,14 +23,20 @@ WORKDIR /usr/src/app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (including production-only to save space if needed, but we need devDeps for build if TS)
+# Install dependencies
 RUN npm install
 
 # Copy source
 COPY . .
 
-# Build typescript (if you use TS)
+# Build typescript
 RUN npm run build
+
+# Change ownership of the app directory to the node user
+RUN chown -R node:node /usr/src/app
+
+# Switch to the non-root 'node' user
+USER node
 
 # Start the server
 CMD [ "npm", "start" ]
