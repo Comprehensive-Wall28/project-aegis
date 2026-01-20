@@ -8,6 +8,8 @@ import {
     CircularProgress,
     Snackbar,
     Alert,
+    TextField,
+    InputAdornment,
 } from '@mui/material';
 import {
     CheckCircle as TasksIcon,
@@ -15,7 +17,9 @@ import {
     Sort as SortIcon,
     DragIndicator,
     PriorityHigh,
-    Event
+    Event,
+    Search as SearchIcon,
+    Close as CloseIcon,
 } from '@mui/icons-material';
 import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 // No framer-motion imports needed here anymore
@@ -60,6 +64,19 @@ export function TasksPage() {
     const updateTask = useTaskStore((state) => state.updateTask);
     const deleteTask = useTaskStore((state) => state.deleteTask);
     const reorderTasks = useTaskStore((state) => state.reorderTasks);
+
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredTasks = useCallback(() => {
+        if (!searchTerm.trim()) return tasks;
+        const lowerTerm = searchTerm.toLowerCase();
+        return tasks.filter((t) =>
+            t.title.toLowerCase().includes(lowerTerm) ||
+            (t.description && t.description.toLowerCase().includes(lowerTerm)) ||
+            (t.notes && t.notes.toLowerCase().includes(lowerTerm)) ||
+            t.priority.toLowerCase().includes(lowerTerm)
+        );
+    }, [tasks, searchTerm])();
 
     const { encryptTaskData, decryptTasks, decryptTaskData, generateRecordHash } = useTaskEncryption();
 
@@ -216,10 +233,54 @@ export function TasksPage() {
                 </Box>
 
                 {pqcEngineStatus === 'operational' && !isLoading && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
                         {/* Sort Control */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: { xs: 'none', sm: 'block' } }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, width: { xs: '100%', md: 'auto' } }}>
+                            <TextField
+                                size="small"
+                                placeholder="Search tasks..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                sx={{
+                                    width: { xs: '100%', md: 220 },
+                                    flex: { xs: 1, md: 'none' },
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '12px',
+                                        bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                        '& fieldset': {
+                                            borderColor: alpha(theme.palette.text.primary, 0.2),
+                                            borderWidth: '1px',
+                                        },
+                                        '&:hover fieldset': {
+                                            borderColor: alpha(theme.palette.primary.main, 0.4),
+                                        },
+                                        '&.Mui-focused fieldset': {
+                                            borderColor: theme.palette.primary.main,
+                                        },
+                                    },
+                                }}
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <SearchIcon fontSize="small" color="action" />
+                                        </InputAdornment>
+                                    ),
+                                    endAdornment: searchTerm ? (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => setSearchTerm('')}
+                                                edge="end"
+                                                sx={{ color: 'text.secondary' }}
+                                            >
+                                                <CloseIcon fontSize="small" />
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ) : null,
+                                }}
+                            />
+
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: { xs: 'none', sm: 'block' }, ml: 1 }}>
                                 Sort by: <strong>{sortMode === 'manual' ? 'Manual' : sortMode === 'priority' ? 'Priority' : 'Due Date'}</strong>
                             </Typography>
                             <Tooltip title="Sort Tasks">
@@ -274,6 +335,7 @@ export function TasksPage() {
                                 textTransform: 'none',
                                 fontWeight: 600,
                                 px: 3,
+                                width: { xs: '100%', md: 'auto' },
                             }}
                         >
                             New Task
@@ -315,11 +377,12 @@ export function TasksPage() {
                     }}
                 >
                     <KanbanBoard
-                        tasks={tasks}
+                        tasks={filteredTasks}
                         onTaskClick={handleTaskClick}
                         onAddTask={handleAddTask}
                         onTaskMove={handleTaskMove}
                         sortMode={sortMode}
+                        isDragDisabled={!!searchTerm.trim()}
                     />
                 </Box>
             )}

@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Box, Paper, Typography, Button, Badge, alpha, useTheme } from '@mui/material';
+import { Box, Paper, Typography, Button, Badge, alpha, useTheme, styled } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import { AnimatePresence } from 'framer-motion';
+import { Virtuoso } from 'react-virtuoso';
 import { SortableTaskItem } from './SortableTaskItem';
 import type { DecryptedTask } from '@/stores/useTaskStore';
 
@@ -16,6 +16,19 @@ interface KanbanColumnProps {
     onTaskClick: (task: DecryptedTask) => void;
     onAddTask: (status: 'todo' | 'in_progress' | 'done') => void;
 }
+
+const StyledVirtuoso = styled(Virtuoso)(({ theme }) => ({
+    '&::-webkit-scrollbar': {
+        width: 4,
+    },
+    '&::-webkit-scrollbar-track': {
+        bgcolor: 'transparent',
+    },
+    '&::-webkit-scrollbar-thumb': {
+        backgroundColor: alpha(theme.palette.common.white, 0.25),
+        borderRadius: 2,
+    },
+})) as typeof Virtuoso;
 
 const KanbanColumnComponent = ({
     id,
@@ -40,7 +53,7 @@ const KanbanColumnComponent = ({
             <Paper
                 ref={setNodeRef}
                 sx={{
-                    p: 2,
+                    p: 1.5,
                     borderRadius: '20px',
                     bgcolor: alpha(theme.palette.background.paper, isOver ? 0.7 : 0.5),
                     border: `2px dashed ${isOver
@@ -49,7 +62,7 @@ const KanbanColumnComponent = ({
                     transition: 'all 0.2s ease',
                     display: 'flex',
                     flexDirection: 'column',
-                    minHeight: { xs: 200, md: 250 },
+                    minHeight: { xs: 350, md: 450 },
                     height: '100%',
                 }}
             >
@@ -59,8 +72,8 @@ const KanbanColumnComponent = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        mb: 2,
-                        pb: 2,
+                        mb: 1.5,
+                        pb: 1.5,
                         borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
                     }}
                 >
@@ -118,45 +131,31 @@ const KanbanColumnComponent = ({
                 </Box>
 
                 {/* Task List */}
-                <Box
-                    sx={{
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        overflowY: 'auto',
-                        pr: 0.5,
-                        '&::-webkit-scrollbar': {
-                            width: 4,
-                        },
-                        '&::-webkit-scrollbar-track': {
-                            bgcolor: 'transparent',
-                        },
-                        '&::-webkit-scrollbar-thumb': {
-                            bgcolor: alpha(theme.palette.common.white, 0.25),
-                            borderRadius: 2,
-                        },
-                    }}
-                >
-                    <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-                        <AnimatePresence mode="popLayout">
-                            {tasks.map((task) => (
-                                <SortableTaskItem
-                                    key={task._id}
-                                    task={task}
-                                    onTaskClick={onTaskClick}
-                                />
-                            ))}
-                        </AnimatePresence>
-                    </SortableContext>
-
-                    {tasks.length === 0 && (
+                <Box sx={{ flex: 1, minHeight: 0 }}>
+                    {tasks.length > 0 ? (
+                        <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+                            <StyledVirtuoso
+                                data={tasks}
+                                itemContent={(_index, task: DecryptedTask) => (
+                                    <Box sx={{ pb: 1.5, px: 0.5 }}>
+                                        <SortableTaskItem
+                                            key={task._id}
+                                            task={task}
+                                            onTaskClick={onTaskClick}
+                                        />
+                                    </Box>
+                                )}
+                                style={{ height: '100%' }}
+                            />
+                        </SortableContext>
+                    ) : (
                         <Box
                             sx={{
                                 flex: 1,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                py: 4,
+                                height: '100%',
                             }}
                         >
                             <Typography

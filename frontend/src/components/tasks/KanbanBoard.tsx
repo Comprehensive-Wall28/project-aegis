@@ -25,7 +25,8 @@ import { motion } from 'framer-motion';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import type { DecryptedTask } from '@/stores/useTaskStore';
-import { TASK_COLUMNS_CONFIG, TASK_STATUS, TASK_PRIORITY } from '@/constants/taskDefaults';
+import { TASK_COLUMNS_CONFIG, TASK_STATUS } from '@/constants/taskDefaults';
+import { useGroupedTasks } from '@/hooks/useGroupedTasks';
 
 export type SortMode = 'manual' | 'priority' | 'date';
 
@@ -35,13 +36,8 @@ interface KanbanBoardProps {
     onAddTask: (status: 'todo' | 'in_progress' | 'done') => void;
     onTaskMove: (updates: { id: string; status: string; order: number }[]) => void;
     sortMode: SortMode;
+    isDragDisabled?: boolean;
 }
-
-const PRIORITY_VALUE = {
-    [TASK_PRIORITY.HIGH]: 3,
-    [TASK_PRIORITY.MEDIUM]: 2,
-    [TASK_PRIORITY.LOW]: 1,
-};
 
 const COLUMN_ICONS = {
     [TASK_STATUS.TODO]: <RadioButtonUnchecked />,
@@ -64,72 +60,45 @@ const dropAnimation: DropAnimation = {
     }),
 };
 
-export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove, sortMode }: KanbanBoardProps) => {
+export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove, sortMode, isDragDisabled }: KanbanBoardProps) => {
     const [activeId, setActiveId] = useState<string | null>(null);
 
+    const mouseSensorOptions = useMemo(() => ({
+        activationConstraint: {
+            distance: isDragDisabled ? 100000 : 5,
+        },
+    }), [isDragDisabled]);
+
+    const touchSensorOptions = useMemo(() => ({
+        activationConstraint: {
+            delay: isDragDisabled ? 100000 : 200,
+            tolerance: 5,
+        },
+    }), [isDragDisabled]);
+
+    const keyboardSensorOptions = useMemo(() => ({
+        coordinateGetter: sortableKeyboardCoordinates,
+        keyboardCodes: isDragDisabled ? {
+            start: [],
+            cancel: [],
+            end: [],
+        } : undefined,
+    }), [isDragDisabled]);
+
     const sensors = useSensors(
-        useSensor(MouseSensor, {
-            activationConstraint: {
-                distance: 5,
-            },
-        }),
-        useSensor(TouchSensor, {
-            activationConstraint: {
-                delay: 200,
-                tolerance: 5,
-            },
-        }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
+        useSensor(MouseSensor, mouseSensorOptions),
+        useSensor(TouchSensor, touchSensorOptions),
+        useSensor(KeyboardSensor, keyboardSensorOptions)
     );
 
-    const tasksByStatus = useMemo(() => {
-        const grouped: Record<string, DecryptedTask[]> = {
-            [TASK_STATUS.TODO]: [],
-            [TASK_STATUS.IN_PROGRESS]: [],
-            [TASK_STATUS.DONE]: [],
-        };
-
-        tasks.forEach(t => {
-            if (grouped[t.status]) {
-                grouped[t.status].push(t);
-            }
-        });
-
-        // Sort each group based on current sortMode
-        Object.keys(grouped).forEach(key => {
-            grouped[key].sort((a, b) => {
-                if (sortMode === 'priority') {
-                    const valA = PRIORITY_VALUE[a.priority as keyof typeof PRIORITY_VALUE] || 0;
-                    const valB = PRIORITY_VALUE[b.priority as keyof typeof PRIORITY_VALUE] || 0;
-                    if (valA !== valB) return valB - valA; // High priority first
-                    return a.order - b.order; // Then by order
-                }
-
-                if (sortMode === 'date') {
-                    if (!a.dueDate && !b.dueDate) return a.order - b.order;
-                    if (!a.dueDate) return 1;
-                    if (!b.dueDate) return -1;
-                    const timeA = new Date(a.dueDate).getTime();
-                    const timeB = new Date(b.dueDate).getTime();
-                    if (timeA !== timeB) return timeA - timeB; // Soonest first
-                    return a.order - b.order;
-                }
-
-                // Default: Manual (by order)
-                return a.order - b.order;
-            });
-        });
-
-        return grouped;
-    }, [tasks, sortMode]);
+    const tasksByStatus = useGroupedTasks(tasks, sortMode);
 
     const activeTask = useMemo(() =>
         tasks.find(t => t._id === activeId),
         [tasks, activeId]);
 
     const handleDragStart = (event: DragStartEvent) => {
+        if (isDragDisabled) return;
         const { active } = event;
         setActiveId(active.id as string);
     };
