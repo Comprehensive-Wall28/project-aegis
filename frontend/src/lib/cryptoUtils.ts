@@ -61,18 +61,20 @@ export async function getPQCDiscoveryKey(password: string, email?: string): Prom
 const SEED_STORAGE_KEY = 'aegis_pqc_seed';
 
 /**
- * Store seed in localStorage (survives browser restart)
+ * Store seed in sessionStorage (cleared on tab close)
  */
 export function storeSeed(seed: Uint8Array): void {
     const hex = bytesToHex(seed);
-    localStorage.setItem(SEED_STORAGE_KEY, hex);
+    sessionStorage.setItem(SEED_STORAGE_KEY, hex);
+    // Cleanup legacy localStorage if it exists
+    localStorage.removeItem(SEED_STORAGE_KEY);
 }
 
 /**
- * Retrieve seed from localStorage
+ * Retrieve seed from sessionStorage
  */
 export function getStoredSeed(): Uint8Array | null {
-    const hex = localStorage.getItem(SEED_STORAGE_KEY);
+    const hex = sessionStorage.getItem(SEED_STORAGE_KEY);
     if (!hex) return null;
 
     const bytes = new Uint8Array(hex.length / 2);
@@ -83,9 +85,10 @@ export function getStoredSeed(): Uint8Array | null {
 }
 
 /**
- * Clear seed from localStorage
+ * Clear seed from sessionStorage
  */
 export function clearStoredSeed(): void {
+    sessionStorage.removeItem(SEED_STORAGE_KEY);
     localStorage.removeItem(SEED_STORAGE_KEY);
 }
 

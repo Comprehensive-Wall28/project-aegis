@@ -50,6 +50,7 @@ interface SessionState {
     setUser: (user: User) => void;
     setSessionKey: (key: string) => void;
     clearSession: () => void;
+    lockSession: () => void;
     setPqcEngineStatus: (status: 'operational' | 'initializing' | 'error') => void;
     setCryptoStatus: (status: CryptoStatus) => void;
     initializeQuantumKeys: (seed?: Uint8Array) => void;
@@ -99,6 +100,17 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         recentActivity: []
         // Note: vaultKey is on user object, so cleared when user is set to null
     }),
+
+    lockSession: () => {
+        cryptoUtils.clearStoredSeed();
+        set({
+            user: null,
+            isAuthenticated: false,
+            sessionKey: null,
+            vaultCtrKey: null,
+            pqcEngineStatus: 'initializing'
+        });
+    },
 
     setPqcEngineStatus: (status) => set({ pqcEngineStatus: status }),
 
