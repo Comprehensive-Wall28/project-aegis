@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { extractMentionedIds } from '@/utils/mentionUtils';
 import {
     Box,
@@ -33,8 +33,18 @@ export function CalendarPage() {
     const addEvent = useCalendarStore((state) => state.addEvent);
     const updateEvent = useCalendarStore((state) => state.updateEvent);
     const deleteEvent = useCalendarStore((state) => state.deleteEvent);
+    const fetchEvents = useCalendarStore((state) => state.fetchEvents);
 
-    const { encryptEventData, decryptEventData, generateRecordHash } = useCalendarEncryption();
+    const { encryptEventData, decryptEventData, generateRecordHash, decryptEvents } = useCalendarEncryption();
+
+    // Fetch events on mount (global hydration no longer fetches events)
+    useEffect(() => {
+        if (pqcEngineStatus === 'operational') {
+            fetchEvents(undefined, undefined, decryptEvents).catch(err => {
+                console.error('[CalendarPage] Failed to fetch events:', err);
+            });
+        }
+    }, [pqcEngineStatus, fetchEvents, decryptEvents]);
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);

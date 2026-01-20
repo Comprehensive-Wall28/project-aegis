@@ -297,4 +297,18 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
             this.handleRepositoryError(error);
         }
     }
+
+    /**
+     * Get upcoming incomplete tasks for dashboard widget
+     */
+    async getUpcomingTasks(
+        userId: string,
+        limit: number = 10
+    ): Promise<ITask[]> {
+        try {
+            return await this.repository.findUpcoming(userId, limit);
+        } catch (error) {
+            this.handleRepositoryError(error);
+        }
+    }
 }

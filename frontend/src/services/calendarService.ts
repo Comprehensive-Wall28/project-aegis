@@ -28,12 +28,12 @@ const calendarService = {
         return response.data;
     },
 
-    getEventsPaginated: async (filters: { limit: number; cursor?: string }): Promise<PaginatedEvents> => {
+    getEventsPaginated: async (filters: { limit: number; cursor?: string; signal?: AbortSignal }): Promise<PaginatedEvents> => {
         const params = new URLSearchParams();
         params.append('limit', filters.limit.toString());
         if (filters.cursor) params.append('cursor', filters.cursor);
 
-        const response = await apiClient.get<PaginatedEvents>(`${PREFIX}`, { params });
+        const response = await apiClient.get<PaginatedEvents>(`${PREFIX}`, { params, signal: filters.signal });
         return response.data;
     },
 

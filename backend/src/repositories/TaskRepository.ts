@@ -130,4 +130,20 @@ export class TaskRepository extends BaseRepository<ITask> {
             mentions: { $in: [targetId] }
         } as unknown as SafeFilter<ITask>);
     }
+
+    /**
+     * Find upcoming incomplete tasks with due dates (for dashboard widget)
+     */
+    async findUpcoming(userId: string, limit: number = 10): Promise<ITask[]> {
+        const now = new Date();
+
+        return this.findMany({
+            userId: { $eq: userId },
+            status: { $ne: 'done' as any },
+            dueDate: { $gte: now }
+        } as unknown as SafeFilter<ITask>, {
+            sort: { dueDate: 1 },
+            limit: Math.min(limit, 50)
+        });
+    }
 }

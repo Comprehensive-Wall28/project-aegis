@@ -373,4 +373,30 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             maxStorage: this.MAX_STORAGE
         };
     }
+
+    /**
+     * Get files for user in a folder (paginated)
+     */
+    async getUserFilesPaginated(
+        userId: string,
+        folderId: string | null,
+        options: { limit: number; cursor?: string }
+    ): Promise<{ items: IFileMetadata[]; nextCursor: string | null }> {
+        try {
+            // Root level files - user's own files
+            return await this.repository.findByOwnerAndFolderPaginated(
+                userId,
+                folderId,
+                {
+                    limit: Math.min(options.limit || 20, 100),
+                    cursor: options.cursor
+                }
+            );
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Get files paginated error:', error);
+            throw new ServiceError('Failed to get files', 500);
+        }
+    }
 }
+

@@ -79,12 +79,12 @@ const taskService = {
         return response.data;
     },
 
-    getTasksPaginated: async (filters: { limit: number; cursor?: string }): Promise<PaginatedTasks> => {
+    getTasksPaginated: async (filters: { limit: number; cursor?: string; signal?: AbortSignal }): Promise<PaginatedTasks> => {
         const params = new URLSearchParams();
         params.append('limit', filters.limit.toString());
         if (filters.cursor) params.append('cursor', filters.cursor);
 
-        const response = await apiClient.get<PaginatedTasks>(`${PREFIX}`, { params });
+        const response = await apiClient.get<PaginatedTasks>(`${PREFIX}`, { params, signal: filters.signal });
         return response.data;
     },
 
@@ -104,6 +104,16 @@ const taskService = {
 
     reorderTasks: async (updates: ReorderUpdate[]): Promise<void> => {
         await apiClient.put(`${PREFIX}/reorder`, { updates });
+    },
+
+    /**
+     * Fetch upcoming incomplete tasks for dashboard widget
+     */
+    getUpcomingTasks: async (limit: number = 10): Promise<EncryptedTask[]> => {
+        const response = await apiClient.get<EncryptedTask[]>(`${PREFIX}/upcoming`, {
+            params: { limit }
+        });
+        return response.data;
     },
 };
 

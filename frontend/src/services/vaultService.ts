@@ -21,10 +21,33 @@ export interface FileMetadata {
     updatedAt: string;
 }
 
+export interface PaginatedFiles {
+    items: FileMetadata[];
+    nextCursor: string | null;
+}
+
 const vaultService = {
     getRecentFiles: async (folderId?: string | null): Promise<FileMetadata[]> => {
         const params = folderId ? { folderId } : { folderId: 'null' };
         const response = await apiClient.get<FileMetadata[]>(`${PREFIX}/files`, { params });
+        return response.data;
+    },
+
+    getFilesPaginated: async (params: {
+        folderId?: string | null;
+        limit: number;
+        cursor?: string;
+        signal?: AbortSignal;
+    }): Promise<PaginatedFiles> => {
+        const queryParams = new URLSearchParams();
+        queryParams.append('limit', params.limit.toString());
+        if (params.folderId) queryParams.append('folderId', params.folderId);
+        if (params.cursor) queryParams.append('cursor', params.cursor);
+
+        const response = await apiClient.get<PaginatedFiles>(`${PREFIX}/files`, {
+            params: queryParams,
+            signal: params.signal
+        });
         return response.data;
     },
 
@@ -51,3 +74,4 @@ const vaultService = {
 };
 
 export default vaultService;
+

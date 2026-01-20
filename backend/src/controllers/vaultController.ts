@@ -113,7 +113,7 @@ export const getFile = async (req: AuthRequest, res: Response) => {
 };
 
 /**
- * Get user files (optionally filtered by folder)
+ * Get user files (optionally filtered by folder, supports pagination)
  */
 export const getUserFiles = async (req: AuthRequest, res: Response) => {
     try {
@@ -122,8 +122,23 @@ export const getUserFiles = async (req: AuthRequest, res: Response) => {
         }
 
         const folderId = req.query.folderId as string | undefined;
-        const files = await vaultService.getUserFiles(req.user.id, folderId);
+        const normalizedFolderId = folderId && folderId !== 'null' ? folderId : null;
 
+        // Check for pagination params
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+        const cursor = req.query.cursor as string | undefined;
+
+        if (limit !== undefined) {
+            const result = await vaultService.getUserFilesPaginated(
+                req.user.id,
+                normalizedFolderId,
+                { limit, cursor }
+            );
+            return res.json(result);
+        }
+
+        // Non-paginated fallback
+        const files = await vaultService.getUserFiles(req.user.id, folderId);
         res.json(files);
     } catch (error) {
         handleError(error, res);

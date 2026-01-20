@@ -45,6 +45,12 @@ interface TaskState {
     // Local state updates for optimistic UI
     updateTaskLocal: (id: string, updates: Partial<DecryptedTask>) => void;
     setTasksLocal: (tasks: DecryptedTask[]) => void;
+
+    // Lightweight fetch for dashboard
+    fetchUpcomingTasks: (
+        limit: number,
+        decryptFn: (tasks: EncryptedTask[]) => Promise<DecryptedTask[] | { tasks: DecryptedTask[], failedTaskIds: string[] }>
+    ) => Promise<void>;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -157,5 +163,31 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     setTasksLocal: (tasks) => {
         set({ tasks });
+    },
+
+    /**
+     * Fetch only upcoming tasks for lightweight dashboard hydration.
+     * Merges with existing tasks to avoid overwriting full task lists.
+     */
+    fetchUpcomingTasks: async (
+        limit: number,
+        decryptFn: (tasks: EncryptedTask[]) => Promise<DecryptedTask[] | { tasks: DecryptedTask[], failedTaskIds: string[] }>
+    ) => {
+        try {
+            const encryptedTasks = await taskService.getUpcomingTasks(limit);
+            if (decryptFn) {
+                const result = await decryptFn(encryptedTasks);
+                const decrypted = 'tasks' in result ? result.tasks : result as unknown as DecryptedTask[];
+
+                // Merge upcoming tasks into store (don't replace all tasks)
+                set(state => {
+                    const existingIds = new Set(state.tasks.map(t => t._id));
+                    const newTasks = decrypted.filter(t => !existingIds.has(t._id));
+                    return { tasks: [...state.tasks, ...newTasks] };
+                });
+            }
+        } catch (error: any) {
+            console.error('[TaskStore] Failed to fetch upcoming tasks:', error);
+        }
     }
 }));

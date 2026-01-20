@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { extractMentionedIds } from '@/utils/mentionUtils';
 import {
     Box,
@@ -40,6 +40,18 @@ type SnackbarState = {
 export function TasksPage() {
     const theme = useTheme();
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
+
+    // Fetch full task list on mount (global hydration only fetches upcoming tasks for dashboard)
+    const fetchTasks = useTaskStore((state) => state.fetchTasks);
+    const { decryptTasks } = useTaskEncryption();
+
+    useEffect(() => {
+        if (pqcEngineStatus === 'operational') {
+            fetchTasks(undefined, decryptTasks).catch(err => {
+                console.error('[TasksPage] Failed to fetch tasks:', err);
+            });
+        }
+    }, [pqcEngineStatus, fetchTasks, decryptTasks]);
 
     const [sortMode, setSortMode] = useState<'manual' | 'priority' | 'date'>(() => {
         const saved = localStorage.getItem('kanban_sort_mode');

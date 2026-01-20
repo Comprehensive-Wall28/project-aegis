@@ -133,4 +133,31 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
         const result = await this.bulkWrite(operations);
         return result.modifiedCount || 0;
     }
+
+    /**
+     * Find files by owner in a folder (paginated)
+     */
+    async findByOwnerAndFolderPaginated(
+        ownerId: string,
+        folderId: string | null,
+        options: { limit: number; cursor?: string }
+    ): Promise<{ items: IFileMetadata[]; nextCursor: string | null }> {
+        const filter: SafeFilter<IFileMetadata> = {
+            ownerId: { $eq: ownerId }
+        };
+
+        if (folderId) {
+            filter.folderId = { $eq: folderId };
+        } else {
+            filter.folderId = null;
+        }
+
+        return this.findPaginated(filter, {
+            limit: Math.min(options.limit || 20, 100),
+            cursor: options.cursor,
+            sortField: 'createdAt',
+            sortOrder: -1
+        });
+    }
 }
+

@@ -58,7 +58,6 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
     const [folderPath, setFolderPath] = useState<Folder[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]);
-    const [files, setFiles] = useState<FileMetadata[]>([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
 
     const { decryptTasks } = useTaskEncryption();
@@ -68,69 +67,97 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
     const [tasksCursor, setTasksCursor] = useState<string | null>(null);
     const [paginatedEvents, setPaginatedEvents] = useState<any[]>([]);
     const [eventsCursor, setEventsCursor] = useState<string | null>(null);
+    const [paginatedFiles, setPaginatedFiles] = useState<FileMetadata[]>([]);
+    const [filesCursor, setFilesCursor] = useState<string | null>(null);
 
-    const fetchPaginatedTasks = useCallback(async (cursor?: string) => {
+    const fetchPaginatedTasks = useCallback(async (cursor?: string, signal?: AbortSignal) => {
         setIsLoading(true);
         try {
-            const result = await taskService.getTasksPaginated({ limit: 20, cursor });
+            const result = await taskService.getTasksPaginated({ limit: 20, cursor, signal });
             const decrypted = await decryptTasks(result.items);
             const items = 'tasks' in decrypted ? decrypted.tasks : decrypted;
 
             setPaginatedTasks(prev => cursor ? [...prev, ...items] : items);
             setTasksCursor(result.nextCursor);
-        } catch (err) {
-            console.error('Failed to fetch paginated tasks:', err);
+        } catch (err: any) {
+            // Ignore abort errors
+            if (err?.name !== 'AbortError' && err?.code !== 'ERR_CANCELED') {
+                console.error('Failed to fetch paginated tasks:', err);
+            }
         } finally {
             setIsLoading(false);
         }
     }, [decryptTasks]);
 
-    const fetchPaginatedEvents = useCallback(async (cursor?: string) => {
+    const fetchPaginatedEvents = useCallback(async (cursor?: string, signal?: AbortSignal) => {
         setIsLoading(true);
         try {
-            const result = await calendarService.getEventsPaginated({ limit: 20, cursor });
+            const result = await calendarService.getEventsPaginated({ limit: 20, cursor, signal });
             const decrypted = await decryptEvents(result.items);
 
             setPaginatedEvents(prev => cursor ? [...prev, ...decrypted] : decrypted);
             setEventsCursor(result.nextCursor);
-        } catch (err) {
-            console.error('Failed to fetch paginated events:', err);
+        } catch (err: any) {
+            // Ignore abort errors
+            if (err?.name !== 'AbortError' && err?.code !== 'ERR_CANCELED') {
+                console.error('Failed to fetch paginated events:', err);
+            }
         } finally {
             setIsLoading(false);
         }
     }, [decryptEvents]);
 
+    // Fetch data with AbortController for cancellation on close/tab change
     useEffect(() => {
-        if (anchorEl) {
-            if (activeTab === 1 && paginatedTasks.length === 0) fetchPaginatedTasks();
-            if (activeTab === 2 && paginatedEvents.length === 0) fetchPaginatedEvents();
+        if (!anchorEl) return;
+
+        const controller = new AbortController();
+
+        if (activeTab === 1 && paginatedTasks.length === 0) {
+            fetchPaginatedTasks(undefined, controller.signal);
         }
+        if (activeTab === 2 && paginatedEvents.length === 0) {
+            fetchPaginatedEvents(undefined, controller.signal);
+        }
+
+        return () => controller.abort();
     }, [activeTab, anchorEl, fetchPaginatedTasks, fetchPaginatedEvents, paginatedTasks.length, paginatedEvents.length]);
 
     // Reset selected index when results or tab change
     useEffect(() => {
         setSelectedIndex(0);
-    }, [searchQuery, activeTab, folders, files]);
+    }, [searchQuery, activeTab, folders, paginatedFiles]);
 
-    const fetchData = useCallback(async (folderId: string | null) => {
+    // Fetch folders and files for Files tab (with pagination for files)
+    const fetchData = useCallback(async (folderId: string | null, signal?: AbortSignal) => {
         setIsLoading(true);
         try {
-            const [foldersData, filesData] = await Promise.all([
-                folderService.getFolders(folderId),
-                vaultService.getRecentFiles(folderId)
-            ]);
+            // Folders are typically not paginated (usually few)
+            const foldersData = await folderService.getFolders(folderId);
             setFolders(foldersData);
-            setFiles(filesData);
-        } catch (err) {
-            console.error('Failed to fetch picker data:', err);
+
+            // Paginated file fetch
+            const filesResult = await vaultService.getFilesPaginated({ folderId, limit: 20, signal });
+            setPaginatedFiles(filesResult.items);
+            setFilesCursor(filesResult.nextCursor);
+        } catch (err: any) {
+            if (err?.name !== 'AbortError' && err?.code !== 'ERR_CANCELED') {
+                console.error('Failed to fetch picker data:', err);
+            }
         } finally {
             setIsLoading(false);
         }
     }, []);
 
+    // Fetch files when Files tab is active and folder changes
     useEffect(() => {
-        if (anchorEl) fetchData(currentFolderId);
-    }, [currentFolderId, fetchData, anchorEl]);
+        if (!anchorEl || activeTab !== 0) return;
+
+        const controller = new AbortController();
+        fetchData(currentFolderId, controller.signal);
+
+        return () => controller.abort();
+    }, [currentFolderId, fetchData, anchorEl, activeTab]);
 
     const handleFolderClick = (folder: Folder) => {
         setFolderPath(prev => [...prev, folder]);
@@ -148,11 +175,11 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
 
     const filteredFilesEntities = useMemo(() => {
         const query = searchQuery.toLowerCase();
-        const f = files.filter(file => file.originalFileName.toLowerCase().includes(query));
+        const f = paginatedFiles.filter(file => file.originalFileName.toLowerCase().includes(query));
         const foldersList = folders.filter(folder => folder.name.toLowerCase().includes(query));
 
         return { folders: foldersList, files: f };
-    }, [files, folders, searchQuery]);
+    }, [paginatedFiles, folders, searchQuery]);
 
     const filteredTasks = useMemo(() => {
         const query = searchQuery.toLowerCase();
@@ -295,7 +322,7 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
 
             <Box sx={{ flex: 1, overflowY: 'auto', py: 0.5, minHeight: 150 }}>
                 {isLoading && (
-                    (activeTab === 0 && folders.length === 0 && files.length === 0) ||
+                    (activeTab === 0 && folders.length === 0 && paginatedFiles.length === 0) ||
                     (activeTab === 1 && paginatedTasks.length === 0) ||
                     (activeTab === 2 && paginatedEvents.length === 0)
                 ) ? (
@@ -357,6 +384,45 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                                         </ListItem>
                                     );
                                 })}
+                                {filesCursor && (
+                                    <ListItem
+                                        component="div"
+                                        dense
+                                        onClick={async () => {
+                                            if (isLoading) return;
+                                            setIsLoading(true);
+                                            try {
+                                                const result = await vaultService.getFilesPaginated({
+                                                    folderId: currentFolderId,
+                                                    limit: 20,
+                                                    cursor: filesCursor
+                                                });
+                                                setPaginatedFiles(prev => [...prev, ...result.items]);
+                                                setFilesCursor(result.nextCursor);
+                                            } catch (err) {
+                                                console.error('Failed to load more files:', err);
+                                            } finally {
+                                                setIsLoading(false);
+                                            }
+                                        }}
+                                        sx={{
+                                            cursor: isLoading ? 'default' : 'pointer',
+                                            textAlign: 'center',
+                                            py: 1,
+                                            '&:hover': { bgcolor: isLoading ? 'transparent' : alpha(theme.palette.primary.main, 0.04) }
+                                        }}
+                                    >
+                                        <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                                            {isLoading ? (
+                                                <CircularProgress size={16} />
+                                            ) : (
+                                                <Typography variant="caption" color="primary" sx={{ fontWeight: 600 }}>
+                                                    Load more files...
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                    </ListItem>
+                                )}
                             </>
                         )}
                         {activeTab === 1 && filteredTasks.map((task, index) => (

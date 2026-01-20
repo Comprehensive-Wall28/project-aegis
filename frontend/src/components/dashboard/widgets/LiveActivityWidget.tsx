@@ -1,4 +1,4 @@
-import { useEffect, useMemo, memo } from 'react';
+import { useEffect, useMemo, memo, useRef } from 'react';
 import { Box, Paper, Typography, useTheme, Button, alpha } from '@mui/material';
 import { History as HistoryIcon, ArrowUpRight, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -87,10 +87,12 @@ export function LiveActivityWidget() {
     const navigate = useNavigate();
     const { recentActivity, fetchRecentActivity, isAuthenticated } = useSessionStore();
     const { tasks } = useTaskStore();
+    const hasFetched = useRef(false);
 
-    // Fetch activity
+    // Fetch activity (only once)
     useEffect(() => {
-        if (isAuthenticated) {
+        if (isAuthenticated && !hasFetched.current) {
+            hasFetched.current = true;
             fetchRecentActivity();
         }
     }, [isAuthenticated, fetchRecentActivity]);
