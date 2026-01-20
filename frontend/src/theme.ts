@@ -38,21 +38,33 @@ export const getTheme = (mode: ThemeMode) => {
         },
         catppuccin: {
             background: {
-                default: '#1e1e2e',
-                paper: '#313244',
+                default: '#11111b', // Crust (Darkest)
+                paper: '#181825',   // Mantle (Darker)
             },
             primary: {
-                main: '#89b4fa', // Blue
-                contrastText: '#1e1e2e',
+                main: '#89b4fa',    // Blue
+                contrastText: '#1e1e2e', // Base
             },
             secondary: {
-                main: '#a6e3a1', // Green
+                main: '#cba6f7',    // Mauve (Changed from Green for better aesthetics)
             },
             text: {
-                primary: '#cdd6f4',
-                secondary: '#a6adc8',
+                primary: '#cdd6f4', // Text
+                secondary: '#a6adc8', // Subtext 0
             },
-            divider: 'rgba(205, 214, 244, 0.08)',
+            error: {
+                main: '#f38ba8',    // Red
+            },
+            warning: {
+                main: '#fab387',    // Peach
+            },
+            info: {
+                main: '#74c7ec',    // Sapphire
+            },
+            success: {
+                main: '#a6e3a1',    // Green
+            },
+            divider: 'rgba(108, 112, 134, 0.2)', // Overlay 0 with alpha
         },
         purple: {
             background: {
