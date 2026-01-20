@@ -8,6 +8,7 @@ import {
     type EncryptedTaskPayload,
     type TaskData
 } from '../lib/cryptoUtils';
+import { pqcWorkerManager } from '../lib/pqcWorkerManager';
 
 export type { EncryptedTask, EncryptedTaskPayload, TaskData };
 
@@ -55,17 +56,24 @@ export const useTaskEncryption = () => {
     const decryptTasks = useCallback(async (encryptedTasks: EncryptedTask[]) => {
         try {
             setCryptoStatus('decrypting');
-            const results = await Promise.allSettled(
-                encryptedTasks.map(task => decryptTaskDataFn(task))
-            );
 
-            return results
-                .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
-                .map(r => r.value);
+            if (!user || !user.privateKey) {
+                // Should not happen if decryptTasks is called
+                return [];
+            }
+
+            // Offload to worker
+            return await pqcWorkerManager.batchDecryptTasks(encryptedTasks, user.privateKey);
+        } catch (error) {
+            console.error('Batch decryption failed:', error);
+            // Fallback? Or rethrow?
+            // If worker fails, we might want to try main thread or just fail.
+            // For now, let's return [] or rethrow.
+            throw error;
         } finally {
             setCryptoStatus('idle');
         }
-    }, [decryptTaskDataFn, setCryptoStatus]);
+    }, [user, setCryptoStatus]);
 
     /**
      * Generate SHA-256 record hash for integrity verification

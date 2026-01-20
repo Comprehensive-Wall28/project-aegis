@@ -203,6 +203,81 @@ self.onmessage = async (event: MessageEvent) => {
                 root,
                 id
             });
+        } else if (type === 'batch_decrypt_tasks') {
+            const { tasks, privateKey } = event.data;
+            const decryptedTasks = [];
+            const decoder = new TextDecoder();
+
+            for (const task of tasks) {
+                try {
+                    // 1. Decapsulate
+                    const encapsulatedKeyBytes = hexToBytes(task.encapsulatedKey);
+                    const sharedSecret = ml_kem768.decapsulate(encapsulatedKeyBytes, privateKey);
+
+                    // 2. Decrypt AES Key
+                    // encryptedSymmetricKey is IV (12 bytes/24 hex) + Ciphertext
+                    const encryptedSymmetricKeyBytes = hexToBytes(task.encryptedSymmetricKey);
+                    const keyIv = encryptedSymmetricKeyBytes.slice(0, 12);
+                    const encryptedKey = encryptedSymmetricKeyBytes.slice(12);
+
+                    const unwrappingKey = await self.crypto.subtle.importKey(
+                        'raw',
+                        sharedSecret as any, // TypedArray expected
+                        { name: 'AES-GCM' },
+                        false,
+                        ['decrypt']
+                    );
+
+                    const rawKey = await self.crypto.subtle.decrypt(
+                        { name: 'AES-GCM', iv: keyIv as any },
+                        unwrappingKey,
+                        encryptedKey
+                    );
+
+                    const aesKey = await self.crypto.subtle.importKey(
+                        'raw',
+                        rawKey,
+                        { name: 'AES-GCM' },
+                        false,
+                        ['decrypt']
+                    );
+
+                    // 3. Decrypt Task Data
+                    const [ivHex, ciphertextHex] = task.encryptedData.split(':');
+                    const iv = hexToBytes(ivHex);
+                    const ciphertext = hexToBytes(ciphertextHex);
+
+                    const decryptedBuffer = await self.crypto.subtle.decrypt(
+                        { name: 'AES-GCM', iv: iv as any },
+                        aesKey,
+                        ciphertext as any
+                    );
+
+                    const taskJson = decoder.decode(decryptedBuffer);
+                    const taskData = JSON.parse(taskJson);
+
+                    decryptedTasks.push({
+                        ...taskData,
+                        _id: task._id,
+                        userId: task.userId,
+                        dueDate: task.dueDate,
+                        priority: task.priority,
+                        status: task.status,
+                        order: task.order,
+                        recordHash: task.recordHash,
+                        createdAt: task.createdAt,
+                        updatedAt: task.updatedAt,
+                    });
+                } catch (err) {
+                    console.error('Worker failed to decrypt task:', task._id, err);
+                }
+            }
+
+            self.postMessage({
+                type: 'batch_decrypt_tasks_result',
+                tasks: decryptedTasks,
+                id
+            });
         }
     } catch (error) {
         self.postMessage({

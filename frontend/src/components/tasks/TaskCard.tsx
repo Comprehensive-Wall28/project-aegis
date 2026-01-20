@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, Typography, Paper, alpha, useTheme, Chip, IconButton } from '@mui/material';
 import { Edit as EditIcon, AccessTime as DueDateIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -17,7 +18,7 @@ interface TaskCardProps {
     isDragging?: boolean;
 }
 
-export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
+export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
     const theme = useTheme();
     const priorityConfig = TASK_PRIORITY_CONFIG[task.priority];
     const priorityColor = priorityConfig.color;
@@ -155,4 +156,4 @@ export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
             </Box>
         </Paper>
     );
-};
+});

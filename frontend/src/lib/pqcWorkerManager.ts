@@ -118,6 +118,18 @@ class PQCWorkerManager {
     }
 
     /**
+     * HIGHLY EXPENSIVE: Decrypt multiple tasks using PQC and AES in worker
+     */
+    async batchDecryptTasks(tasks: any[], privateKeyHex: string): Promise<any[]> {
+        const hexToBytes = (hex: string) =>
+            new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
+
+        const privateKey = hexToBytes(privateKeyHex);
+        const result = await this.sendRequest('batch_decrypt_tasks', { tasks, privateKey });
+        return result.tasks;
+    }
+
+    /**
      * Expensive: Calculate Merkle Root in worker
      */
     async calculateMerkleRoot(hashes: string[]): Promise<string> {

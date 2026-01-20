@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { Box, Typography, Paper, alpha, useTheme, Button, Badge } from '@mui/material';
 import { Add as AddIcon, CheckCircle, Schedule, RadioButtonUnchecked } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,10 +56,25 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
     const [draggedTask, setDraggedTask] = useState<string | null>(null);
     const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
-    const getTasksByStatus = useCallback((status: string) => {
-        return tasks
-            .filter(t => t.status === status)
-            .sort((a, b) => a.order - b.order);
+    const tasksByStatus = useMemo(() => {
+        const grouped: Record<string, DecryptedTask[]> = {
+            [TASK_STATUS.TODO]: [],
+            [TASK_STATUS.IN_PROGRESS]: [],
+            [TASK_STATUS.DONE]: [],
+        };
+
+        tasks.forEach(t => {
+            if (grouped[t.status]) {
+                grouped[t.status].push(t);
+            }
+        });
+
+        // Sort each group by order
+        Object.keys(grouped).forEach(key => {
+            grouped[key].sort((a, b) => a.order - b.order);
+        });
+
+        return grouped;
     }, [tasks]);
 
     const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -83,7 +98,7 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
         const taskId = e.dataTransfer.getData('text/plain');
 
         if (taskId) {
-            const columnTasks = getTasksByStatus(columnId);
+            const columnTasks = tasksByStatus[columnId] || [];
             const newOrder = columnTasks.length;
             onTaskMove(taskId, columnId, newOrder);
         }
@@ -113,7 +128,7 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
             }}
         >
             {COLUMNS.map((column) => {
-                const columnTasks = getTasksByStatus(column.id);
+                const columnTasks = tasksByStatus[column.id] || [];
                 const isOver = dragOverColumn === column.id;
 
                 return (
