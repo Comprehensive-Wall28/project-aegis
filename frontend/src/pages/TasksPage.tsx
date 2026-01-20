@@ -186,7 +186,7 @@ export function TasksPage() {
         }
     };
 
-    const handleTaskMove = async (updates: { id: string; status: any; order: number }[]) => {
+    const handleTaskMove = useCallback(async (updates: { id: string; status: any; order: number }[]) => {
         try {
             // reorderTasks in taskStore handles optimistic update and backend sync
             await reorderTasks(updates);
@@ -194,7 +194,7 @@ export function TasksPage() {
         } catch (error: any) {
             showSnackbar(error.message || 'Failed to sync reorder', 'error');
         }
-    };
+    }, [reorderTasks]);
 
 
     return (
