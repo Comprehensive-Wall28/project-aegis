@@ -23,17 +23,23 @@ import { MobileDateTimePicker } from '@mui/x-date-pickers/MobileDateTimePicker';
 import dayjs from 'dayjs';
 import type { Task } from '../../services/taskService';
 
-const PRIORITY_OPTIONS = [
-    { value: 'high', label: 'High', color: '#f44336' },
-    { value: 'medium', label: 'Medium', color: '#ff9800' },
-    { value: 'low', label: 'Low', color: '#4caf50' },
-] as const;
+import {
+    TASK_PRIORITY_CONFIG,
+    TASK_STATUS_LABELS,
+    type TaskPriority,
+    type TaskStatus
+} from '@/constants/taskDefaults';
 
-const STATUS_OPTIONS = [
-    { value: 'todo', label: 'To Do' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'done', label: 'Done' },
-] as const;
+const PRIORITY_OPTIONS = Object.entries(TASK_PRIORITY_CONFIG).map(([key, config]) => ({
+    value: key as TaskPriority,
+    label: config.label,
+    color: config.color,
+}));
+
+const STATUS_OPTIONS = Object.entries(TASK_STATUS_LABELS).map(([key, label]) => ({
+    value: key as TaskStatus,
+    label: label,
+}));
 
 export interface TaskDialogData {
     title: string;

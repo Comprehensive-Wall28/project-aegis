@@ -2,12 +2,14 @@ import { Box, Typography, Paper, alpha, useTheme, Chip, IconButton } from '@mui/
 import { Edit as EditIcon, AccessTime as DueDateIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 
+import { TASK_PRIORITY_CONFIG, type TaskPriority } from '@/constants/taskDefaults';
+
 interface TaskCardProps {
     task: {
         _id: string;
         title: string;
         description: string;
-        priority: 'high' | 'medium' | 'low';
+        priority: TaskPriority;
         dueDate?: string;
         status: 'todo' | 'in_progress' | 'done';
     };
@@ -15,21 +17,10 @@ interface TaskCardProps {
     isDragging?: boolean;
 }
 
-const PRIORITY_COLORS = {
-    high: '#f44336',
-    medium: '#ff9800',
-    low: '#4caf50',
-};
-
-const PRIORITY_LABELS = {
-    high: 'High',
-    medium: 'Medium',
-    low: 'Low',
-};
-
 export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
     const theme = useTheme();
-    const priorityColor = PRIORITY_COLORS[task.priority];
+    const priorityConfig = TASK_PRIORITY_CONFIG[task.priority];
+    const priorityColor = priorityConfig.color;
 
     const formatDueDate = (dateString?: string) => {
         if (!dateString) return null;
@@ -134,7 +125,7 @@ export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                 <Chip
-                    label={PRIORITY_LABELS[task.priority]}
+                    label={priorityConfig.label}
                     size="small"
                     sx={{
                         height: 22,

@@ -5,18 +5,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TaskCard } from './TaskCard';
 import type { DecryptedTask } from '@/stores/useTaskStore';
 
+import { TASK_COLUMNS_CONFIG, TASK_STATUS } from '@/constants/taskDefaults';
+
 interface Column {
-    id: 'todo' | 'in_progress' | 'done';
+    id: typeof TASK_STATUS[keyof typeof TASK_STATUS];
     title: string;
     icon: React.ReactNode;
     color: string;
 }
 
-const COLUMNS: Column[] = [
-    { id: 'todo', title: 'To Do', icon: <RadioButtonUnchecked />, color: '#607d8b' },
-    { id: 'in_progress', title: 'In Progress', icon: <Schedule />, color: '#ff9800' },
-    { id: 'done', title: 'Done', icon: <CheckCircle />, color: '#4caf50' },
-];
+const COLUMN_ICONS = {
+    [TASK_STATUS.TODO]: <RadioButtonUnchecked />,
+    [TASK_STATUS.IN_PROGRESS]: <Schedule />,
+    [TASK_STATUS.DONE]: <CheckCircle />,
+};
+
+const COLUMNS: Column[] = TASK_COLUMNS_CONFIG.map(col => ({
+    ...col,
+    icon: COLUMN_ICONS[col.id],
+}));
 
 interface KanbanBoardProps {
     tasks: DecryptedTask[];
