@@ -126,6 +126,48 @@ export abstract class BaseRepository<T extends Document> {
     }
 
     /**
+     * Find documents with cursor-based pagination
+     */
+    async findPaginated(
+        filter: SafeFilter<T>,
+        options: {
+            limit: number;
+            cursor?: string;
+            sortField?: string;
+            sortOrder?: 1 | -1;
+        }
+    ): Promise<{ items: T[]; nextCursor: string | null }> {
+        const { limit, cursor, sortField = '_id', sortOrder = 1 } = options;
+        const sanitizedFilter = QuerySanitizer.sanitizeQuery(filter) as any;
+
+        try {
+            if (cursor) {
+                const operator = sortOrder === 1 ? '$gt' : '$lt';
+                sanitizedFilter[sortField] = { [operator]: cursor };
+            }
+
+            const items = await this.model
+                .find(sanitizedFilter)
+                .sort({ [sortField]: sortOrder } as any)
+                .limit(limit)
+                .exec();
+
+            const nextCursor = items.length > 0 && items.length === limit
+                ? (items[items.length - 1] as any)[sortField].toString()
+                : null;
+
+            return { items, nextCursor };
+        } catch (error) {
+            logger.error(`Repository findPaginated error:`, error);
+            throw new RepositoryError(
+                'Failed to find paginated documents',
+                RepositoryErrorCode.QUERY_ERROR,
+                error
+            );
+        }
+    }
+
+    /**
      * Create a new document
      */
     async create(data: Partial<T>): Promise<T> {

@@ -22,7 +22,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     fetchEvents: async (start, end, decryptFn) => {
         set({ isLoading: true, error: null });
         try {
-            const encryptedEvents = await calendarService.getEvents(start, end);
+            const encryptedEvents = await calendarService.getEvents({ start, end });
             if (decryptFn) {
                 const decryptedEvents = await decryptFn(encryptedEvents);
                 set({ events: decryptedEvents, isLoading: false });

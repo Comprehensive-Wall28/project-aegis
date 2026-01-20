@@ -146,4 +146,27 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
             throw new ServiceError('Failed to delete event', 500);
         }
     }
+
+    /**
+     * Get paginated events for a user
+     */
+    async getPaginatedEvents(
+        userId: string,
+        options: { limit: number; cursor?: string }
+    ): Promise<{ items: ICalendarEvent[]; nextCursor: string | null }> {
+        try {
+            return await this.repository.findPaginated(
+                { userId: { $eq: userId } } as any,
+                {
+                    limit: Math.min(options.limit || 50, 100),
+                    cursor: options.cursor,
+                    sortField: '_id',
+                    sortOrder: -1 // Most recent first
+                }
+            );
+        } catch (error) {
+            logger.error('Get paginated events error:', error);
+            throw new ServiceError('Failed to fetch events', 500);
+        }
+    }
 }

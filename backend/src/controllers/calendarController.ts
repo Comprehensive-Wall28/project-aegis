@@ -18,6 +18,14 @@ export const getEvents = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+        const cursor = req.query.cursor as string | undefined;
+
+        if (limit !== undefined || cursor !== undefined) {
+            const result = await calendarService.getPaginatedEvents(req.user.id, { limit: limit || 50, cursor });
+            return res.status(200).json(result);
+        }
+
         const { start, end } = req.query;
         const events = await calendarService.getEvents(
             req.user.id,

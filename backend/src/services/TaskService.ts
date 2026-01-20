@@ -275,4 +275,26 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
             this.handleRepositoryError(error);
         }
     }
+
+    /**
+     * Get paginated tasks for a user
+     */
+    async getPaginatedTasks(
+        userId: string,
+        options: { limit: number; cursor?: string }
+    ): Promise<{ items: ITask[]; nextCursor: string | null }> {
+        try {
+            return await this.repository.findPaginated(
+                { userId: { $eq: userId } } as any,
+                {
+                    limit: Math.min(options.limit || 50, 100),
+                    cursor: options.cursor,
+                    sortField: '_id',
+                    sortOrder: -1 // Most recent first
+                }
+            );
+        } catch (error) {
+            this.handleRepositoryError(error);
+        }
+    }
 }

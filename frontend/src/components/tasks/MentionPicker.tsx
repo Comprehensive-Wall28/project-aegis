@@ -28,8 +28,10 @@ import {
 import { getFileIconInfo } from '@/pages/files/utils';
 import folderService, { type Folder } from '@/services/folderService';
 import vaultService, { type FileMetadata } from '@/services/vaultService';
-import { useTaskStore } from '@/stores/useTaskStore';
-import { useCalendarStore } from '@/stores/useCalendarStore';
+import taskService from '@/services/taskService';
+import calendarService from '@/services/calendarService';
+import { useTaskEncryption } from '@/hooks/useTaskEncryption';
+import { useCalendarEncryption } from '@/hooks/useCalendarEncryption';
 
 export type MentionEntityType = 'file' | 'task' | 'event';
 
@@ -49,8 +51,6 @@ interface MentionPickerProps {
 
 export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProps) => {
     const theme = useTheme();
-    const { tasks } = useTaskStore();
-    const { events } = useCalendarStore();
 
     const [isLoading, setIsLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -60,6 +60,52 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
     const [folders, setFolders] = useState<Folder[]>([]);
     const [files, setFiles] = useState<FileMetadata[]>([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
+
+    const { decryptTasks } = useTaskEncryption();
+    const { decryptEvents } = useCalendarEncryption();
+
+    const [paginatedTasks, setPaginatedTasks] = useState<any[]>([]);
+    const [tasksCursor, setTasksCursor] = useState<string | null>(null);
+    const [paginatedEvents, setPaginatedEvents] = useState<any[]>([]);
+    const [eventsCursor, setEventsCursor] = useState<string | null>(null);
+
+    const fetchPaginatedTasks = useCallback(async (cursor?: string) => {
+        setIsLoading(true);
+        try {
+            const result = await taskService.getTasksPaginated({ limit: 20, cursor });
+            const decrypted = await decryptTasks(result.items);
+            const items = 'tasks' in decrypted ? decrypted.tasks : decrypted;
+
+            setPaginatedTasks(prev => cursor ? [...prev, ...items] : items);
+            setTasksCursor(result.nextCursor);
+        } catch (err) {
+            console.error('Failed to fetch paginated tasks:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [decryptTasks]);
+
+    const fetchPaginatedEvents = useCallback(async (cursor?: string) => {
+        setIsLoading(true);
+        try {
+            const result = await calendarService.getEventsPaginated({ limit: 20, cursor });
+            const decrypted = await decryptEvents(result.items);
+
+            setPaginatedEvents(prev => cursor ? [...prev, ...decrypted] : decrypted);
+            setEventsCursor(result.nextCursor);
+        } catch (err) {
+            console.error('Failed to fetch paginated events:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [decryptEvents]);
+
+    useEffect(() => {
+        if (anchorEl) {
+            if (activeTab === 1 && paginatedTasks.length === 0) fetchPaginatedTasks();
+            if (activeTab === 2 && paginatedEvents.length === 0) fetchPaginatedEvents();
+        }
+    }, [activeTab, anchorEl, fetchPaginatedTasks, fetchPaginatedEvents, paginatedTasks.length, paginatedEvents.length]);
 
     // Reset selected index when results or tab change
     useEffect(() => {
@@ -110,13 +156,13 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
 
     const filteredTasks = useMemo(() => {
         const query = searchQuery.toLowerCase();
-        return tasks.filter(task => task.title.toLowerCase().includes(query));
-    }, [tasks, searchQuery]);
+        return paginatedTasks.filter(task => task.title.toLowerCase().includes(query));
+    }, [paginatedTasks, searchQuery]);
 
     const filteredEvents = useMemo(() => {
         const query = searchQuery.toLowerCase();
-        return events.filter(event => event.title.toLowerCase().includes(query));
-    }, [events, searchQuery]);
+        return paginatedEvents.filter(event => event.title.toLowerCase().includes(query));
+    }, [paginatedEvents, searchQuery]);
 
     const currentItemsCount = useMemo(() => {
         if (activeTab === 0) return filteredFilesEntities.folders.length + filteredFilesEntities.files.length;
@@ -248,11 +294,15 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
             <Divider />
 
             <Box sx={{ flex: 1, overflowY: 'auto', py: 0.5, minHeight: 150 }}>
-                {isLoading && activeTab === 0 ? (
+                {isLoading && (
+                    (activeTab === 0 && folders.length === 0 && files.length === 0) ||
+                    (activeTab === 1 && paginatedTasks.length === 0) ||
+                    (activeTab === 2 && paginatedEvents.length === 0)
+                ) ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
                         <CircularProgress size={24} />
                     </Box>
-                ) : currentItemsCount === 0 ? (
+                ) : currentItemsCount === 0 && !isLoading ? (
                     <Box sx={{ p: 4, textAlign: 'center' }}>
                         <Typography variant="body2" color="text.secondary">No items found</Typography>
                     </Box>
@@ -332,6 +382,29 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                                 />
                             </ListItem>
                         ))}
+                        {activeTab === 1 && tasksCursor && (
+                            <ListItem
+                                component="div"
+                                dense
+                                onClick={() => !isLoading && fetchPaginatedTasks(tasksCursor)}
+                                sx={{
+                                    cursor: isLoading ? 'default' : 'pointer',
+                                    textAlign: 'center',
+                                    py: 1,
+                                    '&:hover': { bgcolor: isLoading ? 'transparent' : alpha(theme.palette.primary.main, 0.04) }
+                                }}
+                            >
+                                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                                    {isLoading ? (
+                                        <CircularProgress size={16} />
+                                    ) : (
+                                        <Typography variant="caption" color="primary" sx={{ fontWeight: 600 }}>
+                                            Load more tasks...
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </ListItem>
+                        )}
                         {activeTab === 2 && filteredEvents.map((event, index) => (
                             <ListItem
                                 key={event._id}
@@ -355,6 +428,29 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                                 />
                             </ListItem>
                         ))}
+                        {activeTab === 2 && eventsCursor && (
+                            <ListItem
+                                component="div"
+                                dense
+                                onClick={() => !isLoading && fetchPaginatedEvents(eventsCursor)}
+                                sx={{
+                                    cursor: isLoading ? 'default' : 'pointer',
+                                    textAlign: 'center',
+                                    py: 1,
+                                    '&:hover': { bgcolor: isLoading ? 'transparent' : alpha(theme.palette.primary.main, 0.04) }
+                                }}
+                            >
+                                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                                    {isLoading ? (
+                                        <CircularProgress size={16} />
+                                    ) : (
+                                        <Typography variant="caption" color="primary" sx={{ fontWeight: 600 }}>
+                                            Load more events...
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </ListItem>
+                        )}
                     </List>
                 )}
             </Box>

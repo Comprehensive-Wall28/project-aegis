@@ -19,6 +19,14 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+        const cursor = req.query.cursor as string | undefined;
+
+        if (limit !== undefined || cursor !== undefined) {
+            const result = await taskService.getPaginatedTasks(req.user.id, { limit: limit || 50, cursor });
+            return res.status(200).json(result);
+        }
+
         const tasks = await taskService.getTasks(req.user.id, {
             status: req.query.status as string | undefined,
             priority: req.query.priority as string | undefined

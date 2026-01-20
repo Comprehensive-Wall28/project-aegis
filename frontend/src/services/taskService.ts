@@ -64,6 +64,11 @@ export interface ReorderUpdate {
     order: number;
 }
 
+export interface PaginatedTasks {
+    items: EncryptedTask[];
+    nextCursor: string | null;
+}
+
 const taskService = {
     getTasks: async (filters?: { status?: string; priority?: string }): Promise<EncryptedTask[]> => {
         const params = new URLSearchParams();
@@ -71,6 +76,15 @@ const taskService = {
         if (filters?.priority) params.append('priority', filters.priority);
 
         const response = await apiClient.get<EncryptedTask[]>(`${PREFIX}`, { params });
+        return response.data;
+    },
+
+    getTasksPaginated: async (filters: { limit: number; cursor?: string }): Promise<PaginatedTasks> => {
+        const params = new URLSearchParams();
+        params.append('limit', filters.limit.toString());
+        if (filters.cursor) params.append('cursor', filters.cursor);
+
+        const response = await apiClient.get<PaginatedTasks>(`${PREFIX}`, { params });
         return response.data;
     },
 
