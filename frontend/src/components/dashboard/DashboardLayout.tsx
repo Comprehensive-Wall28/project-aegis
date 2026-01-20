@@ -91,6 +91,21 @@ export function DashboardLayout() {
         refreshCsrfToken();
     }, []);
 
+    // Reset window scroll and lock overflow via data-attribute (more performant than direct style injection)
+    useEffect(() => {
+        document.documentElement.dataset.dashboardActive = 'true';
+
+        // Force scroll to top after a small delay to ensure layout is final
+        const timer = setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 20);
+
+        return () => {
+            delete document.documentElement.dataset.dashboardActive;
+            clearTimeout(timer);
+        };
+    }, []);
+
     const navigate = useNavigate();
     const joinRoom = useSocialStore((state) => state.joinRoom);
     const [joinMessage, setJoinMessage] = useState<string | null>(null);

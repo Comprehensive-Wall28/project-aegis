@@ -443,10 +443,27 @@
   --color-primary-fg-aegis: #16161e;
 }
 
-body {
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
   background-color: var(--color-background-aegis);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
+}
+
+/* Aggressive Layout Lock for Dashboard Mode */
+[data-dashboard-active="true"],
+[data-dashboard-active="true"] body {
+  overflow: hidden !important;
+  height: 100% !important;
+  height: 100dvh !important;
+  /* Mobile browser bottom-bar protection */
+  position: fixed;
+  /* Prevents certain 'rubber-band' scroll artifacts on iOS */
+  width: 100%;
 }
 
 /* Opaque Panel Refinements - Optimized for GPU */
