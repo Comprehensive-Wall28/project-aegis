@@ -222,13 +222,28 @@ export const EventPreviewDialog = ({ open, onClose, onEdit, onDelete, event }: E
                             <Typography variant="caption" sx={{ display: 'block', mb: 1, fontWeight: 700, color: theme.palette.text.secondary, textTransform: 'uppercase' }}>
                                 Mentioned In
                             </Typography>
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Box sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 1,
+                                maxHeight: 90, // Approx height for 2 items
+                                overflowY: 'auto',
+                                pr: 0.5,
+                                '&::-webkit-scrollbar': {
+                                    width: '4px',
+                                },
+                                '&::-webkit-scrollbar-thumb': {
+                                    backgroundColor: alpha(theme.palette.text.primary, 0.1),
+                                    borderRadius: '4px',
+                                },
+                            }}>
                                 {backlinks.map(link => (
                                     <Box
                                         key={link.id}
                                         sx={{
                                             display: 'flex',
                                             alignItems: 'center',
+                                            flexShrink: 0,
                                             gap: 1,
                                             p: 1,
                                             borderRadius: '8px',
