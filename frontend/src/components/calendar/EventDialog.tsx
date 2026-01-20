@@ -18,6 +18,8 @@ import {
 import { Close as CloseIcon, Palette as PaletteIcon } from '@mui/icons-material';
 import { MobileDateTimePicker } from '@mui/x-date-pickers/MobileDateTimePicker';
 import dayjs from 'dayjs';
+import type { FileMetadata } from '@/services/vaultService';
+import { FileMentionPicker } from '../tasks/FileMentionPicker';
 
 const AEGIS_COLORS = [
     { name: 'Primary Blue', value: '#3f51b5' },
@@ -48,6 +50,14 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
     const [isAllDay, setIsAllDay] = useState(false);
     const [color, setColor] = useState(AEGIS_COLORS[0].value);
 
+    // Mention Picker State
+    const [mentionPicker, setMentionPicker] = useState<{
+        open: boolean;
+        field: 'description';
+        anchorEl: HTMLElement | null;
+        cursorPos: number;
+    }>({ open: false, field: 'description', anchorEl: null, cursorPos: 0 });
+
     const formatDateForInput = (dateInput: string | Date | undefined) => {
         if (!dateInput) return '';
         const d = dayjs(dateInput);
@@ -74,6 +84,54 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
             setColor(AEGIS_COLORS[0].value);
         }
     }, [event, open]);
+
+    const handleMentionSelect = (file: FileMetadata) => {
+        const field = mentionPicker.field;
+        const val = field === 'description' ? description : '';
+        const triggerPos = mentionPicker.cursorPos - 1; // Position of '@'
+
+        // Find the current cursor position to know how much search text to replace
+        const input = mentionPicker.anchorEl as HTMLTextAreaElement;
+        const currentPos = input.selectionStart;
+
+        const folderId = file.folderId || 'root';
+        const mention = `[@${file.originalFileName}](aegis-file://${folderId}/${file._id})`;
+
+        // Replace from the '@' up to the current cursor position
+        const newValue = val.substring(0, triggerPos) + mention + val.substring(currentPos);
+
+        if (field === 'description') setDescription(newValue);
+
+        setMentionPicker(prev => ({ ...prev, open: false }));
+    };
+
+    const handleTextChange = (field: 'description') => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        if (field === 'description') setDescription(value);
+
+        const input = e.target as HTMLTextAreaElement;
+        const cursorPos = input.selectionStart;
+        const textBefore = value.substring(0, cursorPos);
+
+        // Look for the last '@' that is either at the start or preceded by a space/newline
+        const lastAtIndex = textBefore.lastIndexOf('@');
+        if (lastAtIndex !== -1 && (lastAtIndex === 0 || /[\s\n]/.test(textBefore[lastAtIndex - 1]))) {
+            const textSinceAt = textBefore.substring(lastAtIndex + 1);
+            // Keep open if playing with the same mention (no spaces/newlines since @)
+            if (!/[\s\n]/.test(textSinceAt)) {
+                setMentionPicker({
+                    open: true,
+                    field: field,
+                    anchorEl: input,
+                    cursorPos: lastAtIndex + 1
+                });
+            } else if (mentionPicker.open) {
+                setMentionPicker(prev => ({ ...prev, open: false }));
+            }
+        } else if (mentionPicker.open) {
+            setMentionPicker(prev => ({ ...prev, open: false }));
+        }
+    };
 
     const handleSubmit = () => {
         onSubmit({
@@ -214,15 +272,24 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                     <TextField
                         label="Description"
                         value={description}
-                        onChange={(e) => setDescription(e.target.value)}
+                        onChange={handleTextChange('description')}
                         fullWidth
                         multiline
                         rows={3}
                         variant="outlined"
+                        placeholder="Add more details... (Use @ to mention files)"
                         slotProps={{
                             input: { sx: { borderRadius: '12px' } }
                         }}
                     />
+
+                    {mentionPicker.open && (
+                        <FileMentionPicker
+                            anchorEl={mentionPicker.anchorEl}
+                            onSelect={handleMentionSelect}
+                            onClose={() => setMentionPicker(prev => ({ ...prev, open: false }))}
+                        />
+                    )}
 
                     <Box>
                         <Typography variant="subtitle2" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>

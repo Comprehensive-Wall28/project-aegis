@@ -20,6 +20,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { useCalendarEncryption } from '@/hooks/useCalendarEncryption';
 import { EventDialog } from '@/components/calendar/EventDialog';
+import { EventPreviewDialog } from '@/components/calendar/EventPreviewDialog';
 import { useSessionStore } from '@/stores/sessionStore';
 
 export function CalendarPage() {
@@ -36,6 +37,7 @@ export function CalendarPage() {
     const { encryptEventData, decryptEvents, decryptEventData, generateRecordHash } = useCalendarEncryption();
 
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [previewOpen, setPreviewOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
     const [popoverState, setPopoverState] = useState<{ anchorEl: HTMLElement | null; date: Date | null }>({ anchorEl: null, date: null });
@@ -68,7 +70,9 @@ export function CalendarPage() {
     };
 
     const handleEventClick = (info: any) => {
-        const event = events.find(e => e._id === info.event.id);
+        const id = typeof info === 'string' ? info : (info.event ? info.event.id : info.id);
+
+        const event = events.find(e => e._id === id);
         if (event) {
             setSelectedEvent({
                 ...event,
@@ -77,9 +81,15 @@ export function CalendarPage() {
                 end: event.endDate,
                 allDay: event.isAllDay,
             });
-            setDialogOpen(true);
+            setPreviewOpen(true);
             setPopoverState({ anchorEl: null, date: null }); // Close popover if open
         }
+    };
+
+    const handleEditFromPreview = (event: any) => {
+        setSelectedEvent(event);
+        setPreviewOpen(false);
+        setDialogOpen(true);
     };
 
     const handleMoreLinkClick = (args: any) => {
@@ -176,6 +186,7 @@ export function CalendarPage() {
             await deleteEvent(id);
             showSnackbar('Event deleted successfully', 'success');
             setDialogOpen(false);
+            setPreviewOpen(false);
         } catch (err: any) {
             showSnackbar(err.message || 'Failed to delete event', 'error');
         }
@@ -613,6 +624,14 @@ export function CalendarPage() {
                 onDelete={handleDeleteEvent}
                 event={selectedEvent}
                 isSaving={isLoading}
+            />
+
+            <EventPreviewDialog
+                open={previewOpen}
+                onClose={() => setPreviewOpen(false)}
+                onEdit={handleEditFromPreview}
+                onDelete={handleDeleteEvent}
+                event={selectedEvent}
             />
 
             <Snackbar
