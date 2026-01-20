@@ -57,29 +57,138 @@
 
 ---
 
-## 🛡️ Security Architecture
+# 🛡️ Hybrid Post-Quantum Encryption Architecture
 
-### Defense-in-Depth
+This document outlines the security architecture used in Aegis, combining industry-standard symmetric encryption for speed with next-generation post-quantum asymmetric encryption for future-proof security.
 
-| Layer | Protection |
-|-------|------------|
-| **Transport** | HTTPS with HSTS |
-| **Headers** | Helmet.js (XSS, CSP, Clickjacking, etc.) |
-| **Authentication** | Argon2 + JWT + WebAuthn |
-| **CSRF** | Double-submit cookie pattern |
-| **Rate Limiting** | Per-endpoint limits (stricter for auth routes) |
-| **Data at Rest** | AES-256-GCM + ML-KEM-768 hybrid encryption |
-| **Integrity** | SHA-256 record hashes + Merkle trees |
-| **Audit** | All auth attempts and file operations logged |
+## 🔑 Core Concepts
 
-### Key Security Principles
-- ✅ **Data Isolation** — Backend never receives unencrypted files or private keys
-- ✅ **Principle of Least Privilege** — Node.js runs as non-root user
-- ✅ **Input Sanitization** — All requests validated before processing
-- ✅ **Asynchronous Processing** — Event loop never blocked by crypto operations
-- ✅ **Streaming I/O** — Large files streamed to minimize RAM usage
+| Component | Algorithm | Purpose |
+|-----------|-----------|---------|
+| **Symmetric Layer** | **AES-256-GCM** | Fast, efficient encryption of actual data payloads (files, tasks, notes). |
+| **Asymmetric Layer** | **ML-KEM-768** | Quantum-resistant Key Encapsulation Mechanism (NIST Standard) used to securely share the Symmetric Keys. |
+| **Key Derivation** | **Argon2id + SHA-512** | Deriving deterministic seeds from user passwords. |
 
 ---
+
+## 1. Key Generation & Login Flow
+
+When a user logs in, their private key is regenerated deterministically in memory. **It is never stored on disk or sent to the server.**
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant App as Client App
+    participant Worker as PQC Worker
+    participant Mem as Memory Store
+
+    User->>App: Enters Password
+    App->>Worker: Send Password + Salt
+    Note over Worker: 1. PBKDF2/SHA-512<br/>Derive 64-byte Seed
+    Note over Worker: 2. ML-KEM-768 Keygen<br/>Generate Public/Private Pair
+    Worker-->>App: Return Keys (Bytes)
+    App->>Mem: Store Private Key (Secure Session)
+    App->>Mem: Store Public Key
+    Note right of Mem: Private Key exists ONLY here<br/>until tab is closed.
+```
+
+---
+
+## 2. Encryption Flow (Data at Rest)
+
+When saving data (e.g., a new Task), we use a sophisticated **Hybrid** approach with Key Wrapping. This allows us to share the same encrypted data with multiple users by simply encrypting the symmetrical key for each recipient.
+
+1.  **Generate DEK**: A random AES-256 key (Data Encryption Key) is created.
+2.  **Encrypt Data**: The file/task is encrypted with the DEK.
+3.  **KEM Encapsulation**: We generate a Shared Secret using the user's Public Key.
+4.  **Key Wrapping**: We use the Shared Secret to encrypt the DEK.
+
+```mermaid
+flowchart LR
+    subgraph Payload [1. Data Encryption]
+        Data[("Sensitive Data")]
+        DEK[("🔑 Random AES-256<br/>(DEK)")]
+        Data --> Encrypt((AES-GCM))
+        DEK --> Encrypt
+        Encrypt --> CipherText["🔒 Encrypted Data"]
+    end
+
+    subgraph KEM [2. Key Encapsulation]
+        Public[("👤 User Public Key")]
+        Public --> Encap((ML-KEM<br/>Encapsulate))
+        Encap --> SharedSecret[("✨ Shared Secret")]
+        Encap --> KEMCipher["💊 Encapsulated Key<br/>(Public Header)"]
+    end
+
+    subgraph Wrapping [3. Key Wrapping]
+        SharedSecret --> Wrap((AES Wrap))
+        DEK --> Wrap
+        Wrap --> WrappedKey["📦 Wrapped DEK"]
+    end
+
+    subgraph Storage [Database Object]
+        CipherText --> Doc
+        KEMCipher --> Doc
+        WrappedKey --> Doc[(MongoDB Document)]
+    end
+
+    style Payload fill:#2d2038,stroke:#d47fd4,color:#fff
+    style KEM fill:#1e2a3b,stroke:#82aaff,color:#fff
+    style Wrapping fill:#363428,stroke:#e6db74,color:#fff
+    style Storage fill:#1e3b2a,stroke:#c3e88d,color:#fff
+```
+
+### The Output Bundle
+The final object stored in the database looks like this:
+```json
+{
+  "_id": "task_123",
+  "encryptedData": "iv:ciphertext...",       // Secured by AES-256
+  "encapsulatedKey": "hex_string...",        // Secured by ML-KEM-768
+  "encryptedSymmetricKey": "wrapped_key..."  // (Optional intermediate wrap)
+}
+```
+
+---
+
+## 3. Decryption Flow (Accessing Data)
+
+To read data, the client uses the ephemeral Private Key (held in memory) to "unlock" the AES key, which then unlocks the data. This often happens in a **Web Worker** to prevent UI freezing during heavy math operations.
+
+```mermaid
+sequenceDiagram
+    participant DB as Database
+    participant Client
+    participant Worker as PQC Worker
+    participant Mem as Memory (Private Key)
+
+    DB-->>Client: Return Encrypted Object
+    Client->>Worker: Send Object + Private Key
+    
+    rect rgb(30, 40, 60)
+        Note over Worker: Step 1: Decapsulate
+        Worker->>Worker: ML-KEM-768 Decapsulate(EncapKey, PrivKey)
+        Worker-->>Worker: Recovers Shared Secret -> AES Key
+    end
+
+    rect rgb(60, 30, 30)
+        Note over Worker: Step 2: Decrypt Data
+        Worker->>Worker: AES-256-GCM Decrypt(Ciphertext, AES Key)
+        Worker-->>Worker: Recovers JSON Data
+    end
+
+    Worker-->>Client: Return Plaintext Data
+    Client->>Client: Render UI
+```
+
+---
+
+## 4. Why This Architecture?
+
+1.  **Speed**: ML-KEM is computationally heavy. We only use it once per object to encrypt a tiny 32-byte AES key. The actual file/data (which could be MBs or GBs) is encrypted with AES, which is lightning fast.
+2.  **Quantum Resistance**: Even if an attacker harvests secure data today and waits for a quantum computer (Harvest Now, Decrypt Later), they cannot break the ML-KEM encapsulation protecting the key.
+3.  **Zero Knowledge**: The Private Key generally never leaves the user's RAM. The server only sees blobs of ciphertext.
+4.  **Non-Blocking UI**: By offloading the PQC math to `pqc.worker.ts`, the encryption happens on a separate thread, keeping the interface buttery smooth (60fps).
 
 ## 🛠️ Tech Stack
 
