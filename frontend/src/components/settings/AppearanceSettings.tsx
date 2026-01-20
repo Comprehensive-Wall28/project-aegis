@@ -278,7 +278,7 @@ export function AppearanceSettings({ onNotification }: AppearanceSettingsProps) 
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                             {backgroundImage
                                 ? 'You have a custom background image set from your vault.'
-                                : 'No custom background image set. Using theme default.'}
+                                : 'No custom background image set. Set an image from your vault from context menu (right-click) and selecting "Set as background".'}
                         </Typography>
                     </Box>
 
