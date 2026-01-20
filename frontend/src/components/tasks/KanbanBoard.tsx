@@ -22,11 +22,14 @@ import { useKanbanLogic } from '@/hooks/useKanbanLogic';
 
 export type SortMode = 'manual' | 'priority' | 'date';
 
+import { DeleteZone } from './DeleteZone';
+
 interface KanbanBoardProps {
     tasks: DecryptedTask[];
     onTaskClick: (task: DecryptedTask) => void;
     onAddTask: (status: 'todo' | 'in_progress' | 'done') => void;
     onTaskMove: (updates: { id: string; status: string; order: number }[]) => void;
+    onDeleteTask?: (id: string) => void;
     sortMode: SortMode;
     isDragDisabled?: boolean;
 }
@@ -70,9 +73,10 @@ const styles = {
     },
 } as const;
 
-const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, sortMode, isDragDisabled }: KanbanBoardProps) => {
+const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, onDeleteTask, sortMode, isDragDisabled }: KanbanBoardProps) => {
     const {
         sensors,
+        activeId,
         activeTask,
         overColumnId,
         tasksByStatus,
@@ -84,6 +88,7 @@ const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, sortM
         sortMode,
         isDragDisabled,
         onTaskMove,
+        onDeleteTask,
     });
 
     const columnList = useMemo(() => ALL_COLUMNS.map((column) => (
@@ -130,6 +135,8 @@ const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, sortM
                         />
                     ) : null}
                 </DragOverlay>
+
+                <DeleteZone isVisible={activeId !== null} />
             </Box>
         </DndContext>
     );

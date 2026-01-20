@@ -20,6 +20,7 @@ interface UseKanbanLogicProps {
     sortMode: SortMode;
     isDragDisabled?: boolean;
     onTaskMove: (updates: { id: string; status: string; order: number }[]) => void;
+    onDeleteTask?: (id: string) => void;
 }
 
 export const useKanbanLogic = ({
@@ -27,6 +28,7 @@ export const useKanbanLogic = ({
     sortMode,
     isDragDisabled = false,
     onTaskMove,
+    onDeleteTask,
 }: UseKanbanLogicProps) => {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [overColumnId, setOverColumnIdState] = useState<string | null>(null);
@@ -98,6 +100,13 @@ export const useKanbanLogic = ({
         }
 
         const overId = over.id as string;
+
+        // Skip for delete zone
+        if (overId === 'delete-zone') {
+            setOverColumnId(null);
+            return;
+        }
+
         // Check if over a column
         if (Object.values(TASK_STATUS).includes(overId as any)) {
             setOverColumnId(overId);
@@ -120,6 +129,13 @@ export const useKanbanLogic = ({
         if (!over) return;
 
         const overId = over.id as string;
+
+        // Handle Delete Zone drop
+        if (overId === 'delete-zone') {
+            onDeleteTask?.(taskId);
+            return;
+        }
+
         const activeTask = tasksById.get(taskId);
         if (!activeTask) return;
 

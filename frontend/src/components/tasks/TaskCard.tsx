@@ -54,7 +54,7 @@ export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
                 p: 2,
                 borderRadius: '16px',
                 bgcolor: alpha(theme.palette.background.paper, isDragging ? 1.0 : 0.9),
-                border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
+                border: `1px solid ${alpha(theme.palette.text.primary, 0.15)}`,
                 cursor: 'pointer',
                 transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
                 position: 'relative',
@@ -64,7 +64,7 @@ export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
                     ? `0 20px 40px ${alpha(theme.palette.common.black, 0.3)}`
                     : `0 4px 12px ${alpha(theme.palette.common.black, 0.15)}`,
                 '&:hover': {
-                    borderColor: alpha(theme.palette.primary.main, 0.35),
+                    borderColor: alpha(theme.palette.primary.main, 0.2),
                     boxShadow: `0 8px 20px ${alpha(theme.palette.common.black, 0.2)}`,
                 },
                 '&::before': {

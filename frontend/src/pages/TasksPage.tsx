@@ -28,6 +28,7 @@ import { useTaskStore } from '@/stores/useTaskStore';
 import { useTaskEncryption } from '@/hooks/useTaskEncryption';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { TaskDialog, type TaskDialogData } from '@/components/tasks/TaskDialog';
+import { TaskPreviewDialog } from '@/components/tasks/TaskPreviewDialog';
 
 type SnackbarState = {
     open: boolean;
@@ -81,6 +82,7 @@ export function TasksPage() {
     const { encryptTaskData, decryptTasks, decryptTaskData, generateRecordHash } = useTaskEncryption();
 
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [previewOpen, setPreviewOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
     const hasFetched = useRef(false);
@@ -111,6 +113,12 @@ export function TasksPage() {
 
     const handleTaskClick = useCallback((task: any) => {
         setSelectedTask(task);
+        setPreviewOpen(true);
+    }, []);
+
+    const handleEditFromPreview = useCallback((task: any) => {
+        setSelectedTask(task);
+        setPreviewOpen(false);
         setDialogOpen(true);
     }, []);
 
@@ -179,6 +187,7 @@ export function TasksPage() {
             await deleteTask(taskId);
             showSnackbar('Task deleted successfully', 'success');
             setDialogOpen(false);
+            setPreviewOpen(false);
         } catch (error: any) {
             showSnackbar(error.message || 'Failed to delete task', 'error');
         } finally {
@@ -381,6 +390,7 @@ export function TasksPage() {
                         onTaskClick={handleTaskClick}
                         onAddTask={handleAddTask}
                         onTaskMove={handleTaskMove}
+                        onDeleteTask={handleDeleteTask}
                         sortMode={sortMode}
                         isDragDisabled={!!searchTerm.trim()}
                     />
@@ -397,6 +407,15 @@ export function TasksPage() {
                 onDelete={handleDeleteTask}
                 task={selectedTask}
                 isSaving={isSaving}
+            />
+
+            {/* Task Preview Dialog */}
+            <TaskPreviewDialog
+                open={previewOpen}
+                onClose={() => setPreviewOpen(false)}
+                onEdit={handleEditFromPreview}
+                onDelete={handleDeleteTask}
+                task={selectedTask}
             />
 
             {/* Snackbar */}

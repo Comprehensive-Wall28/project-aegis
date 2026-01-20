@@ -64,7 +64,7 @@ export const getTheme = (mode: ThemeMode) => {
             success: {
                 main: '#a6e3a1',    // Green
             },
-            divider: 'rgba(108, 112, 134, 0.2)', // Overlay 0 with alpha
+            divider: 'rgba(108, 112, 134, 0.12)', // Overlay 0 with alpha refined to 0.12 for visibility
         },
         purple: {
             background: {
@@ -82,7 +82,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#faf5ff', // Purple 50
                 secondary: '#a78bfa', // Violet 400 (Darker than 300)
             },
-            divider: 'rgba(147, 51, 234, 0.1)',
+            divider: 'rgba(147, 51, 234, 0.12)',
         },
         amoled: {
             background: {
@@ -184,7 +184,7 @@ export const getTheme = (mode: ThemeMode) => {
             success: {
                 main: '#9ece6a',
             },
-            divider: 'rgba(56, 62, 90, 0.15)', // Lowered from 0.3 for better balance
+            divider: 'rgba(56, 62, 90, 0.12)', // Slightly increased for visibility while remaining subtle
         },
     };
 

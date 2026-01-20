@@ -62,7 +62,7 @@ const KanbanColumnComponent = ({
                     bgcolor: alpha(theme.palette.background.paper, activeOver ? 0.7 : 0.5),
                     border: `2px dashed ${activeOver
                         ? alpha(color, 0.5)
-                        : alpha(theme.palette.common.white, 0.15)}`,
+                        : alpha(theme.palette.text.primary, 0.12)}`,
                     transition: 'background-color 0.2s ease, border-color 0.2s ease',
                     display: 'flex',
                     flexDirection: 'column',
@@ -78,7 +78,7 @@ const KanbanColumnComponent = ({
                         justifyContent: 'space-between',
                         mb: 1.5,
                         pb: 1.5,
-                        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                        borderBottom: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
                     }}
                 >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -124,7 +124,7 @@ const KanbanColumnComponent = ({
                             borderRadius: '10px',
                             textTransform: 'none',
                             fontSize: '0.75rem',
-                            bgcolor: alpha(theme.palette.common.white, 0.15),
+                            bgcolor: alpha(theme.palette.common.white, 0.1),
                             '&:hover': {
                                 bgcolor: alpha(color, 0.15),
                             },
