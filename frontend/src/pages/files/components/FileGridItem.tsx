@@ -28,6 +28,7 @@ interface FileGridItemProps {
     onToggleSelect: (id: string) => void;
     onMove: (file: FileMetadata) => void;
     selectedCount: number;
+    isHighlighted?: boolean;
 }
 
 export const FileGridItem = memo(({
@@ -44,7 +45,8 @@ export const FileGridItem = memo(({
     onDelete,
     onToggleSelect,
     onMove,
-    selectedCount
+    selectedCount,
+    isHighlighted
 }: FileGridItemProps) => {
     const theme = useTheme();
     const { icon: FileTypeIcon, color } = getFileIconInfo(file.originalFileName);
@@ -95,13 +97,26 @@ export const FileGridItem = memo(({
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    transition: 'background-color 0.2s, border-color 0.2s',
+                    transition: 'background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s',
                     '&:hover': {
                         bgcolor: isSelected
                             ? alpha(theme.palette.primary.main, 0.3)
                             : alpha(theme.palette.background.paper, 1.0),
                         borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.4),
-                    }
+                    },
+                    ...(isHighlighted && {
+                        animation: 'highlight-pulse 2s infinite ease-in-out',
+                        boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.4)}`,
+                        borderColor: theme.palette.primary.main,
+                        borderWidth: 2,
+                        zIndex: 10,
+                        transform: 'scale(1.02)',
+                        '@keyframes highlight-pulse': {
+                            '0%': { boxShadow: `0 0 0 0px ${alpha(theme.palette.primary.main, 0.7)}` },
+                            '70%': { boxShadow: `0 0 0 15px ${alpha(theme.palette.primary.main, 0)}` },
+                            '100%': { boxShadow: `0 0 0 0px ${alpha(theme.palette.primary.main, 0)}` },
+                        },
+                    })
                 }}
             >
                 {isPreviewable(file.originalFileName) && (

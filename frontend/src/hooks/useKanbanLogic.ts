@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import {
     useSensor,
     useSensors,
@@ -6,6 +6,7 @@ import {
     TouchSensor,
     KeyboardSensor,
     type DragStartEvent,
+    type DragOverEvent,
     type DragEndEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
@@ -28,6 +29,26 @@ export const useKanbanLogic = ({
     onTaskMove,
 }: UseKanbanLogicProps) => {
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [overColumnId, setOverColumnIdState] = useState<string | null>(null);
+    const overColumnIdRef = useRef<string | null>(null);
+
+    const setOverColumnId = useCallback((id: string | null) => {
+        if (overColumnIdRef.current !== id) {
+            overColumnIdRef.current = id;
+            setOverColumnIdState(id);
+        }
+    }, []);
+
+    // Create maps for O(1) task lookup during drag
+    const { tasksMap, tasksById } = useMemo(() => {
+        const tMap = new Map<string, string>();
+        const bId = new Map<string, DecryptedTask>();
+        tasks.forEach(t => {
+            tMap.set(t._id, t.status);
+            bId.set(t._id, t);
+        });
+        return { tasksMap: tMap, tasksById: bId };
+    }, [tasks]);
 
     const mouseSensorOptions = useMemo(() => ({
         activationConstraint: {
@@ -60,25 +81,46 @@ export const useKanbanLogic = ({
     const tasksByStatus = useGroupedTasks(tasks, sortMode);
 
     const activeTask = useMemo(() =>
-        tasks.find(t => t._id === activeId),
-        [tasks, activeId]);
+        activeId ? tasksById.get(activeId) : undefined,
+        [tasksById, activeId]);
 
-    const handleDragStart = (event: DragStartEvent) => {
+    const handleDragStart = useCallback((event: DragStartEvent) => {
         if (isDragDisabled) return;
         const { active } = event;
         setActiveId(active.id as string);
-    };
+    }, [isDragDisabled]);
 
-    const handleDragEnd = (event: DragEndEvent) => {
+    const handleDragOver = useCallback((event: DragOverEvent) => {
+        const { over } = event;
+        if (!over) {
+            setOverColumnId(null);
+            return;
+        }
+
+        const overId = over.id as string;
+        // Check if over a column
+        if (Object.values(TASK_STATUS).includes(overId as any)) {
+            setOverColumnId(overId);
+        } else {
+            // Check if over a task, then get its column
+            const status = tasksMap.get(overId);
+            if (status) {
+                setOverColumnId(status);
+            }
+        }
+    }, [tasksMap, setOverColumnId]);
+
+    const handleDragEnd = useCallback((event: DragEndEvent) => {
         const { active, over } = event;
         const taskId = active.id as string;
 
         setActiveId(null);
+        setOverColumnId(null);
 
         if (!over) return;
 
         const overId = over.id as string;
-        const activeTask = tasks.find(t => t._id === taskId);
+        const activeTask = tasksById.get(taskId);
         if (!activeTask) return;
 
         const sourceStatus = activeTask.status;
@@ -88,8 +130,8 @@ export const useKanbanLogic = ({
         if (Object.values(TASK_STATUS).includes(overId as any)) {
             targetStatus = overId as any;
         } else {
-            const overTask = tasks.find(t => t._id === overId);
-            if (overTask) targetStatus = overTask.status;
+            const status = tasksMap.get(overId);
+            if (status) targetStatus = status as any;
         }
 
         const sourceColTasks = tasksByStatus[sourceStatus];
@@ -111,7 +153,7 @@ export const useKanbanLogic = ({
                         order: idx
                     }))
                     .filter(u => {
-                        const task = tasks.find(t => t._id === u.id);
+                        const task = tasksById.get(u.id);
                         return task ? (task.order !== u.order || task.status !== u.status) : true;
                     });
 
@@ -134,7 +176,7 @@ export const useKanbanLogic = ({
                     order: idx
                 }))
                 .filter(u => {
-                    const task = tasks.find(t => t._id === u.id);
+                    const task = tasksById.get(u.id);
                     return task ? (task.order !== u.order || task.status !== u.status) : true;
                 });
 
@@ -142,14 +184,16 @@ export const useKanbanLogic = ({
                 onTaskMove(updates);
             }
         }
-    };
+    }, [tasksMap, tasksById, tasksByStatus, sortMode, onTaskMove, setOverColumnId]);
 
     return {
         sensors,
         activeId,
         activeTask,
+        overColumnId,
         tasksByStatus,
         handleDragStart,
+        handleDragOver,
         handleDragEnd,
     };
 };

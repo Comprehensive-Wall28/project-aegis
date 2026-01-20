@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
     Box,
     Typography,
@@ -67,7 +67,7 @@ export function TasksPage() {
 
     const [searchTerm, setSearchTerm] = useState('');
 
-    const filteredTasks = useCallback(() => {
+    const filteredTasks = useMemo(() => {
         if (!searchTerm.trim()) return tasks;
         const lowerTerm = searchTerm.toLowerCase();
         return tasks.filter((t) =>
@@ -76,7 +76,7 @@ export function TasksPage() {
             (t.notes && t.notes.toLowerCase().includes(lowerTerm)) ||
             t.priority.toLowerCase().includes(lowerTerm)
         );
-    }, [tasks, searchTerm])();
+    }, [tasks, searchTerm]);
 
     const { encryptTaskData, decryptTasks, decryptTaskData, generateRecordHash } = useTaskEncryption();
 
@@ -114,7 +114,7 @@ export function TasksPage() {
         setDialogOpen(true);
     }, []);
 
-    const handleDialogSubmit = async (data: TaskDialogData) => {
+    const handleDialogSubmit = useCallback(async (data: TaskDialogData) => {
         if (pqcEngineStatus !== 'operational') {
             showSnackbar('PQC Engine must be operational', 'warning');
             return;
@@ -171,9 +171,9 @@ export function TasksPage() {
         } finally {
             setIsSaving(false);
         }
-    };
+    }, [pqcEngineStatus, generateRecordHash, encryptTaskData, selectedTask, updateTask, decryptTaskData, addTask]);
 
-    const handleDeleteTask = async (taskId: string) => {
+    const handleDeleteTask = useCallback(async (taskId: string) => {
         try {
             setIsSaving(true);
             await deleteTask(taskId);
@@ -184,7 +184,7 @@ export function TasksPage() {
         } finally {
             setIsSaving(false);
         }
-    };
+    }, [deleteTask]);
 
     const handleTaskMove = useCallback(async (updates: { id: string; status: any; order: number }[]) => {
         try {

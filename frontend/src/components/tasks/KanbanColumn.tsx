@@ -15,6 +15,7 @@ interface KanbanColumnProps {
     tasks: DecryptedTask[];
     onTaskClick: (task: DecryptedTask) => void;
     onAddTask: (status: 'todo' | 'in_progress' | 'done') => void;
+    isOverParent?: boolean;
 }
 
 const StyledVirtuoso = styled(Virtuoso)(({ theme }) => ({
@@ -38,6 +39,7 @@ const KanbanColumnComponent = ({
     tasks,
     onTaskClick,
     onAddTask,
+    isOverParent,
 }: KanbanColumnProps) => {
     const theme = useTheme();
     // Column is a droppable zone (mostly for empty columns or appending)
@@ -45,6 +47,8 @@ const KanbanColumnComponent = ({
         id: id,
         data: { type: 'Column', columnId: id }
     });
+
+    const activeOver = isOver || isOverParent;
 
     const taskIds = useMemo(() => tasks.map(t => t._id), [tasks]);
 
@@ -55,11 +59,11 @@ const KanbanColumnComponent = ({
                 sx={{
                     p: 1.5,
                     borderRadius: '20px',
-                    bgcolor: alpha(theme.palette.background.paper, isOver ? 0.7 : 0.5),
-                    border: `2px dashed ${isOver
+                    bgcolor: alpha(theme.palette.background.paper, activeOver ? 0.7 : 0.5),
+                    border: `2px dashed ${activeOver
                         ? alpha(color, 0.5)
                         : alpha(theme.palette.common.white, 0.15)}`,
-                    transition: 'all 0.2s ease',
+                    transition: 'background-color 0.2s ease, border-color 0.2s ease',
                     display: 'flex',
                     flexDirection: 'column',
                     minHeight: { xs: 350, md: 450 },

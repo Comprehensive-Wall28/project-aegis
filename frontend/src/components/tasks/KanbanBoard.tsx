@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { Box } from '@mui/material';
 import {
     CheckCircle,
@@ -74,8 +74,10 @@ const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, sortM
     const {
         sensors,
         activeTask,
+        overColumnId,
         tasksByStatus,
         handleDragStart,
+        handleDragOver,
         handleDragEnd,
     } = useKanbanLogic({
         tasks,
@@ -84,9 +86,27 @@ const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, sortM
         onTaskMove,
     });
 
-    const handleDragOver = () => {
-        // Handled by SortableContext
-    };
+    const columnList = useMemo(() => ALL_COLUMNS.map((column) => (
+        <Box
+            key={column.id}
+            component={motion.div}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            sx={styles.columnWrapper}
+        >
+            <KanbanColumn
+                id={column.id}
+                title={column.title}
+                icon={column.icon}
+                color={column.color}
+                tasks={tasksByStatus[column.id] || []}
+                onTaskClick={onTaskClick}
+                onAddTask={onAddTask}
+                isOverParent={overColumnId === column.id}
+            />
+        </Box>
+    )), [tasksByStatus, onTaskClick, onAddTask, overColumnId]);
 
     return (
         <DndContext
@@ -97,28 +117,8 @@ const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, sortM
             onDragEnd={handleDragEnd}
         >
             <Box sx={styles.boardContainer}>
-
                 <Box sx={styles.columnsGrid}>
-                    {ALL_COLUMNS.map((column) => (
-                        <Box
-                            key={column.id}
-                            component={motion.div}
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4 }}
-                            sx={styles.columnWrapper}
-                        >
-                            <KanbanColumn
-                                id={column.id}
-                                title={column.title}
-                                icon={column.icon}
-                                color={column.color}
-                                tasks={tasksByStatus[column.id] || []}
-                                onTaskClick={onTaskClick}
-                                onAddTask={onAddTask}
-                            />
-                        </Box>
-                    ))}
+                    {columnList}
                 </Box>
 
                 <DragOverlay dropAnimation={dropAnimation}>

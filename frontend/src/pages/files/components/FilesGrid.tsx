@@ -31,6 +31,7 @@ interface FilesGridProps {
     onToggleSelect: (id: string) => void;
     onMove: (file: FileMetadata) => void;
     dragOverId: string | null;
+    highlightId?: string | null;
 }
 
 export function FilesGrid({
@@ -52,7 +53,8 @@ export function FilesGrid({
     onDrop,
     onToggleSelect,
     onMove,
-    dragOverId
+    dragOverId,
+    highlightId
 }: FilesGridProps) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -200,6 +202,7 @@ export function FilesGrid({
                                             onToggleSelect={onToggleSelect}
                                             onMove={onMove}
                                             selectedCount={selectedIds.size}
+                                            isHighlighted={highlightId === file._id}
                                         />
                                     </Box>
                                 );

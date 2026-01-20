@@ -70,8 +70,11 @@ export function FilesPage() {
         filteredFolders,
         imageFiles,
         currentFolderId,
-        fetchData
+        fetchData,
+        searchParams
     } = useFilesData();
+
+    const highlightId = searchParams.get('highlight');
 
     // Selection Hook
     const {
@@ -530,6 +533,7 @@ export function FilesPage() {
                     setMoveToFolderDialog(true);
                 }}
                 dragOverId={dragOverId}
+                highlightId={highlightId}
             />
 
             <ContextMenu

@@ -4,6 +4,7 @@ import { Edit as EditIcon, AccessTime as DueDateIcon } from '@mui/icons-material
 import { motion } from 'framer-motion';
 
 import { TASK_PRIORITY_CONFIG, type TaskPriority } from '@/constants/taskDefaults';
+import { TaskDescriptionRenderer } from './TaskDescriptionRenderer';
 
 interface TaskCardProps {
     task: {
@@ -44,10 +45,10 @@ export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
 
     return (
         <Paper
-            component={motion.div}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            component={isDragging ? 'div' : motion.div}
+            initial={isDragging ? undefined : { opacity: 0, y: 10 }}
+            animate={isDragging ? undefined : { opacity: 1, y: 0 }}
+            exit={isDragging ? undefined : { opacity: 0, y: -10 }}
             onClick={onClick}
             sx={{
                 p: 2,
@@ -55,10 +56,10 @@ export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
                 bgcolor: alpha(theme.palette.background.paper, isDragging ? 1.0 : 0.9),
                 border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
                 cursor: 'pointer',
-                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
                 position: 'relative',
                 overflow: 'hidden',
-                willChange: 'transform, opacity',
+                willChange: 'transform, opacity, box-shadow',
                 boxShadow: isDragging
                     ? `0 20px 40px ${alpha(theme.palette.common.black, 0.3)}`
                     : `0 4px 12px ${alpha(theme.palette.common.black, 0.15)}`,
@@ -108,9 +109,8 @@ export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
             </Box>
 
             {task.description && (
-                <Typography
-                    variant="body2"
-                    color="text.secondary"
+                <TaskDescriptionRenderer
+                    text={task.description}
                     sx={{
                         mb: 1.5,
                         display: '-webkit-box',
@@ -118,10 +118,9 @@ export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
                         fontSize: '0.8rem',
+                        '& .MuiTypography-root': { fontSize: 'inherit' } // Ensure consistency
                     }}
-                >
-                    {task.description}
-                </Typography>
+                />
             )}
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>

@@ -129,6 +129,7 @@ export function useFilesData() {
         filteredFolders,
         imageFiles,
         currentFolderId,
-        fetchData
+        fetchData,
+        searchParams
     };
 }

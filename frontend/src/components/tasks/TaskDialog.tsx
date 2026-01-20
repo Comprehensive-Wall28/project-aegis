@@ -22,6 +22,8 @@ import { Close as CloseIcon } from '@mui/icons-material';
 import { MobileDateTimePicker } from '@mui/x-date-pickers/MobileDateTimePicker';
 import dayjs from 'dayjs';
 import type { Task } from '../../services/taskService';
+import type { FileMetadata } from '@/services/vaultService';
+import { FileMentionPicker } from './FileMentionPicker';
 
 import {
     TASK_PRIORITY_CONFIG,
@@ -91,16 +93,74 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
         status: initialData?.status || 'todo',
     }));
 
+    // Mention Picker State
+    const [mentionPicker, setMentionPicker] = useState<{
+        open: boolean;
+        field: 'description' | 'notes';
+        anchorEl: HTMLElement | null;
+        cursorPos: number;
+    }>({ open: false, field: 'description', anchorEl: null, cursorPos: 0 });
+
     const isEditMode = !!initialData?._id;
 
     const handleChange = (field: keyof TaskDialogData) => (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent
     ) => {
+        const value = e.target.value;
         setFormData(prev => ({
             ...prev,
-            [field]: e.target.value
+            [field]: value
         }));
+
+        // Handle Mention Picker Trigger / Search Persistence
+        if (field === 'description' || field === 'notes') {
+            const input = e.target as HTMLTextAreaElement;
+            const cursorPos = input.selectionStart;
+            const textBefore = value.substring(0, cursorPos);
+
+            // Look for the last '@' that is either at the start or preceded by a space/newline
+            const lastAtIndex = textBefore.lastIndexOf('@');
+            if (lastAtIndex !== -1 && (lastAtIndex === 0 || /[\s\n]/.test(textBefore[lastAtIndex - 1]))) {
+                const textSinceAt = textBefore.substring(lastAtIndex + 1);
+                // Keep open if playing with the same mention (no spaces/newlines since @)
+                if (!/[\s\n]/.test(textSinceAt)) {
+                    setMentionPicker({
+                        open: true,
+                        field: field as 'description' | 'notes',
+                        anchorEl: input,
+                        cursorPos: lastAtIndex + 1
+                    });
+                } else if (mentionPicker.open) {
+                    setMentionPicker(prev => ({ ...prev, open: false }));
+                }
+            } else if (mentionPicker.open) {
+                setMentionPicker(prev => ({ ...prev, open: false }));
+            }
+        }
     };
+
+    const handleMentionSelect = (file: FileMetadata) => {
+        const field = mentionPicker.field;
+        const value = formData[field];
+        const triggerPos = mentionPicker.cursorPos - 1; // Position of '@'
+
+        // Find the current cursor position to know how much search text to replace
+        const input = mentionPicker.anchorEl as HTMLTextAreaElement;
+        const currentPos = input.selectionStart;
+
+        const folderId = file.folderId || 'root';
+        const mention = `[@${file.originalFileName}](aegis-file://${folderId}/${file._id})`;
+
+        // Replace from the '@' up to the current cursor position
+        const newValue = value.substring(0, triggerPos) + mention + value.substring(currentPos);
+
+        setFormData(prev => ({
+            ...prev,
+            [field]: newValue
+        }));
+        setMentionPicker(prev => ({ ...prev, open: false }));
+    };
+
 
     const handleSubmit = useCallback(() => {
         if (!formData.title.trim()) return;
@@ -158,7 +218,7 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
                         minRows={3}
                         maxRows={8}
                         variant="outlined"
-                        placeholder="Add more details..."
+                        placeholder="Add more details... (Use @ to mention files)"
                         slotProps={{
                             input: { sx: { borderRadius: '12px' } }
                         }}
@@ -262,11 +322,20 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
                         minRows={2}
                         maxRows={6}
                         variant="outlined"
-                        placeholder="Private notes (encrypted)..."
+                        placeholder="Private notes (encrypted)... (Use @ to mention files)"
                         slotProps={{
                             input: { sx: { borderRadius: '12px' } }
                         }}
                     />
+
+
+                    {mentionPicker.open && (
+                        <FileMentionPicker
+                            anchorEl={mentionPicker.anchorEl}
+                            onSelect={handleMentionSelect}
+                            onClose={() => setMentionPicker(prev => ({ ...prev, open: false }))}
+                        />
+                    )}
                 </Box>
             </DialogContent>
 
