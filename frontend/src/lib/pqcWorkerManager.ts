@@ -120,13 +120,16 @@ class PQCWorkerManager {
     /**
      * HIGHLY EXPENSIVE: Decrypt multiple tasks using PQC and AES in worker
      */
-    async batchDecryptTasks(tasks: any[], privateKeyHex: string): Promise<any[]> {
+    async batchDecryptTasks(tasks: any[], privateKeyHex: string): Promise<{ tasks: any[], failedTaskIds: string[] }> {
         const hexToBytes = (hex: string) =>
             new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
 
         const privateKey = hexToBytes(privateKeyHex);
         const result = await this.sendRequest('batch_decrypt_tasks', { tasks, privateKey });
-        return result.tasks;
+        return {
+            tasks: result.tasks,
+            failedTaskIds: result.failedTaskIds || []
+        };
     }
 
     /**

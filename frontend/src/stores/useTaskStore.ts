@@ -22,7 +22,7 @@ interface TaskState {
 
     fetchTasks: (
         filters?: { status?: string; priority?: string },
-        decryptFn?: (tasks: EncryptedTask[]) => Promise<DecryptedTask[]>
+        decryptFn?: (tasks: EncryptedTask[]) => Promise<DecryptedTask[] | { tasks: DecryptedTask[], failedTaskIds: string[] }>
     ) => Promise<void>;
 
     addTask: (
@@ -55,8 +55,21 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         try {
             const encryptedTasks = await taskService.getTasks(filters);
             if (decryptFn) {
-                const decryptedTasks = await decryptFn(encryptedTasks);
-                set({ tasks: decryptedTasks, isLoading: false });
+                // @ts-ignore - Handle new return type with failedTaskIds
+                const result = await decryptFn(encryptedTasks);
+
+                if (result && typeof result === 'object' && 'tasks' in result) {
+                    set({
+                        tasks: result.tasks,
+                        isLoading: false,
+                        error: result.failedTaskIds?.length
+                            ? `Warning: ${result.failedTaskIds.length} tasks failed to decrypt.`
+                            : null
+                    });
+                } else {
+                    // Fallback for older fn
+                    set({ tasks: result as unknown as DecryptedTask[], isLoading: false });
+                }
             } else {
                 set({ tasks: encryptedTasks as unknown as DecryptedTask[], isLoading: false });
             }

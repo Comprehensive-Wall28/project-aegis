@@ -63,12 +63,15 @@ export const useTaskEncryption = () => {
             }
 
             // Offload to worker
-            return await pqcWorkerManager.batchDecryptTasks(encryptedTasks, user.privateKey);
+            const result = await pqcWorkerManager.batchDecryptTasks(encryptedTasks, user.privateKey);
+
+            // If the manager returns an array (old behavior fallback), normalize it
+            if (Array.isArray(result)) {
+                return { tasks: result, failedTaskIds: [] };
+            }
+            return result; // { tasks: ..., failedTaskIds: ... }
         } catch (error) {
             console.error('Batch decryption failed:', error);
-            // Fallback? Or rethrow?
-            // If worker fails, we might want to try main thread or just fail.
-            // For now, let's return [] or rethrow.
             throw error;
         } finally {
             setCryptoStatus('idle');

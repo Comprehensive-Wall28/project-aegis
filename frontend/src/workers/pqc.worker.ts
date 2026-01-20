@@ -206,23 +206,26 @@ self.onmessage = async (event: MessageEvent) => {
         } else if (type === 'batch_decrypt_tasks') {
             const { tasks, privateKey } = event.data;
             const decryptedTasks = [];
+            const failedTaskIds: string[] = [];
             const decoder = new TextDecoder();
 
             for (const task of tasks) {
                 try {
-                    // 1. Decapsulate
+                    // ... (decryption logic)
                     const encapsulatedKeyBytes = hexToBytes(task.encapsulatedKey);
+                    // ... existing logic ...
+
+                    // 1. Decapsulate
                     const sharedSecret = ml_kem768.decapsulate(encapsulatedKeyBytes, privateKey);
 
                     // 2. Decrypt AES Key
-                    // encryptedSymmetricKey is IV (12 bytes/24 hex) + Ciphertext
                     const encryptedSymmetricKeyBytes = hexToBytes(task.encryptedSymmetricKey);
                     const keyIv = encryptedSymmetricKeyBytes.slice(0, 12);
                     const encryptedKey = encryptedSymmetricKeyBytes.slice(12);
 
                     const unwrappingKey = await self.crypto.subtle.importKey(
                         'raw',
-                        sharedSecret as any, // TypedArray expected
+                        sharedSecret as any,
                         { name: 'AES-GCM' },
                         false,
                         ['decrypt']
@@ -270,12 +273,14 @@ self.onmessage = async (event: MessageEvent) => {
                     });
                 } catch (err) {
                     console.error('Worker failed to decrypt task:', task._id, err);
+                    failedTaskIds.push(task._id);
                 }
             }
 
             self.postMessage({
                 type: 'batch_decrypt_tasks_result',
                 tasks: decryptedTasks,
+                failedTaskIds,
                 id
             });
         }
