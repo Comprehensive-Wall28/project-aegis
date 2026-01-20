@@ -1,18 +1,47 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, Paper, alpha, useTheme, Button, Badge } from '@mui/material';
-import { Add as AddIcon, CheckCircle, Schedule, RadioButtonUnchecked } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Box } from '@mui/material';
+import {
+    CheckCircle,
+    Schedule,
+    RadioButtonUnchecked,
+} from '@mui/icons-material';
+import {
+    DndContext,
+    DragOverlay,
+    closestCorners,
+    KeyboardSensor,
+    TouchSensor,
+    MouseSensor,
+    useSensor,
+    useSensors,
+    type DragStartEvent,
+    type DragEndEvent,
+    defaultDropAnimationSideEffects,
+    type DropAnimation,
+} from '@dnd-kit/core';
+import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
+import { motion } from 'framer-motion';
+
+import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
 import type { DecryptedTask } from '@/stores/useTaskStore';
+import { TASK_COLUMNS_CONFIG, TASK_STATUS, TASK_PRIORITY } from '@/constants/taskDefaults';
 
-import { TASK_COLUMNS_CONFIG, TASK_STATUS } from '@/constants/taskDefaults';
+export type SortMode = 'manual' | 'priority' | 'date';
 
-interface Column {
-    id: typeof TASK_STATUS[keyof typeof TASK_STATUS];
-    title: string;
-    icon: React.ReactNode;
-    color: string;
+interface KanbanBoardProps {
+    tasks: DecryptedTask[];
+    onTaskClick: (task: DecryptedTask) => void;
+    onAddTask: (status: 'todo' | 'in_progress' | 'done') => void;
+    onTaskMove: (updates: { id: string; status: string; order: number }[]) => void;
+    sortMode: SortMode;
 }
+
+const PRIORITY_VALUE = {
+    [TASK_PRIORITY.HIGH]: 3,
+    [TASK_PRIORITY.MEDIUM]: 2,
+    [TASK_PRIORITY.LOW]: 1,
+};
 
 const COLUMN_ICONS = {
     [TASK_STATUS.TODO]: <RadioButtonUnchecked />,
@@ -20,41 +49,40 @@ const COLUMN_ICONS = {
     [TASK_STATUS.DONE]: <CheckCircle />,
 };
 
-const COLUMNS: Column[] = TASK_COLUMNS_CONFIG.map(col => ({
+const ALL_COLUMNS = TASK_COLUMNS_CONFIG.map(col => ({
     ...col,
     icon: COLUMN_ICONS[col.id],
 }));
 
-interface KanbanBoardProps {
-    tasks: DecryptedTask[];
-    onTaskClick: (task: DecryptedTask) => void;
-    onAddTask: (status: 'todo' | 'in_progress' | 'done') => void;
-    onTaskMove: (taskId: string, newStatus: 'todo' | 'in_progress' | 'done', newOrder: number) => void;
-}
-
-const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.1
-        }
-    }
+const dropAnimation: DropAnimation = {
+    sideEffects: defaultDropAnimationSideEffects({
+        styles: {
+            active: {
+                opacity: '0.5',
+            },
+        },
+    }),
 };
 
-const columnVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.4 }
-    }
-};
+export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove, sortMode }: KanbanBoardProps) => {
+    const [activeId, setActiveId] = useState<string | null>(null);
 
-export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: KanbanBoardProps) => {
-    const theme = useTheme();
-    const [draggedTask, setDraggedTask] = useState<string | null>(null);
-    const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+    const sensors = useSensors(
+        useSensor(MouseSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 200,
+                tolerance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     const tasksByStatus = useMemo(() => {
         const grouped: Record<string, DecryptedTask[]> = {
@@ -69,223 +97,160 @@ export const KanbanBoard = ({ tasks, onTaskClick, onAddTask, onTaskMove }: Kanba
             }
         });
 
-        // Sort each group by order
+        // Sort each group based on current sortMode
         Object.keys(grouped).forEach(key => {
-            grouped[key].sort((a, b) => a.order - b.order);
+            grouped[key].sort((a, b) => {
+                if (sortMode === 'priority') {
+                    const valA = PRIORITY_VALUE[a.priority as keyof typeof PRIORITY_VALUE] || 0;
+                    const valB = PRIORITY_VALUE[b.priority as keyof typeof PRIORITY_VALUE] || 0;
+                    if (valA !== valB) return valB - valA; // High priority first
+                    return a.order - b.order; // Then by order
+                }
+
+                if (sortMode === 'date') {
+                    if (!a.dueDate && !b.dueDate) return a.order - b.order;
+                    if (!a.dueDate) return 1;
+                    if (!b.dueDate) return -1;
+                    const timeA = new Date(a.dueDate).getTime();
+                    const timeB = new Date(b.dueDate).getTime();
+                    if (timeA !== timeB) return timeA - timeB; // Soonest first
+                    return a.order - b.order;
+                }
+
+                // Default: Manual (by order)
+                return a.order - b.order;
+            });
         });
 
         return grouped;
-    }, [tasks]);
+    }, [tasks, sortMode]);
 
-    const handleDragStart = (e: React.DragEvent, taskId: string) => {
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', taskId);
-        setDraggedTask(taskId);
+    const activeTask = useMemo(() =>
+        tasks.find(t => t._id === activeId),
+        [tasks, activeId]);
+
+    const handleDragStart = (event: DragStartEvent) => {
+        const { active } = event;
+        setActiveId(active.id as string);
     };
 
-    const handleDragOver = (e: React.DragEvent, columnId: string) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        setDragOverColumn(columnId);
+    const handleDragOver = () => {
+        // Handled by SortableContext
     };
 
-    const handleDragLeave = () => {
-        setDragOverColumn(null);
-    };
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        const taskId = active.id as string;
 
-    const handleDrop = (e: React.DragEvent, columnId: 'todo' | 'in_progress' | 'done') => {
-        e.preventDefault();
-        const taskId = e.dataTransfer.getData('text/plain');
+        setActiveId(null);
 
-        if (taskId) {
-            const columnTasks = tasksByStatus[columnId] || [];
-            const newOrder = columnTasks.length;
-            onTaskMove(taskId, columnId, newOrder);
+        if (!over) return;
+
+        const overId = over.id as string;
+        const activeTask = tasks.find(t => t._id === taskId);
+        if (!activeTask) return;
+
+        const sourceStatus = activeTask.status;
+        let targetStatus = sourceStatus;
+
+        // Determine target status
+        if (Object.values(TASK_STATUS).includes(overId as any)) {
+            targetStatus = overId as any;
+        } else {
+            const overTask = tasks.find(t => t._id === overId);
+            if (overTask) targetStatus = overTask.status;
         }
 
-        setDraggedTask(null);
-        setDragOverColumn(null);
-    };
+        const sourceColTasks = tasksByStatus[sourceStatus];
+        const targetColTasks = tasksByStatus[targetStatus];
 
-    const handleDragEnd = () => {
-        setDraggedTask(null);
-        setDragOverColumn(null);
+        if (sourceStatus === targetStatus) {
+            // Same column reorder
+            if (sortMode !== 'manual') return;
+
+            const oldIndex = sourceColTasks.findIndex(t => t._id === taskId);
+            const newIndex = sourceColTasks.findIndex(t => t._id === overId);
+
+            if (oldIndex !== newIndex && newIndex !== -1) {
+                const reordered = arrayMove(sourceColTasks, oldIndex, newIndex);
+                const updates = reordered.map((t, idx) => ({
+                    id: t._id,
+                    status: targetStatus,
+                    order: idx
+                }));
+                onTaskMove(updates);
+            }
+        } else {
+            // Cross column drop
+            const overIndex = targetColTasks.findIndex(t => t._id === overId);
+            const finalIndex = overIndex === -1 ? targetColTasks.length : overIndex;
+
+            // When moving cross-column, we should at least update the moved task's status and order.
+            // In a perfectly managed manual board, we'd update all tasks in target column too.
+            const newTargetCol = [...targetColTasks];
+            newTargetCol.splice(finalIndex, 0, { ...activeTask, status: targetStatus });
+
+            const updates = newTargetCol.map((t, idx) => ({
+                id: t._id,
+                status: targetStatus,
+                order: idx
+            }));
+
+            onTaskMove(updates);
+        }
     };
 
     return (
-        <Box
-            component={motion.div}
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-                gap: 3,
-                flex: 1,
-                minHeight: 0, // Allow shrinking if needed
-                height: '100%',
-            }}
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
         >
-            {COLUMNS.map((column) => {
-                const columnTasks = tasksByStatus[column.id] || [];
-                const isOver = dragOverColumn === column.id;
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
-                return (
-                    <Box
-                        key={column.id}
-                        component={motion.div}
-                        variants={columnVariants}
-                        sx={{ height: '100%' }}
-                    >
-                        <Paper
-                            onDragOver={(e: any) => handleDragOver(e, column.id)}
-                            onDragLeave={handleDragLeave}
-                            onDrop={(e: any) => handleDrop(e, column.id)}
-                            sx={{
-                                p: 2,
-                                borderRadius: '20px',
-                                bgcolor: alpha(theme.palette.background.paper, isOver ? 0.7 : 0.5),
-                                border: `2px dashed ${isOver
-                                    ? alpha(column.color, 0.5)
-                                    : alpha(theme.palette.common.white, 0.15)}`,
-                                transition: 'all 0.2s ease',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                minHeight: { xs: 200, md: 250 },
-                                height: '100%',
-                            }}
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+                        gap: 3,
+                        flex: 1,
+                        minHeight: 0,
+                    }}
+                >
+                    {ALL_COLUMNS.map((column) => (
+                        <Box
+                            key={column.id}
+                            component={motion.div}
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4 }}
+                            sx={{ height: '100%' }}
                         >
-                            {/* Column Header */}
-                            <Box
-                                sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    mb: 2,
-                                    pb: 2,
-                                    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-                                }}
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            width: 36,
-                                            height: 36,
-                                            borderRadius: '10px',
-                                            bgcolor: alpha(column.color, 0.15),
-                                            color: column.color,
-                                        }}
-                                    >
-                                        {column.icon}
-                                    </Box>
-                                    <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-                                        {column.title}
-                                    </Typography>
-                                    <Badge
-                                        badgeContent={columnTasks.length}
-                                        sx={{
-                                            '& .MuiBadge-badge': {
-                                                bgcolor: alpha(column.color, 0.3),
-                                                color: column.color,
-                                                fontWeight: 700,
-                                                fontSize: '0.7rem',
-                                            },
-                                        }}
-                                    />
-                                </Box>
-                                <Button
-                                    size="small"
-                                    startIcon={<AddIcon />}
-                                    onClick={(e) => {
-                                        e.currentTarget.blur();
-                                        onAddTask(column.id);
-                                    }}
-                                    sx={{
-                                        minWidth: 0,
-                                        px: 1.5,
-                                        borderRadius: '10px',
-                                        textTransform: 'none',
-                                        fontSize: '0.75rem',
-                                        bgcolor: alpha(theme.palette.common.white, 0.15),
-                                        '&:hover': {
-                                            bgcolor: alpha(column.color, 0.15),
-                                        },
-                                    }}
-                                >
-                                    Add
-                                </Button>
-                            </Box>
+                            <KanbanColumn
+                                id={column.id}
+                                title={column.title}
+                                icon={column.icon}
+                                color={column.color}
+                                tasks={tasksByStatus[column.id] || []}
+                                onTaskClick={onTaskClick}
+                                onAddTask={onAddTask}
+                            />
+                        </Box>
+                    ))}
+                </Box>
 
-                            {/* Task List */}
-                            <Box
-                                sx={{
-                                    flex: 1,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: 1.5,
-                                    overflowY: 'auto',
-                                    pr: 0.5,
-                                    '&::-webkit-scrollbar': {
-                                        width: 4,
-                                    },
-                                    '&::-webkit-scrollbar-track': {
-                                        bgcolor: 'transparent',
-                                    },
-                                    '&::-webkit-scrollbar-thumb': {
-                                        bgcolor: alpha(theme.palette.common.white, 0.25),
-                                        borderRadius: 2,
-                                    },
-                                }}
-                            >
-                                <AnimatePresence mode="popLayout">
-                                    {columnTasks.map((task) => (
-                                        <Box
-                                            key={task._id}
-                                            draggable
-                                            onDragStart={(e) => handleDragStart(e, task._id)}
-                                            onDragEnd={handleDragEnd}
-                                            sx={{
-                                                opacity: draggedTask === task._id ? 0.5 : 1,
-                                                transition: 'opacity 0.2s ease',
-                                            }}
-                                        >
-                                            <TaskCard
-                                                task={task}
-                                                onClick={() => onTaskClick(task)}
-                                                isDragging={draggedTask === task._id}
-                                            />
-                                        </Box>
-                                    ))}
-                                </AnimatePresence>
-
-                                {columnTasks.length === 0 && (
-                                    <Box
-                                        sx={{
-                                            flex: 1,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            py: 4,
-                                        }}
-                                    >
-                                        <Typography
-                                            variant="body2"
-                                            color="text.secondary"
-                                            sx={{ opacity: 0.5, fontStyle: 'italic' }}
-                                        >
-                                            Drop tasks here
-                                        </Typography>
-                                    </Box>
-                                )}
-                            </Box>
-                        </Paper>
-                    </Box>
-                );
-            })}
-        </Box>
+                <DragOverlay dropAnimation={dropAnimation}>
+                    {activeTask ? (
+                        <TaskCard
+                            task={activeTask}
+                            onClick={() => { }}
+                            isDragging={true}
+                        />
+                    ) : null}
+                </DragOverlay>
+            </Box>
+        </DndContext>
     );
 };

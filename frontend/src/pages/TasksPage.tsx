@@ -12,7 +12,12 @@ import {
 import {
     CheckCircle as TasksIcon,
     Add as AddIcon,
+    Sort as SortIcon,
+    DragIndicator,
+    PriorityHigh,
+    Event
 } from '@mui/icons-material';
+import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 // No framer-motion imports needed here anymore
 import { useSessionStore } from '@/stores/sessionStore';
 import { useTaskStore } from '@/stores/useTaskStore';
@@ -30,6 +35,24 @@ export function TasksPage() {
     const theme = useTheme();
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
 
+    const [sortMode, setSortMode] = useState<'manual' | 'priority' | 'date'>(() => {
+        const saved = localStorage.getItem('kanban_sort_mode');
+        return (saved as any) || 'manual';
+    });
+    const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
+
+    const handleSortClick = (event: React.MouseEvent<HTMLElement>) => {
+        setSortAnchorEl(event.currentTarget);
+    };
+
+    const handleSortClose = (mode?: 'manual' | 'priority' | 'date') => {
+        if (mode) {
+            setSortMode(mode);
+            localStorage.setItem('kanban_sort_mode', mode);
+        }
+        setSortAnchorEl(null);
+    };
+
     const tasks = useTaskStore((state) => state.tasks);
     const isLoading = useTaskStore((state) => state.isLoading);
     const fetchTasks = useTaskStore((state) => state.fetchTasks);
@@ -37,7 +60,6 @@ export function TasksPage() {
     const updateTask = useTaskStore((state) => state.updateTask);
     const deleteTask = useTaskStore((state) => state.deleteTask);
     const reorderTasks = useTaskStore((state) => state.reorderTasks);
-    const updateTaskLocal = useTaskStore((state) => state.updateTaskLocal);
 
     const { encryptTaskData, decryptTasks, decryptTaskData, generateRecordHash } = useTaskEncryption();
 
@@ -147,20 +169,13 @@ export function TasksPage() {
         }
     };
 
-    const handleTaskMove = async (
-        taskId: string,
-        newStatus: 'todo' | 'in_progress' | 'done',
-        newOrder: number
-    ) => {
+    const handleTaskMove = async (updates: { id: string; status: any; order: number }[]) => {
         try {
-            // Optimistic update
-            updateTaskLocal(taskId, { status: newStatus, order: newOrder });
-
-            // Sync with backend
-            await reorderTasks([{ id: taskId, status: newStatus, order: newOrder }]);
-            showSnackbar('Task moved', 'success');
+            // reorderTasks in taskStore handles optimistic update and backend sync
+            await reorderTasks(updates);
+            showSnackbar('Board updated', 'success');
         } catch (error: any) {
-            showSnackbar(error.message || 'Failed to move task', 'error');
+            showSnackbar(error.message || 'Failed to sync reorder', 'error');
         }
     };
 
@@ -201,7 +216,50 @@ export function TasksPage() {
                 </Box>
 
                 {pqcEngineStatus === 'operational' && !isLoading && (
-                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                        {/* Sort Control */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: { xs: 'none', sm: 'block' } }}>
+                                Sort by: <strong>{sortMode === 'manual' ? 'Manual' : sortMode === 'priority' ? 'Priority' : 'Due Date'}</strong>
+                            </Typography>
+                            <Tooltip title="Sort Tasks">
+                                <IconButton
+                                    size="small"
+                                    onClick={handleSortClick}
+                                    sx={{
+                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                        color: theme.palette.primary.main,
+                                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) }
+                                    }}
+                                >
+                                    <SortIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                            <Menu
+                                anchorEl={sortAnchorEl}
+                                open={Boolean(sortAnchorEl)}
+                                onClose={() => handleSortClose()}
+                                PaperProps={{
+                                    sx: {
+                                        mt: 1,
+                                        minWidth: 180,
+                                        borderRadius: '12px',
+                                        boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
+                                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                    }
+                                }}
+                            >
+                                <MenuItem onClick={() => handleSortClose('manual')} selected={sortMode === 'manual'} sx={{ gap: 1, borderRadius: '8px', mx: 1, my: 0.5 }}>
+                                    <DragIndicator fontSize="small" /> Manual
+                                </MenuItem>
+                                <MenuItem onClick={() => handleSortClose('priority')} selected={sortMode === 'priority'} sx={{ gap: 1, borderRadius: '8px', mx: 1, my: 0.5 }}>
+                                    <PriorityHigh fontSize="small" /> Priority
+                                </MenuItem>
+                                <MenuItem onClick={() => handleSortClose('date')} selected={sortMode === 'date'} sx={{ gap: 1, borderRadius: '8px', mx: 1, my: 0.5 }}>
+                                    <Event fontSize="small" /> Due Date
+                                </MenuItem>
+                            </Menu>
+                        </Box>
 
                         {/* Add Task Button */}
                         <Button
@@ -261,6 +319,7 @@ export function TasksPage() {
                         onTaskClick={handleTaskClick}
                         onAddTask={handleAddTask}
                         onTaskMove={handleTaskMove}
+                        sortMode={sortMode}
                     />
                 </Box>
             )}
