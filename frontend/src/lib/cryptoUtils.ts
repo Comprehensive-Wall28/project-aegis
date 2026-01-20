@@ -287,3 +287,169 @@ export async function decapsulateFolderKey(wrappedBundleHex: string, privateKeyH
 
 
 
+/**
+ * ----------------------------------------------------------------------
+ * Task Encryption Utilities
+ * ----------------------------------------------------------------------
+ */
+
+export interface TaskData {
+    title: string;
+    description: string;
+    notes: string;
+}
+
+export interface EncryptedTaskPayload {
+    encryptedData: string;      // IV:ciphertext (hex)
+    encapsulatedKey: string;    // ML-KEM-768 cipher text (hex)
+    encryptedSymmetricKey: string; // Wrapped AES key (IV + encrypted key, hex)
+}
+
+export interface EncryptedTask extends EncryptedTaskPayload {
+    _id: string;
+    userId: string;
+    dueDate?: string;
+    priority: 'high' | 'medium' | 'low';
+    status: 'todo' | 'in_progress' | 'done';
+    order: number;
+    recordHash: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+/**
+ * Encrypt task data using user's public key (ML-KEM-768 encapsulation)
+ */
+export async function encryptTaskData(data: TaskData, userPublicKey: string): Promise<EncryptedTaskPayload> {
+    const aesKey = await generateFolderKey(); // Reusing generic AES-GCM 256 generation
+    const pubKeyBytes = hexToBytes(userPublicKey);
+
+    // @ts-ignore
+    const { cipherText: encapsulatedKey, sharedSecret } = ml_kem768.encapsulate(pubKeyBytes);
+
+    // Encrypt the AES key with the shared secret
+    const wrappingKey = await window.crypto.subtle.importKey(
+        'raw',
+        sharedSecret.buffer.slice(sharedSecret.byteOffset, sharedSecret.byteOffset + sharedSecret.byteLength) as ArrayBuffer,
+        { name: 'AES-GCM' },
+        false,
+        ['encrypt']
+    );
+
+    const ivKey = window.crypto.getRandomValues(new Uint8Array(12));
+    const rawKey = await window.crypto.subtle.exportKey('raw', aesKey);
+
+    const encryptedKeyBuffer = await window.crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: ivKey },
+        wrappingKey,
+        rawKey
+    );
+
+    const encryptedSymmetricKey = bytesToHex(ivKey) + bytesToHex(new Uint8Array(encryptedKeyBuffer));
+
+    // Encrypt the data with the AES key
+    const dataJson = JSON.stringify(data);
+    const dataBytes = new TextEncoder().encode(dataJson);
+    const ivData = window.crypto.getRandomValues(new Uint8Array(12));
+
+    const encryptedDataBuffer = await window.crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: ivData },
+        aesKey,
+        dataBytes
+    );
+
+    const encryptedData = bytesToHex(ivData) + ':' + bytesToHex(new Uint8Array(encryptedDataBuffer));
+
+    return {
+        encryptedData,
+        encapsulatedKey: bytesToHex(encapsulatedKey),
+        encryptedSymmetricKey, // Stores IV + Ciphertext hex concatenated
+    };
+}
+
+/**
+ * Decrypt single task using user's private key (ML-KEM-768 decapsulation)
+ */
+export async function decryptTaskData(encryptedTask: EncryptedTask, userPrivateKey: string): Promise<TaskData & {
+    _id: string;
+    dueDate?: string;
+    priority: 'high' | 'medium' | 'low';
+    status: 'todo' | 'in_progress' | 'done';
+    order: number;
+    createdAt: string;
+    updatedAt: string;
+}> {
+    const privKeyBytes = hexToBytes(userPrivateKey);
+    const encapsulatedKeyBytes = hexToBytes(encryptedTask.encapsulatedKey);
+    // @ts-ignore
+    const sharedSecret = ml_kem768.decapsulate(encapsulatedKeyBytes, privKeyBytes);
+
+    // Decrypt the AES key
+    // encryptedSymmetricKey is assumed to be IV (12 bytes/24 hex) + Ciphertext
+    const encKeyHex = encryptedTask.encryptedSymmetricKey;
+    const ivKeyHex = encKeyHex.slice(0, 24);
+    const cipherKeyHex = encKeyHex.slice(24);
+    const ivKey = hexToBytes(ivKeyHex);
+    const cipherKey = hexToBytes(cipherKeyHex);
+
+    const unwrappingKey = await window.crypto.subtle.importKey(
+        'raw',
+        sharedSecret.buffer.slice(sharedSecret.byteOffset, sharedSecret.byteOffset + sharedSecret.byteLength) as ArrayBuffer,
+        { name: 'AES-GCM' },
+        false,
+        ['decrypt']
+    );
+
+    const rawAesKey = await window.crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: ivKey as unknown as BufferSource },
+        unwrappingKey,
+        cipherKey as unknown as BufferSource
+    );
+
+    const aesKey = await window.crypto.subtle.importKey(
+        'raw',
+        rawAesKey,
+        { name: 'AES-GCM' },
+        false,
+        ['decrypt']
+    );
+
+    // Decrypt the data
+    const [ivDataHex, cipherDataHex] = encryptedTask.encryptedData.split(':');
+    const ivData = hexToBytes(ivDataHex);
+    const cipherData = hexToBytes(cipherDataHex);
+
+    const decryptedBuffer = await window.crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: ivData as unknown as BufferSource },
+        aesKey,
+        cipherData as unknown as BufferSource
+    );
+
+    const dataJson = new TextDecoder().decode(decryptedBuffer);
+    const taskData: TaskData = JSON.parse(dataJson);
+
+    return {
+        ...taskData,
+        _id: encryptedTask._id,
+        dueDate: encryptedTask.dueDate,
+        priority: encryptedTask.priority,
+        status: encryptedTask.status,
+        order: encryptedTask.order,
+        createdAt: encryptedTask.createdAt,
+        updatedAt: encryptedTask.updatedAt,
+    };
+}
+
+export async function generateRecordHash(
+    data: TaskData,
+    priority: string,
+    status: string,
+    dueDate?: string
+): Promise<string> {
+    const content = `${data.title}|${data.description}|${data.notes}|${priority}|${status}|${dueDate || ''}`;
+    const msgUint8 = new TextEncoder().encode(content);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}
