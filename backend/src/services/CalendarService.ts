@@ -16,6 +16,7 @@ export interface CreateCalendarEventDTO {
     isAllDay?: boolean;
     color?: string;
     recordHash: string;
+    mentions?: string[];
 }
 
 /**
@@ -68,7 +69,8 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
                 endDate: new Date(data.endDate),
                 isAllDay: data.isAllDay || false,
                 color: data.color || '#3f51b5',
-                recordHash: data.recordHash
+                recordHash: data.recordHash,
+                mentions: data.mentions || []
             } as any);
 
             logger.info(`Calendar event created for user ${userId}`);
@@ -100,6 +102,7 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
             // Convert date strings to Date objects if present
             if (data.startDate) updateData.startDate = new Date(data.startDate);
             if (data.endDate) updateData.endDate = new Date(data.endDate);
+            if (data.mentions) updateData.mentions = data.mentions;
 
             const event = await this.repository.updateByIdAndUser(eventId, userId, updateData);
 

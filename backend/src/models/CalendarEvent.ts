@@ -12,6 +12,7 @@ export interface ICalendarEvent extends Document {
     isAllDay: boolean;
     color: string;
     recordHash: string;            // Integrity check
+    mentions: string[];            // IDs of mentioned entities (files, tasks, events)
 }
 
 const CalendarEventSchema: Schema = new Schema({
@@ -24,6 +25,7 @@ const CalendarEventSchema: Schema = new Schema({
     isAllDay: { type: Boolean, default: false },
     color: { type: String, default: '#3f51b5' },
     recordHash: { type: String, required: true },
+    mentions: { type: [String], default: [], index: true },
 }, { timestamps: true });
 
 // Index for date range filtering

@@ -15,6 +15,7 @@ export interface CreateTaskDTO {
     priority?: string;
     status?: string;
     recordHash: string;
+    mentions?: string[];
 }
 
 /**
@@ -29,6 +30,7 @@ export interface UpdateTaskDTO {
     status?: string;
     recordHash?: string;
     order?: number;
+    mentions?: string[];
 }
 
 /**
@@ -128,7 +130,8 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
                 priority,
                 status,
                 order: newOrder,
-                recordHash: data.recordHash
+                recordHash: data.recordHash,
+                mentions: data.mentions || []
             } as Partial<ITask>);
 
             // Audit log
@@ -182,6 +185,9 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
             // Set order if provided
             if (data.order !== undefined) {
                 updateData.order = data.order;
+            }
+            if (data.mentions) {
+                updateData.mentions = data.mentions;
             }
 
             const task = await this.repository.updateByIdAndUser(

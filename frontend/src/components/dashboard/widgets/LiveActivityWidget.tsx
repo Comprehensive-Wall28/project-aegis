@@ -4,7 +4,6 @@ import { History as HistoryIcon, ArrowUpRight, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useTaskStore } from '@/stores/useTaskStore';
-import { useTaskEncryption } from '@/hooks/useTaskEncryption';
 import { ActivityItem } from '@/components/security/ActivityItem';
 import dayjs from 'dayjs';
 import type { DecryptedTask } from '@/stores/useTaskStore';
@@ -86,9 +85,8 @@ const TaskItem = memo(({ task }: { task: DecryptedTask }) => {
 export function LiveActivityWidget() {
     const theme = useTheme();
     const navigate = useNavigate();
-    const { recentActivity, fetchRecentActivity, isAuthenticated, pqcEngineStatus } = useSessionStore();
-    const { tasks, fetchTasks } = useTaskStore();
-    const { decryptTasks } = useTaskEncryption();
+    const { recentActivity, fetchRecentActivity, isAuthenticated } = useSessionStore();
+    const { tasks } = useTaskStore();
 
     // Fetch activity
     useEffect(() => {
@@ -96,14 +94,6 @@ export function LiveActivityWidget() {
             fetchRecentActivity();
         }
     }, [isAuthenticated, fetchRecentActivity]);
-
-    // Fetch tasks if engine is ready
-    useEffect(() => {
-        if (pqcEngineStatus === 'operational') {
-            // We pass decryptTasks to automatically handle decryption after fetch
-            fetchTasks({ status: 'todo,in_progress' }, decryptTasks);
-        }
-    }, [pqcEngineStatus, fetchTasks, decryptTasks]);
 
     const upcomingTasks = useMemo(() => {
         if (!tasks || tasks.length === 0) return [];

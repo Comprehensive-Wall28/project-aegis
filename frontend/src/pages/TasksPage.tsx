@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { extractMentionedIds } from '@/utils/mentionUtils';
 import {
     Box,
     Typography,
@@ -60,7 +61,6 @@ export function TasksPage() {
 
     const tasks = useTaskStore((state) => state.tasks);
     const isLoading = useTaskStore((state) => state.isLoading);
-    const fetchTasks = useTaskStore((state) => state.fetchTasks);
     const addTask = useTaskStore((state) => state.addTask);
     const updateTask = useTaskStore((state) => state.updateTask);
     const deleteTask = useTaskStore((state) => state.deleteTask);
@@ -79,13 +79,12 @@ export function TasksPage() {
         );
     }, [tasks, searchTerm]);
 
-    const { encryptTaskData, decryptTasks, decryptTaskData, generateRecordHash } = useTaskEncryption();
+    const { encryptTaskData, decryptTaskData, generateRecordHash } = useTaskEncryption();
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
-    const hasFetched = useRef(false);
 
     const [snackbar, setSnackbar] = useState<SnackbarState>({
         open: false,
@@ -96,14 +95,6 @@ export function TasksPage() {
     const showSnackbar = (message: string, severity: SnackbarState['severity']) => {
         setSnackbar({ open: true, message, severity });
     };
-
-    // Fetch tasks when PQC engine is operational
-    useEffect(() => {
-        if (pqcEngineStatus === 'operational' && !hasFetched.current) {
-            hasFetched.current = true;
-            fetchTasks(undefined, decryptTasks);
-        }
-    }, [pqcEngineStatus, fetchTasks, decryptTasks]);
 
     const handleAddTask = useCallback((status: 'todo' | 'in_progress' | 'done' = 'todo') => {
         // @ts-ignore - _tempId is local only for key generation
@@ -144,6 +135,9 @@ export function TasksPage() {
                 notes: data.notes,
             });
 
+            // Extract mentions for backend indexing
+            const mentions = extractMentionedIds(`${data.description} ${data.notes}`);
+
             if (selectedTask?._id) {
                 // Update existing task
                 await updateTask(
@@ -155,7 +149,8 @@ export function TasksPage() {
                         status: data.status,
                         recordHash,
                     },
-                    decryptTaskData
+                    decryptTaskData,
+                    mentions
                 );
                 showSnackbar('Task updated securely', 'success');
             } else {
@@ -168,7 +163,8 @@ export function TasksPage() {
                         status: data.status,
                         recordHash,
                     },
-                    decryptTaskData
+                    decryptTaskData,
+                    mentions
                 );
                 showSnackbar('Task created with PQC encryption', 'success');
             }

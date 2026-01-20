@@ -18,8 +18,7 @@ import {
 import { Close as CloseIcon, Palette as PaletteIcon } from '@mui/icons-material';
 import { MobileDateTimePicker } from '@mui/x-date-pickers/MobileDateTimePicker';
 import dayjs from 'dayjs';
-import type { FileMetadata } from '@/services/vaultService';
-import { FileMentionPicker } from '../tasks/FileMentionPicker';
+import { MentionPicker, type MentionEntity } from '../tasks/MentionPicker';
 
 const AEGIS_COLORS = [
     { name: 'Primary Blue', value: '#3f51b5' },
@@ -85,7 +84,7 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
         }
     }, [event, open]);
 
-    const handleMentionSelect = (file: FileMetadata) => {
+    const handleMentionSelect = (entity: MentionEntity) => {
         const field = mentionPicker.field;
         const val = field === 'description' ? description : '';
         const triggerPos = mentionPicker.cursorPos - 1; // Position of '@'
@@ -94,8 +93,15 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
         const input = mentionPicker.anchorEl as HTMLTextAreaElement;
         const currentPos = input.selectionStart;
 
-        const folderId = file.folderId || 'root';
-        const mention = `[@${file.originalFileName}](aegis-file://${folderId}/${file._id})`;
+        let mention = '';
+        if (entity.type === 'file') {
+            const folderId = entity.folderId || 'root';
+            mention = `[@${entity.name}](aegis-file://${folderId}/${entity.id})`;
+        } else if (entity.type === 'task') {
+            mention = `[#${entity.name}](aegis-task://${entity.id})`;
+        } else if (entity.type === 'event') {
+            mention = `[~${entity.name}](aegis-event://${entity.id})`;
+        }
 
         // Replace from the '@' up to the current cursor position
         const newValue = val.substring(0, triggerPos) + mention + val.substring(currentPos);
@@ -277,14 +283,14 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                         multiline
                         rows={3}
                         variant="outlined"
-                        placeholder="Add more details... (Use @ to mention files)"
+                        placeholder="Add more details... (Use @ for mentions)"
                         slotProps={{
                             input: { sx: { borderRadius: '12px' } }
                         }}
                     />
 
                     {mentionPicker.open && (
-                        <FileMentionPicker
+                        <MentionPicker
                             anchorEl={mentionPicker.anchorEl}
                             onSelect={handleMentionSelect}
                             onClose={() => setMentionPicker(prev => ({ ...prev, open: false }))}

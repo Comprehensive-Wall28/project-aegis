@@ -18,12 +18,16 @@ import {
     useMediaQuery,
     type SelectChangeEvent,
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
+import {
+    Close as CloseIcon,
+    AssignmentOutlined as TaskIcon,
+    EventOutlined as EventIcon,
+} from '@mui/icons-material';
 import { MobileDateTimePicker } from '@mui/x-date-pickers/MobileDateTimePicker';
 import dayjs from 'dayjs';
 import type { Task } from '../../services/taskService';
-import type { FileMetadata } from '@/services/vaultService';
-import { FileMentionPicker } from './FileMentionPicker';
+import { MentionPicker, type MentionEntity } from './MentionPicker';
+import { useBacklinks } from '../../hooks/useBacklinks';
 
 import {
     TASK_PRIORITY_CONFIG,
@@ -83,6 +87,8 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+    const backlinks = useBacklinks(initialData?._id || '');
+
     // Initialize state ONCE from props. No useEffect syncing.
     const [formData, setFormData] = useState<TaskDialogData>(() => ({
         title: initialData?.title || '',
@@ -139,7 +145,7 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
         }
     };
 
-    const handleMentionSelect = (file: FileMetadata) => {
+    const handleMentionSelect = (entity: MentionEntity) => {
         const field = mentionPicker.field;
         const value = formData[field];
         const triggerPos = mentionPicker.cursorPos - 1; // Position of '@'
@@ -148,8 +154,15 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
         const input = mentionPicker.anchorEl as HTMLTextAreaElement;
         const currentPos = input.selectionStart;
 
-        const folderId = file.folderId || 'root';
-        const mention = `[@${file.originalFileName}](aegis-file://${folderId}/${file._id})`;
+        let mention = '';
+        if (entity.type === 'file') {
+            const folderId = entity.folderId || 'root';
+            mention = `[@${entity.name}](aegis-file://${folderId}/${entity.id})`;
+        } else if (entity.type === 'task') {
+            mention = `[#${entity.name}](aegis-task://${entity.id})`;
+        } else if (entity.type === 'event') {
+            mention = `[~${entity.name}](aegis-event://${entity.id})`;
+        }
 
         // Replace from the '@' up to the current cursor position
         const newValue = value.substring(0, triggerPos) + mention + value.substring(currentPos);
@@ -218,7 +231,7 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
                         minRows={3}
                         maxRows={8}
                         variant="outlined"
-                        placeholder="Add more details... (Use @ to mention files)"
+                        placeholder="Add more details... (Use @ for mentions)"
                         slotProps={{
                             input: { sx: { borderRadius: '12px' } }
                         }}
@@ -322,15 +335,48 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
                         minRows={2}
                         maxRows={6}
                         variant="outlined"
-                        placeholder="Private notes (encrypted)... (Use @ to mention files)"
+                        placeholder="Private notes (encrypted)... (Use @ for mentions)"
                         slotProps={{
                             input: { sx: { borderRadius: '12px' } }
                         }}
                     />
 
+                    {backlinks.length > 0 && (
+                        <Box sx={{ mt: 1 }}>
+                            <Typography variant="caption" sx={{ display: 'block', mb: 1, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                Mentioned In
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {backlinks.map(link => (
+                                    <Box
+                                        key={link.id}
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1,
+                                            p: 0.8,
+                                            px: 1.2,
+                                            borderRadius: '8px',
+                                            bgcolor: alpha(theme.palette.text.primary, 0.03),
+                                            border: `1px solid ${alpha(theme.palette.divider, 0.08)}`
+                                        }}
+                                    >
+                                        {link.type === 'task' ? (
+                                            <TaskIcon sx={{ fontSize: 16, color: theme.palette.secondary.main }} />
+                                        ) : (
+                                            <EventIcon sx={{ fontSize: 16, color: theme.palette.warning.main }} />
+                                        )}
+                                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                                            {link.title}
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </Box>
+                    )}
 
                     {mentionPicker.open && (
-                        <FileMentionPicker
+                        <MentionPicker
                             anchorEl={mentionPicker.anchorEl}
                             onSelect={handleMentionSelect}
                             onClose={() => setMentionPicker(prev => ({ ...prev, open: false }))}

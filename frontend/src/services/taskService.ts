@@ -46,6 +46,7 @@ export interface CreateTaskInput extends EncryptedTaskPayload {
     priority?: 'high' | 'medium' | 'low';
     status?: 'todo' | 'in_progress' | 'done';
     recordHash: string;
+    mentions?: string[];
 }
 
 export interface UpdateTaskInput extends Partial<EncryptedTaskPayload> {
@@ -54,6 +55,7 @@ export interface UpdateTaskInput extends Partial<EncryptedTaskPayload> {
     status?: 'todo' | 'in_progress' | 'done';
     order?: number;
     recordHash?: string;
+    mentions?: string[];
 }
 
 export interface ReorderUpdate {

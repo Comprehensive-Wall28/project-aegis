@@ -10,6 +10,7 @@ export interface CalendarEventInput extends EncryptedCalendarPayload {
     isAllDay: boolean;
     color: string;
     recordHash: string;
+    mentions?: string[];
 }
 
 const calendarService = {

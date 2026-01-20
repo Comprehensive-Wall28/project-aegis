@@ -22,11 +22,14 @@ import {
     Description as DescriptionIcon,
     Notes as NotesIcon,
     DeleteOutline as DeleteIcon,
+    AssignmentOutlined as TaskIcon,
+    EventOutlined as EventIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import type { DecryptedTask } from '@/stores/useTaskStore';
 import { TASK_PRIORITY_CONFIG, TASK_STATUS_LABELS } from '@/constants/taskDefaults';
 import { TaskDescriptionRenderer } from './TaskDescriptionRenderer';
+import { useBacklinks } from '../../hooks/useBacklinks';
 
 interface TaskPreviewDialogProps {
     open: boolean;
@@ -40,6 +43,8 @@ export const TaskPreviewDialog = memo(({ open, onClose, onEdit, onDelete, task }
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isMD = useMediaQuery(theme.breakpoints.down('md'));
+
+    const backlinks = useBacklinks(task?._id || '');
 
     if (!task || !task._id) return null;
 
@@ -210,6 +215,39 @@ export const TaskPreviewDialog = memo(({ open, onClose, onEdit, onDelete, task }
                             </Box>
                         </Box>
                     </Box>
+
+                    {backlinks.length > 0 && (
+                        <Box>
+                            <Typography variant="caption" sx={{ display: 'block', mb: 1, fontWeight: 700, color: theme.palette.text.secondary, textTransform: 'uppercase' }}>
+                                Mentioned In
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {backlinks.map(link => (
+                                    <Box
+                                        key={link.id}
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1,
+                                            p: 1,
+                                            borderRadius: '8px',
+                                            bgcolor: alpha(theme.palette.text.primary, 0.03),
+                                            border: `1px solid ${alpha(theme.palette.divider, 0.05)}`
+                                        }}
+                                    >
+                                        {link.type === 'task' ? (
+                                            <TaskIcon sx={{ fontSize: 16, color: theme.palette.secondary.main }} />
+                                        ) : (
+                                            <EventIcon sx={{ fontSize: 16, color: theme.palette.warning.main }} />
+                                        )}
+                                        <Typography variant="caption" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {link.title}
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </Box>
+                    )}
 
                     <Box sx={{ mt: 'auto', pt: 2 }}>
                         <Button

@@ -14,8 +14,12 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useVaultDownload } from '@/hooks/useVaultDownload';
 import vaultService from '@/services/vaultService';
 import { backgroundCache } from '@/lib/backgroundCache';
+import { useGlobalData } from '@/hooks/useGlobalData';
 
 export function DashboardLayout() {
+    // Global data hydration
+    useGlobalData();
+
     const isSidebarCollapsed = usePreferenceStore((state) => state.isSidebarCollapsed);
     const toggleSidebar = usePreferenceStore((state) => state.toggleSidebar);
     const backgroundImage = usePreferenceStore((state) => state.backgroundImage);

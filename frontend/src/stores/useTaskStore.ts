@@ -27,13 +27,15 @@ interface TaskState {
 
     addTask: (
         task: CreateTaskInput,
-        decryptFn: (task: EncryptedTask) => Promise<DecryptedTask>
+        decryptFn: (task: EncryptedTask) => Promise<DecryptedTask>,
+        mentions?: string[]
     ) => Promise<void>;
 
     updateTask: (
         id: string,
         updates: UpdateTaskInput,
-        decryptFn: (task: EncryptedTask) => Promise<DecryptedTask>
+        decryptFn: (task: EncryptedTask) => Promise<DecryptedTask>,
+        mentions?: string[]
     ) => Promise<void>;
 
     deleteTask: (id: string) => Promise<void>;
@@ -78,10 +80,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         }
     },
 
-    addTask: async (task, decryptFn) => {
+    addTask: async (task, decryptFn, mentions) => {
         set({ error: null });
         try {
-            const newEncryptedTask = await taskService.createTask(task);
+            const newEncryptedTask = await taskService.createTask({ ...task, mentions });
             const decryptedTask = await decryptFn(newEncryptedTask);
             set(state => ({
                 tasks: [...state.tasks, decryptedTask]
@@ -92,10 +94,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         }
     },
 
-    updateTask: async (id, updates, decryptFn) => {
+    updateTask: async (id, updates, decryptFn, mentions) => {
         set({ error: null });
         try {
-            const updatedEncryptedTask = await taskService.updateTask(id, updates);
+            const updatedEncryptedTask = await taskService.updateTask(id, { ...updates, mentions });
             const decryptedTask = await decryptFn(updatedEncryptedTask);
             set(state => ({
                 tasks: state.tasks.map(t => t._id === id ? decryptedTask : t)

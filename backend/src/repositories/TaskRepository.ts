@@ -120,4 +120,14 @@ export class TaskRepository extends BaseRepository<ITask> {
             { returnNew: true }
         );
     }
+
+    /**
+     * Find all tasks that mention a specific entity ID
+     */
+    async findMentionsOf(userId: string, targetId: string): Promise<ITask[]> {
+        return this.findMany({
+            userId: { $eq: userId },
+            mentions: { $in: [targetId] }
+        } as unknown as SafeFilter<ITask>);
+    }
 }

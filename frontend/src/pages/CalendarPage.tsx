@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
+import { extractMentionedIds } from '@/utils/mentionUtils';
 import {
     Box,
     Typography,
@@ -29,12 +30,11 @@ export function CalendarPage() {
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
     const events = useCalendarStore((state) => state.events);
     const isLoading = useCalendarStore((state) => state.isLoading);
-    const fetchEvents = useCalendarStore((state) => state.fetchEvents);
     const addEvent = useCalendarStore((state) => state.addEvent);
     const updateEvent = useCalendarStore((state) => state.updateEvent);
     const deleteEvent = useCalendarStore((state) => state.deleteEvent);
 
-    const { encryptEventData, decryptEvents, decryptEventData, generateRecordHash } = useCalendarEncryption();
+    const { encryptEventData, decryptEventData, generateRecordHash } = useCalendarEncryption();
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
@@ -46,14 +46,6 @@ export function CalendarPage() {
     const showSnackbar = (message: string, severity: 'success' | 'error' = 'success') => {
         setSnackbar({ open: true, message, severity });
     };
-
-    useEffect(() => {
-        let isMounted = true;
-        if (pqcEngineStatus === 'operational' && isMounted) {
-            fetchEvents(undefined, undefined, decryptEvents);
-        }
-        return () => { isMounted = false; };
-    }, [pqcEngineStatus, fetchEvents, decryptEvents]);
 
     const handleDateClick = (arg: any) => {
         setSelectedEvent({ start: arg.dateStr, end: arg.dateStr });
@@ -168,11 +160,13 @@ export function CalendarPage() {
                 recordHash
             };
 
+            const mentions = extractMentionedIds(data.description);
+
             if (selectedEvent?._id) {
-                await updateEvent(selectedEvent._id, eventInput, decryptEventData);
+                await updateEvent(selectedEvent._id, eventInput, decryptEventData, mentions);
                 showSnackbar('Event updated securely', 'success');
             } else {
-                await addEvent(eventInput, decryptEventData);
+                await addEvent(eventInput, decryptEventData, mentions);
                 showSnackbar('Event created with PQC encryption', 'success');
             }
             setDialogOpen(false);
