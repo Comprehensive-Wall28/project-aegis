@@ -73,24 +73,22 @@ export class TaskRepository extends BaseRepository<ITask> {
         userId: string,
         updates: Array<{ id: string; status?: string; order: number }>
     ): Promise<void> {
-        return this.withTransaction(async (session) => {
-            const bulkOps = updates.map(update => ({
-                updateOne: {
-                    filter: {
-                        _id: update.id,
-                        userId: { $eq: userId }
-                    } as SafeFilter<ITask>,
-                    update: {
-                        $set: {
-                            order: update.order,
-                            ...(update.status ? { status: update.status } : {})
-                        }
+        const bulkOps = updates.map(update => ({
+            updateOne: {
+                filter: {
+                    _id: update.id,
+                    userId: { $eq: userId }
+                } as SafeFilter<ITask>,
+                update: {
+                    $set: {
+                        order: update.order,
+                        ...(update.status ? { status: update.status } : {})
                     }
                 }
-            }));
+            }
+        }));
 
-            await this.bulkWrite(bulkOps, { session });
-        });
+        await this.bulkWrite(bulkOps);
     }
 
     /**
