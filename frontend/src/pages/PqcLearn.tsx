@@ -257,22 +257,22 @@ export function PqcLearn() {
                                 }}>
                                     <pre style={{
                                         fontFamily: 'JetBrains Mono',
-                                        fontSize: '0.9rem',
+                                        fontSize: '0.85rem',
                                         color: theme.palette.text.secondary,
                                         overflowX: 'auto'
                                     }}>
-                                        {`// Aegis PQC Implementation
-const pqc = new ML_KEM_768();
+                                        {`// Aegis uses @noble/post-quantum
+import { ml_kem768 } from '@noble/post-quantum';
 
-// 1. User generates keypair
-const { pk, sk } = pqc.keypair();
+// 1. Generate quantum-safe keypair
+const keys = ml_kem768.keygen();
 
-// 2. Server encapsulates key
-const { ss, ct } = pqc.encap(pk);
+// 2. Encapsulate a shared secret
+const { sharedSecret, cipherText } = 
+  ml_kem768.encapsulate(keys.publicKey);
 
-// 3. Secure channel established
-// Even a quantum computer 
-// cannot recover 'ss' from 'ct'`}
+// Even quantum computers cannot
+// derive sharedSecret from cipherText`}
                                     </pre>
                                 </Box>
                             </Grid>
