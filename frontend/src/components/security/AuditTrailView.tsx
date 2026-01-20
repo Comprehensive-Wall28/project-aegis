@@ -83,8 +83,7 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
     const sharedPaperStyles = {
         p: { xs: 2, sm: 3 },
         borderRadius: '16px',
-        bgcolor: alpha(theme.palette.background.paper, 0.4),
-        backdropFilter: 'blur(12px)',
+        bgcolor: theme.palette.background.paper,
         border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
         boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
     };
@@ -132,21 +131,21 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
                     <Table stickyHeader size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)', px: { xs: 1, sm: 2 } }}>
+                                <TableCell sx={{ bgcolor: theme.palette.background.default, borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', px: { xs: 1, sm: 2 } }}>
                                     ACTION
                                 </TableCell>
-                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)', px: { xs: 1, sm: 2 } }}>
+                                <TableCell sx={{ bgcolor: theme.palette.background.default, borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', px: { xs: 1, sm: 2 } }}>
                                     STATUS
                                 </TableCell>
                                 {!isMobile && (
-                                    <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)', px: 2 }}>
+                                    <TableCell sx={{ bgcolor: theme.palette.background.default, borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', px: 2 }}>
                                         IP ADDRESS
                                     </TableCell>
                                 )}
-                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', backdropFilter: 'blur(8px)', px: { xs: 1, sm: 2 } }}>
+                                <TableCell sx={{ bgcolor: theme.palette.background.default, borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, fontWeight: 700, fontSize: '11px', color: 'text.secondary', letterSpacing: '0.05em', px: { xs: 1, sm: 2 } }}>
                                     TIME
                                 </TableCell>
-                                <TableCell sx={{ bgcolor: alpha(theme.palette.background.paper, 0.8), borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, width: { xs: 30, sm: 40 }, backdropFilter: 'blur(8px)', px: { xs: 0, sm: 2 } }} />
+                                <TableCell sx={{ bgcolor: theme.palette.background.default, borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, width: { xs: 30, sm: 40 }, px: { xs: 0, sm: 2 } }} />
                             </TableRow>
                         </TableHead>
                         <TableBody>

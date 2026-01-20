@@ -4,7 +4,8 @@ import {
     createTask,
     updateTask,
     deleteTask,
-    reorderTasks
+    reorderTasks,
+    getUpcomingTasks
 } from '../controllers/taskController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection } from '../middleware/csrfMiddleware';
@@ -17,9 +18,11 @@ router.use(csrfProtection);
 
 // Task CRUD
 router.get('/', getTasks);
+router.get('/upcoming', getUpcomingTasks);  // Lightweight endpoint for dashboard widget
 router.post('/', createTask);
 router.put('/reorder', reorderTasks);  // Must come before /:id to avoid route conflict
 router.put('/:id', updateTask);
 router.delete('/:id', deleteTask);
 
 export default router;
+

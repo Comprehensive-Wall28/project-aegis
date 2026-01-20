@@ -1,4 +1,4 @@
-import { Document, Model, UpdateQuery } from 'mongoose';
+import { Document, Model, UpdateQuery, ClientSession, MongooseBulkWriteOptions } from 'mongoose';
 import {
     QueryOptions,
     SafeFilter,
@@ -38,6 +38,27 @@ export abstract class BaseRepository<T extends Document> {
             );
         }
         return sanitizedId;
+    }
+
+    /**
+     * Execute operations within a transaction
+     */
+    async withTransaction<R>(operation: (session: ClientSession) => Promise<R>): Promise<R> {
+        const connection = this.dbManager.getConnection(this.dbInstance);
+        const session = await connection.startSession();
+
+        try {
+            session.startTransaction();
+            const result = await operation(session);
+            await session.commitTransaction();
+            return result;
+        } catch (error) {
+            await session.abortTransaction();
+            logger.error('Transaction aborted due to error:', error);
+            throw error;
+        } finally {
+            await session.endSession();
+        }
     }
 
     /**
@@ -98,6 +119,48 @@ export abstract class BaseRepository<T extends Document> {
             logger.error(`Repository findMany error:`, error);
             throw new RepositoryError(
                 'Failed to find documents',
+                RepositoryErrorCode.QUERY_ERROR,
+                error
+            );
+        }
+    }
+
+    /**
+     * Find documents with cursor-based pagination
+     */
+    async findPaginated(
+        filter: SafeFilter<T>,
+        options: {
+            limit: number;
+            cursor?: string;
+            sortField?: string;
+            sortOrder?: 1 | -1;
+        }
+    ): Promise<{ items: T[]; nextCursor: string | null }> {
+        const { limit, cursor, sortField = '_id', sortOrder = 1 } = options;
+        const sanitizedFilter = QuerySanitizer.sanitizeQuery(filter) as any;
+
+        try {
+            if (cursor) {
+                const operator = sortOrder === 1 ? '$gt' : '$lt';
+                sanitizedFilter[sortField] = { [operator]: cursor };
+            }
+
+            const items = await this.model
+                .find(sanitizedFilter)
+                .sort({ [sortField]: sortOrder } as any)
+                .limit(limit)
+                .exec();
+
+            const nextCursor = items.length > 0 && items.length === limit
+                ? (items[items.length - 1] as any)[sortField].toString()
+                : null;
+
+            return { items, nextCursor };
+        } catch (error) {
+            logger.error(`Repository findPaginated error:`, error);
+            throw new RepositoryError(
+                'Failed to find paginated documents',
                 RepositoryErrorCode.QUERY_ERROR,
                 error
             );
@@ -270,7 +333,7 @@ export abstract class BaseRepository<T extends Document> {
     /**
      * Perform bulk write operations
      */
-    async bulkWrite(operations: BulkWriteOperation<T>[]): Promise<BulkWriteResult> {
+    async bulkWrite(operations: BulkWriteOperation<T>[], options: MongooseBulkWriteOptions = {}): Promise<BulkWriteResult> {
         // Sanitize all operations
         const sanitizedOps = operations.map(op => {
             if ('insertOne' in op) {
@@ -311,7 +374,7 @@ export abstract class BaseRepository<T extends Document> {
         });
 
         try {
-            const result = await this.model.bulkWrite(sanitizedOps as any);
+            const result = await this.model.bulkWrite(sanitizedOps as any, options);
 
             return {
                 insertedCount: result.insertedCount,

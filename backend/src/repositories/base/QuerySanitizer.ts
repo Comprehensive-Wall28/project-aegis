@@ -19,6 +19,7 @@ const ALLOWED_OPERATORS = new Set([
     '$in', '$nin', '$exists', '$and', '$or',
     '$set', '$unset', '$inc', '$push', '$pull',
     '$addToSet', '$pop', '$rename',
+    '$regex', '$options',
 ]);
 
 /**

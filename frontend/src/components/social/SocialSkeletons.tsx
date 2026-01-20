@@ -32,7 +32,7 @@ export const LinkCardSkeleton = () => {
             boxSizing: 'border-box'
         }}>
             <Paper
-                variant="glass"
+                elevation={1}
                 sx={{
                     borderRadius: SOCIAL_RADIUS_XLARGE,
                     height: '100%',

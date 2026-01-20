@@ -101,12 +101,12 @@ export function FilesHeader({
                     sx={{
                         fontWeight: 700,
                         borderRadius: '8px',
-                        borderColor: alpha(theme.palette.warning.main, 0.3),
+                        borderColor: alpha(theme.palette.warning.main, 0.4),
                         color: theme.palette.warning.main,
                         height: { xs: 32, sm: 36 },
                         fontSize: { xs: '0.75rem', sm: '0.875rem' },
                         px: { xs: 1.5, sm: 2 },
-                        '&:hover': { borderColor: theme.palette.warning.main, bgcolor: alpha(theme.palette.warning.main, 0.05) }
+                        '&:hover': { borderColor: theme.palette.warning.main, bgcolor: alpha(theme.palette.warning.main, 0.15) }
                     }}
                 >
                     <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>New </Box>Folder
@@ -119,11 +119,11 @@ export function FilesHeader({
                     sx={{
                         fontWeight: 700,
                         borderRadius: '8px',
-                        borderColor: alpha(theme.palette.primary.main, 0.2),
+                        borderColor: alpha(theme.palette.primary.main, 0.3),
                         height: { xs: 32, sm: 36 },
                         fontSize: { xs: '0.75rem', sm: '0.875rem' },
                         px: { xs: 1.5, sm: 2 },
-                        '&:hover': { borderColor: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.05) }
+                        '&:hover': { borderColor: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.15) }
                     }}
                 >
                     {showUpload ? 'Close' : 'Upload'}

@@ -45,10 +45,6 @@ export interface ScrapeResult {
  * Simple scraper using Open Graph data.
  * Faster and lighter than Puppeteer, but may fail on complex sites.
  */
-/**
- * Simple scraper using Open Graph data.
- * Faster and lighter than Puppeteer, but may fail on complex sites.
- */
 const simpleScrape = async (targetUrl: string): Promise<{ data: ScrapeResult | null, reason?: string }> => {
     try {
         const { result, error } = await ogs({

@@ -3,6 +3,7 @@ import { Readable } from 'stream';
 import mongoose from 'mongoose';
 import { BaseService, ServiceError } from './base/BaseService';
 import { FileMetadataRepository } from '../repositories/FileMetadataRepository';
+import { UserRepository } from '../repositories/UserRepository';
 import { IFileMetadata } from '../models/FileMetadata';
 import Folder from '../models/Folder';
 import SharedFolder from '../models/SharedFolder';
@@ -41,8 +42,12 @@ export interface ChunkUploadResult {
  * VaultService handles file storage business logic
  */
 export class VaultService extends BaseService<IFileMetadata, FileMetadataRepository> {
+    private userRepository: UserRepository;
+    private readonly MAX_STORAGE = 5 * 1024 * 1024 * 1024; // 5GB
+
     constructor() {
         super(new FileMetadataRepository());
+        this.userRepository = new UserRepository();
     }
 
     /**
@@ -71,6 +76,16 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 'mimeType'
             ]);
 
+            // Check user storage limit
+            const user = await this.userRepository.findById(userId);
+            if (!user) {
+                throw new ServiceError('User not found', 404);
+            }
+
+            if (user.totalStorageUsed + data.fileSize > this.MAX_STORAGE) {
+                throw new ServiceError('Storage limit exceeded. Upgrade your plan or delete some files.', 403);
+            }
+
             // Initiate Google Drive resumable upload session
             const uploadStreamId = await initiateUpload(data.originalFileName, data.fileSize, {
                 ownerId: userId,
@@ -80,8 +95,8 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
 
             // Create file metadata record
             const fileRecord = await this.repository.create({
-                ownerId: userId as any,
-                folderId: data.folderId || null,
+                ownerId: new mongoose.Types.ObjectId(userId),
+                folderId: data.folderId ? new mongoose.Types.ObjectId(data.folderId) : null,
                 fileName: data.fileName,
                 originalFileName: data.originalFileName,
                 fileSize: data.fileSize,
@@ -90,7 +105,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 mimeType: data.mimeType,
                 uploadStreamId,
                 status: 'pending'
-            } as any);
+            } as Partial<IFileMetadata>);
 
             logger.info(`Vault upload initiated: ${data.originalFileName} by User ${userId}`);
 
@@ -116,7 +131,8 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
         userId: string,
         fileId: string,
         contentRange: string,
-        getChunkData: () => Promise<Buffer>
+        chunk: Readable | Buffer,
+        chunkLength: number
     ): Promise<ChunkUploadResult> {
         try {
             if (!fileId || !contentRange) {
@@ -138,9 +154,6 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             const rangeEnd = parseInt(rangeMatch[2], 10);
             const totalSize = parseInt(rangeMatch[3], 10);
 
-            // Get chunk data
-            const chunkBuffer = await getChunkData();
-
             // Update status to uploading if still pending
             if (fileRecord.status === 'pending') {
                 await this.repository.updateUploadStatus(fileId, 'uploading');
@@ -149,7 +162,8 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             // Append chunk to Google Drive upload session
             const { complete, receivedSize } = await appendChunk(
                 fileRecord.uploadStreamId,
-                chunkBuffer,
+                chunk,
+                chunkLength,
                 rangeStart,
                 rangeEnd,
                 totalSize
@@ -159,6 +173,11 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 // Finalize the upload
                 const googleDriveFileId = await finalizeUpload(fileRecord.uploadStreamId);
                 await this.repository.completeUpload(fileId, googleDriveFileId);
+
+                // Update user storage usage
+                await this.userRepository.updateById(userId, {
+                    $inc: { totalStorageUsed: fileRecord.fileSize }
+                });
 
                 logger.info(`Vault upload completed: ${fileId} -> Google Drive ${googleDriveFileId}`);
                 return { complete: true, googleDriveFileId };
@@ -283,12 +302,12 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
 
             // Root level files
             return await this.repository.findByOwnerAndFolder(userId, null);
-        } catch (error: any) {
+        } catch (error: unknown) {
             if (error instanceof ServiceError) throw error;
 
             // Check for CastError explicitly if initial check somehow failed or for other fields
-            if (error.name === 'CastError') {
-                logger.warn(`CastError in getUserFiles: ${error.message}`);
+            if (error && typeof error === 'object' && 'name' in error && error.name === 'CastError') {
+                logger.warn(`CastError in getUserFiles: ${(error as any).message}`);
                 throw new ServiceError('Invalid ID format', 400);
             }
 
@@ -320,6 +339,13 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             // Delete metadata record
             await this.repository.deleteByIdAndOwner(fileId, userId);
 
+            // Update user storage usage (decrement)
+            if (fileRecord.status === 'completed') {
+                await this.userRepository.updateById(userId, {
+                    $inc: { totalStorageUsed: -fileRecord.fileSize }
+                });
+            }
+
             logger.info(`Vault file deleted: ${fileRecord.fileName} (${fileId}) by User ${userId}`);
 
             await this.logAction(userId, 'FILE_DELETE', 'SUCCESS', req, {
@@ -332,4 +358,45 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             throw new ServiceError('Delete failed', 500);
         }
     }
+
+    /**
+     * Get user storage stats
+     */
+    async getStorageStats(userId: string): Promise<{ totalStorageUsed: number; maxStorage: number }> {
+        const user = await this.userRepository.findById(userId);
+        if (!user) {
+            throw new ServiceError('User not found', 404);
+        }
+
+        return {
+            totalStorageUsed: user.totalStorageUsed || 0,
+            maxStorage: this.MAX_STORAGE
+        };
+    }
+
+    /**
+     * Get files for user in a folder (paginated)
+     */
+    async getUserFilesPaginated(
+        userId: string,
+        folderId: string | null,
+        options: { limit: number; cursor?: string }
+    ): Promise<{ items: IFileMetadata[]; nextCursor: string | null }> {
+        try {
+            // Root level files - user's own files
+            return await this.repository.findByOwnerAndFolderPaginated(
+                userId,
+                folderId,
+                {
+                    limit: Math.min(options.limit || 20, 100),
+                    cursor: options.cursor
+                }
+            );
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Get files paginated error:', error);
+            throw new ServiceError('Failed to get files', 500);
+        }
+    }
 }
+

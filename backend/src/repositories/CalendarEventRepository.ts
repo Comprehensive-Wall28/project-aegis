@@ -71,4 +71,14 @@ export class CalendarEventRepository extends BaseRepository<ICalendarEvent> {
             userId: { $eq: userId }
         } as unknown as SafeFilter<ICalendarEvent>);
     }
+
+    /**
+     * Find all events that mention a specific entity ID
+     */
+    async findMentionsOf(userId: string, targetId: string): Promise<ICalendarEvent[]> {
+        return this.findMany({
+            userId: { $eq: userId },
+            mentions: { $in: [targetId] }
+        } as unknown as SafeFilter<ICalendarEvent>);
+    }
 }

@@ -48,7 +48,7 @@ export function ContextMenu({ open, anchorPosition, onClose, items }: ContextMen
                     bgcolor: theme.palette.background.paper,
                     backgroundImage: 'none',
                     boxShadow: theme.shadows[20],
-                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                    border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
                 }
             }}
         >
@@ -64,7 +64,7 @@ export function ContextMenu({ open, anchorPosition, onClose, items }: ContextMen
                             py: 1,
                             px: 2,
                             '&:hover': {
-                                bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                bgcolor: alpha(theme.palette.primary.main, 0.12),
                             }
                         }}
                     >

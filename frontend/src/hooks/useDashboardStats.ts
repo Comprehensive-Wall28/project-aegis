@@ -2,35 +2,31 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSessionStore } from '@/stores/sessionStore';
 import { usePreferenceStore } from '@/stores/preferenceStore';
 import gpaService from '@/services/gpaService';
-import integrityService from '@/services/integrityService';
 import { useCourseEncryption } from '@/hooks/useCourseEncryption';
 import { calculateNormalGPA, calculateGermanGPA } from '@/lib/gpaUtils';
 
+/**
+ * Hook for fetching GPA-related dashboard stats.
+ * Note: Merkle root is fetched by IntegrityMonitor widget.
+ * Note: Recent activity is fetched by LiveActivityWidget.
+ */
 export const useDashboardStats = () => {
     const [currentGPA, setCurrentGPA] = useState<number | null>(null);
-    const [merkleRoot, setMerkleRoot] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
     const hasFetched = useRef(false);
 
-    const { isAuthenticated, fetchRecentActivity } = useSessionStore();
+    const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
     const gpaSystem = usePreferenceStore((state) => state.gpaSystem);
     const { decryptCourses } = useCourseEncryption();
 
-    const fetchAllData = useCallback(async () => {
+    const fetchGPAData = useCallback(async () => {
         try {
             setIsLoading(true);
             setHasError(false);
 
-            // Parallelize all network requests
-            const [encryptedCourses, rootData] = await Promise.all([
-                gpaService.getEncryptedCourses(),
-                integrityService.getMerkleRoot(),
-                fetchRecentActivity() // Returns a promise
-            ]);
-
-            setMerkleRoot(rootData.merkleRoot);
+            const encryptedCourses = await gpaService.getEncryptedCourses();
 
             // Decrypt courses using the optimized batch worker path
             if (encryptedCourses.length > 0) {
@@ -43,25 +39,25 @@ export const useDashboardStats = () => {
                 setCurrentGPA(0);
             }
         } catch (err) {
-            console.error('Dashboard data fetch failed:', err);
+            console.error('GPA data fetch failed:', err);
             setHasError(true);
         } finally {
             setIsLoading(false);
         }
-    }, [gpaSystem, decryptCourses, fetchRecentActivity]);
+    }, [gpaSystem, decryptCourses]);
 
     useEffect(() => {
         if (isAuthenticated && pqcEngineStatus === 'operational' && !hasFetched.current) {
             hasFetched.current = true;
-            fetchAllData();
+            fetchGPAData();
         }
-    }, [isAuthenticated, pqcEngineStatus, fetchAllData]);
+    }, [isAuthenticated, pqcEngineStatus, fetchGPAData]);
 
     return {
         currentGPA,
-        merkleRoot,
         isLoading,
         hasError,
-        refresh: fetchAllData
+        refresh: fetchGPAData
     };
 };
+

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import auditService, { type AuditLog } from '@/services/auditService';
 import authService from '@/services/authService';
+import vaultService from '@/services/vaultService';
 import * as cryptoUtils from '@/lib/cryptoUtils';
 import { pqcWorkerManager } from '@/lib/pqcWorkerManager';
 
@@ -26,6 +27,7 @@ interface User {
         counter: number;
         transports?: string[];
     }>;
+    totalStorageUsed?: number;
 }
 
 export type CryptoStatus = 'idle' | 'encrypting' | 'decrypting' | 'processing' | 'done';
@@ -48,13 +50,15 @@ interface SessionState {
     setUser: (user: User) => void;
     setSessionKey: (key: string) => void;
     clearSession: () => void;
+    lockSession: () => void;
     setPqcEngineStatus: (status: 'operational' | 'initializing' | 'error') => void;
     setCryptoStatus: (status: CryptoStatus) => void;
     initializeQuantumKeys: (seed?: Uint8Array) => void;
     checkAuth: () => Promise<void>;
-    updateUser: (updates: Partial<Pick<User, 'username' | 'email'>>) => void;
+    updateUser: (updates: Partial<Pick<User, 'username' | 'email' | 'totalStorageUsed'>>) => void;
     setRecentActivity: (logs: AuditLog[]) => void;
     fetchRecentActivity: () => Promise<void>;
+    fetchStorageStats: () => Promise<void>;
 }
 
 // Module-level flag to prevent concurrent auth checks
@@ -96,6 +100,17 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         recentActivity: []
         // Note: vaultKey is on user object, so cleared when user is set to null
     }),
+
+    lockSession: () => {
+        cryptoUtils.clearStoredSeed();
+        set({
+            user: null,
+            isAuthenticated: false,
+            sessionKey: null,
+            vaultCtrKey: null,
+            pqcEngineStatus: 'initializing'
+        });
+    },
 
     setPqcEngineStatus: (status) => set({ pqcEngineStatus: status }),
 
@@ -277,6 +292,18 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             set({ recentActivity: logs });
         } catch (error) {
             console.error('Failed to fetch recent activity:', error);
+        }
+    },
+
+    fetchStorageStats: async () => {
+        const currentState = get();
+        if (!currentState.isAuthenticated) return;
+
+        try {
+            const data = await vaultService.getStorageStats();
+            get().updateUser({ totalStorageUsed: data.totalStorageUsed });
+        } catch (error) {
+            console.error('Failed to fetch storage stats:', error);
         }
     }
 }));

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Request } from 'express';
 import { BaseService, ServiceError } from './base/BaseService';
 import { TaskRepository } from '../repositories/TaskRepository';
@@ -14,6 +15,7 @@ export interface CreateTaskDTO {
     priority?: string;
     status?: string;
     recordHash: string;
+    mentions?: string[];
 }
 
 /**
@@ -28,6 +30,7 @@ export interface UpdateTaskDTO {
     status?: string;
     recordHash?: string;
     order?: number;
+    mentions?: string[];
 }
 
 /**
@@ -119,7 +122,7 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
 
             // Create the task
             const task = await this.repository.create({
-                userId: userId as any,
+                userId: new mongoose.Types.ObjectId(userId),
                 encryptedData: data.encryptedData,
                 encapsulatedKey: data.encapsulatedKey,
                 encryptedSymmetricKey: data.encryptedSymmetricKey,
@@ -127,8 +130,9 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
                 priority,
                 status,
                 order: newOrder,
-                recordHash: data.recordHash
-            });
+                recordHash: data.recordHash,
+                mentions: data.mentions || []
+            } as Partial<ITask>);
 
             // Audit log
             await this.logAction(userId, 'TASK_CREATE', 'SUCCESS', req, {
@@ -181,6 +185,9 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
             // Set order if provided
             if (data.order !== undefined) {
                 updateData.order = data.order;
+            }
+            if (data.mentions) {
+                updateData.mentions = data.mentions;
             }
 
             const task = await this.repository.updateByIdAndUser(
@@ -265,6 +272,42 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
             });
         } catch (error) {
             if (error instanceof ServiceError) throw error;
+            this.handleRepositoryError(error);
+        }
+    }
+
+    /**
+     * Get paginated tasks for a user
+     */
+    async getPaginatedTasks(
+        userId: string,
+        options: { limit: number; cursor?: string }
+    ): Promise<{ items: ITask[]; nextCursor: string | null }> {
+        try {
+            return await this.repository.findPaginated(
+                { userId: { $eq: userId } } as any,
+                {
+                    limit: Math.min(options.limit || 50, 100),
+                    cursor: options.cursor,
+                    sortField: '_id',
+                    sortOrder: -1 // Most recent first
+                }
+            );
+        } catch (error) {
+            this.handleRepositoryError(error);
+        }
+    }
+
+    /**
+     * Get upcoming incomplete tasks for dashboard widget
+     */
+    async getUpcomingTasks(
+        userId: string,
+        limit: number = 10
+    ): Promise<ITask[]> {
+        try {
+            return await this.repository.findUpcoming(userId, limit);
+        } catch (error) {
             this.handleRepositoryError(error);
         }
     }

@@ -1,13 +1,17 @@
+import { memo } from 'react';
 import { Box, Typography, Paper, alpha, useTheme, Chip, IconButton } from '@mui/material';
 import { Edit as EditIcon, AccessTime as DueDateIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+
+import { TASK_PRIORITY_CONFIG, type TaskPriority } from '@/constants/taskDefaults';
+import { TaskDescriptionRenderer } from './TaskDescriptionRenderer';
 
 interface TaskCardProps {
     task: {
         _id: string;
         title: string;
         description: string;
-        priority: 'high' | 'medium' | 'low';
+        priority: TaskPriority;
         dueDate?: string;
         status: 'todo' | 'in_progress' | 'done';
     };
@@ -15,21 +19,10 @@ interface TaskCardProps {
     isDragging?: boolean;
 }
 
-const PRIORITY_COLORS = {
-    high: '#f44336',
-    medium: '#ff9800',
-    low: '#4caf50',
-};
-
-const PRIORITY_LABELS = {
-    high: 'High',
-    medium: 'Medium',
-    low: 'Low',
-};
-
-export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
+export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
     const theme = useTheme();
-    const priorityColor = PRIORITY_COLORS[task.priority];
+    const priorityConfig = TASK_PRIORITY_CONFIG[task.priority];
+    const priorityColor = priorityConfig.color;
 
     const formatDueDate = (dateString?: string) => {
         if (!dateString) return null;
@@ -52,26 +45,26 @@ export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
 
     return (
         <Paper
-            component={motion.div}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            component={isDragging ? 'div' : motion.div}
+            initial={isDragging ? undefined : { opacity: 0, y: 10 }}
+            animate={isDragging ? undefined : { opacity: 1, y: 0 }}
+            exit={isDragging ? undefined : { opacity: 0, y: -10 }}
             onClick={onClick}
             sx={{
                 p: 2,
                 borderRadius: '16px',
-                bgcolor: alpha(theme.palette.background.paper, isDragging ? 0.95 : 0.7),
-                border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+                bgcolor: alpha(theme.palette.background.paper, isDragging ? 1.0 : 0.9),
+                border: `1px solid ${alpha(theme.palette.text.primary, 0.15)}`,
                 cursor: 'pointer',
-                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
                 position: 'relative',
                 overflow: 'hidden',
-                willChange: 'transform, opacity',
+                willChange: 'transform, opacity, box-shadow',
                 boxShadow: isDragging
                     ? `0 20px 40px ${alpha(theme.palette.common.black, 0.3)}`
                     : `0 4px 12px ${alpha(theme.palette.common.black, 0.15)}`,
                 '&:hover': {
-                    borderColor: alpha(theme.palette.primary.main, 0.35),
+                    borderColor: alpha(theme.palette.primary.main, 0.2),
                     boxShadow: `0 8px 20px ${alpha(theme.palette.common.black, 0.2)}`,
                 },
                 '&::before': {
@@ -116,9 +109,8 @@ export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
             </Box>
 
             {task.description && (
-                <Typography
-                    variant="body2"
-                    color="text.secondary"
+                <TaskDescriptionRenderer
+                    text={task.description}
                     sx={{
                         mb: 1.5,
                         display: '-webkit-box',
@@ -126,21 +118,20 @@ export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
                         fontSize: '0.8rem',
+                        '& .MuiTypography-root': { fontSize: 'inherit' } // Ensure consistency
                     }}
-                >
-                    {task.description}
-                </Typography>
+                />
             )}
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                 <Chip
-                    label={PRIORITY_LABELS[task.priority]}
+                    label={priorityConfig.label}
                     size="small"
                     sx={{
                         height: 22,
                         fontSize: '0.65rem',
                         fontWeight: 600,
-                        bgcolor: alpha(priorityColor, 0.15),
+                        bgcolor: alpha(priorityColor, 0.25),
                         color: priorityColor,
                         border: `1px solid ${alpha(priorityColor, 0.3)}`,
                     }}
@@ -164,4 +155,4 @@ export const TaskCard = ({ task, onClick, isDragging }: TaskCardProps) => {
             </Box>
         </Paper>
     );
-};
+});

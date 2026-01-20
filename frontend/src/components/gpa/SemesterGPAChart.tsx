@@ -22,9 +22,8 @@ export function SemesterGPAChart({ data }: SemesterGPAChartProps) {
                     height: '100%',
                     minHeight: 300,
                     borderRadius: '16px',
-                    bgcolor: alpha(theme.palette.background.paper, 0.4),
-                    backdropFilter: 'blur(12px)',
-                    border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                    bgcolor: theme.palette.background.paper,
+                    border: `1px solid ${alpha(theme.palette.common.white, 0.06)}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -47,9 +46,8 @@ export function SemesterGPAChart({ data }: SemesterGPAChartProps) {
                 height: '100%',
                 minHeight: 380,
                 borderRadius: '24px',
-                bgcolor: alpha(theme.palette.background.paper, 0.4),
-                backdropFilter: 'blur(16px)',
-                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                bgcolor: theme.palette.background.paper,
+                border: `1px solid ${alpha(theme.palette.divider, 0.06)}`,
                 position: 'relative',
                 overflow: 'hidden',
                 '&::before': {
@@ -88,7 +86,7 @@ export function SemesterGPAChart({ data }: SemesterGPAChartProps) {
                             sx: {
                                 '& .MuiChartsTooltip-root': {
                                     borderRadius: '12px',
-                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
                                     boxShadow: `0 8px 16px ${alpha('#000', 0.4)}`,
                                 }
                             }

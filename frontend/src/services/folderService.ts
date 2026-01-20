@@ -52,7 +52,7 @@ const folderService = {
         await apiClient.delete(`${PREFIX}/${id}`);
     },
 
-    moveFiles: async (updates: { fileId: string; encryptedKey: string }[], folderId?: string | null): Promise<{ modifiedCount: number }> => {
+    moveFiles: async (updates: { fileId: string; encryptedKey: string; encapsulatedKey: string }[], folderId?: string | null): Promise<{ modifiedCount: number }> => {
         const response = await apiClient.put<{ modifiedCount: number }>(`${PREFIX}/move-files`, { updates, folderId });
         return response.data;
     },

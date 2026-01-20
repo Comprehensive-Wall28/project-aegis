@@ -2,6 +2,7 @@ import { BaseRepository } from './base/BaseRepository';
 import LinkPost, { ILinkPost, IPreviewData } from '../models/LinkPost';
 import { SafeFilter } from './base/types';
 import mongoose from 'mongoose';
+import { escapeRegex } from '../utils/regexUtils';
 
 /**
  * LinkPostRepository handles LinkPost database operations
@@ -100,5 +101,31 @@ export class LinkPostRepository extends BaseRepository<ILinkPost> {
             { $group: { _id: '$collectionId', count: { $sum: 1 } } }
         ]);
         return results;
+    }
+
+    /**
+     * Search links across multiple collections with basic regex matching
+     */
+    async searchLinks(
+        collectionIds: string[],
+        searchQuery: string,
+        limit: number = 50
+    ): Promise<ILinkPost[]> {
+        const safeQuery = escapeRegex(searchQuery);
+
+        const query: any = {
+            collectionId: { $in: collectionIds.map(id => new mongoose.Types.ObjectId(id)) },
+            $or: [
+                { url: { $regex: safeQuery, $options: 'i' } },
+                { 'previewData.title': { $regex: safeQuery, $options: 'i' } },
+                { 'previewData.description': { $regex: safeQuery, $options: 'i' } }
+            ]
+        };
+
+        return this.findMany(query as SafeFilter<ILinkPost>, {
+            sort: { createdAt: -1 },
+            populate: { path: 'userId', select: 'username' },
+            limit
+        });
     }
 }

@@ -355,8 +355,7 @@ export const PublicSharedFilePage = () => {
                         p: { xs: 4, md: 6 },
                         textAlign: 'center',
                         borderRadius: '32px',
-                        bgcolor: alpha('#0a0a0a', 0.8),
-                        backdropFilter: 'blur(20px)',
+                        bgcolor: '#0a0a0a',
                         border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
                         boxShadow: `0 20px 60px ${alpha('#000', 0.8)}, 0 0 20px ${alpha(theme.palette.error.main, 0.05)}`
                     }}>

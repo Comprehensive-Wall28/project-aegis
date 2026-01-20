@@ -1,26 +1,60 @@
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
+import { lazy, Suspense, useMemo, useEffect } from 'react';
+import { Box, CircularProgress, ThemeProvider, CssBaseline } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+
 import { Landing } from '@/pages/Landing';
 import { Dashboard } from '@/pages/Dashboard';
 import { FilesPage } from '@/pages/FilesPage';
-import { GPAPage } from '@/pages/GPAPage';
-import { CalendarPage } from '@/pages/CalendarPage';
 import { TasksPage } from '@/pages/TasksPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { GPAPage } from '@/pages/GPAPage';
+import { CalendarPage } from '@/pages/CalendarPage';
 import { SocialPage } from '@/pages/SocialPage';
-import { InviteLanding } from '@/pages/InviteLanding';
-import { PqcLearn } from '@/pages/PqcLearn';
-import { NotFound } from '@/pages/NotFound';
-import { BackendDownPage } from '@/pages/BackendDown';
-import { PublicSharedFilePage } from '@/pages/PublicSharedFilePage';
+
+// Lazy load page components
+// const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })));
+// const SocialPage = lazy(() => import('@/pages/SocialPage').then(m => ({ default: m.SocialPage })));
+const InviteLanding = lazy(() => import('@/pages/InviteLanding').then(m => ({ default: m.InviteLanding })));
+const PqcLearn = lazy(() => import('@/pages/PqcLearn').then(m => ({ default: m.PqcLearn })));
+const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })));
+const BackendDownPage = lazy(() => import('@/pages/BackendDown').then(m => ({ default: m.BackendDownPage })));
+const PublicSharedFilePage = lazy(() => import('@/pages/PublicSharedFilePage').then(m => ({ default: m.PublicSharedFilePage })));
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { RouteErrorBoundary } from '@/components/error/RouteErrorBoundary';
+import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
 import { BackendStatusProvider } from '@/contexts/BackendStatusContext';
-import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme';
 import { useThemeStore } from '@/stores/themeStore';
 import { useSessionStore } from '@/stores/sessionStore';
-import { useMemo, useEffect } from 'react';
+
+// Loading component for Suspense fallback
+function PageLoader() {
+    return (
+        <Box
+            sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '60vh',
+                width: '100%',
+            }}
+        >
+            <CircularProgress size={40} thickness={4} sx={{ color: 'primary.main' }} />
+        </Box>
+    );
+}
+
+// Wrapper to simplify Suspense usage
+function SuspensePage({ children }: { children: React.ReactNode }) {
+    return (
+        <Suspense fallback={<PageLoader />}>
+            {children}
+        </Suspense>
+    );
+}
 
 // Root layout that provides backend status context to all routes
 function RootLayout() {
@@ -44,7 +78,11 @@ function ZKPVerifier() {
 
 const router = createBrowserRouter([
     {
-        element: <RootLayout />,
+        element: (
+            <GlobalErrorBoundary>
+                <RootLayout />
+            </GlobalErrorBoundary>
+        ),
         children: [
             {
                 path: '/',
@@ -53,21 +91,37 @@ const router = createBrowserRouter([
             },
             {
                 path: '/backend-down',
-                element: <BackendDownPage />,
+                element: (
+                    <SuspensePage>
+                        <BackendDownPage />
+                    </SuspensePage>
+                ),
             },
             {
                 path: '/pqc-learn',
-                element: <PqcLearn />,
+                element: (
+                    <SuspensePage>
+                        <PqcLearn />
+                    </SuspensePage>
+                ),
                 errorElement: <RouteErrorBoundary />,
             },
             {
                 path: '/invite/:code',
-                element: <InviteLanding />,
+                element: (
+                    <SuspensePage>
+                        <InviteLanding />
+                    </SuspensePage>
+                ),
                 errorElement: <RouteErrorBoundary />,
             },
             {
                 path: '/share/view/:token',
-                element: <PublicSharedFilePage />,
+                element: (
+                    <SuspensePage>
+                        <PublicSharedFilePage />
+                    </SuspensePage>
+                ),
                 errorElement: <RouteErrorBoundary />,
             },
             {
@@ -133,7 +187,11 @@ const router = createBrowserRouter([
             },
             {
                 path: '*',
-                element: <NotFound />,
+                element: (
+                    <SuspensePage>
+                        <NotFound />
+                    </SuspensePage>
+                ),
             },
         ],
     },
@@ -144,11 +202,13 @@ export function AppRouter() {
     const theme = useMemo(() => getTheme(themeMode), [themeMode]);
 
     return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <AppInitializer />
-            <RouterProvider router={router} />
-        </ThemeProvider>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <AppInitializer />
+                <RouterProvider router={router} />
+            </ThemeProvider>
+        </LocalizationProvider>
     );
 }
 

@@ -12,6 +12,7 @@ export interface ITask extends Document {
     status: 'todo' | 'in_progress' | 'done';
     order: number;                  // For Kanban ordering within status column
     recordHash: string;             // Integrity verification
+    mentions: string[];             // IDs of mentioned entities (files, tasks, events)
 }
 
 const TaskSchema: Schema = new Schema({
@@ -36,6 +37,7 @@ const TaskSchema: Schema = new Schema({
     },
     order: { type: Number, default: 0, required: true },
     recordHash: { type: String, required: true },
+    mentions: { type: [String], default: [], index: true },
 }, { timestamps: true });
 
 // Compound indexes for efficient querying

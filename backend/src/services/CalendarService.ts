@@ -16,6 +16,7 @@ export interface CreateCalendarEventDTO {
     isAllDay?: boolean;
     color?: string;
     recordHash: string;
+    mentions?: string[];
 }
 
 /**
@@ -68,7 +69,8 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
                 endDate: new Date(data.endDate),
                 isAllDay: data.isAllDay || false,
                 color: data.color || '#3f51b5',
-                recordHash: data.recordHash
+                recordHash: data.recordHash,
+                mentions: data.mentions || []
             } as any);
 
             logger.info(`Calendar event created for user ${userId}`);
@@ -100,6 +102,7 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
             // Convert date strings to Date objects if present
             if (data.startDate) updateData.startDate = new Date(data.startDate);
             if (data.endDate) updateData.endDate = new Date(data.endDate);
+            if (data.mentions) updateData.mentions = data.mentions;
 
             const event = await this.repository.updateByIdAndUser(eventId, userId, updateData);
 
@@ -141,6 +144,29 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
             if (error instanceof ServiceError) throw error;
             logger.error('Delete event error:', error);
             throw new ServiceError('Failed to delete event', 500);
+        }
+    }
+
+    /**
+     * Get paginated events for a user
+     */
+    async getPaginatedEvents(
+        userId: string,
+        options: { limit: number; cursor?: string }
+    ): Promise<{ items: ICalendarEvent[]; nextCursor: string | null }> {
+        try {
+            return await this.repository.findPaginated(
+                { userId: { $eq: userId } } as any,
+                {
+                    limit: Math.min(options.limit || 50, 100),
+                    cursor: options.cursor,
+                    sortField: '_id',
+                    sortOrder: -1 // Most recent first
+                }
+            );
+        } catch (error) {
+            logger.error('Get paginated events error:', error);
+            throw new ServiceError('Failed to fetch events', 500);
         }
     }
 }

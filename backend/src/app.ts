@@ -16,8 +16,13 @@ import taskRoutes from './routes/taskRoutes';
 import socialRoutes from './routes/socialRoutes';
 import shareRoutes from './routes/shareRoutes';
 import publicRoutes from './routes/publicRoutes';
+import mentionRoutes from './routes/mentionRoutes';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
+import { config, validateConfig } from './config/env';
+
+// Validate config on startup
+validateConfig();
 
 dotenv.config();
 
@@ -27,7 +32,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 const allowedOrigins = [
-    process.env.CLIENT_ORIGIN,
+    config.clientOrigin,
     'http://localhost:3000',
     'http://localhost:5173'
 ].filter((origin): origin is string => !!origin);
@@ -73,6 +78,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/share', shareRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/mentions', mentionRoutes);
 
 app.use(errorHandler);
 

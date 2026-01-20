@@ -1,6 +1,6 @@
 import { BaseRepository } from './base/BaseRepository';
 import FileMetadata, { IFileMetadata } from '../models/FileMetadata';
-import { QueryOptions, SafeFilter } from './base/types';
+import { QueryOptions, SafeFilter, BulkWriteOperation } from './base/types';
 
 /**
  * FileMetadataRepository handles all file metadata database operations
@@ -16,7 +16,7 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
     async findByIdAndOwner(fileId: string, ownerId: string): Promise<IFileMetadata | null> {
         return this.findOne({
             _id: fileId,
-            ownerId: { $eq: ownerId as any }
+            ownerId: { $eq: ownerId }
         } as SafeFilter<IFileMetadata>);
     }
 
@@ -26,7 +26,7 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
     async findByIdAndStream(fileId: string, ownerId: string): Promise<IFileMetadata | null> {
         const file = await this.findOne({
             _id: fileId,
-            ownerId: { $eq: ownerId as any }
+            ownerId: { $eq: ownerId }
         } as SafeFilter<IFileMetadata>);
 
         return file?.uploadStreamId ? file : null;
@@ -41,13 +41,13 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
         options: QueryOptions = {}
     ): Promise<IFileMetadata[]> {
         const filter: SafeFilter<IFileMetadata> = {
-            ownerId: { $eq: ownerId as any }
+            ownerId: { $eq: ownerId }
         };
 
         if (folderId) {
-            (filter as any).folderId = { $eq: folderId };
+            filter.folderId = { $eq: folderId };
         } else {
-            (filter as any).folderId = null;
+            filter.folderId = null;
         }
 
         return this.findMany(filter, {
@@ -65,8 +65,8 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
         options: QueryOptions = {}
     ): Promise<IFileMetadata[]> {
         return this.findMany({
-            folderId: { $eq: folderId as any },
-            ownerId: { $eq: folderOwnerId as any }
+            folderId: { $eq: folderId },
+            ownerId: { $eq: folderOwnerId }
         } as SafeFilter<IFileMetadata>, {
             sort: { createdAt: -1 },
             ...options
@@ -80,7 +80,7 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
         fileId: string,
         status: 'pending' | 'uploading' | 'completed' | 'failed'
     ): Promise<IFileMetadata | null> {
-        return this.updateById(fileId, { $set: { status } } as any);
+        return this.updateById(fileId, { $set: { status } });
     }
 
     /**
@@ -96,7 +96,7 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
                 status: 'completed'
             },
             $unset: { uploadStreamId: 1 }
-        } as any);
+        });
     }
 
     /**
@@ -105,31 +105,59 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
     async deleteByIdAndOwner(fileId: string, ownerId: string): Promise<boolean> {
         return this.deleteOne({
             _id: fileId,
-            ownerId: { $eq: ownerId as any }
+            ownerId: { $eq: ownerId }
         } as SafeFilter<IFileMetadata>);
     }
     /**
      * Bulk move files with new encrypted keys
      */
     async bulkMoveFiles(
-        updates: { fileId: string; encryptedKey: string; folderId: string | null }[],
+        updates: { fileId: string; encryptedKey: string; encapsulatedKey: string; folderId: string | null }[],
         ownerId: string
     ): Promise<number> {
         if (updates.length === 0) return 0;
 
-        const operations = updates.map(update => ({
+        const operations: BulkWriteOperation<IFileMetadata>[] = updates.map(update => ({
             updateOne: {
-                filter: { _id: update.fileId, ownerId: ownerId },
+                filter: { _id: update.fileId, ownerId: ownerId } as SafeFilter<IFileMetadata>,
                 update: {
                     $set: {
                         encryptedSymmetricKey: update.encryptedKey,
+                        encapsulatedKey: update.encapsulatedKey,
                         folderId: update.folderId
                     }
                 }
             }
         }));
 
-        const result = await this.model.bulkWrite(operations as any);
+        const result = await this.bulkWrite(operations);
         return result.modifiedCount || 0;
     }
+
+    /**
+     * Find files by owner in a folder (paginated)
+     */
+    async findByOwnerAndFolderPaginated(
+        ownerId: string,
+        folderId: string | null,
+        options: { limit: number; cursor?: string }
+    ): Promise<{ items: IFileMetadata[]; nextCursor: string | null }> {
+        const filter: SafeFilter<IFileMetadata> = {
+            ownerId: { $eq: ownerId }
+        };
+
+        if (folderId) {
+            filter.folderId = { $eq: folderId };
+        } else {
+            filter.folderId = null;
+        }
+
+        return this.findPaginated(filter, {
+            limit: Math.min(options.limit || 20, 100),
+            cursor: options.cursor,
+            sortField: 'createdAt',
+            sortOrder: -1
+        });
+    }
 }
+

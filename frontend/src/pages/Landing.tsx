@@ -74,30 +74,34 @@ export function Landing() {
 
             {/* Fixed scroll button */}
             <Fab
-                size="medium"
+                size="small"
                 onClick={handleScrollClick}
                 sx={{
                     position: 'fixed',
-                    bottom: 32,
-                    right: 32,
+                    bottom: { xs: 20, sm: 32 },
+                    right: { xs: 20, sm: 32 },
                     bgcolor: alpha(theme.palette.background.paper, 0.8),
                     color: 'primary.main',
-                    border: `2px solid ${alpha(theme.palette.primary.main, 0.5)}`,
+                    border: `1.5px solid ${alpha(theme.palette.primary.main, 0.4)}`,
                     boxShadow: 'none',
                     backdropFilter: 'blur(8px)',
-                    transition: 'all 0.3s ease-in-out',
+                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     '&:hover': {
                         bgcolor: alpha(theme.palette.primary.main, 0.15),
                         borderColor: theme.palette.primary.main,
-                        transform: 'scale(1.1)'
+                        transform: 'scale(1.1) translateY(-2px)'
                     },
-                    zIndex: 1000
+                    display: { xs: 'flex', md: 'flex' },
+                    zIndex: 1000,
+                    width: { xs: 40, sm: 48 },
+                    height: { xs: 40, sm: 48 },
+                    minHeight: 'auto'
                 }}
             >
                 {isLastSection ? (
-                    <ArrowUpIcon sx={{ fontSize: 28 }} />
+                    <ArrowUpIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
                 ) : (
-                    <ArrowDownIcon sx={{ fontSize: 28 }} />
+                    <ArrowDownIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
                 )}
             </Fab>
         </Box>

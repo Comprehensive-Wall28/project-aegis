@@ -70,8 +70,11 @@ export function FilesPage() {
         filteredFolders,
         imageFiles,
         currentFolderId,
-        fetchData
+        fetchData,
+        searchParams
     } = useFilesData();
+
+    const highlightId = searchParams.get('highlight');
 
     // Selection Hook
     const {
@@ -197,6 +200,9 @@ export function FilesPage() {
             });
             setIsDeleting(false);
             setDeleteConfirm({ open: false, type: 'file' });
+
+            // Refresh storage stats
+            useSessionStore.getState().fetchStorageStats();
         }
     }, [deleteConfirm.id, setFiles, setSelectedIds]);
 
@@ -246,6 +252,9 @@ export function FilesPage() {
         if (successfulIds.size === ids.length) {
             clearSelection();
         }
+
+        // Refresh storage stats
+        useSessionStore.getState().fetchStorageStats();
     }, [selectedIds, setFiles, setSelectedIds, clearSelection]);
 
     const handleMoveToFolder = useCallback(async (targetFolderId: string | null, idsToOverride?: string[]) => {
@@ -279,7 +288,9 @@ export function FilesPage() {
             }
 
             // 2. Process Files (Decrypt -> Re-encrypt)
-            const updates: { fileId: string; encryptedKey: string }[] = [];
+            const updates: { fileId: string; encryptedKey: string; encapsulatedKey: string }[] = [];
+
+            const newEncapsulatedKey = targetFolderId ? 'FOLDER' : 'AES-KW';
 
             for (const id of ids) {
                 const file = files.find(f => f._id === id);
@@ -308,7 +319,7 @@ export function FilesPage() {
                 if (!sourceKey) throw new Error('Could not resolve source key');
                 const fileKey = await unwrapKey(file.encryptedSymmetricKey, sourceKey);
                 const newEncryptedKey = await wrapKey(fileKey, targetKey);
-                updates.push({ fileId: file._id, encryptedKey: newEncryptedKey });
+                updates.push({ fileId: file._id, encryptedKey: newEncryptedKey, encapsulatedKey: newEncapsulatedKey });
             }
 
             // 3. Send Batch Update
@@ -522,6 +533,7 @@ export function FilesPage() {
                     setMoveToFolderDialog(true);
                 }}
                 dragOverId={dragOverId}
+                highlightId={highlightId}
             />
 
             <ContextMenu

@@ -31,6 +31,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { clearStoredSeed } from '@/lib/cryptoUtils';
 import { AuthDialog } from '@/components/auth/AuthDialog';
+import { useAuthModalStore } from '@/stores/authModalStore';
 
 export function Navbar() {
     const theme = useTheme();
@@ -40,9 +41,8 @@ export function Navbar() {
     const { theme: currentTheme, toggleTheme } = useThemeStore();
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    // Auth Dialog State
-    const [isAuthOpen, setIsAuthOpen] = useState(false);
-    const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+    // Auth Dialog Global State
+    const { isOpen: isAuthOpen, mode: authMode, openModal, closeModal } = useAuthModalStore();
 
     // Security: Scrub any PQC keys from localStorage (fix for leaked keys)
     useEffect(() => {
@@ -67,12 +67,11 @@ export function Navbar() {
     // Check if we should show login dialog from redirect
     useEffect(() => {
         if (location.state?.showLogin) {
-            setAuthMode('login');
-            setIsAuthOpen(true);
+            openModal('login');
             // Clear status to prevent popup from reopening on refresh
             navigate(location.pathname, { replace: true, state: { ...location.state, showLogin: undefined } });
         }
-    }, [location.state, location.pathname, navigate]);
+    }, [location.state, location.pathname, navigate, openModal]);
 
     const handleLogout = async () => {
         await authService.logout();
@@ -81,8 +80,7 @@ export function Navbar() {
     };
 
     const openAuth = (mode: 'login' | 'register') => {
-        setAuthMode(mode);
-        setIsAuthOpen(true);
+        openModal(mode);
     };
 
     return (
@@ -96,8 +94,10 @@ export function Navbar() {
                     width: 'calc(100% - 32px)',
                     maxWidth: 1400,
                     borderRadius: 4,
-                    bgcolor: alpha(theme.palette.background.paper, 0.4),
-                    backdropFilter: 'blur(24px)',
+                    // Glass Effect
+                    bgcolor: alpha(theme.palette.background.paper, 0.7),
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
                     border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                     boxShadow: theme.shadows[4],
                     backgroundImage: 'none',
@@ -258,8 +258,7 @@ export function Navbar() {
                 onClose={() => setMobileOpen(false)}
                 sx={{
                     '& .MuiDrawer-paper': {
-                        bgcolor: alpha(theme.palette.background.default, 0.6),
-                        backdropFilter: 'blur(24px)',
+                        bgcolor: theme.palette.background.default,
                         px: 2,
                         py: 4,
                         display: 'flex',
@@ -331,7 +330,7 @@ export function Navbar() {
             {/* Replaced Dialog with AuthDialog */}
             <AuthDialog
                 open={isAuthOpen}
-                onClose={() => setIsAuthOpen(false)}
+                onClose={closeModal}
                 initialMode={authMode}
             />
         </>

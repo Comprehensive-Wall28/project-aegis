@@ -142,7 +142,7 @@ export function GPAPage() {
                         gap: 2,
                         bgcolor: alpha(theme.palette.background.paper, 0.1),
                         borderRadius: '16px',
-                        border: `1px dashed ${alpha(theme.palette.divider, 0.1)}`,
+                        border: `1px dashed ${alpha(theme.palette.divider, 0.05)}`,
                     }}
                 >
                     <CircularProgress thickness={5} size={40} />

@@ -1,9 +1,26 @@
-# Use Node.js LTS (Debian-based)
+# Stage 1: Build
+FROM node:20-slim AS build
+
+# Create app directory
+WORKDIR /usr/src/app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies including devDependencies
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Build typescript code
+RUN npm run build
+
+# Stage 2: Production
 FROM node:20-slim
 
-# Install latest chrome dev package and fonts to support major charsets (Chinese, Japanese, Arabic, Hebrew, Thai and a few others)
-# Note: this installs the necessary libs to make the bundled version of Chromium that Puppeteer
-# installs, work.
+# Install latest chrome dev package and fonts to support major charsets
+# This is needed at runtime for Puppeteer/Scraper features
 RUN apt-get update \
   && apt-get install -y wget gnupg \
   && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg \
@@ -14,23 +31,23 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 # Determine the path of the installed Google Chrome
-# This can vary, so we find it and set it as an env var
 RUN which google-chrome-stable > /tmp/chrome-path
 
 # Create app directory
 WORKDIR /usr/src/app
 
-# Copy package files
+# Copy package files and install ONLY production dependencies
 COPY package*.json ./
+RUN npm install --omit=dev
 
-# Install dependencies (including production-only to save space if needed, but we need devDeps for build if TS)
-RUN npm install
+# Copy compiled artifacts from the build stage
+COPY --from=build /usr/src/app/dist ./dist
 
-# Copy source
-COPY . .
+# Change ownership of the app directory to the node user
+RUN chown -R node:node /usr/src/app
 
-# Build typescript (if you use TS)
-RUN npm run build
+# Switch to the non-root 'node' user
+USER node
 
-# Start the server
-CMD [ "npm", "start" ]
+# Start the server using node directly (more efficient than npm start)
+CMD [ "node", "dist/server.js" ]

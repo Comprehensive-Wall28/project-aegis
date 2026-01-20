@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService, ServiceError } from '../services';
 import logger from '../utils/logger';
+import { config } from '../config/env';
 
 interface AuthRequest extends Request {
     user?: { id: string; username: string };
@@ -13,10 +14,10 @@ const authService = new AuthService();
 const setCookie = (res: Response) => (token: string) => {
     res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: config.nodeEnv === 'production',
+        sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
         maxAge: 365 * 24 * 60 * 60 * 1000,
-        partitioned: process.env.NODE_ENV === 'production'
+        partitioned: config.nodeEnv === 'production'
     } as any);
 };
 
@@ -33,6 +34,15 @@ export const registerUser = async (req: Request, res: Response) => {
 
 export const loginUser = async (req: Request, res: Response) => {
     try {
+        if (req.body.email) {
+            req.body.email = req.body.email.toLowerCase().trim();
+        }
+        if (req.body.argon2Hash) {
+            req.body.argon2Hash = req.body.argon2Hash.toLowerCase();
+        }
+        if (req.body.legacyHash) {
+            req.body.legacyHash = req.body.legacyHash.toLowerCase();
+        }
         const result = await authService.login(req.body, req, setCookie(res));
 
         if ('status' in result && result.status === '2FA_REQUIRED') {
@@ -91,10 +101,10 @@ export const logoutUser = async (req: AuthRequest, res: Response) => {
 
         res.cookie('token', '', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            secure: config.nodeEnv === 'production',
+            sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
             expires: new Date(0),
-            partitioned: process.env.NODE_ENV === 'production'
+            partitioned: config.nodeEnv === 'production'
         } as any);
         res.json({ message: 'Logged out successfully' });
     } catch (error) {
@@ -146,7 +156,8 @@ export const getAuthenticationOptions = async (req: Request, res: Response) => {
 export const verifyAuthentication = async (req: Request, res: Response) => {
     try {
         const { email, body } = req.body;
-        const result = await authService.verifyAuthentication(email, body, req, setCookie(res));
+        const normalizedEmail = email ? email.toLowerCase().trim() : email;
+        const result = await authService.verifyAuthentication(normalizedEmail, body, req, setCookie(res));
         res.json({ ...result, message: 'Login successful' });
     } catch (error) {
         handleError(error, res);

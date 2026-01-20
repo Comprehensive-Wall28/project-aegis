@@ -14,12 +14,12 @@ const MotionPaper = motion.create(
 
 // Shared animation variants - matches Dashboard's slow, subtle fade-in
 const createCardVariants = (index: number) => ({
-    hidden: { 
-        opacity: 0, 
+    hidden: {
+        opacity: 0,
         y: 10
     },
-    visible: { 
-        opacity: 1, 
+    visible: {
+        opacity: 1,
         y: 0,
         transition: {
             duration: 0.3,
@@ -48,7 +48,7 @@ export const RoomCard = memo(({
 
     return (
         <MotionPaper
-            variant="glass"
+            elevation={2}
             onClick={onSelect}
             role="button"
             aria-label={`Enter room: ${displayName || 'Loading...'}`}
@@ -77,10 +77,10 @@ export const RoomCard = memo(({
                     sx={{
                         width: 48,
                         height: 48,
-                        bgcolor: isLoading 
+                        bgcolor: isLoading
                             ? alpha(theme.palette.action.hover, 0.1)
-                            : isEncrypted 
-                                ? alpha(theme.palette.warning.main, 0.1) 
+                            : isEncrypted
+                                ? alpha(theme.palette.warning.main, 0.1)
                                 : alpha(theme.palette.primary.main, 0.2),
                         color: isEncrypted ? 'warning.main' : 'primary.main',
                         fontWeight: 600,
@@ -141,7 +141,7 @@ export const CreateRoomCard = memo(({
 
     return (
         <MotionPaper
-            variant="glass"
+            elevation={2}
             onClick={onClick}
             role="button"
             aria-label="Create new room"
@@ -159,8 +159,8 @@ export const CreateRoomCard = memo(({
                 justifyContent: 'center',
                 gap: 2,
                 minHeight: 140,
-                border: `2px dashed ${alpha(theme.palette.success.main, 0.4)}`,
-                bgcolor: alpha(theme.palette.success.main, 0.05),
+                border: `2px dashed ${alpha(theme.palette.success.main, 0.6)}`,
+                bgcolor: theme.palette.background.paper,
                 transition: 'border-color 0.2s ease',
                 '&:hover': {
                     borderColor: theme.palette.success.main,

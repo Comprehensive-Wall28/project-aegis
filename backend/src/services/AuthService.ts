@@ -18,6 +18,7 @@ import { IUser, IWebAuthnCredential } from '../models/User';
 import logger from '../utils/logger';
 import { logFailedAuth } from '../utils/auditLogger';
 import { encryptToken } from '../utils/cryptoUtils';
+import { config } from '../config/env';
 
 // DTOs
 export interface RegisterDTO {
@@ -25,11 +26,13 @@ export interface RegisterDTO {
     email: string;
     pqcPublicKey: string;
     argon2Hash: string;
+    legacyHash?: string; // Optional for migration
 }
 
 export interface LoginDTO {
     email: string;
     argon2Hash: string;
+    legacyHash?: string; // For migration
 }
 
 export interface UpdateProfileDTO {
@@ -73,7 +76,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
     }
 
     private generateToken(id: string, username: string): string {
-        const jwtToken = jwt.sign({ id, username }, process.env.JWT_SECRET || 'secret', {
+        const jwtToken = jwt.sign({ id, username }, config.jwtSecret, {
             expiresIn: '365d'
         });
         return encryptToken(jwtToken);
@@ -109,8 +112,10 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Missing required fields', 400);
             }
 
+            const normalizedEmail = data.email.toLowerCase().trim();
+
             const [existingByEmail, existingByUsername] = await Promise.all([
-                this.repository.findByEmail(data.email),
+                this.repository.findByEmail(normalizedEmail),
                 this.repository.findByUsername(data.username)
             ]);
 
@@ -120,12 +125,14 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
             const passwordHash = await argon2.hash(data.argon2Hash);
+            const passwordHashVersion = 2; // New accounts are version 2
 
             const user = await this.repository.create({
                 username: data.username,
-                email: data.email,
+                email: normalizedEmail,
                 pqcPublicKey: data.pqcPublicKey,
-                passwordHash
+                passwordHash,
+                passwordHashVersion
             } as any);
 
             logger.info(`User registered: ${user._id}`);
@@ -152,16 +159,48 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Missing credentials', 400);
             }
 
-            const user = await this.repository.findByEmail(data.email);
+            const normalizedEmail = data.email.toLowerCase().trim();
+            const argon2Hash = data.argon2Hash.toLowerCase();
+            const legacyHash = data.legacyHash?.toLowerCase();
+
+            const user = await this.repository.findByEmail(normalizedEmail);
             if (!user || !user.passwordHash) {
-                logger.warn(`Failed login for email: ${data.email} (user not found)`);
-                await logFailedAuth(data.email, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
+                logger.warn(`Failed login for email: ${normalizedEmail} (user not found)`);
+                await logFailedAuth(normalizedEmail, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
                 throw new ServiceError('Invalid credentials', 401);
             }
 
-            if (!(await argon2.verify(user.passwordHash, data.argon2Hash))) {
-                logger.warn(`Failed login for email: ${data.email} (invalid password)`);
-                await logFailedAuth(data.email, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
+            const hashVersion = user.passwordHashVersion || 1;
+            let verified = false;
+
+            if (hashVersion === 1) {
+                // Migration path: verify against legacyHash if provided
+                if (legacyHash) {
+                    verified = await argon2.verify(user.passwordHash, legacyHash);
+                } else {
+                    // Fallback to argon2Hash if legacyHash not provided (unlikely during migration window)
+                    verified = await argon2.verify(user.passwordHash, argon2Hash);
+                }
+
+                if (verified) {
+                    // Success! Migrate to version 2
+                    logger.info(`Migrating user ${user.email} to password hash version 2`);
+                    const newPasswordHash = await argon2.hash(argon2Hash);
+                    await this.repository.updateById(user._id.toString(), {
+                        $set: {
+                            passwordHash: newPasswordHash,
+                            passwordHashVersion: 2
+                        }
+                    } as any);
+                }
+            } else {
+                // Version 2: standard verify against argon2Hash
+                verified = await argon2.verify(user.passwordHash, argon2Hash);
+            }
+
+            if (!verified) {
+                logger.warn(`Failed login for email: ${normalizedEmail} (invalid password)`);
+                await logFailedAuth(normalizedEmail, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
                 throw new ServiceError('Invalid credentials', 401);
             }
 
@@ -170,7 +209,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             // Check if 2FA required
             if (user.webauthnCredentials && user.webauthnCredentials.length > 0) {
                 const options = await generateAuthenticationOptions({
-                    rpID: process.env.RP_ID || 'localhost',
+                    rpID: config.rpId,
                     allowCredentials: user.webauthnCredentials.map(cred => ({
                         id: cred.credentialID,
                         type: 'public-key',
@@ -352,7 +391,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
             const options = await generateRegistrationOptions({
                 rpName: 'Project Aegis',
-                rpID: process.env.RP_ID || 'localhost',
+                rpID: config.rpId,
                 userID: isoUint8Array.fromUTF8String(user._id.toString()),
                 userName: user.username,
                 attestationType: 'none',
@@ -386,8 +425,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             const verification: VerifiedRegistrationResponse = await verifyRegistrationResponse({
                 response: body,
                 expectedChallenge: user.currentChallenge,
-                expectedOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
-                expectedRPID: process.env.RP_ID || 'localhost'
+                expectedOrigin: config.clientOrigin,
+                expectedRPID: config.rpId
             });
 
             if (verification.verified && verification.registrationInfo) {
@@ -423,13 +462,14 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Email required', 400);
             }
 
-            const user = await this.repository.findByEmail(email);
+            const normalizedEmail = email.toLowerCase().trim();
+            const user = await this.repository.findByEmail(normalizedEmail);
             if (!user) {
                 throw new ServiceError('User not found', 404);
             }
 
             const options = await generateAuthenticationOptions({
-                rpID: process.env.RP_ID || 'localhost',
+                rpID: config.rpId,
                 allowCredentials: user.webauthnCredentials.map(cred => ({
                     id: cred.credentialID,
                     type: 'public-key',
@@ -458,7 +498,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Email and body required', 400);
             }
 
-            const user = await this.repository.findByEmail(email);
+            const normalizedEmail = email.toLowerCase().trim();
+            const user = await this.repository.findByEmail(normalizedEmail);
             if (!user || !user.currentChallenge) {
                 throw new ServiceError('Authentication challenge not found', 400);
             }
@@ -471,8 +512,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             const verification: VerifiedAuthenticationResponse = await verifyAuthenticationResponse({
                 response: body,
                 expectedChallenge: user.currentChallenge,
-                expectedOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
-                expectedRPID: process.env.RP_ID || 'localhost',
+                expectedOrigin: config.clientOrigin,
+                expectedRPID: config.rpId,
                 credential: {
                     id: dbCredential.credentialID,
                     publicKey: isoBase64URL.toBuffer(dbCredential.publicKey),
@@ -538,8 +579,14 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('User not found', 404);
             }
 
-            const passwordHash = await argon2.hash(argon2Hash);
-            await this.repository.updatePasswordHash(userId, passwordHash);
+            const normalizedArgon2Hash = argon2Hash.toLowerCase();
+            const passwordHash = await argon2.hash(normalizedArgon2Hash);
+            await this.repository.updateById(userId, {
+                $set: {
+                    passwordHash,
+                    passwordHashVersion: 2
+                }
+            } as any);
 
             await this.logAction(userId, 'PASSWORD_UPDATE', 'SUCCESS', req, {
                 note: 'Password re-added'

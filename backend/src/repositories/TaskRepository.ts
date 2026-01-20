@@ -19,7 +19,7 @@ export class TaskRepository extends BaseRepository<ITask> {
         options: QueryOptions = {}
     ): Promise<ITask[]> {
         const filter: SafeFilter<ITask> = {
-            userId: { $eq: userId as any }
+            userId: { $eq: userId }
         };
 
         if (filters?.status) {
@@ -41,7 +41,7 @@ export class TaskRepository extends BaseRepository<ITask> {
      */
     async findByUserAndStatus(userId: string, status: string): Promise<ITask[]> {
         return this.findMany({
-            userId: { $eq: userId as any },
+            userId: { $eq: userId },
             status: { $eq: status as any }
         }, {
             sort: { order: 1 }
@@ -54,7 +54,7 @@ export class TaskRepository extends BaseRepository<ITask> {
     async getMaxOrderInColumn(userId: string, status: string): Promise<number> {
         const result = await this.findOne(
             {
-                userId: { $eq: userId as any },
+                userId: { $eq: userId },
                 status: { $eq: status as any }
             },
             {
@@ -73,22 +73,24 @@ export class TaskRepository extends BaseRepository<ITask> {
         userId: string,
         updates: Array<{ id: string; status?: string; order: number }>
     ): Promise<void> {
-        const bulkOps = updates.map(update => ({
-            updateOne: {
-                filter: {
-                    _id: update.id,
-                    userId: { $eq: userId as any }
-                } as SafeFilter<ITask>,
-                update: {
-                    $set: {
-                        order: update.order,
-                        ...(update.status ? { status: update.status } : {})
+        return this.withTransaction(async (session) => {
+            const bulkOps = updates.map(update => ({
+                updateOne: {
+                    filter: {
+                        _id: update.id,
+                        userId: { $eq: userId }
+                    } as SafeFilter<ITask>,
+                    update: {
+                        $set: {
+                            order: update.order,
+                            ...(update.status ? { status: update.status } : {})
+                        }
                     }
                 }
-            }
-        }));
+            }));
 
-        await this.bulkWrite(bulkOps);
+            await this.bulkWrite(bulkOps, { session });
+        });
     }
 
     /**
@@ -97,7 +99,7 @@ export class TaskRepository extends BaseRepository<ITask> {
     async deleteByIdAndUser(taskId: string, userId: string): Promise<boolean> {
         return this.deleteOne({
             _id: taskId,
-            userId: { $eq: userId as any }
+            userId: { $eq: userId }
         } as SafeFilter<ITask>);
     }
 
@@ -112,10 +114,36 @@ export class TaskRepository extends BaseRepository<ITask> {
         return this.updateOne(
             {
                 _id: taskId,
-                userId: { $eq: userId as any }
+                userId: { $eq: userId }
             } as SafeFilter<ITask>,
             { $set: data },
             { returnNew: true }
         );
+    }
+
+    /**
+     * Find all tasks that mention a specific entity ID
+     */
+    async findMentionsOf(userId: string, targetId: string): Promise<ITask[]> {
+        return this.findMany({
+            userId: { $eq: userId },
+            mentions: { $in: [targetId] }
+        } as unknown as SafeFilter<ITask>);
+    }
+
+    /**
+     * Find upcoming incomplete tasks with due dates (for dashboard widget)
+     */
+    async findUpcoming(userId: string, limit: number = 10): Promise<ITask[]> {
+        const now = new Date();
+
+        return this.findMany({
+            userId: { $eq: userId },
+            status: { $ne: 'done' as any },
+            dueDate: { $gte: now }
+        } as unknown as SafeFilter<ITask>, {
+            sort: { dueDate: 1 },
+            limit: Math.min(limit, 50)
+        });
     }
 }

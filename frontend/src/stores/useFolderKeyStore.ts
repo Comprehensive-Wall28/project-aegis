@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import folderService from '@/services/folderService';
 import apiClient from '@/services/api';
-import { useSessionStore } from './sessionStore';
+import { useSessionStore } from '@/stores/sessionStore';
 import { unwrapKey, decapsulateFolderKey } from '@/lib/cryptoUtils';
 
 interface FolderKeyState {

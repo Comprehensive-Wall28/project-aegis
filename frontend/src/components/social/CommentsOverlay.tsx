@@ -8,7 +8,6 @@ import {
     Button,
     Avatar,
     CircularProgress,
-    alpha,
     useTheme,
     useMediaQuery,
 } from '@mui/material';
@@ -197,8 +196,7 @@ export const CommentsOverlay = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.8)',
-                            backdropFilter: 'blur(8px)',
+                            bgcolor: 'rgba(0,0,0,0.85)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -206,7 +204,7 @@ export const CommentsOverlay = memo(({
                         }}
                     >
                         <Paper
-                            variant="glass"
+                            elevation={0}
                             component={motion.div}
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -221,7 +219,7 @@ export const CommentsOverlay = memo(({
                                 borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                bgcolor: alpha(theme.palette.background.paper, 0.95),
+                                bgcolor: theme.palette.background.paper,
                             }}
                         >
                             {/* Header */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback, memo } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -15,20 +15,37 @@ import {
     InputLabel,
     Select,
     MenuItem,
+    useMediaQuery,
+    type SelectChangeEvent,
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
+import {
+    Close as CloseIcon,
+    AssignmentOutlined as TaskIcon,
+    EventOutlined as EventIcon,
+} from '@mui/icons-material';
+import { MobileDateTimePicker } from '@mui/x-date-pickers/MobileDateTimePicker';
+import dayjs from 'dayjs';
+import type { Task } from '../../services/taskService';
+import { MentionPicker, type MentionEntity } from './MentionPicker';
+import { useBacklinks } from '../../hooks/useBacklinks';
 
-const PRIORITY_OPTIONS = [
-    { value: 'high', label: 'High', color: '#f44336' },
-    { value: 'medium', label: 'Medium', color: '#ff9800' },
-    { value: 'low', label: 'Low', color: '#4caf50' },
-];
+import {
+    TASK_PRIORITY_CONFIG,
+    TASK_STATUS_LABELS,
+    type TaskPriority,
+    type TaskStatus
+} from '@/constants/taskDefaults';
 
-const STATUS_OPTIONS = [
-    { value: 'todo', label: 'To Do' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'done', label: 'Done' },
-];
+const PRIORITY_OPTIONS = Object.entries(TASK_PRIORITY_CONFIG).map(([key, config]) => ({
+    value: key as TaskPriority,
+    label: config.label,
+    color: config.color,
+}));
+
+const STATUS_OPTIONS = Object.entries(TASK_STATUS_LABELS).map(([key, label]) => ({
+    value: key as TaskStatus,
+    label: label,
+}));
 
 export interface TaskDialogData {
     title: string;
@@ -44,90 +61,158 @@ export interface TaskDialogProps {
     onClose: () => void;
     onSubmit: (data: TaskDialogData) => void;
     onDelete?: (id: string) => void;
-    task?: any;
+    task?: (Task & { _tempId?: number }) | null; // Allow _tempId for new tasks
     isSaving?: boolean;
 }
 
-export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }: TaskDialogProps) => {
+const formatDateForInput = (dateInput: string | Date | undefined) => {
+    if (!dateInput) return '';
+    const d = dayjs(dateInput);
+    return d.isValid() ? d.toISOString() : '';
+};
+
+// ----------------------------------------------------------------------
+// TaskForm Component (Internal)
+// ----------------------------------------------------------------------
+
+interface TaskFormProps {
+    initialData?: Task | null;
+    isSaving?: boolean;
+    onClose: () => void;
+    onSubmit: (data: TaskDialogData) => void;
+    onDelete?: (id: string) => void;
+}
+
+const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFormProps) => {
     const theme = useTheme();
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [notes, setNotes] = useState('');
-    const [dueDate, setDueDate] = useState('');
-    const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium');
-    const [status, setStatus] = useState<'todo' | 'in_progress' | 'done'>('todo');
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-    const formatDateForInput = (dateInput: string | Date | undefined) => {
-        if (!dateInput) return '';
-        const d = new Date(dateInput);
-        if (isNaN(d.getTime())) return '';
+    const backlinks = useBacklinks(initialData?._id || '');
 
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+    // Initialize state ONCE from props. No useEffect syncing.
+    const [formData, setFormData] = useState<TaskDialogData>(() => ({
+        title: initialData?.title || '',
+        description: initialData?.description || '',
+        notes: initialData?.notes || '',
+        dueDate: formatDateForInput(initialData?.dueDate),
+        priority: initialData?.priority || 'medium',
+        status: initialData?.status || 'todo',
+    }));
 
-        return `${year}-${month}-${day}`;
+    // Mention Picker State
+    const [mentionPicker, setMentionPicker] = useState<{
+        open: boolean;
+        field: 'description' | 'notes';
+        anchorEl: HTMLElement | null;
+        cursorPos: number;
+    }>({ open: false, field: 'description', anchorEl: null, cursorPos: 0 });
+
+    const isEditMode = !!initialData?._id;
+
+    const handleChange = (field: keyof TaskDialogData) => (
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent
+    ) => {
+        const value = e.target.value;
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+
+        // Handle Mention Picker Trigger / Search Persistence
+        if (field === 'description' || field === 'notes') {
+            const input = e.target as HTMLTextAreaElement;
+            const cursorPos = input.selectionStart;
+            const textBefore = value.substring(0, cursorPos);
+
+            // Look for the last '@' that is either at the start or preceded by a space/newline
+            const lastAtIndex = textBefore.lastIndexOf('@');
+            if (lastAtIndex !== -1 && (lastAtIndex === 0 || /[\s\n]/.test(textBefore[lastAtIndex - 1]))) {
+                const textSinceAt = textBefore.substring(lastAtIndex + 1);
+                // Keep open if playing with the same mention (no spaces/newlines since @)
+                if (!/[\s\n]/.test(textSinceAt)) {
+                    setMentionPicker({
+                        open: true,
+                        field: field as 'description' | 'notes',
+                        anchorEl: input,
+                        cursorPos: lastAtIndex + 1
+                    });
+                } else if (mentionPicker.open) {
+                    setMentionPicker(prev => ({ ...prev, open: false }));
+                }
+            } else if (mentionPicker.open) {
+                setMentionPicker(prev => ({ ...prev, open: false }));
+            }
+        }
     };
 
-    useEffect(() => {
-        if (task) {
-            setTitle(task.title || '');
-            setDescription(task.description || '');
-            setNotes(task.notes || '');
-            setDueDate(formatDateForInput(task.dueDate));
-            setPriority(task.priority || 'medium');
-            setStatus(task.status || 'todo');
-        } else {
-            setTitle('');
-            setDescription('');
-            setNotes('');
-            setDueDate('');
-            setPriority('medium');
-            setStatus('todo');
-        }
-    }, [task, open]);
+    const handleMentionSelect = (entity: MentionEntity) => {
+        const field = mentionPicker.field;
+        const value = formData[field];
+        const triggerPos = mentionPicker.cursorPos - 1; // Position of '@'
 
-    const handleSubmit = () => {
+        // Find the current cursor position to know how much search text to replace
+        const input = mentionPicker.anchorEl as HTMLTextAreaElement;
+        const currentPos = input.selectionStart;
+
+        let mention = '';
+        if (entity.type === 'file') {
+            const folderId = entity.folderId || 'root';
+            mention = `[@${entity.name}](aegis-file://${folderId}/${entity.id})`;
+        } else if (entity.type === 'task') {
+            mention = `[#${entity.name}](aegis-task://${entity.id})`;
+        } else if (entity.type === 'event') {
+            mention = `[~${entity.name}](aegis-event://${entity.id})`;
+        }
+
+        // Replace from the '@' up to the current cursor position
+        const newValue = value.substring(0, triggerPos) + mention + value.substring(currentPos);
+
+        setFormData(prev => ({
+            ...prev,
+            [field]: newValue
+        }));
+        setMentionPicker(prev => ({ ...prev, open: false }));
+    };
+
+
+    const handleSubmit = useCallback(() => {
+        if (!formData.title.trim()) return;
         onSubmit({
-            title,
-            description,
-            notes,
-            dueDate: dueDate || undefined,
-            priority,
-            status,
+            ...formData,
+            dueDate: formData.dueDate || undefined,
         });
+    }, [formData, onSubmit]);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit();
+        }
     };
 
     return (
-        <Dialog
-            open={open}
-            onClose={onClose}
-            fullWidth
-            maxWidth="sm"
-            PaperProps={{
-                variant: 'solid',
-                sx: {
-                    borderRadius: '24px',
-                    boxShadow: theme.shadows[20],
-                }
-            }}
-        >
-            <DialogTitle component="div" sx={{ m: 0, p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {task?._id ? 'Edit Task' : 'New Encrypted Task'}
-                </Typography>
-                <IconButton onClick={onClose} size="small">
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
-
-            <DialogContent dividers sx={{ borderColor: alpha(theme.palette.divider, 0.1) }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
+        <>
+            <DialogContent
+                dividers={!isMobile}
+                sx={{
+                    borderColor: alpha(theme.palette.divider, 0.2),
+                    p: isMobile ? 2 : 2.5,
+                }}
+            >
+                <Box
+                    component="form"
+                    onKeyDown={(e) => {
+                        // Allow Enter to submit only if not in multiline fields
+                        if (e.target instanceof HTMLTextAreaElement) return;
+                        handleKeyDown(e);
+                    }}
+                    sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: isMobile ? 1 : 0 }}
+                >
                     <TextField
                         autoFocus
-                        label="Task Title"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        label="Task Title *"
+                        value={formData.title}
+                        onChange={handleChange('title')}
                         fullWidth
                         required
                         variant="outlined"
@@ -139,33 +224,34 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
 
                     <TextField
                         label="Description"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
+                        value={formData.description}
+                        onChange={handleChange('description')}
                         fullWidth
                         multiline
-                        rows={3}
+                        minRows={3}
+                        maxRows={8}
                         variant="outlined"
-                        placeholder="Add more details..."
+                        placeholder="Add more details... (Use @ for mentions)"
                         slotProps={{
                             input: { sx: { borderRadius: '12px' } }
                         }}
                     />
 
-                    <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 2, flexDirection: isMobile ? 'column' : 'row' }}>
                         <FormControl fullWidth sx={{ flex: 1 }}>
                             <InputLabel>Priority</InputLabel>
                             <Select
-                                value={priority}
+                                value={formData.priority}
                                 label="Priority"
-                                onChange={(e) => setPriority(e.target.value as any)}
+                                onChange={(e) => handleChange('priority')(e as SelectChangeEvent)}
                                 sx={{ borderRadius: '12px' }}
                                 MenuProps={{
                                     PaperProps: {
-                                        variant: 'glass',
                                         sx: {
                                             minWidth: 180,
                                             borderRadius: '12px',
-                                            boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
+                                            boxShadow: theme.shadows[10],
+                                            bgcolor: theme.palette.background.paper,
                                         }
                                     }
                                 }}
@@ -191,9 +277,9 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
                         <FormControl fullWidth sx={{ flex: 1 }}>
                             <InputLabel>Status</InputLabel>
                             <Select
-                                value={status}
+                                value={formData.status}
                                 label="Status"
-                                onChange={(e) => setStatus(e.target.value as any)}
+                                onChange={(e) => handleChange('status')(e as SelectChangeEvent)}
                                 sx={{ borderRadius: '12px' }}
                             >
                                 {STATUS_OPTIONS.map((opt) => (
@@ -205,43 +291,109 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
                         </FormControl>
                     </Box>
 
-                    <TextField
+                    <MobileDateTimePicker
                         label="Due Date"
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        fullWidth
+                        value={formData.dueDate ? dayjs(formData.dueDate) : null}
+                        onChange={(newValue) => {
+                            setFormData(prev => ({
+                                ...prev,
+                                dueDate: newValue ? (newValue as dayjs.Dayjs).toISOString() : ''
+                            }));
+                        }}
                         slotProps={{
-                            inputLabel: { shrink: true },
-                            input: { sx: { borderRadius: '12px', fontFamily: 'JetBrains Mono, monospace' } }
+                            textField: {
+                                fullWidth: true,
+                                variant: 'outlined',
+                                sx: {
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '12px',
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        fontFamily: 'inherit'
+                                    }
+                                }
+                            },
+                            dialog: {
+                                sx: {
+                                    '& .MuiPaper-root': {
+                                        borderRadius: '24px',
+                                        bgcolor: theme.palette.background.paper,
+                                        backgroundImage: 'none',
+                                        boxShadow: theme.shadows[20],
+                                    }
+                                }
+                            }
                         }}
                     />
 
                     <TextField
                         label="Notes"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
+                        value={formData.notes}
+                        onChange={handleChange('notes')}
                         fullWidth
                         multiline
-                        rows={2}
+                        minRows={2}
+                        maxRows={6}
                         variant="outlined"
-                        placeholder="Private notes (encrypted)..."
+                        placeholder="Private notes (encrypted)... (Use @ for mentions)"
                         slotProps={{
                             input: { sx: { borderRadius: '12px' } }
                         }}
                     />
+
+                    {backlinks.length > 0 && (
+                        <Box sx={{ mt: 1 }}>
+                            <Typography variant="caption" sx={{ display: 'block', mb: 1, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                Mentioned In
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {backlinks.map(link => (
+                                    <Box
+                                        key={link.id}
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1,
+                                            p: 0.8,
+                                            px: 1.2,
+                                            borderRadius: '8px',
+                                            bgcolor: alpha(theme.palette.text.primary, 0.03),
+                                            border: `1px solid ${alpha(theme.palette.divider, 0.08)}`
+                                        }}
+                                    >
+                                        {link.type === 'task' ? (
+                                            <TaskIcon sx={{ fontSize: 16, color: theme.palette.secondary.main }} />
+                                        ) : (
+                                            <EventIcon sx={{ fontSize: 16, color: theme.palette.warning.main }} />
+                                        )}
+                                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                                            {link.title}
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </Box>
+                    )}
+
+                    {mentionPicker.open && (
+                        <MentionPicker
+                            anchorEl={mentionPicker.anchorEl}
+                            onSelect={handleMentionSelect}
+                            onClose={() => setMentionPicker(prev => ({ ...prev, open: false }))}
+                        />
+                    )}
                 </Box>
             </DialogContent>
 
-            <DialogActions sx={{ p: 3, justifyContent: 'space-between' }}>
+            <DialogActions sx={{ p: isMobile ? 2 : 3, justifyContent: 'space-between', borderTop: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.2)}` : 'none' }}>
                 <Box>
-                    {task?._id && onDelete && (
+                    {isEditMode && initialData?._id && onDelete && (
                         <Button
-                            onClick={() => onDelete(task._id)}
+                            onClick={() => onDelete(initialData._id)}
                             color="error"
                             sx={{ borderRadius: '12px', textTransform: 'none' }}
                         >
-                            Delete Task
+                            Delete
                         </Button>
                     )}
                 </Box>
@@ -252,18 +404,105 @@ export const TaskDialog = ({ open, onClose, onSubmit, onDelete, task, isSaving }
                     <Button
                         onClick={handleSubmit}
                         variant="contained"
-                        disabled={isSaving || !title.trim()}
+                        disabled={isSaving || !formData.title.trim()}
                         sx={{
                             borderRadius: '12px',
-                            px: 4,
+                            px: isMobile ? 3 : 4,
                             textTransform: 'none',
                             fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 1
                         }}
                     >
-                        {isSaving ? 'Securing...' : (task?._id ? 'Update' : 'Create Task')}
+                        {isSaving ? 'Saving...' : (isEditMode ? 'Update' : 'Create')}
+                        {!isMobile && (
+                            <Box
+                                component="span"
+                                sx={{
+                                    fontSize: '0.7rem',
+                                    bgcolor: 'rgba(255, 255, 255, 0.12)',
+                                    px: 1,
+                                    py: 0.4,
+                                    borderRadius: '6px',
+                                    fontWeight: 600,
+                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    borderBottomWidth: '2px', // Depth effect
+                                    ml: 1,
+                                    lineHeight: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    boxShadow: '0 2px 0 rgba(0,0,0,0.1)',
+                                    opacity: 0.9,
+                                }}
+                            >
+                                <Typography component="span" sx={{ fontSize: '0.8rem', fontWeight: 800 }}>↵</Typography>
+                                Enter
+                            </Box>
+                        )}
                     </Button>
                 </Box>
             </DialogActions>
-        </Dialog>
+        </>
     );
 };
+
+// ----------------------------------------------------------------------
+// TaskDialog Shell Component
+// ----------------------------------------------------------------------
+
+export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSaving }: TaskDialogProps) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    // Generate a unique key for the form content to force remounting when task changes
+    const formKey = task?._id || task?._tempId || (open ? 'new-open' : 'closed');
+
+    return (
+        <Dialog
+            open={open}
+            onClose={onClose}
+            fullWidth
+            maxWidth="sm"
+            fullScreen={isMobile}
+            PaperProps={{
+                variant: 'solid',
+                sx: {
+                    borderRadius: isMobile ? 0 : '24px',
+                    boxShadow: theme.shadows[20],
+                    backgroundImage: 'none',
+                    bgcolor: theme.palette.background.paper,
+                }
+            }}
+        >
+            <DialogTitle
+                component="div"
+                sx={{
+                    m: 0,
+                    p: isMobile ? 2 : 2.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.2)}` : 'none'
+                }}
+            >
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {task?._id ? 'Edit Task' : 'New Encrypted Task'}
+                </Typography>
+                <IconButton onClick={onClose} size="small" edge="end">
+                    <CloseIcon />
+                </IconButton>
+            </DialogTitle>
+
+            <TaskForm
+                key={formKey}
+                initialData={task}
+                isSaving={isSaving}
+                onClose={onClose}
+                onSubmit={onSubmit}
+                onDelete={onDelete}
+            />
+        </Dialog>
+    );
+});

@@ -62,14 +62,14 @@ const securityFeatures = [
         color: "#0ea5e9", // Sky blue
     },
     {
-        title: "Merkle Integrity",
-        description: "Tamper-proof verifiable logs using Merkle-Tree hashing. Verify the integrity of your data instantly.",
+        title: "Verifiable Data Integrity",
+        description: "Ensure your data hasn't been altered using Merkle-Tree hashing verification. Verify the integrity of your data instantly.",
         icon: GitGraphIcon,
         color: "#0ea5e9", // Sky blue
     },
     {
-        title: "Zero-Knowledge",
-        description: "Prove your credentials without revealing raw data. Your private information stays private.",
+        title: "Zero-Access",
+        description: "Your encryption keys are derived on your device. We never see your password or unencrypted data.",
         icon: FileKeyIcon,
         color: "#0ea5e9", // Sky blue
     },
@@ -94,7 +94,7 @@ export function Features() {
                             label="Core Features"
                             sx={{
                                 mb: 3,
-                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                bgcolor: alpha(theme.palette.primary.main, 0.2),
                                 color: theme.palette.primary.main,
                                 fontWeight: 700,
                                 fontSize: '0.8rem'
@@ -124,7 +124,7 @@ export function Features() {
                             sx={{
                                 color: 'text.secondary',
                                 fontWeight: 500,
-                                opacity: 0.8,
+                                opacity: 1.0,
                                 maxWidth: 600,
                                 mx: 'auto'
                             }}
@@ -145,7 +145,7 @@ export function Features() {
                                     height="100%"
                                 >
                                     <Paper
-                                        variant="glass"
+                                        elevation={2}
                                         sx={{
                                             p: 3,
                                             height: '100%',
@@ -170,7 +170,7 @@ export function Features() {
                                                 sx={{
                                                     p: 1.5,
                                                     borderRadius: 2.5,
-                                                    bgcolor: alpha(feature.color, 0.15),
+                                                    bgcolor: alpha(feature.color, 0.2),
                                                     transition: 'all 0.3s ease-in-out',
                                                     display: 'flex'
                                                 }}
@@ -181,7 +181,7 @@ export function Features() {
                                                 label={feature.tag}
                                                 size="small"
                                                 sx={{
-                                                    bgcolor: alpha(feature.color, 0.1),
+                                                    bgcolor: alpha(feature.color, 0.2),
                                                     color: feature.color,
                                                     fontWeight: 600,
                                                     fontSize: '0.7rem'
@@ -209,7 +209,7 @@ export function Features() {
                                         >
                                             {feature.description}
                                         </Typography>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 2, pt: 2, borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 2, pt: 2, borderTop: `1px solid ${alpha(theme.palette.divider, 0.25)}` }}>
                                             <LockIcon sx={{ fontSize: 14, color: 'success.main' }} />
                                             <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>
                                                 End-to-end encrypted
@@ -264,7 +264,7 @@ export function Features() {
                             sx={{
                                 color: 'text.secondary',
                                 fontWeight: 500,
-                                opacity: 0.8
+                                opacity: 1.0
                             }}
                         >
                             Security, Integrity, and Privacy woven into the fabric of your workflow.
@@ -283,7 +283,7 @@ export function Features() {
                                     height="100%"
                                 >
                                     <Paper
-                                        variant="glass"
+                                        elevation={2}
                                         sx={{
                                             p: 4,
                                             height: '100%',

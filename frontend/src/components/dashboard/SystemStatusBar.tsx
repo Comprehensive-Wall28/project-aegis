@@ -29,7 +29,7 @@ export function SystemStatusBar() {
                 icon: isDone ? <CheckCircleIcon sx={{ fontSize: 14 }} /> : <CircularProgress size={12} sx={{ color: busyColor }} />,
                 text: isDone ? 'Done!' : cryptoStatus.charAt(0).toUpperCase() + cryptoStatus.slice(1) + '...',
                 color: busyColor,
-                bgcolor: alpha(busyColor, 0.15),
+                bgcolor: alpha(busyColor, 0.25),
                 dotColor: busyColor,
                 glow: isDone
             };
@@ -41,7 +41,7 @@ export function SystemStatusBar() {
                     icon: <CheckCircleIcon sx={{ fontSize: 14 }} />,
                     text: 'Operational',
                     color: theme.palette.info.main,
-                    bgcolor: alpha(theme.palette.info.main, 0.1),
+                    bgcolor: alpha(theme.palette.info.main, 0.25),
                     dotColor: theme.palette.info.main
                 };
             case 'initializing':
@@ -181,7 +181,7 @@ export function SystemStatusBar() {
                         borderRadius: 5,
                         bgcolor: status.bgcolor,
                         color: status.color,
-                        border: `1px solid ${alpha(status.color, 0.2)}`,
+                        border: `1px solid ${alpha(status.color, 0.3)}`,
                         width: 140, // Fixed width
                         justifyContent: 'center',
                         boxShadow: (status as any).glow ? `0 0 15px ${alpha(status.color, 0.15)}` : 'none',

@@ -1,5 +1,5 @@
 import express from 'express';
-import { uploadInit, getUserFiles, getFile, downloadFile, uploadChunk, deleteUserFile } from '../controllers/vaultController';
+import { uploadInit, getUserFiles, getFile, downloadFile, uploadChunk, deleteUserFile, getStorageStats } from '../controllers/vaultController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection } from '../middleware/csrfMiddleware';
 
@@ -20,5 +20,6 @@ router.get('/files', protect, csrfProtection, getUserFiles);
 router.get('/files/:id', protect, csrfProtection, getFile);
 router.get('/download/:id', protect, csrfProtection, downloadFile);
 router.delete('/files/:id', protect, csrfProtection, deleteUserFile);
+router.get('/storage-stats', protect, csrfProtection, getStorageStats);
 
 export default router;

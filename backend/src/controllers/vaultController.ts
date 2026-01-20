@@ -36,22 +36,18 @@ export const uploadChunk = async (req: AuthRequest, res: Response) => {
 
         const fileId = req.query.fileId as string;
         const contentRange = req.headers['content-range'] as string;
+        const contentLength = parseInt(req.headers['content-length'] || '0', 10);
 
-        // Create chunk data getter that collects from request stream
-        const getChunkData = (): Promise<Buffer> => {
-            return new Promise((resolve, reject) => {
-                const chunks: Buffer[] = [];
-                req.on('data', (chunk: Buffer) => chunks.push(chunk));
-                req.on('end', () => resolve(Buffer.concat(chunks)));
-                req.on('error', (err) => reject(err));
-            });
-        };
+        if (contentLength === 0) {
+            throw new ServiceError('Missing Content-Length', 400);
+        }
 
         const result = await vaultService.uploadChunk(
             req.user.id,
             fileId,
             contentRange,
-            getChunkData
+            req, // Pass the request stream directly
+            contentLength
         );
 
         if (result.complete) {
@@ -117,7 +113,7 @@ export const getFile = async (req: AuthRequest, res: Response) => {
 };
 
 /**
- * Get user files (optionally filtered by folder)
+ * Get user files (optionally filtered by folder, supports pagination)
  */
 export const getUserFiles = async (req: AuthRequest, res: Response) => {
     try {
@@ -126,8 +122,23 @@ export const getUserFiles = async (req: AuthRequest, res: Response) => {
         }
 
         const folderId = req.query.folderId as string | undefined;
-        const files = await vaultService.getUserFiles(req.user.id, folderId);
+        const normalizedFolderId = folderId && folderId !== 'null' ? folderId : null;
 
+        // Check for pagination params
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+        const cursor = req.query.cursor as string | undefined;
+
+        if (limit !== undefined) {
+            const result = await vaultService.getUserFilesPaginated(
+                req.user.id,
+                normalizedFolderId,
+                { limit, cursor }
+            );
+            return res.json(result);
+        }
+
+        // Non-paginated fallback
+        const files = await vaultService.getUserFiles(req.user.id, folderId);
         res.json(files);
     } catch (error) {
         handleError(error, res);
@@ -145,6 +156,22 @@ export const deleteUserFile = async (req: AuthRequest, res: Response) => {
 
         await vaultService.deleteFile(req.user.id, req.params.id, req);
         res.status(200).json({ message: 'File deleted successfully' });
+    } catch (error) {
+        handleError(error, res);
+    }
+};
+
+/**
+ * Get user storage stats
+ */
+export const getStorageStats = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user?.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        const stats = await vaultService.getStorageStats(req.user.id);
+        res.json(stats);
     } catch (error) {
         handleError(error, res);
     }

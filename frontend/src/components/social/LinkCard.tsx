@@ -1,5 +1,5 @@
 import { useState, memo } from 'react';
-import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress } from '@mui/material';
+import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress, Tooltip } from '@mui/material';
 import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,6 +12,8 @@ import {
     SOCIAL_RADIUS_XLARGE,
     SOCIAL_RADIUS_SMALL
 } from './constants';
+import { formatRelativeTime, formatFullDateTime } from '@/utils/dateUtils';
+
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
@@ -21,7 +23,40 @@ const getProxiedUrl = (originalUrl: string) => {
     return `${API_URL}/api/social/proxy-image?url=${encodeURIComponent(originalUrl)}`;
 };
 
-export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick }: LinkCardProps) => {
+const renderHighlightedText = (text: string, query?: string) => {
+    if (!query || !query.trim()) return text;
+
+    // Simple regex escape
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'));
+    return (
+        <>
+            {parts.map((part, i) => (
+                part.toLowerCase() === query.toLowerCase() ? (
+                    <Box
+                        key={i}
+                        component="span"
+                        sx={{
+                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.2),
+                            color: (theme) => theme.palette.primary.main,
+                            px: 0.5,
+                            mx: -0.5,
+                            borderRadius: '4px',
+                            fontWeight: 700,
+                        }}
+                    >
+                        {part}
+                    </Box>
+                ) : (
+                    part
+                )
+            ))}
+        </>
+    );
+};
+
+export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick, highlight }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
@@ -112,7 +147,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                 }}
             >
                 <Paper
-                    variant="glass"
+                    elevation={0}
                     sx={{
                         overflow: 'hidden',
                         borderRadius: SOCIAL_RADIUS_XLARGE,
@@ -194,8 +229,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
-                                    backdropFilter: 'blur(4px)',
+                                    bgcolor: theme.palette.background.paper,
                                     zIndex: 2,
                                     gap: 1.5,
                                 }}
@@ -269,7 +303,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                 overflow: 'hidden',
                             }}
                         >
-                            {previewData.title || url}
+                            {renderHighlightedText(previewData.title || url, highlight)}
                         </Typography>
 
                         <Box
@@ -392,8 +426,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                 position: 'fixed',
                                 inset: 0,
                                 zIndex: SOCIAL_DIALOG_Z_INDEX,
-                                bgcolor: 'rgba(0,0,0,0.8)',
-                                backdropFilter: 'blur(8px)',
+                                bgcolor: 'rgba(0,0,0,0.85)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -401,7 +434,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                             }}
                         >
                             <Paper
-                                variant="glass"
+                                elevation={0}
                                 component={motion.div}
                                 initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
@@ -416,8 +449,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     borderRadius: { xs: 0, sm: SOCIAL_RADIUS_XLARGE },
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    bgcolor: alpha(theme.palette.background.paper, 0.8),
-                                    backdropFilter: 'blur(20px)',
+                                    bgcolor: theme.palette.background.paper,
                                     boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
                                 }}
                             >
@@ -511,27 +543,54 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     </Typography>
 
                                     <Typography variant="body1" color="text.secondary" sx={{ mb: 3, whiteSpace: 'pre-wrap', flexGrow: 1 }}>
-                                        {previewData.description || 'No description available for this link.'}
+                                        {renderHighlightedText(previewData.description || 'No description available for this link.', highlight)}
                                     </Typography>
 
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 'auto' }}>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        alignItems: { xs: 'flex-start', sm: 'center' },
+                                        gap: 2,
+                                        mt: 'auto',
+                                        flexDirection: { xs: 'column', sm: 'row' }
+                                    }}>
                                         <Button
                                             variant="contained"
                                             size="large"
                                             startIcon={previewData.scrapeStatus === 'scraping' ? <CircularProgress size={16} color="inherit" /> : <LinkIcon />}
                                             onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
                                             disabled={previewData.scrapeStatus === 'scraping'}
+                                            sx={{ width: { xs: '100%', sm: 'auto' } }}
                                         >
                                             {previewData.scrapeStatus === 'scraping' ? 'Scraping...' : 'Visit Website'}
                                         </Button>
 
-                                        <Box sx={{ ml: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                            <Typography variant="caption" color="text.secondary">
-                                                Shared by
-                                            </Typography>
-                                            <Typography variant="subtitle2">
-                                                {username}
-                                            </Typography>
+                                        <Box sx={{
+                                            ml: { sm: 'auto' },
+                                            display: 'flex',
+                                            alignItems: { xs: 'flex-start', sm: 'flex-end' },
+                                            gap: { xs: 2, sm: 3 },
+                                            width: { xs: '100%', sm: 'auto' },
+                                            justifyContent: { xs: 'space-between', sm: 'flex-end' }
+                                        }}>
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', sm: 'flex-end' } }}>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    Shared by
+                                                </Typography>
+                                                <Typography variant="subtitle2">
+                                                    {username}
+                                                </Typography>
+                                            </Box>
+
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', sm: 'flex-end' } }}>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    Shared
+                                                </Typography>
+                                                <Tooltip title={formatFullDateTime(link.createdAt)}>
+                                                    <Typography variant="subtitle2" sx={{ cursor: 'help' }}>
+                                                        {formatRelativeTime(link.createdAt)}
+                                                    </Typography>
+                                                </Tooltip>
+                                            </Box>
                                         </Box>
                                     </Box>
                                 </Box>

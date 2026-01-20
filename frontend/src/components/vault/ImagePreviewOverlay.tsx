@@ -164,8 +164,7 @@ export const ImagePreviewOverlay = ({
             }}
             sx={{
                 '& .MuiBackdrop-root': {
-                    bgcolor: alpha('#000', 0.95),
-                    backdropFilter: 'blur(20px)',
+                    bgcolor: alpha('#000', 0.98),
                 }
             }}
         >
@@ -349,7 +348,6 @@ export const ImagePreviewOverlay = ({
                         pointerEvents: 'auto',
                         color: 'white',
                         bgcolor: alpha('#fff', 0.1),
-                        backdropFilter: 'blur(8px)',
                         width: 56,
                         height: 56,
                         opacity: hasPrev ? 1 : 0.3,
@@ -373,7 +371,6 @@ export const ImagePreviewOverlay = ({
                         pointerEvents: 'auto',
                         color: 'white',
                         bgcolor: alpha('#fff', 0.1),
-                        backdropFilter: 'blur(8px)',
                         width: 56,
                         height: 56,
                         opacity: hasNext ? 1 : 0.3,

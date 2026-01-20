@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -25,6 +26,18 @@ const MotionPaper = motion.create(Paper);
 export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogProps) {
     const theme = useTheme();
     const { state, actions } = useAuthForm(open, initialMode, onClose);
+
+    // Lock body scroll when dialog is open
+    useEffect(() => {
+        if (open) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [open]);
 
     // Animation variants
     const backdropVariants = {
@@ -74,7 +87,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
                             zIndex: theme.zIndex.modal
                         }}
                     />
@@ -126,7 +139,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                     zIndex: 10,
                                     '&:hover': {
                                         color: 'text.primary',
-                                        bgcolor: alpha(theme.palette.action.hover, 0.1)
+                                        bgcolor: alpha(theme.palette.action.hover, 0.15)
                                     }
                                 }}
                             >

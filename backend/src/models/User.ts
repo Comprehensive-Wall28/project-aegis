@@ -23,7 +23,9 @@ export interface IUser extends Document {
     gpaSystem: 'NORMAL' | 'GERMAN';
     preferences: IUserPreferences;
     webauthnCredentials: IWebAuthnCredential[];
+    passwordHashVersion: number;
     currentChallenge?: string;
+    totalStorageUsed: number;
 }
 
 const UserSchema: Schema = new Schema({
@@ -37,6 +39,11 @@ const UserSchema: Schema = new Schema({
     passwordHash: {
         type: String,
         required: true
+    },
+
+    passwordHashVersion: {
+        type: Number,
+        default: 1 // 1: SHA-256 (Legacy), 2: Argon2 (New)
     },
 
     gpaSystem: { type: String, enum: ['NORMAL', 'GERMAN'], default: 'NORMAL' },
@@ -56,7 +63,9 @@ const UserSchema: Schema = new Schema({
         transports: [{ type: String }]
     }],
 
-    currentChallenge: { type: String }
+    currentChallenge: { type: String },
+
+    totalStorageUsed: { type: Number, default: 0, min: 0 }
 
 }, { timestamps: true });
 

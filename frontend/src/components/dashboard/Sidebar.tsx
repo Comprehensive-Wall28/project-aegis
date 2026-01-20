@@ -39,9 +39,9 @@ const navItems = [
     { name: 'Vault', href: '/dashboard', icon: VaultIcon },
     { name: 'Social', icon: ShareIcon, href: '/dashboard/social' },
     { name: 'Files', href: '/dashboard/files', icon: FolderOpenIcon },
+    { name: 'Tasks', href: '/dashboard/tasks', icon: TasksIcon },
     { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
     { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
-    { name: 'Tasks', href: '/dashboard/tasks', icon: TasksIcon },
     // { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
     { name: 'Security', href: '/dashboard/security', icon: SettingsIcon },
 ];
@@ -144,9 +144,9 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                                             justifyContent: 'initial',
                                             px: 0,
                                             borderRadius: 3,
-                                            bgcolor: isActive ? alpha(theme.palette.primary.main, 0.06) : 'transparent',
+                                            bgcolor: isActive ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
                                             color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
-                                            border: `1px solid ${isActive ? alpha(theme.palette.primary.main, 0.2) : 'transparent'}`,
+                                            border: `1px solid ${isActive ? alpha(theme.palette.primary.main, 0.3) : 'transparent'}`,
                                             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                                             '&:hover': {
                                                 bgcolor: alpha(theme.palette.primary.main, 0.1),
@@ -227,7 +227,7 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                                 borderRadius: 3,
                                 color: theme.palette.text.secondary,
                                 '&:hover': {
-                                    bgcolor: alpha(theme.palette.error.main, 0.1),
+                                    bgcolor: alpha(theme.palette.error.main, 0.15),
                                     color: theme.palette.error.main
                                 }
                             }}
@@ -292,7 +292,7 @@ export function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileClose }: 
                         boxSizing: 'border-box',
                         bgcolor: 'transparent', // Transparent to show backdrop
                         border: 'none',
-                        borderRight: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
+                        borderRight: `1px solid ${alpha(theme.palette.primary.main, 0.05)}`,
                         transition: theme.transitions.create('width', {
                             easing: theme.transitions.easing.sharp,
                             duration: theme.transitions.duration.shorter,
@@ -317,9 +317,8 @@ export function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileClose }: 
                     '& .MuiDrawer-paper': {
                         width: 224,
                         boxSizing: 'border-box',
-                        bgcolor: alpha(theme.palette.background.default, 0.95),
-                        backdropFilter: 'blur(8px)', // Reduced from 16px for performance
-                        borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        bgcolor: theme.palette.background.default,
+                        borderRight: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
                         willChange: 'transform, opacity'
                     },
                 }}

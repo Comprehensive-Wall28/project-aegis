@@ -103,9 +103,8 @@ export function AccountSettings({ onNotification }: AccountSettingsProps) {
     const sharedPaperStyles = {
         p: { xs: 2, sm: 4 },
         borderRadius: '16px',
-        bgcolor: alpha(theme.palette.background.paper, 0.4),
-        backdropFilter: 'blur(12px)',
-        border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+        bgcolor: alpha(theme.palette.background.paper, 1.0),
+        border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
         boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
     };
 

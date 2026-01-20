@@ -25,7 +25,7 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
     persist(
         (set) => ({
-            theme: 'ocean',
+            theme: 'tokyonight',
             setTheme: (theme) => {
                 set({ theme });
                 document.documentElement.setAttribute('data-theme', theme);

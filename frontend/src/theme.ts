@@ -1,4 +1,4 @@
-import { createTheme, alpha } from '@mui/material/styles';
+import { createTheme } from '@mui/material/styles';
 
 declare module '@mui/material/Paper' {
     interface PaperPropsVariantOverrides {
@@ -34,25 +34,37 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#f8fafc', // Slate 50
                 secondary: '#94a3b8', // Slate 400
             },
-            divider: 'rgba(148, 163, 184, 0.1)',
+            divider: 'rgba(148, 163, 184, 0.08)',
         },
         catppuccin: {
             background: {
-                default: '#1e1e2e',
-                paper: '#313244',
+                default: '#11111b', // Crust (Darkest)
+                paper: '#181825',   // Mantle (Darker)
             },
             primary: {
-                main: '#89b4fa', // Blue
-                contrastText: '#1e1e2e',
+                main: '#89b4fa',    // Blue
+                contrastText: '#1e1e2e', // Base
             },
             secondary: {
-                main: '#a6e3a1', // Green
+                main: '#cba6f7',    // Mauve (Changed from Green for better aesthetics)
             },
             text: {
-                primary: '#cdd6f4',
-                secondary: '#a6adc8',
+                primary: '#cdd6f4', // Text
+                secondary: '#a6adc8', // Subtext 0
             },
-            divider: 'rgba(205, 214, 244, 0.1)',
+            error: {
+                main: '#f38ba8',    // Red
+            },
+            warning: {
+                main: '#fab387',    // Peach
+            },
+            info: {
+                main: '#74c7ec',    // Sapphire
+            },
+            success: {
+                main: '#a6e3a1',    // Green
+            },
+            divider: 'rgba(108, 112, 134, 0.12)', // Overlay 0 with alpha refined to 0.12 for visibility
         },
         purple: {
             background: {
@@ -88,7 +100,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#ffffff',
                 secondary: '#a1a1aa',
             },
-            divider: 'rgba(255, 255, 255, 0.2)',
+            divider: 'rgba(255, 255, 255, 0.08)',
         },
         light: {
             background: {
@@ -146,8 +158,8 @@ export const getTheme = (mode: ThemeMode) => {
         },
         tokyonight: {
             background: {
-                default: '#16161e', // Even darker for outer depth
-                paper: '#1a1b26',   // Tokyo Night (Night) - Darker center area
+                default: '#13141b', // Even darker for outer depth
+                paper: '#181923',   // Tokyo Night (Night) - Darker center area
             },
             primary: {
                 main: '#7aa2f7',    // Tokyo Night Blue
@@ -172,7 +184,7 @@ export const getTheme = (mode: ThemeMode) => {
             success: {
                 main: '#9ece6a',
             },
-            divider: 'rgba(56, 62, 90, 0.6)', // Higher contrast Storm blue-gray for better definition
+            divider: 'rgba(56, 62, 90, 0.12)', // Slightly increased for visibility while remaining subtle
         },
     };
 
@@ -211,11 +223,11 @@ export const getTheme = (mode: ThemeMode) => {
                             background: 'transparent',
                         },
                         '&::-webkit-scrollbar-thumb': {
-                            background: 'rgba(255, 255, 255, 0.1)',
+                            background: 'rgba(255, 255, 255, 0.25)',
                             borderRadius: 4,
                         },
                         '&::-webkit-scrollbar-thumb:hover': {
-                            background: 'rgba(255, 255, 255, 0.2)',
+                            background: 'rgba(255, 255, 255, 0.4)',
                         },
                     },
                 },
@@ -246,9 +258,7 @@ export const getTheme = (mode: ThemeMode) => {
                     {
                         props: { variant: 'glass' as any },
                         style: {
-                            background: alpha(selectedPalette.background.paper, 0.5),
-                            backdropFilter: 'blur(16px)',
-                            WebkitBackdropFilter: 'blur(16px)',
+                            background: selectedPalette.background.paper,
                             border: `1px solid ${selectedPalette.divider}`,
                         },
                     },
@@ -265,10 +275,8 @@ export const getTheme = (mode: ThemeMode) => {
                     {
                         props: { variant: 'translucent' as any },
                         style: {
-                            background: alpha(selectedPalette.background.paper, 0.75), // Increased from 0.7
-                            border: `1px solid ${alpha(selectedPalette.divider, 0.1)}`,
-                            backdropFilter: 'blur(6px)', // Reduced from 10px
-                            WebkitBackdropFilter: 'blur(6px)',
+                            background: selectedPalette.background.paper,
+                            border: `1px solid ${selectedPalette.divider}`,
                         },
                     },
                 ],

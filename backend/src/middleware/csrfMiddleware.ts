@@ -1,12 +1,13 @@
 import csrf from 'csurf';
 import express from 'express';
+import { config } from '../config/env';
 
 // Create CSRF protection middleware (enabled for all environments)
 export const csrfProtection = csrf({
     cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: config.nodeEnv === 'production',
+        sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
     }
 });
 
@@ -14,8 +15,8 @@ export const csrfProtection = csrf({
 export const csrfTokenCookie = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     res.cookie('XSRF-TOKEN', req.csrfToken(), {
         httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+        secure: config.nodeEnv === 'production',
+        sameSite: config.nodeEnv === 'production' ? 'none' : 'lax'
     });
     next();
 };

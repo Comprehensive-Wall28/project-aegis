@@ -8,12 +8,12 @@ export const createCollectionSlice: StateCreator<SocialState, [], [], Pick<Socia
     collections: [],
     currentCollectionId: null,
 
-    selectCollection: async (collectionId: string) => {
+    selectCollection: async (collectionId: string, force?: boolean) => {
         const state = get();
-        if (state.currentCollectionId === collectionId) return;
+        if (!force && state.currentCollectionId === collectionId) return;
 
-        // Check cache
-        const cached = state.linksCache[collectionId];
+        // Check cache (skip if forced)
+        const cached = !force ? state.linksCache[collectionId] : null;
         if (cached) {
             set({
                 currentCollectionId: collectionId,
@@ -23,11 +23,11 @@ export const createCollectionSlice: StateCreator<SocialState, [], [], Pick<Socia
             return;
         }
 
-        set({
+        set((prev) => ({
             currentCollectionId: collectionId,
-            links: [], // Clear existing links when switching
+            links: force && prev.currentCollectionId === collectionId ? prev.links : [],
             hasMoreLinks: false
-        });
+        }));
 
         await get().fetchCollectionLinks(collectionId, false);
     },

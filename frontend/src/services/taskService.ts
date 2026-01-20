@@ -46,6 +46,7 @@ export interface CreateTaskInput extends EncryptedTaskPayload {
     priority?: 'high' | 'medium' | 'low';
     status?: 'todo' | 'in_progress' | 'done';
     recordHash: string;
+    mentions?: string[];
 }
 
 export interface UpdateTaskInput extends Partial<EncryptedTaskPayload> {
@@ -54,12 +55,18 @@ export interface UpdateTaskInput extends Partial<EncryptedTaskPayload> {
     status?: 'todo' | 'in_progress' | 'done';
     order?: number;
     recordHash?: string;
+    mentions?: string[];
 }
 
 export interface ReorderUpdate {
     id: string;
     status?: 'todo' | 'in_progress' | 'done';
     order: number;
+}
+
+export interface PaginatedTasks {
+    items: EncryptedTask[];
+    nextCursor: string | null;
 }
 
 const taskService = {
@@ -69,6 +76,15 @@ const taskService = {
         if (filters?.priority) params.append('priority', filters.priority);
 
         const response = await apiClient.get<EncryptedTask[]>(`${PREFIX}`, { params });
+        return response.data;
+    },
+
+    getTasksPaginated: async (filters: { limit: number; cursor?: string; signal?: AbortSignal }): Promise<PaginatedTasks> => {
+        const params = new URLSearchParams();
+        params.append('limit', filters.limit.toString());
+        if (filters.cursor) params.append('cursor', filters.cursor);
+
+        const response = await apiClient.get<PaginatedTasks>(`${PREFIX}`, { params, signal: filters.signal });
         return response.data;
     },
 
@@ -88,6 +104,16 @@ const taskService = {
 
     reorderTasks: async (updates: ReorderUpdate[]): Promise<void> => {
         await apiClient.put(`${PREFIX}/reorder`, { updates });
+    },
+
+    /**
+     * Fetch upcoming incomplete tasks for dashboard widget
+     */
+    getUpcomingTasks: async (limit: number = 10): Promise<EncryptedTask[]> => {
+        const response = await apiClient.get<EncryptedTask[]>(`${PREFIX}/upcoming`, {
+            params: { limit }
+        });
+        return response.data;
     },
 };
 

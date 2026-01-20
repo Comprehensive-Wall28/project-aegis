@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { useSessionStore } from './sessionStore';
 import { useFolderKeyStore } from './useFolderKeyStore';
-import apiClient from '../services/api';
+import apiClient from '@/services/api';
 import { generateDEK, wrapKey, bytesToHex } from '../lib/cryptoUtils';
 
 // Constants
@@ -249,6 +249,9 @@ export const useUploadStore = create<UploadState>((set, get) => ({
 
                     // 6. Complete
                     get().updateUploadItem(item.id, { status: 'completed', progress: 100 });
+
+                    // Refresh storage stats
+                    useSessionStore.getState().fetchStorageStats();
 
                 } catch (err: any) {
                     console.error(`Upload failed for ${item.file.name}:`, err);

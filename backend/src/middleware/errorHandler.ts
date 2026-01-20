@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { config } from '../config/env';
 
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
     // If the response status is still 200, it means it wasn't set by the controller/middleware.
@@ -14,6 +15,6 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
 
     res.json({
         message: err.message,
-        stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+        stack: config.nodeEnv === 'production' ? null : err.stack,
     });
 };

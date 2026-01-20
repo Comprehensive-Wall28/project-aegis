@@ -114,9 +114,8 @@ export function CourseForm({ onSubmit, isLoading = false }: CourseFormProps) {
             sx={{
                 p: 3,
                 borderRadius: '24px',
-                bgcolor: alpha(theme.palette.background.paper, 0.4),
-                backdropFilter: 'blur(12px)',
-                border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+                bgcolor: theme.palette.background.paper,
+                border: `1px solid ${alpha(theme.palette.divider, 0.07)}`,
             }}
         >
             <Typography variant="h6" sx={{ mb: 3, fontWeight: 800, letterSpacing: '-0.01em' }}>

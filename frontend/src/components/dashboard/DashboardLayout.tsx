@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { SystemStatusBar } from './SystemStatusBar';
@@ -14,8 +14,12 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useVaultDownload } from '@/hooks/useVaultDownload';
 import vaultService from '@/services/vaultService';
 import { backgroundCache } from '@/lib/backgroundCache';
+import { useGlobalData } from '@/hooks/useGlobalData';
 
 export function DashboardLayout() {
+    // Global data hydration
+    useGlobalData();
+
     const isSidebarCollapsed = usePreferenceStore((state) => state.isSidebarCollapsed);
     const toggleSidebar = usePreferenceStore((state) => state.toggleSidebar);
     const backgroundImage = usePreferenceStore((state) => state.backgroundImage);
@@ -26,6 +30,8 @@ export function DashboardLayout() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const theme = useTheme();
     const user = useSessionStore((state) => state.user);
+    const location = useLocation();
+    const isCalendarPage = location.pathname.includes('/calendar');
 
     // Sync user preferences to local store on login/update
     useEffect(() => {
@@ -85,6 +91,21 @@ export function DashboardLayout() {
         refreshCsrfToken();
     }, []);
 
+    // Reset window scroll and lock overflow via data-attribute (more performant than direct style injection)
+    useEffect(() => {
+        document.documentElement.dataset.dashboardActive = 'true';
+
+        // Force scroll to top after a small delay to ensure layout is final
+        const timer = setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 20);
+
+        return () => {
+            delete document.documentElement.dataset.dashboardActive;
+            clearTimeout(timer);
+        };
+    }, []);
+
     const navigate = useNavigate();
     const joinRoom = useSocialStore((state) => state.joinRoom);
     const [joinMessage, setJoinMessage] = useState<string | null>(null);
@@ -130,7 +151,13 @@ export function DashboardLayout() {
 
     return (
         <Box
-            sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflow: 'hidden', position: 'relative' }}
+            sx={{
+                height: ['100vh', '100dvh'],
+                bgcolor: 'background.default',
+                display: 'flex',
+                overflow: 'hidden',
+                position: 'relative'
+            }}
         >
             {/* Soft Ambient Background Glow - Fixed 'Orb' issue by using wide ellipse */}
             {/* Soft Ambient Background Glow - Fixed 'Orb' issue by using wide ellipse */}
@@ -141,8 +168,8 @@ export function DashboardLayout() {
                     zIndex: 0,
                     background: bgUrl
                         ? `url(${bgUrl}) center/cover no-repeat fixed`
-                        : `radial-gradient(ellipse 120% 50% at 50% -20%, ${alpha(theme.palette.primary.main, 0.2)} 0%, transparent 100%)`,
-                    opacity: bgUrl ? (backgroundOpacity ?? 0.4) : 0.12,
+                        : theme.palette.background.default,
+                    opacity: bgUrl ? (backgroundOpacity ?? 0.4) : 1,
                     filter: bgUrl ? `blur(${backgroundBlur ?? 8}px) brightness(0.7)` : 'none',
                     transition: 'background 0.5s ease-in-out, opacity 0.5s ease-in-out, filter 0.5s ease-in-out',
                     pointerEvents: 'none'
@@ -186,7 +213,7 @@ export function DashboardLayout() {
                     }),
                     display: 'flex',
                     flexDirection: 'column',
-                    height: '100vh',
+                    height: ['100vh', '100dvh'],
                     position: 'relative',
                     zIndex: 1,
                     minWidth: 0
@@ -199,7 +226,7 @@ export function DashboardLayout() {
                 </Box>
 
                 {/* Content Area ('The Stage') */}
-                <Box sx={{ flexGrow: 1, m: { xs: 1, sm: 2 }, mt: { xs: 0, sm: 0 }, overflow: 'hidden' }}>
+                <Box sx={{ flexGrow: 1, p: { xs: 1, sm: 2 }, pt: 0, overflow: 'hidden' }}>
                     <Paper
                         elevation={0}
                         component={motion.div}
@@ -214,20 +241,24 @@ export function DashboardLayout() {
                             overflow: 'hidden',
                             // Solid stage for professionalism and performance
                             bgcolor: theme.palette.background.paper,
-                            border: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
+                            border: `1px solid ${alpha(theme.palette.primary.main, 0.05)}`,
                             boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`,
                         }}
                     >
                         <Box
                             sx={{
                                 flexGrow: 1,
-                                p: { xs: 2, sm: 3, md: 6 },
-                                overflowY: 'auto',
+                                p: {
+                                    xs: isCalendarPage ? 0 : 2,
+                                    sm: isCalendarPage ? 0 : 3,
+                                    md: isCalendarPage ? 0 : 6
+                                },
+                                overflowY: isCalendarPage ? 'hidden' : 'auto',
                                 '&::-webkit-scrollbar': { width: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: 3 }
                             }}
                         >
-                            <Box sx={{ maxWidth: 1600, mx: 'auto', width: '100%', height: '100%' }}>
+                            <Box sx={{ maxWidth: isCalendarPage ? 'none' : 1600, mx: 'auto', width: '100%', height: '100%' }}>
                                 <Outlet />
                             </Box>
                         </Box>

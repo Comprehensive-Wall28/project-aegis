@@ -13,8 +13,12 @@ import {
     useTheme,
     FormControlLabel,
     Checkbox,
+    useMediaQuery,
 } from '@mui/material';
 import { Close as CloseIcon, Palette as PaletteIcon } from '@mui/icons-material';
+import { MobileDateTimePicker } from '@mui/x-date-pickers/MobileDateTimePicker';
+import dayjs from 'dayjs';
+import { MentionPicker, type MentionEntity } from '../tasks/MentionPicker';
 
 const AEGIS_COLORS = [
     { name: 'Primary Blue', value: '#3f51b5' },
@@ -35,6 +39,8 @@ export interface EventDialogProps {
 
 export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving }: EventDialogProps) => {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [location, setLocation] = useState('');
@@ -43,19 +49,18 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
     const [isAllDay, setIsAllDay] = useState(false);
     const [color, setColor] = useState(AEGIS_COLORS[0].value);
 
+    // Mention Picker State
+    const [mentionPicker, setMentionPicker] = useState<{
+        open: boolean;
+        field: 'description';
+        anchorEl: HTMLElement | null;
+        cursorPos: number;
+    }>({ open: false, field: 'description', anchorEl: null, cursorPos: 0 });
+
     const formatDateForInput = (dateInput: string | Date | undefined) => {
         if (!dateInput) return '';
-        const d = new Date(dateInput);
-        if (isNaN(d.getTime())) return '';
-
-        // Format to YYYY-MM-DDTHH:mm in local time
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const hours = String(d.getHours()).padStart(2, '0');
-        const minutes = String(d.getMinutes()).padStart(2, '0');
-
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
+        const d = dayjs(dateInput);
+        return d.isValid() ? d.toISOString() : '';
     };
 
     useEffect(() => {
@@ -79,6 +84,61 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
         }
     }, [event, open]);
 
+    const handleMentionSelect = (entity: MentionEntity) => {
+        const field = mentionPicker.field;
+        const val = field === 'description' ? description : '';
+        const triggerPos = mentionPicker.cursorPos - 1; // Position of '@'
+
+        // Find the current cursor position to know how much search text to replace
+        const input = mentionPicker.anchorEl as HTMLTextAreaElement;
+        const currentPos = input.selectionStart;
+
+        let mention = '';
+        if (entity.type === 'file') {
+            const folderId = entity.folderId || 'root';
+            mention = `[@${entity.name}](aegis-file://${folderId}/${entity.id})`;
+        } else if (entity.type === 'task') {
+            mention = `[#${entity.name}](aegis-task://${entity.id})`;
+        } else if (entity.type === 'event') {
+            mention = `[~${entity.name}](aegis-event://${entity.id})`;
+        }
+
+        // Replace from the '@' up to the current cursor position
+        const newValue = val.substring(0, triggerPos) + mention + val.substring(currentPos);
+
+        if (field === 'description') setDescription(newValue);
+
+        setMentionPicker(prev => ({ ...prev, open: false }));
+    };
+
+    const handleTextChange = (field: 'description') => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        if (field === 'description') setDescription(value);
+
+        const input = e.target as HTMLTextAreaElement;
+        const cursorPos = input.selectionStart;
+        const textBefore = value.substring(0, cursorPos);
+
+        // Look for the last '@' that is either at the start or preceded by a space/newline
+        const lastAtIndex = textBefore.lastIndexOf('@');
+        if (lastAtIndex !== -1 && (lastAtIndex === 0 || /[\s\n]/.test(textBefore[lastAtIndex - 1]))) {
+            const textSinceAt = textBefore.substring(lastAtIndex + 1);
+            // Keep open if playing with the same mention (no spaces/newlines since @)
+            if (!/[\s\n]/.test(textSinceAt)) {
+                setMentionPicker({
+                    open: true,
+                    field: field,
+                    anchorEl: input,
+                    cursorPos: lastAtIndex + 1
+                });
+            } else if (mentionPicker.open) {
+                setMentionPicker(prev => ({ ...prev, open: false }));
+            }
+        } else if (mentionPicker.open) {
+            setMentionPicker(prev => ({ ...prev, open: false }));
+        }
+    };
+
     const handleSubmit = () => {
         onSubmit({
             title,
@@ -97,11 +157,15 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
             onClose={onClose}
             fullWidth
             maxWidth="sm"
+            fullScreen={isMobile}
+            disableEnforceFocus={isPickerOpen}
             PaperProps={{
                 variant: 'solid',
                 sx: {
-                    borderRadius: '24px',
+                    borderRadius: isMobile ? 0 : '24px',
                     boxShadow: theme.shadows[20],
+                    backgroundImage: 'none',
+                    bgcolor: theme.palette.background.paper,
                 }
             }}
         >
@@ -114,7 +178,7 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent dividers sx={{ borderColor: alpha(theme.palette.divider, 0.1) }}>
+            <DialogContent dividers sx={{ borderColor: alpha(theme.palette.divider, 0.06) }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
                     <TextField
                         label="Event Title"
@@ -128,27 +192,63 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                         }}
                     />
 
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <TextField
+                    <Box sx={{ display: 'flex', gap: 2, flexDirection: isMobile ? 'column' : 'row' }}>
+                        <MobileDateTimePicker
                             label="Start Date & Time"
-                            type="datetime-local"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            fullWidth
+                            value={startDate ? dayjs(startDate) : null}
+                            onOpen={() => setIsPickerOpen(true)}
+                            onChange={(newValue) => setStartDate(newValue ? (newValue as dayjs.Dayjs).toISOString() : '')}
                             slotProps={{
-                                inputLabel: { shrink: true },
-                                input: { sx: { borderRadius: '12px', fontFamily: 'JetBrains Mono, monospace' } }
+                                textField: {
+                                    fullWidth: true,
+                                    variant: 'outlined',
+                                    sx: {
+                                        '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+                                        '& .MuiInputLabel-root': { fontFamily: 'inherit' }
+                                    }
+                                },
+                                dialog: {
+                                    TransitionProps: {
+                                        onExited: () => setIsPickerOpen(false)
+                                    } as any,
+                                    sx: {
+                                        '& .MuiPaper-root': {
+                                            borderRadius: '24px',
+                                            bgcolor: theme.palette.background.paper,
+                                            backgroundImage: 'none',
+                                            boxShadow: theme.shadows[20],
+                                        }
+                                    }
+                                }
                             }}
                         />
-                        <TextField
+                        <MobileDateTimePicker
                             label="End Date & Time"
-                            type="datetime-local"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            fullWidth
+                            value={endDate ? dayjs(endDate) : null}
+                            onOpen={() => setIsPickerOpen(true)}
+                            onChange={(newValue) => setEndDate(newValue ? (newValue as dayjs.Dayjs).toISOString() : '')}
                             slotProps={{
-                                inputLabel: { shrink: true },
-                                input: { sx: { borderRadius: '12px', fontFamily: 'JetBrains Mono, monospace' } }
+                                textField: {
+                                    fullWidth: true,
+                                    variant: 'outlined',
+                                    sx: {
+                                        '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+                                        '& .MuiInputLabel-root': { fontFamily: 'inherit' }
+                                    }
+                                },
+                                dialog: {
+                                    TransitionProps: {
+                                        onExited: () => setIsPickerOpen(false)
+                                    } as any,
+                                    sx: {
+                                        '& .MuiPaper-root': {
+                                            borderRadius: '24px',
+                                            bgcolor: theme.palette.background.paper,
+                                            backgroundImage: 'none',
+                                            boxShadow: theme.shadows[20],
+                                        }
+                                    }
+                                }
                             }}
                         />
                     </Box>
@@ -178,15 +278,24 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                     <TextField
                         label="Description"
                         value={description}
-                        onChange={(e) => setDescription(e.target.value)}
+                        onChange={handleTextChange('description')}
                         fullWidth
                         multiline
                         rows={3}
                         variant="outlined"
+                        placeholder="Add more details... (Use @ for mentions)"
                         slotProps={{
                             input: { sx: { borderRadius: '12px' } }
                         }}
                     />
+
+                    {mentionPicker.open && (
+                        <MentionPicker
+                            anchorEl={mentionPicker.anchorEl}
+                            onSelect={handleMentionSelect}
+                            onClose={() => setMentionPicker(prev => ({ ...prev, open: false }))}
+                        />
+                    )}
 
                     <Box>
                         <Typography variant="subtitle2" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>

@@ -58,6 +58,14 @@ class PQCWorkerManager {
     }
 
     /**
+     * Expensive: Generate Argon2 hash in worker
+     */
+    async getArgon2Hash(password: string, salt: string): Promise<string> {
+        const result = await this.sendRequest('hash_argon2', { password, salt });
+        return result.hash;
+    }
+
+    /**
      * Expensive: Generate ML-KEM-768 keypair
      */
     async generateKeys(seed?: Uint8Array): Promise<{ publicKey: Uint8Array; secretKey: Uint8Array }> {
@@ -107,6 +115,21 @@ class PQCWorkerManager {
         const privateKey = hexToBytes(privateKeyHex);
         const result = await this.sendRequest('batch_decrypt_courses', { courses, privateKey });
         return result.courses;
+    }
+
+    /**
+     * HIGHLY EXPENSIVE: Decrypt multiple tasks using PQC and AES in worker
+     */
+    async batchDecryptTasks(tasks: any[], privateKeyHex: string): Promise<{ tasks: any[], failedTaskIds: string[] }> {
+        const hexToBytes = (hex: string) =>
+            new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
+
+        const privateKey = hexToBytes(privateKeyHex);
+        const result = await this.sendRequest('batch_decrypt_tasks', { tasks, privateKey });
+        return {
+            tasks: result.tasks,
+            failedTaskIds: result.failedTaskIds || []
+        };
     }
 
     /**

@@ -19,6 +19,14 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+        const cursor = req.query.cursor as string | undefined;
+
+        if (limit !== undefined || cursor !== undefined) {
+            const result = await taskService.getPaginatedTasks(req.user.id, { limit: limit || 50, cursor });
+            return res.status(200).json(result);
+        }
+
         const tasks = await taskService.getTasks(req.user.id, {
             status: req.query.status as string | undefined,
             priority: req.query.priority as string | undefined
@@ -96,6 +104,24 @@ export const reorderTasks = async (req: AuthRequest, res: Response) => {
 
         await taskService.reorderTasks(req.user.id, req.body.updates, req);
         res.status(200).json({ message: 'Tasks reordered successfully' });
+    } catch (error) {
+        handleError(error, res);
+    }
+};
+
+/**
+ * Get upcoming incomplete tasks for dashboard widget.
+ * Returns tasks with dueDate >= now, status != 'done', sorted by dueDate ASC.
+ */
+export const getUpcomingTasks = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+        const tasks = await taskService.getUpcomingTasks(req.user.id, limit);
+        res.status(200).json(tasks);
     } catch (error) {
         handleError(error, res);
     }

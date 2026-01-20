@@ -22,18 +22,20 @@ interface TaskState {
 
     fetchTasks: (
         filters?: { status?: string; priority?: string },
-        decryptFn?: (tasks: EncryptedTask[]) => Promise<DecryptedTask[]>
+        decryptFn?: (tasks: EncryptedTask[]) => Promise<DecryptedTask[] | { tasks: DecryptedTask[], failedTaskIds: string[] }>
     ) => Promise<void>;
 
     addTask: (
         task: CreateTaskInput,
-        decryptFn: (task: EncryptedTask) => Promise<DecryptedTask>
+        decryptFn: (task: EncryptedTask) => Promise<DecryptedTask>,
+        mentions?: string[]
     ) => Promise<void>;
 
     updateTask: (
         id: string,
         updates: UpdateTaskInput,
-        decryptFn: (task: EncryptedTask) => Promise<DecryptedTask>
+        decryptFn: (task: EncryptedTask) => Promise<DecryptedTask>,
+        mentions?: string[]
     ) => Promise<void>;
 
     deleteTask: (id: string) => Promise<void>;
@@ -43,6 +45,12 @@ interface TaskState {
     // Local state updates for optimistic UI
     updateTaskLocal: (id: string, updates: Partial<DecryptedTask>) => void;
     setTasksLocal: (tasks: DecryptedTask[]) => void;
+
+    // Lightweight fetch for dashboard
+    fetchUpcomingTasks: (
+        limit: number,
+        decryptFn: (tasks: EncryptedTask[]) => Promise<DecryptedTask[] | { tasks: DecryptedTask[], failedTaskIds: string[] }>
+    ) => Promise<void>;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -55,8 +63,21 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         try {
             const encryptedTasks = await taskService.getTasks(filters);
             if (decryptFn) {
-                const decryptedTasks = await decryptFn(encryptedTasks);
-                set({ tasks: decryptedTasks, isLoading: false });
+                // @ts-ignore - Handle new return type with failedTaskIds
+                const result = await decryptFn(encryptedTasks);
+
+                if (result && typeof result === 'object' && 'tasks' in result) {
+                    set({
+                        tasks: result.tasks,
+                        isLoading: false,
+                        error: result.failedTaskIds?.length
+                            ? `Warning: ${result.failedTaskIds.length} tasks failed to decrypt.`
+                            : null
+                    });
+                } else {
+                    // Fallback for older fn
+                    set({ tasks: result as unknown as DecryptedTask[], isLoading: false });
+                }
             } else {
                 set({ tasks: encryptedTasks as unknown as DecryptedTask[], isLoading: false });
             }
@@ -65,10 +86,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         }
     },
 
-    addTask: async (task, decryptFn) => {
+    addTask: async (task, decryptFn, mentions) => {
         set({ error: null });
         try {
-            const newEncryptedTask = await taskService.createTask(task);
+            const newEncryptedTask = await taskService.createTask({ ...task, mentions });
             const decryptedTask = await decryptFn(newEncryptedTask);
             set(state => ({
                 tasks: [...state.tasks, decryptedTask]
@@ -79,10 +100,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         }
     },
 
-    updateTask: async (id, updates, decryptFn) => {
+    updateTask: async (id, updates, decryptFn, mentions) => {
         set({ error: null });
         try {
-            const updatedEncryptedTask = await taskService.updateTask(id, updates);
+            const updatedEncryptedTask = await taskService.updateTask(id, { ...updates, mentions });
             const decryptedTask = await decryptFn(updatedEncryptedTask);
             set(state => ({
                 tasks: state.tasks.map(t => t._id === id ? decryptedTask : t)
@@ -142,5 +163,31 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     setTasksLocal: (tasks) => {
         set({ tasks });
+    },
+
+    /**
+     * Fetch only upcoming tasks for lightweight dashboard hydration.
+     * Merges with existing tasks to avoid overwriting full task lists.
+     */
+    fetchUpcomingTasks: async (
+        limit: number,
+        decryptFn: (tasks: EncryptedTask[]) => Promise<DecryptedTask[] | { tasks: DecryptedTask[], failedTaskIds: string[] }>
+    ) => {
+        try {
+            const encryptedTasks = await taskService.getUpcomingTasks(limit);
+            if (decryptFn) {
+                const result = await decryptFn(encryptedTasks);
+                const decrypted = 'tasks' in result ? result.tasks : result as unknown as DecryptedTask[];
+
+                // Merge upcoming tasks into store (don't replace all tasks)
+                set(state => {
+                    const existingIds = new Set(state.tasks.map(t => t._id));
+                    const newTasks = decrypted.filter(t => !existingIds.has(t._id));
+                    return { tasks: [...state.tasks, ...newTasks] };
+                });
+            }
+        } catch (error: any) {
+            console.error('[TaskStore] Failed to fetch upcoming tasks:', error);
+        }
     }
 }));

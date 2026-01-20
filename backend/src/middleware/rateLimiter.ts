@@ -1,7 +1,8 @@
 import rateLimit from 'express-rate-limit';
+import { config } from '../config/env';
 
-const API_RATE_LIMIT = parseInt(process.env.API_RATE_LIMIT || '500', 10);
-const AUTH_RATE_LIMIT = parseInt(process.env.AUTH_RATE_LIMIT || '50', 10);
+const API_RATE_LIMIT = config.apiRateLimit;
+const AUTH_RATE_LIMIT = config.authRateLimit;
 
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes

@@ -1,4 +1,5 @@
 import * as crypto from 'crypto';
+import { config } from '../config/env';
 
 let cachedKey: Buffer | null = null;
 
@@ -11,7 +12,7 @@ function getCookieEncryptionKey(): Buffer {
         return cachedKey;
     }
 
-    const secret = process.env.COOKIE_ENCRYPTION_KEY || process.env.JWT_SECRET;
+    const secret = config.cookieEncryptionKey || config.jwtSecret;
     if (!secret) {
         throw new Error('Missing encryption key (COOKIE_ENCRYPTION_KEY or JWT_SECRET)');
     }

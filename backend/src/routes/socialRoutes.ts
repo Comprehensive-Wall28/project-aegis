@@ -17,7 +17,8 @@ import {
     unmarkLinkViewed,
     getComments,
     postComment,
-    deleteComment
+    deleteComment,
+    searchRoomLinks
 } from '../controllers/socialController';
 import { proxyImage } from '../controllers/linkPreviewController';
 import { protect } from '../middleware/authMiddleware';
@@ -38,6 +39,7 @@ router.post('/rooms/:roomId/links', protect, csrfProtection, postLink);
 router.post('/rooms/:roomId/collections', protect, csrfProtection, createCollection);
 router.get('/rooms/:roomId', protect, csrfProtection, getRoomContent);
 router.get('/rooms/:roomId/collections/:collectionId/links', protect, csrfProtection, getCollectionLinks);
+router.get('/rooms/:roomId/search', protect, csrfProtection, searchRoomLinks);
 router.delete('/links/:linkId', protect, csrfProtection, deleteLink);
 router.delete('/collections/:collectionId', protect, csrfProtection, deleteCollection);
 router.patch('/rooms/:roomId/collections/reorder', protect, csrfProtection, reorderCollections);

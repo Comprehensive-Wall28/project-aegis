@@ -1,4 +1,5 @@
 import { BaseRepository } from './base/BaseRepository';
+import logger from '../utils/logger';
 import { ILinkView, LinkViewSchema } from '../models/LinkView';
 import { SafeFilter } from './base/types';
 import { DatabaseManager } from '../config/DatabaseManager';
@@ -69,7 +70,7 @@ export class LinkViewRepository extends BaseRepository<ILinkView> {
             { upsert: true }
         ).catch(err => {
             // Log but don't throw - fire-and-forget pattern
-            console.error('Failed to mark link viewed:', err);
+            logger.error('Failed to mark link viewed:', err);
         });
     }
 
@@ -91,7 +92,7 @@ export class LinkViewRepository extends BaseRepository<ILinkView> {
             userId: { $eq: userId as any },
             linkId: { $eq: linkId as any }
         } as SafeFilter<ILinkView>).catch(err => {
-            console.error('Failed to unmark link viewed:', err);
+            logger.error('Failed to unmark link viewed:', err);
         });
     }
 }

@@ -17,7 +17,7 @@ export interface SocialHeaderProps {
     handleSelectUploader: (id: string | null) => void;
     viewFilter: 'all' | 'viewed' | 'unviewed';
     handleViewFilterChange: (filter: 'all' | 'viewed' | 'unviewed') => void;
-    getUniqueUploaders: () => { id: string, username: string }[];
+    uniqueUploaders: { id: string, username: string }[];
     newLinkUrl: string;
     setNewLinkUrl: (url: string) => void;
     handlePostLink: () => void;
@@ -69,6 +69,7 @@ export interface LinksContainerProps {
     setSearchQuery: (query: string) => void;
     isLoadingContent: boolean;
     isLoadingLinks: boolean;
+    isSearchingLinks: boolean;
     filteredLinks: LinkPost[];
     deleteLink: (id: string) => void;
     setDraggedLinkId: (id: string | null) => void;
@@ -94,6 +95,7 @@ export interface LinkCardProps {
     commentCount?: number;
     canDelete?: boolean;
     onMoveClick?: (link: LinkPost) => void;
+    highlight?: string;
 }
 
 export interface CommentsOverlayProps {

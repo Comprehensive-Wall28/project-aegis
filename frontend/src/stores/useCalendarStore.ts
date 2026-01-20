@@ -9,8 +9,8 @@ interface CalendarState {
     error: string | null;
 
     fetchEvents: (start?: string, end?: string, decryptFn?: (events: EncryptedCalendarEvent[]) => Promise<any[]>) => Promise<void>;
-    addEvent: (event: CalendarEventInput, decryptFn: (event: EncryptedCalendarEvent) => Promise<any>) => Promise<void>;
-    updateEvent: (id: string, updates: Partial<CalendarEventInput>, decryptFn: (event: EncryptedCalendarEvent) => Promise<any>) => Promise<void>;
+    addEvent: (event: CalendarEventInput, decryptFn: (event: EncryptedCalendarEvent) => Promise<any>, mentions?: string[]) => Promise<void>;
+    updateEvent: (id: string, updates: Partial<CalendarEventInput>, decryptFn: (event: EncryptedCalendarEvent) => Promise<any>, mentions?: string[]) => Promise<void>;
     deleteEvent: (id: string) => Promise<void>;
 }
 
@@ -22,7 +22,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     fetchEvents: async (start, end, decryptFn) => {
         set({ isLoading: true, error: null });
         try {
-            const encryptedEvents = await calendarService.getEvents(start, end);
+            const encryptedEvents = await calendarService.getEvents({ start, end });
             if (decryptFn) {
                 const decryptedEvents = await decryptFn(encryptedEvents);
                 set({ events: decryptedEvents, isLoading: false });
@@ -34,10 +34,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         }
     },
 
-    addEvent: async (event, decryptFn) => {
+    addEvent: async (event, decryptFn, mentions) => {
         set({ isLoading: true, error: null });
         try {
-            const newEncryptedEvent = await calendarService.createEvent(event);
+            const newEncryptedEvent = await calendarService.createEvent({ ...event, mentions });
             const decryptedEvent = await decryptFn(newEncryptedEvent);
             set(state => ({
                 events: [...state.events, decryptedEvent],
@@ -48,10 +48,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         }
     },
 
-    updateEvent: async (id, updates, decryptFn) => {
+    updateEvent: async (id, updates, decryptFn, mentions) => {
         set({ isLoading: true, error: null });
         try {
-            const updatedEncryptedEvent = await calendarService.updateEvent(id, updates);
+            const updatedEncryptedEvent = await calendarService.updateEvent(id, { ...updates, mentions });
             const decryptedEvent = await decryptFn(updatedEncryptedEvent);
             set(state => ({
                 events: state.events.map(e => e._id === id ? decryptedEvent : e),

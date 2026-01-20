@@ -287,6 +287,24 @@ const socialService = {
             collectionIds,
         });
     },
+
+    /**
+     * Search links across all collections in a room
+     */
+    searchRoomLinks: async (
+        roomId: string,
+        query: string,
+        limit: number = 50
+    ): Promise<{
+        links: LinkPost[];
+        viewedLinkIds: string[];
+        commentCounts: Record<string, number>;
+    }> => {
+        const response = await apiClient.get(`/social/rooms/${roomId}/search`, {
+            params: { q: query, limit }
+        });
+        return response.data;
+    },
 };
 
 export default socialService;
