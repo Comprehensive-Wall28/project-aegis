@@ -183,6 +183,7 @@ export function CalendarPage() {
 
     const renderEventContent = (eventInfo: any) => {
         const { event } = eventInfo;
+        const backgroundColor = event.backgroundColor || event.extendedProps?.color || '#3f51b5';
 
         return (
             <Box
@@ -191,8 +192,8 @@ export function CalendarPage() {
                     alignItems: 'center',
                     width: '100%',
                     overflow: 'hidden',
-                    bgcolor: alpha(event.backgroundColor, 0.2),
-                    borderLeft: `4px solid ${event.backgroundColor}`,
+                    bgcolor: alpha(backgroundColor, 0.2),
+                    borderLeft: `4px solid ${backgroundColor}`,
                     borderRadius: '4px',
                     px: 0.8,
                     py: 0.4,
@@ -222,8 +223,9 @@ export function CalendarPage() {
             start: e.startDate,
             end: e.endDate,
             allDay: e.isAllDay,
-            backgroundColor: e.color,
-            borderColor: e.color,
+            backgroundColor: e.color || '#3f51b5',
+            borderColor: e.color || '#3f51b5',
+            color: e.color || '#3f51b5', // also pass it in properties
         }));
     }, [events]);
 
