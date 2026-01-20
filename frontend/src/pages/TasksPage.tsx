@@ -65,7 +65,8 @@ export function TasksPage() {
     }, [pqcEngineStatus, fetchTasks, decryptTasks]);
 
     const handleAddTask = useCallback((status: 'todo' | 'in_progress' | 'done' = 'todo') => {
-        setSelectedTask({ status });
+        // @ts-ignore - _tempId is local only for key generation
+        setSelectedTask({ status, _tempId: Date.now() });
         setDialogOpen(true);
     }, []);
 
@@ -126,7 +127,6 @@ export function TasksPage() {
             }
 
             setDialogOpen(false);
-            setSelectedTask(null);
         } catch (error: any) {
             showSnackbar(error.message || 'Operation failed', 'error');
         } finally {
@@ -140,7 +140,6 @@ export function TasksPage() {
             await deleteTask(taskId);
             showSnackbar('Task deleted successfully', 'success');
             setDialogOpen(false);
-            setSelectedTask(null);
         } catch (error: any) {
             showSnackbar(error.message || 'Failed to delete task', 'error');
         } finally {
@@ -271,7 +270,6 @@ export function TasksPage() {
                 open={dialogOpen}
                 onClose={() => {
                     setDialogOpen(false);
-                    setSelectedTask(null);
                 }}
                 onSubmit={handleDialogSubmit}
                 onDelete={handleDeleteTask}

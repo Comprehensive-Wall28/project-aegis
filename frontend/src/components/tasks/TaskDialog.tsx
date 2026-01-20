@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useCallback, memo } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -55,7 +55,7 @@ export interface TaskDialogProps {
     onClose: () => void;
     onSubmit: (data: TaskDialogData) => void;
     onDelete?: (id: string) => void;
-    task?: Task | null;
+    task?: (Task & { _tempId?: number }) | null; // Allow _tempId for new tasks
     isSaving?: boolean;
 }
 
@@ -65,46 +65,33 @@ const formatDateForInput = (dateInput: string | Date | undefined) => {
     return d.isValid() ? d.toISOString() : '';
 };
 
-export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSaving }: TaskDialogProps) => {
+// ----------------------------------------------------------------------
+// TaskForm Component (Internal)
+// ----------------------------------------------------------------------
+
+interface TaskFormProps {
+    initialData?: Task | null;
+    isSaving?: boolean;
+    onClose: () => void;
+    onSubmit: (data: TaskDialogData) => void;
+    onDelete?: (id: string) => void;
+}
+
+const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFormProps) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const [isPickerOpen, setIsPickerOpen] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(false);
 
-    // Group state to avoid cascading updates notification and simplify management
-    const [formData, setFormData] = useState<TaskDialogData>({
-        title: '',
-        description: '',
-        notes: '',
-        dueDate: '',
-        priority: 'medium',
-        status: 'todo',
-    });
+    // Initialize state ONCE from props. No useEffect syncing.
+    const [formData, setFormData] = useState<TaskDialogData>(() => ({
+        title: initialData?.title || '',
+        description: initialData?.description || '',
+        notes: initialData?.notes || '',
+        dueDate: formatDateForInput(initialData?.dueDate),
+        priority: initialData?.priority || 'medium',
+        status: initialData?.status || 'todo',
+    }));
 
-    useEffect(() => {
-        if (open) {
-            setIsEditMode(!!task?._id);
-            if (task) {
-                setFormData({
-                    title: task.title || '',
-                    description: task.description || '',
-                    notes: task.notes || '',
-                    dueDate: formatDateForInput(task.dueDate),
-                    priority: task.priority || 'medium',
-                    status: task.status || 'todo',
-                });
-            } else {
-                setFormData({
-                    title: '',
-                    description: '',
-                    notes: '',
-                    dueDate: '',
-                    priority: 'medium',
-                    status: 'todo',
-                });
-            }
-        }
-    }, [task, open]);
+    const isEditMode = !!initialData?._id;
 
     const handleChange = (field: keyof TaskDialogData) => (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent
@@ -131,42 +118,7 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
     };
 
     return (
-        <Dialog
-            open={open}
-            onClose={onClose}
-            fullWidth
-            maxWidth="sm"
-            fullScreen={isMobile}
-            disableEnforceFocus={isPickerOpen}
-            PaperProps={{
-                variant: 'solid',
-                sx: {
-                    borderRadius: isMobile ? 0 : '24px',
-                    boxShadow: theme.shadows[20],
-                    backgroundImage: 'none',
-                    bgcolor: theme.palette.background.paper,
-                }
-            }}
-        >
-            <DialogTitle
-                component="div"
-                sx={{
-                    m: 0,
-                    p: isMobile ? 2 : 2.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderBottom: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.2)}` : 'none'
-                }}
-            >
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {isEditMode ? 'Edit Task' : 'New Encrypted Task'}
-                </Typography>
-                <IconButton onClick={onClose} size="small" edge="end">
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
-
+        <>
             <DialogContent
                 dividers={!isMobile}
                 sx={{
@@ -269,7 +221,6 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
                     <MobileDateTimePicker
                         label="Due Date"
                         value={formData.dueDate ? dayjs(formData.dueDate) : null}
-                        onOpen={() => setIsPickerOpen(true)}
                         onChange={(newValue) => {
                             setFormData(prev => ({
                                 ...prev,
@@ -290,9 +241,6 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
                                 }
                             },
                             dialog: {
-                                TransitionProps: {
-                                    onExited: () => setIsPickerOpen(false)
-                                } as any,
                                 sx: {
                                     '& .MuiPaper-root': {
                                         borderRadius: '24px',
@@ -324,9 +272,9 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
 
             <DialogActions sx={{ p: isMobile ? 2 : 3, justifyContent: 'space-between', borderTop: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.2)}` : 'none' }}>
                 <Box>
-                    {isEditMode && task?._id && onDelete && (
+                    {isEditMode && initialData?._id && onDelete && (
                         <Button
-                            onClick={() => onDelete(task._id)}
+                            onClick={() => onDelete(initialData._id)}
                             color="error"
                             sx={{ borderRadius: '12px', textTransform: 'none' }}
                         >
@@ -381,6 +329,65 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
                     </Button>
                 </Box>
             </DialogActions>
+        </>
+    );
+};
+
+// ----------------------------------------------------------------------
+// TaskDialog Shell Component
+// ----------------------------------------------------------------------
+
+export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSaving }: TaskDialogProps) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    // Generate a unique key for the form content to force remounting when task changes
+    const formKey = task?._id || task?._tempId || (open ? 'new-open' : 'closed');
+
+    return (
+        <Dialog
+            open={open}
+            onClose={onClose}
+            fullWidth
+            maxWidth="sm"
+            fullScreen={isMobile}
+            PaperProps={{
+                variant: 'solid',
+                sx: {
+                    borderRadius: isMobile ? 0 : '24px',
+                    boxShadow: theme.shadows[20],
+                    backgroundImage: 'none',
+                    bgcolor: theme.palette.background.paper,
+                }
+            }}
+        >
+            <DialogTitle
+                component="div"
+                sx={{
+                    m: 0,
+                    p: isMobile ? 2 : 2.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: isMobile ? `1px solid ${alpha(theme.palette.divider, 0.2)}` : 'none'
+                }}
+            >
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {task?._id ? 'Edit Task' : 'New Encrypted Task'}
+                </Typography>
+                <IconButton onClick={onClose} size="small" edge="end">
+                    <CloseIcon />
+                </IconButton>
+            </DialogTitle>
+
+            <TaskForm
+                key={formKey}
+                initialData={task}
+                isSaving={isSaving}
+                onClose={onClose}
+                onSubmit={onSubmit}
+                onDelete={onDelete}
+            />
         </Dialog>
     );
 });
