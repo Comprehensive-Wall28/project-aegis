@@ -12,7 +12,7 @@ import { smartScrape, advancedScrape, readerScrape, ScrapeResult, ReaderContentR
 // =============================================================================
 
 const CONFIG = {
-    // Number of concurrent requests to fire
+    // Number of concurrent requests to fire (keep low for local testing)
     CONCURRENT_REQUESTS: 10,
 
     // Test URLs (mix of fast and slow sites)
@@ -30,7 +30,7 @@ const CONFIG = {
     ],
 
     // Which scraper to test: 'smart' | 'advanced' | 'reader'
-    SCRAPER_TYPE: 'smart' as 'smart' | 'advanced' | 'reader',
+    SCRAPER_TYPE: 'advanced' as const
 };
 
 // =============================================================================

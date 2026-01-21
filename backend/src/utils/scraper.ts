@@ -126,11 +126,47 @@ const simpleScrape = async (targetUrl: string): Promise<{ data: ScrapeResult | n
 // Singleton browser instance management
 let browserInstance: any = null;
 let advancedScrapeCount = 0;
-const MAX_ADVANCED_SCRAPES = 10; // Restart browser every 10 scrapes to reclaim memory
+const MAX_ADVANCED_SCRAPES = 5; // Reduced for 2GB RAM environments - recycle browser more frequently
 let idleTimeout: NodeJS.Timeout | null = null;
-const IDLE_CLOSE_MS = 5 * 60 * 1000; // 5 minutes
+const IDLE_CLOSE_MS = 3 * 60 * 1000; // 3 minutes (reduced from 5 for memory)
 
 // Note: Concurrency is now managed by scrapeQueue (p-queue)
+
+/**
+ * Check if a URL belongs to a blocked domain (trackers, analytics, ads).
+ * Blocking these reduces bandwidth and speeds up page loads.
+ */
+const BLOCKED_DOMAIN_PATTERNS = [
+    /google-analytics\.com/i,
+    /googletagmanager\.com/i,
+    /googlesyndication\.com/i,
+    /doubleclick\.net/i,
+    /facebook\.net/i,
+    /facebook\.com\/tr/i,
+    /connect\.facebook/i,
+    /analytics\./i,
+    /hotjar\.com/i,
+    /clarity\.ms/i,
+    /segment\.io/i,
+    /segment\.com/i,
+    /mixpanel\.com/i,
+    /amplitude\.com/i,
+    /newrelic\.com/i,
+    /sentry\.io/i,
+    /bugsnag\.com/i,
+    /cdn\.mxpnl\.com/i,
+    /stats\./i,
+    /pixel\./i,
+    /beacon\./i,
+    /tracking\./i,
+    /adservice\./i,
+    /adsystem\./i,
+    /pubads\./i,
+];
+
+function isBlockedDomain(url: string): boolean {
+    return BLOCKED_DOMAIN_PATTERNS.some(pattern => pattern.test(url));
+}
 
 const closeBrowser = async () => {
     if (browserInstance) {
@@ -197,7 +233,7 @@ const getBrowser = async () => {
             '--disable-breakpad',
             '--disable-component-update',
             '--disable-domain-reliability',
-            '--disable-features=AudioServiceOutOfProcess',
+            '--disable-features=AudioServiceOutOfProcess,TranslateUI',
             '--disable-hang-monitor',
             '--disable-notifications',
             '--disable-offer-store-unmasked-wallet-cards',
@@ -207,7 +243,8 @@ const getBrowser = async () => {
             '--disable-renderer-backgrounding',
             '--disable-speech-api',
             '--disable-web-security',
-            '--window-size=1280,800'
+            '--js-flags=--max-old-space-size=256', // Limit V8 heap to 256MB
+            '--window-size=800,600' // Smaller viewport = less rendering work
         ],
     });
 
@@ -242,16 +279,20 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
         await page.setRequestInterception(true);
         page.on('request', (req: any) => {
             const resourceType = req.resourceType();
-            // Block images, fonts, media, and stylesheets to save bandwidth/time
+            const url = req.url();
+
+            // Block images, fonts, media, stylesheets, and tracking/analytics
             if (['image', 'stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
+                req.abort();
+            } else if (isBlockedDomain(url)) {
                 req.abort();
             } else {
                 req.continue();
             }
         });
 
-        // Set a realistic viewport
-        await page.setViewport({ width: 1280, height: 800 });
+        // Smaller viewport = less rendering work (optimized for 1CPU)
+        await page.setViewport({ width: 800, height: 600 });
 
         // Go to page
         const response = await page.goto(targetUrl, {
@@ -375,15 +416,20 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
         await page.setRequestInterception(true);
         page.on('request', (req: any) => {
             const resourceType = req.resourceType();
-            // Block fonts, media, and stylesheets, but KEEP images for reader
+            const url = req.url();
+
+            // Block fonts, media, stylesheets, and tracking/analytics, but KEEP images for reader
             if (['stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
+                req.abort();
+            } else if (isBlockedDomain(url)) {
                 req.abort();
             } else {
                 req.continue();
             }
         });
 
-        await page.setViewport({ width: 1280, height: 800 });
+        // Smaller viewport = less rendering work (optimized for 1CPU)
+        await page.setViewport({ width: 800, height: 600 });
 
         const response = await page.goto(targetUrl, {
             waitUntil: 'domcontentloaded',
