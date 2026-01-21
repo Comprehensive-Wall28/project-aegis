@@ -8,6 +8,8 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install all dependencies including devDependencies
+# Skip puppeteer download as we will use system chrome
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 RUN npm install
 
 # Copy source code
@@ -37,8 +39,11 @@ RUN which google-chrome-stable > /tmp/chrome-path
 WORKDIR /usr/src/app
 
 # Copy package files and install ONLY production dependencies
-COPY package*.json ./
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 RUN npm install --omit=dev
+
+# Set Puppeteer executable path to system chrome
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
 # Copy compiled artifacts from the build stage
 COPY --from=build /usr/src/app/dist ./dist
