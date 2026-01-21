@@ -467,8 +467,8 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
         // 2. Ensure download links are preserved
         let processedContent = processReaderContent(article.content, finalUrl);
 
-        // Append extracted download links if any were found but stripped
-        if (downloadLinksHtml && !processedContent.includes('data-aegis-download')) {
+        // Append extracted download links if any were found
+        if (downloadLinksHtml) {
             processedContent += downloadLinksHtml;
         }
 
@@ -616,14 +616,21 @@ function isDownloadLink(href: string, text: string): boolean {
         /krakenfiles/i,
         /workupload/i,
         /filehost/i,
-        /uploadfiles/i
+        /uploadfiles/i,
+        /adshrink/i,
+        /ouo\.(?:io|press)/i,
+        /doodrive/i,
+        /pixeldrain/i,
+        /linkvertise/i,
+        /shrinkme/i
     ];
 
     // Text content patterns
     const textPatterns = [
         /download/i, /get\s+(?:it|now|here)/i, /\bfree\b.*\bdownload\b/i,
         /mega/i, /gdrive/i, /google\s*drive/i, /onedrive/i, /terabox/i,
-        /mediafire/i, /dropbox/i, /\blink\b/i
+        /mediafire/i, /dropbox/i, /\blink\b/i, /doodrive/i, /pixel/i,
+        /mirrored/i, /zippyshare/i, /ouo/i, /adshrink/i
     ];
 
     // Check URL against file and hosting patterns
@@ -679,10 +686,19 @@ function extractDownloadLinks(html: string, baseUrl: string): string {
         `<a href="${href}" target="_blank" rel="noopener noreferrer" data-aegis-download="true">${text}</a>`
     ).join(' | ');
 
+    // Look for password in the document
+    let passwordLine = '';
+    const bodyText = doc.body.textContent || '';
+    const passwordMatch = bodyText.match(/Password\s*:\s*([^\n\s]+)/i);
+    if (passwordMatch) {
+        passwordLine = `<p style="margin-top: 12px; font-family: monospace; background: #333; padding: 8px; border-radius: 4px;">Password: ${passwordMatch[1]}</p>`;
+    }
+
     return `
-        <div style="margin-top: 32px; padding: 20px; border: 2px solid #666; border-radius: 12px;">
+        <div style="margin-top: 32px; padding: 20px; border: 2px solid #666; border-radius: 12px; background-color: rgba(255,255,255,0.05);">
             <p style="font-weight: bold; margin-bottom: 12px; font-size: 1.1em;">📥 Download Links</p>
             <p>${linksHtml}</p>
+            ${passwordLine}
         </div>
     `;
 }
