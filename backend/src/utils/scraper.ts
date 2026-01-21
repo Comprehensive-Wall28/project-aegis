@@ -15,6 +15,7 @@ import metascraperAmazon from 'metascraper-amazon';
 import ogs from 'open-graph-scraper';
 import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
+import PQueue from 'p-queue';
 import logger from './logger';
 
 // Setup Metascraper
@@ -34,6 +35,32 @@ const metascraper = createMetascraper([
 
 // Setup Puppeteer Stealth
 puppeteer.use(StealthPlugin());
+
+// =============================================================================
+// ASYNC QUEUE FOR SCRAPER CONCURRENCY
+// =============================================================================
+// Using p-queue for proper async concurrency control instead of busy-wait polling.
+// This is more efficient and doesn't block the event loop.
+
+const SCRAPE_QUEUE_CONCURRENCY = 2; // Max simultaneous Puppeteer scrapes
+const SCRAPE_QUEUE_TIMEOUT = 60000; // 60 second timeout per queued task
+
+const scrapeQueue = new PQueue({
+    concurrency: SCRAPE_QUEUE_CONCURRENCY,
+});
+
+// Log queue stats periodically when there's activity
+scrapeQueue.on('active', () => {
+    logger.debug(`[ScrapeQueue] Task started. Queue size: ${scrapeQueue.size}, Pending: ${scrapeQueue.pending}`);
+});
+
+scrapeQueue.on('idle', () => {
+    logger.debug('[ScrapeQueue] Queue is now idle.');
+});
+
+scrapeQueue.on('error', (error) => {
+    logger.error(`[ScrapeQueue] Task error: ${error.message}`);
+});
 
 export interface ScrapeResult {
     title: string;
@@ -103,9 +130,7 @@ const MAX_ADVANCED_SCRAPES = 10; // Restart browser every 10 scrapes to reclaim 
 let idleTimeout: NodeJS.Timeout | null = null;
 const IDLE_CLOSE_MS = 5 * 60 * 1000; // 5 minutes
 
-// Concurrency control: Limit simultaneous advanced scrapes to save RAM but allow some parallelization
-const MAX_CONCURRENT_SCRAPES = 2;
-let activeAdvancedScrapes = 0;
+// Note: Concurrency is now managed by scrapeQueue (p-queue)
 
 const closeBrowser = async () => {
     if (browserInstance) {
@@ -129,8 +154,8 @@ const getBrowser = async () => {
 
     // Set a new idle timeout
     idleTimeout = setTimeout(() => {
-        // Only close if no scrapes are active
-        if (activeAdvancedScrapes === 0) {
+        // Only close if no scrapes are active (check queue pending count)
+        if (scrapeQueue.pending === 0) {
             logger.info('[Scraper] Browser idle for 5 minutes, shutting down...');
             closeBrowser();
         } else {
@@ -140,8 +165,8 @@ const getBrowser = async () => {
 
     // If request limit reached, cycle the browser
     if (browserInstance && advancedScrapeCount >= MAX_ADVANCED_SCRAPES) {
-        // Wait until all current scrapes finish before closing
-        if (activeAdvancedScrapes === 0) {
+        // Wait until all current scrapes finish before closing (check queue pending count)
+        if (scrapeQueue.pending === 0) {
             logger.info(`[Scraper] Request limit (${MAX_ADVANCED_SCRAPES}) reached. Recycling browser...`);
             await closeBrowser();
         }
@@ -191,35 +216,16 @@ const getBrowser = async () => {
         logger.info('[Scraper] Browser disconnected internally, clearing reference.');
         browserInstance = null;
         advancedScrapeCount = 0;
-        activeAdvancedScrapes = 0;
     });
 
     return browserInstance;
 };
 
 /**
- * Advanced scraper using Puppeteer Stealth and Metascraper.
+ * Internal implementation of advanced scraping (runs inside the queue).
  */
-export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> => {
-    // Concurrency Gate: Wait for a slot if max concurrent scrapes reached
-    let attempts = 0;
-    const maxAttempts = 30; // 30 * 2s = 60s total wait time
-    while (activeAdvancedScrapes >= MAX_CONCURRENT_SCRAPES && attempts < maxAttempts) {
-        attempts++;
-        if (attempts % 5 === 0) {
-            logger.info(`[Scraper] Advanced scrape waiting for slot (${activeAdvancedScrapes} active, attempt ${attempts})...`);
-        }
-        await new Promise(r => setTimeout(r, 2000));
-    }
-
-    if (activeAdvancedScrapes >= MAX_CONCURRENT_SCRAPES) {
-        logger.error(`[Scraper] Too many concurrent scrapes, failing for ${targetUrl}`);
-        return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'failed' };
-    }
-
-    activeAdvancedScrapes++;
+const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> => {
     advancedScrapeCount++;
-
     let context: any;
     let page: any;
 
@@ -282,7 +288,6 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
         logger.error(`[Scraper] Advanced Scrape FAILED for ${targetUrl}: ${error.message}`);
         return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'failed' };
     } finally {
-        activeAdvancedScrapes--;
         // Ensure context and all its pages are closed
         if (context) {
             try {
@@ -291,6 +296,29 @@ export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> =
                 logger.error(`[Scraper] Error closing browser context: ${err.message}`);
             }
         }
+    }
+};
+
+/**
+ * Advanced scraper using Puppeteer Stealth and Metascraper.
+ * Uses p-queue for proper async concurrency control.
+ */
+export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> => {
+    try {
+        // Queue the scrape task with a timeout
+        const result = await scrapeQueue.add(
+            () => advancedScrapeInternal(targetUrl),
+            { timeout: SCRAPE_QUEUE_TIMEOUT }
+        );
+        return result ?? { title: '', description: '', image: '', favicon: '', scrapeStatus: 'failed' };
+    } catch (error: any) {
+        // Handle timeout or other queue errors
+        if (error.name === 'TimeoutError') {
+            logger.error(`[Scraper] Advanced scrape TIMED OUT in queue for ${targetUrl}`);
+        } else {
+            logger.error(`[Scraper] Advanced scrape queue error for ${targetUrl}: ${error.message}`);
+        }
+        return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'failed' };
     }
 };
 
@@ -329,29 +357,10 @@ export interface ReaderContentResult {
 }
 
 /**
- * Scrapes a URL and extracts readable article content using Mozilla Readability.
- * Preserves download links and buttons while stripping ads and clutter.
+ * Internal implementation of reader scraping (runs inside the queue).
  */
-export const readerScrape = async (targetUrl: string): Promise<ReaderContentResult> => {
-    // Concurrency gate (reuse existing logic)
-    let attempts = 0;
-    const maxAttempts = 30;
-    while (activeAdvancedScrapes >= MAX_CONCURRENT_SCRAPES && attempts < maxAttempts) {
-        attempts++;
-        if (attempts % 5 === 0) {
-            logger.info(`[ReaderScrape] Waiting for slot (${activeAdvancedScrapes} active, attempt ${attempts})...`);
-        }
-        await new Promise(r => setTimeout(r, 2000));
-    }
-
-    if (activeAdvancedScrapes >= MAX_CONCURRENT_SCRAPES) {
-        logger.error(`[ReaderScrape] Too many concurrent scrapes, failing for ${targetUrl}`);
-        return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: 'Too many concurrent requests' };
-    }
-
-    activeAdvancedScrapes++;
+const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentResult> => {
     advancedScrapeCount++;
-
     let context: any;
     let page: any;
 
@@ -430,7 +439,6 @@ export const readerScrape = async (targetUrl: string): Promise<ReaderContentResu
         logger.error(`[ReaderScrape] FAILED for ${targetUrl}: ${error.message}`);
         return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: error.message };
     } finally {
-        activeAdvancedScrapes--;
         if (context) {
             try {
                 await context.close();
@@ -438,6 +446,30 @@ export const readerScrape = async (targetUrl: string): Promise<ReaderContentResu
                 logger.error(`[ReaderScrape] Error closing browser context: ${err.message}`);
             }
         }
+    }
+};
+
+/**
+ * Scrapes a URL and extracts readable article content using Mozilla Readability.
+ * Preserves download links and buttons while stripping ads and clutter.
+ * Uses p-queue for proper async concurrency control.
+ */
+export const readerScrape = async (targetUrl: string): Promise<ReaderContentResult> => {
+    try {
+        // Queue the scrape task with a timeout
+        const result = await scrapeQueue.add(
+            () => readerScrapeInternal(targetUrl),
+            { timeout: SCRAPE_QUEUE_TIMEOUT }
+        );
+        return result ?? { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: 'Queue returned undefined' };
+    } catch (error: any) {
+        // Handle timeout or other queue errors
+        if (error.name === 'TimeoutError') {
+            logger.error(`[ReaderScrape] TIMED OUT in queue for ${targetUrl}`);
+        } else {
+            logger.error(`[ReaderScrape] Queue error for ${targetUrl}: ${error.message}`);
+        }
+        return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: error.message || 'Queue timeout' };
     }
 };
 
