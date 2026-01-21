@@ -39,6 +39,7 @@ RUN which google-chrome-stable > /tmp/chrome-path
 WORKDIR /usr/src/app
 
 # Copy package files and install ONLY production dependencies
+COPY package*.json ./
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 RUN npm install --omit=dev
 
