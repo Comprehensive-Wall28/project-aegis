@@ -61,7 +61,6 @@ export const ReaderModeOverlay = memo(({
     // Annotations state
     const [annotations, setAnnotations] = useState<DecryptedAnnotation[]>([]);
     const [isLoadingAnnotations, setIsLoadingAnnotations] = useState(false);
-    const [annotationCounts, setAnnotationCounts] = useState<Record<string, number>>({});
 
     // Annotation creation
     const [selectedParagraphId, setSelectedParagraphId] = useState<string | null>(null);
@@ -85,7 +84,6 @@ export const ReaderModeOverlay = memo(({
             try {
                 const result = await socialService.getReaderContent(link._id);
                 setReaderContent(result);
-                setAnnotationCounts(result.annotationCounts || {});
 
                 if (result.status !== 'success') {
                     setContentError(result.error || 'Unable to load article content');
@@ -175,10 +173,6 @@ export const ReaderModeOverlay = memo(({
                 ...prev,
                 { ...annotation, decryptedContent: newAnnotation.trim() }
             ]);
-            setAnnotationCounts(prev => ({
-                ...prev,
-                [selectedParagraphId]: (prev[selectedParagraphId] || 0) + 1
-            }));
 
             // Reset form
             setNewAnnotation('');
@@ -193,15 +187,11 @@ export const ReaderModeOverlay = memo(({
     };
 
     // Delete annotation
-    const handleDeleteAnnotation = async (annotationId: string, paragraphId: string) => {
+    const handleDeleteAnnotation = async (annotationId: string) => {
         setDeletingId(annotationId);
         try {
             await socialService.deleteAnnotation(annotationId);
             setAnnotations(prev => prev.filter(a => a._id !== annotationId));
-            setAnnotationCounts(prev => ({
-                ...prev,
-                [paragraphId]: Math.max(0, (prev[paragraphId] || 0) - 1)
-            }));
         } catch (error) {
             console.error('Failed to delete annotation:', error);
         } finally {
@@ -342,7 +332,7 @@ export const ReaderModeOverlay = memo(({
                                             {currentUserId === getUserId(annotation) && (
                                                 <IconButton
                                                     size="small"
-                                                    onClick={() => handleDeleteAnnotation(annotation._id, annotation.paragraphId)}
+                                                    onClick={() => handleDeleteAnnotation(annotation._id)}
                                                     disabled={deletingId === annotation._id}
                                                     sx={{ ml: 'auto', opacity: 0.5, '&:hover': { opacity: 1, color: 'error.main' } }}
                                                 >
@@ -412,9 +402,15 @@ export const ReaderModeOverlay = memo(({
                                 left: { xs: 12, md: 40 },
                                 right: { xs: 12, md: 40 },
                                 zIndex: SOCIAL_DIALOG_Z_INDEX,
-                                bgcolor: theme.palette.background.paper,
+                                // Solid on mobile, glass effect on desktop
+                                bgcolor: {
+                                    xs: theme.palette.background.paper,
+                                    md: alpha(theme.palette.background.paper, 0.85)
+                                },
+                                backdropFilter: { xs: 'none', md: 'blur(20px)' },
                                 borderRadius: { xs: SOCIAL_RADIUS_XLARGE, md: '24px' },
                                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                                border: { xs: 'none', md: `1px solid ${alpha(theme.palette.divider, 0.2)}` },
                                 display: 'flex',
                                 flexDirection: 'column',
                                 overflow: 'hidden',
