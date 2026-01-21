@@ -19,3 +19,4 @@ export { MerkleRegistryRepository } from './MerkleRegistryRepository';
 export { SharedLinkRepository } from './SharedLinkRepository';
 export { SharedFolderRepository } from './SharedFolderRepository';
 export { SharedFileRepository } from './SharedFileRepository';
+export { ReaderAnnotationRepository } from './ReaderAnnotationRepository';

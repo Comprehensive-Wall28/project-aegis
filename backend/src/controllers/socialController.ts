@@ -291,6 +291,63 @@ export const deleteComment = async (req: AuthRequest, res: Response, next: NextF
     }
 };
 
+// ============== Reader Mode Endpoints ==============
+
+export const getReaderContent = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+        const result = await socialService.getReaderContent(req.user.id, req.params.linkId);
+        res.status(200).json(result);
+    } catch (error) {
+        handleError(error, res, next);
+    }
+};
+
+export const getAnnotations = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+        const annotations = await socialService.getAnnotations(req.user.id, req.params.linkId);
+        res.status(200).json(annotations);
+    } catch (error) {
+        handleError(error, res, next);
+    }
+};
+
+export const createAnnotation = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+        const { paragraphId, highlightText, encryptedContent } = req.body;
+        const annotation = await socialService.createAnnotation(
+            req.user.id,
+            req.params.linkId,
+            paragraphId,
+            highlightText,
+            encryptedContent
+        );
+        res.status(201).json(annotation);
+    } catch (error) {
+        handleError(error, res, next);
+    }
+};
+
+export const deleteAnnotation = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+        await socialService.deleteAnnotation(req.user.id, req.params.annotationId);
+        res.status(200).json({ message: 'Annotation deleted successfully' });
+    } catch (error) {
+        handleError(error, res, next);
+    }
+};
+
 // ============== Error Handler ==============
 
 function handleError(error: unknown, res: Response, next: NextFunction): void {

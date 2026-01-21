@@ -72,6 +72,28 @@ export interface LinkComment {
     createdAt: string;
 }
 
+export interface ReaderContent {
+    title: string;
+    byline: string | null;
+    content: string;
+    textContent: string;
+    siteName: string | null;
+    status: 'success' | 'blocked' | 'failed';
+    error?: string;
+    annotationCounts: Record<string, number>;
+}
+
+export interface ReaderAnnotation {
+    _id: string;
+    linkId: string;
+    roomId: string;
+    userId: { _id: string; username: string } | string;
+    paragraphId: string;
+    highlightText: string;
+    encryptedContent: string;
+    createdAt: string;
+}
+
 export const retryOperation = async <T>(
     operation: () => Promise<T>,
     retries = 3,
@@ -304,6 +326,47 @@ const socialService = {
             params: { q: query, limit }
         });
         return response.data;
+    },
+
+    // ============== Reader Mode Methods ==============
+
+    /**
+     * Get reader content for a link (cleaned article HTML)
+     */
+    getReaderContent: async (linkId: string): Promise<ReaderContent> => {
+        const response = await apiClient.get<ReaderContent>(`/social/links/${linkId}/reader`);
+        return response.data;
+    },
+
+    /**
+     * Get all annotations for a link
+     */
+    getAnnotations: async (linkId: string): Promise<ReaderAnnotation[]> => {
+        const response = await apiClient.get<ReaderAnnotation[]>(`/social/links/${linkId}/annotations`);
+        return response.data;
+    },
+
+    /**
+     * Create an annotation on a paragraph
+     */
+    createAnnotation: async (
+        linkId: string,
+        paragraphId: string,
+        highlightText: string,
+        encryptedContent: string
+    ): Promise<ReaderAnnotation> => {
+        const response = await apiClient.post<ReaderAnnotation>(
+            `/social/links/${linkId}/annotations`,
+            { paragraphId, highlightText, encryptedContent }
+        );
+        return response.data;
+    },
+
+    /**
+     * Delete an annotation
+     */
+    deleteAnnotation: async (annotationId: string): Promise<void> => {
+        await apiClient.delete(`/social/annotations/${annotationId}`);
     },
 };
 

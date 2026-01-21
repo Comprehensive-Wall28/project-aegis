@@ -1,6 +1,6 @@
 import { useState, memo } from 'react';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress, Tooltip } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon } from '@mui/icons-material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon, AutoStoriesOutlined as ReaderIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import type { LinkCardProps } from './types';
@@ -56,7 +56,7 @@ const renderHighlightedText = (text: string, query?: string) => {
     );
 };
 
-export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick, highlight }: LinkCardProps) => {
+export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick, highlight }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
@@ -354,6 +354,20 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                 >
                                     <OpenInFullIcon fontSize="small" />
                                 </IconButton>
+
+                                <Tooltip title="Reader Mode" placement="top">
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onReaderClick?.(link);
+                                        }}
+                                        sx={{ color: 'text.secondary', '&:hover': { color: 'success.main' } }}
+                                        aria-label="Open in Reader Mode"
+                                    >
+                                        <ReaderIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
 
                                 <IconButton
                                     size="small"

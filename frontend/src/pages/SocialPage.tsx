@@ -27,6 +27,7 @@ import { useSocialStore, encryptWithAES, decryptWithAES } from '@/stores/useSoci
 import { SOCIAL_SNACKBAR_Z_INDEX } from '@/components/social/constants';
 import { useSessionStore } from '@/stores/sessionStore';
 import { CommentsOverlay } from '@/components/social/CommentsOverlay';
+import { ReaderModeOverlay } from '@/components/social/ReaderModeOverlay';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import socketService from '@/services/socketService';
 import type { LinkPost } from '@/services/socialService';
@@ -182,6 +183,9 @@ export function SocialPage() {
 
     // Comments overlay state
     const [commentsLink, setCommentsLink] = useState<LinkPost | null>(null);
+
+    // Reader mode overlay state
+    const [readerLink, setReaderLink] = useState<LinkPost | null>(null);
 
     // Socket room management cleanup
     useEffect(() => {
@@ -798,6 +802,7 @@ export function SocialPage() {
                                                         markLinkViewed={markLinkViewed}
                                                         unmarkLinkViewed={unmarkLinkViewed}
                                                         setCommentsLink={setCommentsLink}
+                                                        setReaderLink={setReaderLink}
                                                         viewedLinkIds={viewedLinkIds}
                                                         commentCounts={commentCounts}
                                                         currentUserId={currentUserId}
@@ -951,6 +956,30 @@ export function SocialPage() {
                                 return encryptWithAES(roomKey, text);
                             }}
                             decryptComment={async (encrypted) => {
+                                if (!currentRoom) throw new Error('No room selected');
+                                const roomKey = roomKeys.get(currentRoom._id);
+                                if (!roomKey) throw new Error('Room key not available');
+                                return decryptWithAES(roomKey, encrypted);
+                            }}
+                        />
+                    )
+                }
+
+                {/* Reader Mode Overlay */}
+                {
+                    readerLink && currentRoom && (
+                        <ReaderModeOverlay
+                            open={!!readerLink}
+                            link={readerLink}
+                            onClose={() => setReaderLink(null)}
+                            currentUserId={currentUserId}
+                            encryptAnnotation={async (text) => {
+                                if (!currentRoom) throw new Error('No room selected');
+                                const roomKey = roomKeys.get(currentRoom._id);
+                                if (!roomKey) throw new Error('Room key not available');
+                                return encryptWithAES(roomKey, text);
+                            }}
+                            decryptAnnotation={async (encrypted) => {
                                 if (!currentRoom) throw new Error('No room selected');
                                 const roomKey = roomKeys.get(currentRoom._id);
                                 if (!roomKey) throw new Error('Room key not available');

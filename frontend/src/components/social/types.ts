@@ -76,6 +76,7 @@ export interface LinksContainerProps {
     markLinkViewed: (id: string) => void;
     unmarkLinkViewed: (id: string) => void;
     setCommentsLink: (link: LinkPost | null) => void;
+    setReaderLink: (link: LinkPost | null) => void;
     viewedLinkIds: Set<string>;
     commentCounts: Record<string, number>;
     currentUserId: string | undefined;
@@ -87,6 +88,7 @@ export interface LinksContainerProps {
 export interface LinkCardProps {
     link: LinkPost;
     onCommentsClick?: (link: LinkPost) => void;
+    onReaderClick?: (link: LinkPost) => void;
     onDelete?: (linkId: string) => void;
     onDragStart?: (linkId: string) => void;
     onView?: (linkId: string) => void;

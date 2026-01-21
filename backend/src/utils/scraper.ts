@@ -13,6 +13,8 @@ import metascraperTwitter from 'metascraper-twitter';
 import metascraperInstagram from 'metascraper-instagram';
 import metascraperAmazon from 'metascraper-amazon';
 import ogs from 'open-graph-scraper';
+import { Readability } from '@mozilla/readability';
+import { JSDOM } from 'jsdom';
 import logger from './logger';
 
 // Setup Metascraper
@@ -312,3 +314,297 @@ export const smartScrape = async (targetUrl: string): Promise<ScrapeResult> => {
     return advancedScrape(targetUrl);
 };
 
+// =============================================================================
+// READER MODE SCRAPER
+// =============================================================================
+
+export interface ReaderContentResult {
+    title: string;
+    byline: string | null;
+    content: string; // Cleaned HTML content
+    textContent: string; // Plain text version
+    siteName: string | null;
+    status: 'success' | 'blocked' | 'failed';
+    error?: string;
+}
+
+/**
+ * Scrapes a URL and extracts readable article content using Mozilla Readability.
+ * Preserves download links and buttons while stripping ads and clutter.
+ */
+export const readerScrape = async (targetUrl: string): Promise<ReaderContentResult> => {
+    // Concurrency gate (reuse existing logic)
+    let attempts = 0;
+    const maxAttempts = 30;
+    while (activeAdvancedScrapes >= MAX_CONCURRENT_SCRAPES && attempts < maxAttempts) {
+        attempts++;
+        if (attempts % 5 === 0) {
+            logger.info(`[ReaderScrape] Waiting for slot (${activeAdvancedScrapes} active, attempt ${attempts})...`);
+        }
+        await new Promise(r => setTimeout(r, 2000));
+    }
+
+    if (activeAdvancedScrapes >= MAX_CONCURRENT_SCRAPES) {
+        logger.error(`[ReaderScrape] Too many concurrent scrapes, failing for ${targetUrl}`);
+        return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: 'Too many concurrent requests' };
+    }
+
+    activeAdvancedScrapes++;
+    advancedScrapeCount++;
+
+    let context: any;
+    let page: any;
+
+    try {
+        logger.info(`[ReaderScrape] Starting Reader Scrape [Req #${advancedScrapeCount}] for ${targetUrl}`);
+
+        const browser = await getBrowser();
+        context = await browser.createBrowserContext();
+        page = await context.newPage();
+
+        // Enable request interception - but for reader mode, we need images
+        await page.setRequestInterception(true);
+        page.on('request', (req: any) => {
+            const resourceType = req.resourceType();
+            // Block fonts, media, and stylesheets, but KEEP images for reader
+            if (['stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
+                req.abort();
+            } else {
+                req.continue();
+            }
+        });
+
+        await page.setViewport({ width: 1280, height: 800 });
+
+        const response = await page.goto(targetUrl, {
+            waitUntil: 'domcontentloaded',
+            timeout: 45000
+        });
+
+        const status = response?.status();
+        if (status === 403) {
+            logger.warn(`[ReaderScrape] BLOCKED (403) for ${targetUrl}`);
+            return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'blocked', error: 'Access blocked by website' };
+        }
+
+        const html = await page.content();
+        const finalUrl = page.url();
+
+        // IMPORTANT: Extract download links BEFORE Readability strips them
+        const downloadLinksHtml = extractDownloadLinks(html, finalUrl);
+
+        // Parse with JSDOM and Readability
+        const dom = new JSDOM(html, { url: finalUrl });
+        const reader = new Readability(dom.window.document, {
+            // Keep certain elements that Readability might remove
+            keepClasses: true,
+        });
+
+        const article = reader.parse();
+
+        if (!article || !article.content) {
+            logger.warn(`[ReaderScrape] No readable content found for ${targetUrl}`);
+            return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: 'No readable content found' };
+        }
+
+        // Post-process the content to:
+        // 1. Add paragraph IDs for annotation targeting
+        // 2. Ensure download links are preserved
+        let processedContent = processReaderContent(article.content, finalUrl);
+
+        // Append extracted download links if any were found but stripped
+        if (downloadLinksHtml && !processedContent.includes('data-aegis-download')) {
+            processedContent += downloadLinksHtml;
+        }
+
+        logger.info(`[ReaderScrape] SUCCESS for ${targetUrl} - Title: ${article.title}`);
+        return {
+            title: article.title || '',
+            byline: article.byline || null,
+            content: processedContent,
+            textContent: article.textContent || '',
+            siteName: article.siteName || null,
+            status: 'success'
+        };
+    } catch (error: any) {
+        logger.error(`[ReaderScrape] FAILED for ${targetUrl}: ${error.message}`);
+        return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: error.message };
+    } finally {
+        activeAdvancedScrapes--;
+        if (context) {
+            try {
+                await context.close();
+            } catch (err: any) {
+                logger.error(`[ReaderScrape] Error closing browser context: ${err.message}`);
+            }
+        }
+    }
+};
+
+/**
+ * Process reader content to add paragraph IDs and ensure proper link handling.
+ */
+function processReaderContent(htmlContent: string, baseUrl: string): string {
+    const dom = new JSDOM(htmlContent);
+    const doc = dom.window.document;
+
+    // Add unique IDs to paragraphs for annotation targeting
+    const paragraphs = doc.querySelectorAll('p');
+    paragraphs.forEach((p, index) => {
+        if (!p.id) {
+            // Create a stable ID based on position and content hash
+            const textSnippet = (p.textContent || '').slice(0, 50).replace(/\s+/g, '_');
+            p.id = `aegis-p-${index}-${hashString(textSnippet)}`;
+        }
+        // Add data attribute for annotation discovery
+        p.setAttribute('data-aegis-paragraph', 'true');
+    });
+
+    // Ensure all links have proper href and target attributes
+    const links = doc.querySelectorAll('a');
+    links.forEach((a) => {
+        const href = a.getAttribute('href');
+        if (href) {
+            // Make relative URLs absolute
+            if (href.startsWith('/') || (!href.startsWith('http') && !href.startsWith('mailto:'))) {
+                try {
+                    const absoluteUrl = new URL(href, baseUrl).href;
+                    a.setAttribute('href', absoluteUrl);
+                } catch {
+                    // Keep original if URL parsing fails
+                }
+            }
+            // Mark download links for preservation
+            if (isDownloadLink(href, a.textContent || '')) {
+                a.setAttribute('data-aegis-download', 'true');
+            }
+        }
+        // Open all links in new tab
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+    });
+
+    // Add IDs to headings for structure
+    const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headings.forEach((h, index) => {
+        if (!h.id) {
+            const text = (h.textContent || '').slice(0, 30).replace(/\s+/g, '-').toLowerCase();
+            h.id = `heading-${index}-${text}`;
+        }
+    });
+
+    return doc.body.innerHTML;
+}
+
+/**
+ * Simple hash function for creating stable paragraph IDs.
+ */
+function hashString(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36).slice(0, 8);
+}
+
+/**
+ * Detect if a link is likely a download link based on href and text.
+ */
+function isDownloadLink(href: string, text: string): boolean {
+    // File extension patterns
+    const filePatterns = [
+        /\.pdf$/i, /\.zip$/i, /\.rar$/i, /\.7z$/i,
+        /\.doc[x]?$/i, /\.xls[x]?$/i, /\.ppt[x]?$/i,
+        /\.mp3$/i, /\.mp4$/i, /\.mov$/i, /\.avi$/i, /\.mkv$/i,
+        /\.exe$/i, /\.dmg$/i, /\.pkg$/i, /\.apk$/i, /\.iso$/i
+    ];
+
+    // Cloud hosting service patterns
+    const hostingPatterns = [
+        /mega\.nz/i, /mega\.co\.nz/i,
+        /terabox/i, /teraboxapp/i,
+        /onedrive\.live/i, /1drv\.ms/i,
+        /drive\.google/i,
+        /dropbox\.com/i,
+        /mediafire\.com/i,
+        /zippyshare/i,
+        /uploadhaven/i,
+        /pixeldrain/i,
+        /gofile\.io/i,
+        /anonfiles/i,
+        /bayfiles/i,
+        /krakenfiles/i,
+        /workupload/i,
+        /filehost/i,
+        /uploadfiles/i
+    ];
+
+    // Text content patterns
+    const textPatterns = [
+        /download/i, /get\s+(?:it|now|here)/i, /\bfree\b.*\bdownload\b/i,
+        /mega/i, /gdrive/i, /google\s*drive/i, /onedrive/i, /terabox/i,
+        /mediafire/i, /dropbox/i, /\blink\b/i
+    ];
+
+    // Check URL against file and hosting patterns
+    if (filePatterns.some(p => p.test(href)) || hostingPatterns.some(p => p.test(href))) {
+        return true;
+    }
+
+    // Check text content
+    if (textPatterns.some(p => p.test(text))) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Extract download links from raw HTML before Readability strips them.
+ * Returns HTML section with download links to append to content.
+ */
+function extractDownloadLinks(html: string, baseUrl: string): string {
+    const dom = new JSDOM(html);
+    const doc = dom.window.document;
+    const links = doc.querySelectorAll('a');
+    const downloadLinks: { href: string; text: string }[] = [];
+
+    links.forEach((a) => {
+        const href = a.getAttribute('href');
+        const text = (a.textContent || '').trim();
+
+        if (href && text && isDownloadLink(href, text)) {
+            // Make relative URLs absolute
+            let absoluteHref = href;
+            if (href.startsWith('/') || (!href.startsWith('http') && !href.startsWith('mailto:'))) {
+                try {
+                    absoluteHref = new URL(href, baseUrl).href;
+                } catch {
+                    // Keep original
+                }
+            }
+            // Avoid duplicates
+            if (!downloadLinks.some(l => l.href === absoluteHref)) {
+                downloadLinks.push({ href: absoluteHref, text });
+            }
+        }
+    });
+
+    if (downloadLinks.length === 0) {
+        return '';
+    }
+
+    // Build styled download section
+    const linksHtml = downloadLinks.map(({ href, text }) =>
+        `<a href="${href}" target="_blank" rel="noopener noreferrer" data-aegis-download="true">${text}</a>`
+    ).join(' | ');
+
+    return `
+        <div style="margin-top: 32px; padding: 20px; border: 2px solid #666; border-radius: 12px;">
+            <p style="font-weight: bold; margin-bottom: 12px; font-size: 1.1em;">📥 Download Links</p>
+            <p>${linksHtml}</p>
+        </div>
+    `;
+}
