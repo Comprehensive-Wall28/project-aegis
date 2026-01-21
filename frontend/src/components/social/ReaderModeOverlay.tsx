@@ -526,20 +526,130 @@ export const ReaderModeOverlay = memo(({
                                                     color: theme.palette.primary.main,
                                                     textDecoration: 'underline',
                                                 },
+                                                '& .aegis-download-section': {
+                                                    mt: 4,
+                                                    p: 3,
+                                                    borderRadius: 4,
+                                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                                    backdropFilter: 'blur(10px)',
+                                                    boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.2)}`,
+                                                },
+                                                '& .aegis-download-header': {
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 1.5,
+                                                    mb: 2.5,
+                                                    '& h3': {
+                                                        m: 0,
+                                                        fontSize: '1.25rem',
+                                                        fontWeight: 700,
+                                                        color: theme.palette.text.primary,
+                                                    },
+                                                    '& .header-icon': {
+                                                        fontSize: '1.5rem',
+                                                    },
+                                                },
+                                                '& .aegis-download-grid': {
+                                                    display: 'flex',
+                                                    flexWrap: 'wrap',
+                                                    gap: 1.5,
+                                                    mb: 3,
+                                                },
                                                 '& a[data-aegis-download="true"]': {
                                                     display: 'inline-flex',
                                                     alignItems: 'center',
-                                                    gap: 0.5,
-                                                    bgcolor: alpha(theme.palette.success.main, 0.1),
-                                                    color: theme.palette.success.main,
-                                                    px: 1,
-                                                    py: 0.25,
-                                                    borderRadius: 1,
+                                                    justifyContent: 'center',
+                                                    gap: 1,
+                                                    px: 2,
+                                                    py: 1,
+                                                    borderRadius: '100px', // Pill shape
                                                     textDecoration: 'none',
-                                                    fontWeight: 600,
+                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                                    bgcolor: alpha(theme.palette.background.paper, 0.6),
                                                     '&:hover': {
-                                                        bgcolor: alpha(theme.palette.success.main, 0.2),
+                                                        transform: 'translateY(-2px)',
+                                                        boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.2)}`,
+                                                        borderColor: alpha(theme.palette.primary.main, 0.4),
                                                     },
+                                                    '& .link-label': {
+                                                        fontSize: '0.8125rem',
+                                                        fontWeight: 600,
+                                                        letterSpacing: '0.02em',
+                                                        textAlign: 'center',
+                                                        color: theme.palette.text.primary,
+                                                        whiteSpace: 'nowrap',
+                                                    },
+                                                    '& .provider-icon': {
+                                                        display: 'inline-block',
+                                                        width: 8,
+                                                        height: 8,
+                                                        borderRadius: '50%',
+                                                        bgcolor: theme.palette.text.disabled,
+                                                    },
+                                                    // Provider Specific Colors
+                                                    '&[data-aegis-provider="mega"]': {
+                                                        '&:hover': { bgcolor: alpha('#ff0000', 0.1), borderColor: '#ff0000' },
+                                                        '& .link-label': { color: '#ff4d4d' },
+                                                        '& .provider-icon': { bgcolor: '#ff4d4d' }
+                                                    },
+                                                    '&[data-aegis-provider="mediafire"]': {
+                                                        '&:hover': { bgcolor: alpha('#007bff', 0.1), borderColor: '#007bff' },
+                                                        '& .link-label': { color: '#4da3ff' },
+                                                        '& .provider-icon': { bgcolor: '#4da3ff' }
+                                                    },
+                                                    '&[data-aegis-provider="terabox"]': {
+                                                        '&:hover': { bgcolor: alpha('#ff6b00', 0.1), borderColor: '#ff6b00' },
+                                                        '& .link-label': { color: '#ff944d' },
+                                                        '& .provider-icon': { bgcolor: '#ff944d' }
+                                                    },
+                                                    '&[data-aegis-provider="onedrive"]': {
+                                                        '&:hover': { bgcolor: alpha('#00a1f1', 0.1), borderColor: '#00a1f1' },
+                                                        '& .link-label': { color: '#4dbdff' },
+                                                        '& .provider-icon': { bgcolor: '#4dbdff' }
+                                                    },
+                                                    '&[data-aegis-provider="google-drive"]': {
+                                                        '&:hover': { bgcolor: alpha('#34a853', 0.1), borderColor: '#34a853' },
+                                                        '& .link-label': { color: '#68c182' },
+                                                        '& .provider-icon': { bgcolor: '#68c182' }
+                                                    },
+                                                    '&[data-aegis-provider="pixeldrain"]': {
+                                                        '&:hover': { bgcolor: alpha('#7e57c2', 0.1), borderColor: '#7e57c2' },
+                                                        '& .link-label': { color: '#a188d3' },
+                                                        '& .provider-icon': { bgcolor: '#a188d3' }
+                                                    },
+                                                    '&[data-aegis-provider="doodrive"]': {
+                                                        '&:hover': { bgcolor: alpha('#fbc02d', 0.1), borderColor: '#fbc02d' },
+                                                        '& .link-label': { color: '#fdd835' },
+                                                        '& .provider-icon': { bgcolor: '#fdd835' }
+                                                    },
+                                                },
+                                                '& .aegis-password-container': {
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 1.5,
+                                                    p: 2,
+                                                    borderRadius: 2,
+                                                    bgcolor: alpha(theme.palette.common.black, 0.3),
+                                                    border: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+                                                },
+                                                '& .password-label': {
+                                                    fontSize: '0.875rem',
+                                                    fontWeight: 600,
+                                                    color: theme.palette.text.secondary,
+                                                },
+                                                '& .password-value': {
+                                                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                                                    fontSize: '1rem',
+                                                    color: theme.palette.warning.light,
+                                                    letterSpacing: '0.05em',
+                                                    userSelect: 'all',
+                                                    cursor: 'pointer',
+                                                    transition: 'color 0.2s',
+                                                    '&:hover': {
+                                                        color: theme.palette.warning.main,
+                                                    }
                                                 },
                                                 '& img': {
                                                     maxWidth: '100%',

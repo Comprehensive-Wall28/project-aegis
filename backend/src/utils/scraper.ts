@@ -654,13 +654,29 @@ function extractDownloadLinks(html: string, baseUrl: string): string {
     const dom = new JSDOM(html);
     const doc = dom.window.document;
     const links = doc.querySelectorAll('a');
-    const downloadLinks: { href: string; text: string }[] = [];
+    const downloadLinks: { href: string; text: string; provider?: string }[] = [];
+
+    const getProvider = (href: string, text: string): string | undefined => {
+        if (/mega\.nz|mega\.co\.nz/i.test(href) || /mega/i.test(text)) return 'mega';
+        if (/mediafire\.com/i.test(href) || /mediafire/i.test(text)) return 'mediafire';
+        if (/terabox/i.test(href) || /terabox/i.test(text)) return 'terabox';
+        if (/onedrive/i.test(href) || /1drv\.ms/i.test(href) || /onedrive/i.test(text)) return 'onedrive';
+        if (/drive\.google/i.test(href) || /gdrive/i.test(text)) return 'google-drive';
+        if (/pixeldrain/i.test(href) || /pixel/i.test(text)) return 'pixeldrain';
+        if (/doodrive/i.test(href) || /doodrive/i.test(text)) return 'doodrive';
+        if (/gofile/i.test(href)) return 'gofile';
+        return undefined;
+    };
 
     links.forEach((a) => {
         const href = a.getAttribute('href');
-        const text = (a.textContent || '').trim();
+        let text = (a.textContent || '').trim();
 
         if (href && text && isDownloadLink(href, text)) {
+            // Clean text: remove leading pipes, hyphens, and extra spaces
+            text = text.replace(/^[|\s\-_/]+/, '').trim();
+            if (!text) return; // Skip if text became empty
+
             // Make relative URLs absolute
             let absoluteHref = href;
             if (href.startsWith('/') || (!href.startsWith('http') && !href.startsWith('mailto:'))) {
@@ -672,7 +688,11 @@ function extractDownloadLinks(html: string, baseUrl: string): string {
             }
             // Avoid duplicates
             if (!downloadLinks.some(l => l.href === absoluteHref)) {
-                downloadLinks.push({ href: absoluteHref, text });
+                downloadLinks.push({
+                    href: absoluteHref,
+                    text: text.toUpperCase(),
+                    provider: getProvider(absoluteHref, text)
+                });
             }
         }
     });
@@ -681,23 +701,36 @@ function extractDownloadLinks(html: string, baseUrl: string): string {
         return '';
     }
 
-    // Build styled download section
-    const linksHtml = downloadLinks.map(({ href, text }) =>
-        `<a href="${href}" target="_blank" rel="noopener noreferrer" data-aegis-download="true">${text}</a>`
-    ).join(' | ');
+    // Build structured download grid
+    const linksHtml = downloadLinks.map(({ href, text, provider }) =>
+        `<a href="${href}" target="_blank" rel="noopener noreferrer" data-aegis-download="true" data-aegis-provider="${provider || 'generic'}">
+            <span class="provider-icon"></span>
+            <span class="link-label">${text}</span>
+        </a>`
+    ).join('');
 
     // Look for password in the document
     let passwordLine = '';
     const bodyText = doc.body.textContent || '';
     const passwordMatch = bodyText.match(/Password\s*:\s*([^\n\s]+)/i);
     if (passwordMatch) {
-        passwordLine = `<p style="margin-top: 12px; font-family: monospace; background: #333; padding: 8px; border-radius: 4px;">Password: ${passwordMatch[1]}</p>`;
+        passwordLine = `
+            <div class="aegis-password-container">
+                <span class="password-label">Password:</span>
+                <code class="password-value">${passwordMatch[1]}</code>
+            </div>
+        `;
     }
 
     return `
-        <div style="margin-top: 32px; padding: 20px; border: 2px solid #666; border-radius: 12px; background-color: rgba(255,255,255,0.05);">
-            <p style="font-weight: bold; margin-bottom: 12px; font-size: 1.1em;">📥 Download Links</p>
-            <p>${linksHtml}</p>
+        <div class="aegis-download-section">
+            <div class="aegis-download-header">
+                <span class="header-icon">📥</span>
+                <h3>Download Links</h3>
+            </div>
+            <div class="aegis-download-grid">
+                ${linksHtml}
+            </div>
             ${passwordLine}
         </div>
     `;
