@@ -8,10 +8,9 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install all dependencies including devDependencies
-# Using cache mount for npm significantly speeds up repeat builds
+# Skip puppeteer download as we will use system chrome
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-RUN --mount=type=cache,target=/root/.npm \
-  npm install
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -28,27 +27,25 @@ WORKDIR /usr/src/app
 # Copy package files and install ONLY production dependencies
 COPY package*.json ./
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
-# Use cache mount for npm and install production deps only
-RUN --mount=type=cache,target=/root/.npm \
-  npm install --omit=dev
+RUN npm install --omit=dev
 
 # Install Playwright dependencies and Chromium
-# Consolidate apt-get and clean up in one layer to minimize size
+# We do this AFTER npm install to avoid warnings and ensure version compatibility
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN npx playwright install --with-deps chromium \
+  && chmod -R 777 /ms-playwright
+
+# Install additional fonts for high-quality rendering (Emoji, CJK, etc)
+RUN apt-get update && apt-get install -y \
   fonts-noto-color-emoji \
   fonts-liberation \
   fonts-noto-cjk \
-  && ./node_modules/.bin/playwright install --with-deps chromium \
-  && rm -rf /var/lib/apt/lists/* \
-  && chmod -R 755 /ms-playwright
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy compiled artifacts from the build stage
-# Use --chown to avoid expensive separate chown layers
-COPY --from=build --chown=node:node /usr/src/app/dist ./dist
+COPY --from=build /usr/src/app/dist ./dist
 
-# Change ownership of the root dir (just in case for package.json etc)
+# Change ownership of the app directory to the node user
 RUN chown -R node:node /usr/src/app
 
 # Switch to the non-root 'node' user
