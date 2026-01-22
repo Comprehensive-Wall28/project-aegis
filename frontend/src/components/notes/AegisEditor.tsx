@@ -4,38 +4,11 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import {
     Box,
-    IconButton,
-    Tooltip,
-    Divider,
     CircularProgress,
-    alpha,
-    useTheme,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    TextField,
-    Typography
 } from '@mui/material';
-import {
-    FormatBold,
-    FormatItalic,
-    FormatStrikethrough,
-    Code,
-    FormatListBulleted,
-    FormatListNumbered,
-    FormatQuote,
-    HorizontalRule,
-    Undo,
-    Redo,
-    Link as LinkIcon,
-    LinkOff,
-    Fullscreen,
-    FullscreenExit,
-    Keyboard as KeyboardIcon,
-} from '@mui/icons-material';
 import { ShortcutGuide } from './ShortcutGuide';
+import { EditorToolbar } from './EditorToolbar';
+import { LinkDialog } from './LinkDialog';
 import type { JSONContent, Editor } from '@tiptap/react';
 
 interface AegisEditorProps {
@@ -67,8 +40,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
     const [linkUrl, setLinkUrl] = useState('');
     const [linkText, setLinkText] = useState('');
-    const [, setUpdateTick] = useState(0); // Dummy state to force re-render
-    const theme = useTheme();
+    // const theme = useTheme(); // Removed unused theme
     const titleRef = useRef(title);
 
     // Keep titleRef in sync with title state
@@ -76,17 +48,6 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
         titleRef.current = title;
     }, [title]);
 
-    const getButtonStyle = (active: boolean) => ({
-        bgcolor: active ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
-        color: active ? 'primary.main' : 'text.secondary',
-        borderRadius: '8px',
-        transition: 'all 0.2s ease',
-        border: active ? `1px solid ${alpha(theme.palette.primary.main, 0.3)}` : '1px solid transparent',
-        '&:hover': {
-            bgcolor: active ? alpha(theme.palette.primary.main, 0.25) : alpha(theme.palette.action.hover, 0.1),
-            borderColor: active ? alpha(theme.palette.primary.main, 0.5) : 'transparent',
-        },
-    });
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastSavedContentRef = useRef<string>('');
     const lastSavedTitleRef = useRef<string>(initialTitle);
@@ -123,10 +84,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                 debouncedSave(editor, titleRef.current);
             }
         },
-        onTransaction: () => {
-            // Force re-render on every transaction to keep toolbar in sync
-            setUpdateTick(tick => tick + 1);
-        },
+        // Removed onTransaction render force, handled in EditorToolbar
     });
 
     // Handle title change
@@ -206,37 +164,35 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
         setLinkDialogOpen(true);
     }, [editor]);
 
-    const handleLinkConfirm = useCallback(() => {
+    const handleLinkConfirm = useCallback((url: string, text: string) => {
         if (!editor) return;
 
-        if (linkUrl === '') {
+        if (url === '') {
             editor.chain().focus().extendMarkRange('link').unsetLink().run();
         } else {
             // Ensure there is a protocol
-            const url = linkUrl.match(/^https?:\/\//) ? linkUrl : `https://${linkUrl}`;
+            const finalUrl = url.match(/^https?:\/\//) ? url : `https://${url}`;
 
             const { from, to } = editor.state.selection;
             const hasSelection = from !== to;
 
             if (!hasSelection) {
                 // No selection: Insert the display text (or URL) and link it
-                const displayText = linkText || linkUrl;
-                editor.chain().focus().insertContent(`<a href="${url}">${displayText}</a> `).run();
+                const displayText = text || url;
+                editor.chain().focus().insertContent(`<a href="${finalUrl}">${displayText}</a> `).run();
             } else {
                 // Has selection: If linkText was changed, we might want to replace selection, 
                 // but Tiptap's setLink usually applies to the existing selection.
-                // However, if user explicitly changed "Display Text" in dialog while having a selection, 
-                // we should probably replace it.
                 const selectedText = editor.state.doc.textBetween(from, to);
-                if (linkText && linkText !== selectedText) {
-                    editor.chain().focus().insertContent(`<a href="${url}">${linkText}</a>`).run();
+                if (text && text !== selectedText) {
+                    editor.chain().focus().insertContent(`<a href="${finalUrl}">${text}</a>`).run();
                 } else {
-                    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+                    editor.chain().focus().extendMarkRange('link').setLink({ href: finalUrl }).run();
                 }
             }
         }
         setLinkDialogOpen(false);
-    }, [editor, linkUrl, linkText]);
+    }, [editor]);
 
     // Keyboard shortcut handler
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -245,61 +201,55 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
         const isCtrl = e.ctrlKey || e.metaKey;
         const isShift = e.shiftKey;
         const isAlt = e.altKey;
+        const key = e.key.toLowerCase();
 
-        // Save: Ctrl + S
-        if (isCtrl && e.key === 's') {
-            e.preventDefault();
-            if (editor) debouncedSave(editor, titleRef.current, true);
-        }
+        const shortcuts = [
+            {
+                check: () => isCtrl && key === 's',
+                action: () => editor && debouncedSave(editor, titleRef.current, true)
+            },
+            {
+                check: () => isCtrl && key === 'f',
+                action: () => onToggleFullscreen && onToggleFullscreen()
+            },
+            {
+                check: () => isCtrl && key === '/',
+                action: () => setGuideOpen(prev => !prev)
+            },
+            {
+                check: () => isCtrl && isShift && key === 'x',
+                action: () => editor?.chain().focus().toggleStrike().run()
+            },
+            {
+                check: () => isCtrl && isShift && key === '8',
+                action: () => editor?.chain().focus().toggleBulletList().run()
+            },
+            {
+                check: () => isCtrl && isShift && key === '7',
+                action: () => editor?.chain().focus().toggleOrderedList().run()
+            },
+            {
+                check: () => isCtrl && key === 'q',
+                action: () => editor?.chain().focus().toggleBlockquote().run()
+            },
+            {
+                check: () => isCtrl && isAlt && ['1', '2', '3'].includes(key),
+                action: () => editor?.chain().focus().toggleHeading({ level: parseInt(key) as any }).run()
+            },
+            {
+                check: () => key === 'escape' && fullscreen && onToggleFullscreen,
+                action: () => onToggleFullscreen && onToggleFullscreen()
+            }
+        ];
 
-        // Fullscreen: Ctrl + F
-        if (isCtrl && e.key === 'f') {
-            e.preventDefault();
-            if (onToggleFullscreen) onToggleFullscreen();
+        for (const shortcut of shortcuts) {
+            if (shortcut.check()) {
+                e.preventDefault();
+                shortcut.action();
+                return;
+            }
         }
-
-        // Shortcut Guide: Ctrl + /
-        if (isCtrl && e.key === '/') {
-            e.preventDefault();
-            setGuideOpen(prev => !prev);
-        }
-
-        // Strikethrough: Ctrl + Shift + X
-        if (isCtrl && isShift && e.key.toLowerCase() === 'x') {
-            e.preventDefault();
-            editor?.chain().focus().toggleStrike().run();
-        }
-
-        // Bullet List: Ctrl + Shift + 8
-        if (isCtrl && isShift && e.key === '8') {
-            e.preventDefault();
-            editor?.chain().focus().toggleBulletList().run();
-        }
-
-        // Numbered List: Ctrl + Shift + 7
-        if (isCtrl && isShift && e.key === '7') {
-            e.preventDefault();
-            editor?.chain().focus().toggleOrderedList().run();
-        }
-
-        // Blockquote: Ctrl + Q
-        if (isCtrl && e.key.toLowerCase() === 'q') {
-            e.preventDefault();
-            editor?.chain().focus().toggleBlockquote().run();
-        }
-
-        // Headings: Ctrl + Alt + 1/2/3
-        if (isCtrl && isAlt && ['1', '2', '3'].includes(e.key)) {
-            e.preventDefault();
-            editor?.chain().focus().toggleHeading({ level: parseInt(e.key) as any }).run();
-        }
-
-        // Exit Fullscreen: Esc
-        if (e.key === 'Escape' && fullscreen && onToggleFullscreen) {
-            e.preventDefault();
-            onToggleFullscreen();
-        }
-    }, [editor, title, debouncedSave, onToggleFullscreen, fullscreen, readOnly]);
+    }, [editor, debouncedSave, onToggleFullscreen, fullscreen, readOnly]);
 
     if (!editor) {
         return (
@@ -342,193 +292,19 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                     }}
                 />
             </Box>
+
             {/* Toolbar */}
             {!readOnly && (
-                <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    p: 1.5,
-                    borderBottom: 1,
-                    borderColor: 'divider',
-                    flexWrap: 'wrap',
-                    bgcolor: 'background.paper',
-                }}>
-                    <Tooltip title="Bold (Ctrl+B)">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().toggleBold().run()}
-                            sx={getButtonStyle(editor.isActive('bold'))}
-                        >
-                            <FormatBold fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-
-                    <Tooltip title="Italic (Ctrl+I)">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().toggleItalic().run()}
-                            sx={getButtonStyle(editor.isActive('italic'))}
-                        >
-                            <FormatItalic fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-
-                    <Tooltip title="Strikethrough (Ctrl+Shift+X)">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().toggleStrike().run()}
-                            sx={getButtonStyle(editor.isActive('strike'))}
-                        >
-                            <FormatStrikethrough fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-
-                    <Tooltip title="Code">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().toggleCode().run()}
-                            sx={getButtonStyle(editor.isActive('code'))}
-                        >
-                            <Code fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-
-                    <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-
-                    <Tooltip title="Bullet List (Ctrl+Shift+8)">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().toggleBulletList().run()}
-                            sx={getButtonStyle(editor.isActive('bulletList'))}
-                        >
-                            <FormatListBulleted fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-
-                    <Tooltip title="Numbered List (Ctrl+Shift+7)">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                            sx={getButtonStyle(editor.isActive('orderedList'))}
-                        >
-                            <FormatListNumbered fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-
-                    <Tooltip title="Quote (Ctrl+Q)">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                            sx={getButtonStyle(editor.isActive('blockquote'))}
-                        >
-                            <FormatQuote fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-
-                    <Tooltip title="Horizontal Rule">
-                        <IconButton
-                            size="small"
-                            onClick={() => editor.chain().focus().setHorizontalRule().run()}
-                            sx={getButtonStyle(false)}
-                        >
-                            <HorizontalRule fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-
-                    <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-
-                    <Tooltip title="Add Link">
-                        <IconButton
-                            size="small"
-                            onClick={openLinkDialog}
-                            sx={getButtonStyle(editor.isActive('link'))}
-                        >
-                            <LinkIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-
-                    {editor.isActive('link') && (
-                        <Tooltip title="Remove Link">
-                            <IconButton
-                                size="small"
-                                onClick={() => editor.chain().focus().unsetLink().run()}
-                                sx={getButtonStyle(false)}
-                            >
-                                <LinkOff fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-                    )}
-
-                    <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-
-                    <Tooltip title="Undo (Ctrl+Z)">
-                        <span>
-                            <IconButton
-                                size="small"
-                                onClick={() => editor.chain().focus().undo().run()}
-                                disabled={!editor.can().undo()}
-                                sx={getButtonStyle(false)}
-                            >
-                                <Undo fontSize="small" />
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-
-                    <Tooltip title="Redo (Ctrl+Y)">
-                        <span>
-                            <IconButton
-                                size="small"
-                                onClick={() => editor.chain().focus().redo().run()}
-                                disabled={!editor.can().redo()}
-                                sx={getButtonStyle(false)}
-                            >
-                                <Redo fontSize="small" />
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-
-                    {/* Save indicator & Fullscreen Toggle */}
-                    <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Tooltip title="Shortcut Guide (Ctrl+/)">
-                            <IconButton
-                                size="small"
-                                onClick={() => setGuideOpen(true)}
-                                sx={{
-                                    ...getButtonStyle(guideOpen),
-                                    color: guideOpen ? 'primary.main' : 'text.secondary'
-                                }}
-                            >
-                                <KeyboardIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-
-                        {isSaving && <CircularProgress size={16} />}
-                        {hasChanges && !isSaving && (
-                            <Box sx={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: '50%',
-                                bgcolor: 'warning.main',
-                                boxShadow: (theme) => `0 0 8px ${alpha(theme.palette.warning.main, 0.6)}`,
-                            }} />
-                        )}
-                        {onToggleFullscreen && (
-                            <Tooltip title={fullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen (Ctrl+F)"}>
-                                <IconButton
-                                    size="small"
-                                    onClick={onToggleFullscreen}
-                                    sx={{
-                                        ...getButtonStyle(fullscreen),
-                                        ml: 1
-                                    }}
-                                >
-                                    {fullscreen ? <FullscreenExit fontSize="small" /> : <Fullscreen fontSize="small" />}
-                                </IconButton>
-                            </Tooltip>
-                        )}
-                    </Box>
-                </Box>
+                <EditorToolbar
+                    editor={editor}
+                    onAddLink={openLinkDialog}
+                    isSaving={isSaving}
+                    hasChanges={hasChanges}
+                    fullscreen={fullscreen}
+                    onToggleFullscreen={onToggleFullscreen}
+                    guideOpen={guideOpen}
+                    onToggleGuide={() => setGuideOpen(o => !o)}
+                />
             )}
 
             {/* Editor Content */}
@@ -624,65 +400,13 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             </Box>
 
             {/* Link Dialog */}
-            <Dialog
+            <LinkDialog
                 open={linkDialogOpen}
                 onClose={() => setLinkDialogOpen(false)}
-                slotProps={{
-                    paper: {
-                        sx: { borderRadius: '16px', width: '100%', maxWidth: 400 }
-                    }
-                }}
-            >
-                <DialogTitle sx={{ fontWeight: 700 }}>Add/Edit Link</DialogTitle>
-                <DialogContent>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Set the link destination and display text.
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <TextField
-                            fullWidth
-                            size="small"
-                            label="Display Text"
-                            placeholder="e.g. Click here"
-                            value={linkText}
-                            onChange={(e) => setLinkText(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    handleLinkConfirm();
-                                }
-                            }}
-                            variant="outlined"
-                        />
-                        <TextField
-                            autoFocus
-                            fullWidth
-                            size="small"
-                            label="URL"
-                            placeholder="https://example.com"
-                            value={linkUrl}
-                            onChange={(e) => setLinkUrl(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    handleLinkConfirm();
-                                }
-                            }}
-                            variant="outlined"
-                        />
-                    </Box>
-                </DialogContent>
-                <DialogActions sx={{ p: 2, pt: 0 }}>
-                    <Button onClick={() => setLinkDialogOpen(false)}>Cancel</Button>
-                    <Button
-                        onClick={handleLinkConfirm}
-                        variant="contained"
-                        sx={{ borderRadius: '8px' }}
-                    >
-                        Apply
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                initialUrl={linkUrl}
+                initialText={linkText}
+                onConfirm={handleLinkConfirm}
+            />
 
             <ShortcutGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
         </Box>
