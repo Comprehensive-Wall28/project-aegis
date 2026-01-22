@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:20-slim AS build
+FROM node:24-slim AS build
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -19,7 +19,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Production
-FROM node:20-slim
+FROM node:24-slim
 
 # Create app directory
 WORKDIR /usr/src/app
