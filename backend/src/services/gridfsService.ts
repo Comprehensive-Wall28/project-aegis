@@ -2,8 +2,6 @@ import mongoose from 'mongoose';
 import { Readable, Writable, PassThrough } from 'stream';
 import logger from '../utils/logger';
 
-//==================SERVICE DEPRECATED==================
-
 // Use mongoose's internal mongodb types to avoid version mismatches
 const { GridFSBucket, ObjectId } = mongoose.mongo;
 
@@ -234,4 +232,57 @@ export const cancelUpload = (streamId: string): void => {
  */
 export const isUploadActive = (streamId: string): boolean => {
     return activeStreams.has(streamId);
+};
+
+/**
+ * Simple buffer upload for small content (e.g., notes).
+ * Uploads buffer directly to GridFS without chunking session management.
+ * @param buffer - The content to upload
+ * @param fileName - The file name to store
+ * @param metadata - Optional metadata to attach
+ * @returns The GridFS file ID
+ */
+export const uploadBuffer = async (
+    buffer: Buffer,
+    fileName: string,
+    metadata?: Record<string, any>
+): Promise<mongoose.Types.ObjectId> => {
+    const gridBucket = getBucket();
+
+    return new Promise((resolve, reject) => {
+        const uploadStream = gridBucket.openUploadStream(fileName, { metadata });
+
+        uploadStream.on('finish', () => {
+            logger.info(`GridFS buffer uploaded: fileId=${uploadStream.id}, size=${buffer.length}`);
+            resolve(uploadStream.id);
+        });
+
+        uploadStream.on('error', (err: Error) => {
+            logger.error(`GridFS buffer upload error: ${err}`);
+            reject(err);
+        });
+
+        // Write the entire buffer and end
+        uploadStream.end(buffer);
+    });
+};
+
+/**
+ * Download a file from GridFS to a buffer.
+ * Useful for small files like notes.
+ * @param fileId - The GridFS file ID
+ * @returns The file content as a Buffer
+ */
+export const downloadToBuffer = async (fileId: any): Promise<Buffer> => {
+    const stream = getFileStream(fileId);
+    const chunks: Buffer[] = [];
+
+    return new Promise((resolve, reject) => {
+        stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+        stream.on('error', reject);
+        stream.on('end', () => {
+            logger.info(`GridFS buffer downloaded: fileId=${fileId}`);
+            resolve(Buffer.concat(chunks));
+        });
+    });
 };

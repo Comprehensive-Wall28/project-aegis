@@ -12,6 +12,7 @@ import { SettingsPage } from '@/pages/SettingsPage';
 import { GPAPage } from '@/pages/GPAPage';
 import { CalendarPage } from '@/pages/CalendarPage';
 import { SocialPage } from '@/pages/SocialPage';
+import NotesPage from '@/pages/NotesPage';
 
 // Lazy load page components
 // const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })));
@@ -62,17 +63,6 @@ function RootLayout() {
         <BackendStatusProvider>
             <Outlet />
         </BackendStatusProvider>
-    );
-}
-
-// Placeholder pages for future implementation
-
-function ZKPVerifier() {
-    return (
-        <div className="glass-card border-white/10 rounded-lg p-8 text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-2">ZKP Verifier</h2>
-            <p className="text-muted-foreground">Zero-Knowledge Proof verification interface coming soon...</p>
-        </div>
     );
 }
 
@@ -154,11 +144,6 @@ const router = createBrowserRouter([
                         errorElement: <RouteErrorBoundary />,
                     },
                     {
-                        path: 'zkp',
-                        element: <ZKPVerifier />,
-                        errorElement: <RouteErrorBoundary />,
-                    },
-                    {
                         path: 'calendar',
                         element: <CalendarPage />,
                         errorElement: <RouteErrorBoundary />,
@@ -166,6 +151,11 @@ const router = createBrowserRouter([
                     {
                         path: 'tasks',
                         element: <TasksPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'notes',
+                        element: <NotesPage />,
                         errorElement: <RouteErrorBoundary />,
                     },
                     {

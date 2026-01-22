@@ -12,6 +12,7 @@ import {
     CheckCircle as TasksIcon,
     Share as ShareIcon,
     Palette as PaletteIcon,
+    NoteAlt as NotesIcon,
 } from '@mui/icons-material';
 import {
     Box,
@@ -40,6 +41,7 @@ const navItems = [
     { name: 'Social', icon: ShareIcon, href: '/dashboard/social' },
     { name: 'Files', href: '/dashboard/files', icon: FolderOpenIcon },
     { name: 'Tasks', href: '/dashboard/tasks', icon: TasksIcon },
+    { name: 'Notes', href: '/dashboard/notes', icon: NotesIcon },
     { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
     { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
     // { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
