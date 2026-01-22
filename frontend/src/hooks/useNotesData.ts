@@ -78,10 +78,7 @@ export const useNotesData = () => {
 
             setError(null);
             const [notesList, foldersList, tags] = await Promise.all([
-                noteService.getNotes({
-                    tags: selectedTags.length > 0 ? selectedTags : undefined,
-                    folderId: selectedFolderId || undefined
-                }),
+                noteService.getNotes({}), // Fetch all notes for global search
                 noteService.getFolders(),
                 noteService.getUserTags(),
             ]);
@@ -100,7 +97,7 @@ export const useNotesData = () => {
             setIsLoading(false);
             setIsRefreshing(false);
         }
-    }, [selectedTags, selectedFolderId, decryptTitles, pqcEngineStatus, notes.length]);
+    }, [decryptTitles, pqcEngineStatus, notes.length]);
 
     // Retry decryption when PQC engine becomes operational
     useEffect(() => {
@@ -325,10 +322,8 @@ export const useNotesData = () => {
                 } : null);
             }
 
-            // If we are currently filtered by folder, we should remove it from view
-            if (selectedFolderId !== null && folderId !== selectedFolderId) {
-                setNotes(prev => prev.filter(n => n._id !== noteId));
-            }
+            // We don't remove it from 'notes' anymore because 'notes' is global state.
+            // The search worker will filter it out of the view based on 'folderId'.
 
         } catch (err: any) {
             setError(err.message || 'Failed to move note');

@@ -2,6 +2,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useCallback, useEffect, useState, useRef } from 'react';
+import { SearchExtension } from './SearchExtension';
 import {
     Box,
     CircularProgress,
@@ -40,6 +41,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
     const [linkUrl, setLinkUrl] = useState('');
     const [linkText, setLinkText] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
     // const theme = useTheme(); // Removed unused theme
     const titleRef = useRef(title);
 
@@ -69,6 +71,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             Placeholder.configure({
                 placeholder: 'Start typing your note...',
             }),
+            SearchExtension,
         ],
         content: initialContent,
         editable: !readOnly,
@@ -210,7 +213,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             },
             {
                 check: () => isCtrl && key === 'f',
-                action: () => onToggleFullscreen && onToggleFullscreen()
+                action: () => setShowSearch(prev => !prev)
             },
             {
                 check: () => isCtrl && key === '/',
@@ -300,10 +303,10 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                     onAddLink={openLinkDialog}
                     isSaving={isSaving}
                     hasChanges={hasChanges}
-                    fullscreen={fullscreen}
-                    onToggleFullscreen={onToggleFullscreen}
                     guideOpen={guideOpen}
                     onToggleGuide={() => setGuideOpen(o => !o)}
+                    showSearch={showSearch}
+                    onToggleSearch={() => setShowSearch(o => !o)}
                 />
             )}
 
@@ -391,13 +394,27 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                         pointerEvents: 'none',
                         height: 0,
                     },
-                    maxWidth: fullscreen ? '800px' : 'none',
-                    mx: fullscreen ? 'auto' : 'none',
                     pb: fullscreen ? 10 : 2,
                 },
             }}>
                 <EditorContent editor={editor} />
             </Box>
+
+            <style>
+                {`
+                .search-result {
+                    background-color: rgba(255, 235, 59, 0.3);
+                    border-bottom: 2px solid rgba(255, 235, 59, 0.5);
+                    border-radius: 2px;
+                    transition: all 0.2s ease;
+                }
+                .search-result-current {
+                    background-color: rgba(255, 152, 0, 0.5);
+                    border-bottom: 2px solid rgba(255, 152, 0, 0.8);
+                    box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+                }
+                `}
+            </style>
 
             {/* Link Dialog */}
             <LinkDialog

@@ -55,7 +55,12 @@ const NotesPage: React.FC = () => {
     } = notesData;
 
     // Search Hook
-    const { searchQuery, setSearchQuery, filteredNotes } = useNotesSearch(notes, decryptedTitles);
+    const { searchQuery, setSearchQuery, filteredNotes, isFiltering } = useNotesSearch(
+        notes,
+        decryptedTitles,
+        selectedFolderId,
+        selectedTags
+    );
 
     // Drag & Drop Hook
     const dragDrop = useFolderDragDrop({
@@ -80,6 +85,16 @@ const NotesPage: React.FC = () => {
     const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
 
     const [sidebarVisible, setSidebarVisible] = useState(true);
+
+    const handleSearchChange = (query: string) => {
+        setSearchQuery(query);
+        if (query.trim().length > 0) {
+            setFoldersExpanded(false);
+        } else {
+            // Optional: expand back if cleared? Maybe not.
+            // setFoldersExpanded(true); 
+        }
+    };
 
     // Handlers
     const handleSelectNoteWrapper = (note: any) => {
@@ -180,7 +195,7 @@ const NotesPage: React.FC = () => {
                         selectedFolderId={selectedFolderId}
                         selectedNoteId={selectedNote?.metadata._id || null}
                         searchQuery={searchQuery}
-                        onSearchChange={setSearchQuery}
+                        onSearchChange={handleSearchChange}
                         onCreateNote={handleCreateNoteWrapper}
                         onSelectFolder={setSelectedFolderId}
                         onSelectNote={handleSelectNoteWrapper}
@@ -193,7 +208,7 @@ const NotesPage: React.FC = () => {
                         onOpenFolderDialog={openFolderDialog}
                         onDeleteFolder={(id) => openDeleteConfirm('folder', id, folders.find(f => f._id === id)?.name || 'this folder')}
                         isRefreshing={isRefreshing}
-                        isLoading={isLoading}
+                        isLoading={isLoading || isFiltering}
                         decryptedTitles={decryptedTitles}
                         dragDrop={dragDrop}
                     />
@@ -350,7 +365,7 @@ const NotesPage: React.FC = () => {
                                         selectedFolderId={selectedFolderId}
                                         selectedNoteId={selectedNote?.metadata._id || null}
                                         searchQuery={searchQuery}
-                                        onSearchChange={setSearchQuery}
+                                        onSearchChange={handleSearchChange}
                                         onCreateNote={handleCreateNoteWrapper}
                                         onSelectFolder={setSelectedFolderId}
                                         onSelectNote={handleSelectNoteWrapper}
@@ -363,7 +378,7 @@ const NotesPage: React.FC = () => {
                                         onOpenFolderDialog={openFolderDialog}
                                         onDeleteFolder={(id) => openDeleteConfirm('folder', id, folders.find(f => f._id === id)?.name || 'this folder')}
                                         isRefreshing={isRefreshing}
-                                        isLoading={isLoading}
+                                        isLoading={isLoading || isFiltering}
                                         decryptedTitles={decryptedTitles}
                                         dragDrop={dragDrop}
                                     />

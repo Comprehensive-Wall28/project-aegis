@@ -1,8 +1,8 @@
 {
   "name": "aegis-frontend",
   "private": true,
-  "version": "1.8.3",
-  "description": "project-aegis' frontend",
+  "version": "1.9.6",
+  "description": "project-aegis frontend component",
   "type": "module",
   "scripts": {
     "dev": "vite",
