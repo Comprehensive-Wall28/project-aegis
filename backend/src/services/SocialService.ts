@@ -936,7 +936,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             let readerResult: ReaderContentResult;
 
             if (cached) {
-                logger.debug(`Reader content cache hit for ${linkPost.url}`);
+                logger.debug(`[Social:Reader] Cache HIT for link ${linkId} (${linkPost.url})`);
                 readerResult = {
                     title: cached.title,
                     byline: cached.byline,
@@ -948,7 +948,7 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 };
             } else {
                 // Fetch fresh and cache
-                logger.debug(`Reader content cache miss for ${linkPost.url}`);
+                logger.info(`[Social:Reader] Cache MISS - Fetching fresh for link ${linkId} (${linkPost.url})`);
                 readerResult = await readerScrape(linkPost.url);
 
                 // Cache in background (fire-and-forget)
@@ -957,8 +957,6 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
 
             // Get annotation counts by paragraph for highlighting
             const annotationCounts = await this.readerAnnotationRepo.countByParagraphForLink(linkId);
-
-            logger.info(`Reader content fetched for link ${linkId} by user ${userId}`);
 
             return {
                 ...readerResult,

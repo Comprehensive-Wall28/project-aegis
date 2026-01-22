@@ -23,6 +23,7 @@ import {
     Comment as CommentIcon,
     ErrorOutline as ErrorIcon,
     MenuOpen as PanelIcon,
+    KeyboardArrowDown as ScrollDownIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import socialService, { type ReaderContent, type ReaderAnnotation } from '@/services/socialService';
@@ -72,6 +73,8 @@ export const ReaderModeOverlay = memo(({
 
     // Panel state - hidden by default on all screen sizes
     const [showPanel, setShowPanel] = useState(false);
+    const [isAtBottom, setIsAtBottom] = useState(false);
+    const [showScrollButton, setShowScrollButton] = useState(false);
 
     const contentRef = useRef<HTMLDivElement>(null);
 
@@ -115,6 +118,36 @@ export const ReaderModeOverlay = memo(({
             window.removeEventListener('keydown', handleKeyDown);
         };
     }, [open, onClose]);
+
+    // Handle scroll position for toggle button
+    useEffect(() => {
+        const container = contentRef.current;
+        if (!container || !open) return;
+
+        const handleScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            const atBottom = scrollTop + clientHeight >= scrollHeight - 100;
+            setIsAtBottom(atBottom);
+            setShowScrollButton(scrollHeight > clientHeight + 200);
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        // Initial check
+        handleScroll();
+
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [open, readerContent]);
+
+    const scrollToToggle = () => {
+        const container = contentRef.current;
+        if (!container) return;
+
+        if (isAtBottom) {
+            container.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        }
+    };
 
     // Load annotations
     useEffect(() => {
@@ -780,6 +813,53 @@ export const ReaderModeOverlay = memo(({
                                         {renderAnnotationPanel()}
                                     </Drawer>
                                 )}
+
+                                {/* Floating Scroll Toggle */}
+                                <AnimatePresence>
+                                    {showScrollButton && (
+                                        <Box
+                                            component={motion.div}
+                                            initial={{ opacity: 0, scale: 0, x: 20 }}
+                                            animate={{ opacity: 1, scale: 1, x: 0 }}
+                                            exit={{ opacity: 0, scale: 0, x: 20 }}
+                                            sx={{
+                                                position: 'absolute',
+                                                bottom: 24,
+                                                right: showPanel && !isMobile ? 384 : 24,
+                                                zIndex: 10,
+                                                transition: 'right 0.3s ease',
+                                            }}
+                                        >
+                                            <IconButton
+                                                onClick={scrollToToggle}
+                                                sx={{
+                                                    width: 44,
+                                                    height: 44,
+                                                    bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                                    color: theme.palette.text.primary,
+                                                    backdropFilter: 'blur(10px)',
+                                                    border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                                                    boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
+                                                    '&:hover': {
+                                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                        color: theme.palette.primary.main,
+                                                        borderColor: alpha(theme.palette.primary.main, 0.3),
+                                                        transform: 'translateY(-2px)',
+                                                    },
+                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                }}
+                                            >
+                                                <motion.div
+                                                    animate={{ rotate: isAtBottom ? 180 : 0 }}
+                                                    transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                                                    style={{ display: 'flex' }}
+                                                >
+                                                    <ScrollDownIcon />
+                                                </motion.div>
+                                            </IconButton>
+                                        </Box>
+                                    )}
+                                </AnimatePresence>
                             </Box>
                         </Box>
                     </>

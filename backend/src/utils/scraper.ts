@@ -131,8 +131,38 @@ let advancedScrapeCount = 0;
 const MAX_ADVANCED_SCRAPES = 20; // Increased as Playwright is more stable
 let idleTimeout: NodeJS.Timeout | null = null;
 const IDLE_CLOSE_MS = 5 * 60 * 1000; // 5 minutes
+let browserLaunchPromise: Promise<Browser> | null = null;
 
 // Note: Concurrency is now managed by scrapeQueue (p-queue)
+
+// =============================================================================
+// STEALTH & FINGERPRINTING
+// =============================================================================
+
+const USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.2; rv:121.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0',
+];
+
+const LOCALES = ['en-US', 'en-GB', 'en-CA', 'fr-FR', 'de-DE', 'es-ES'];
+const TIMEZONES = ['America/New_York', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Asia/Tokyo'];
+
+function getRandomItem<T>(arr: T[]): T {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function getRandomViewport() {
+    const widths = [1280, 1366, 1440, 1536, 1600, 1920];
+    const heights = [720, 768, 864, 900, 1024, 1080];
+    return {
+        width: getRandomItem(widths) + Math.floor(Math.random() * 50),
+        height: getRandomItem(heights) + Math.floor(Math.random() * 50)
+    };
+}
 
 /**
  * Check if a URL belongs to a blocked domain (trackers, analytics, ads).
@@ -175,24 +205,23 @@ const getBrowser = async (): Promise<Browser> => {
 
     idleTimeout = setTimeout(() => {
         if (scrapeQueue.pending === 0) {
-            logger.info('[Scraper] Browser idle timeout reached, shutting down...');
+            logger.info('[Scraper:Internal] Browser idle timeout reached, shutting down...');
             closeBrowser();
         }
     }, IDLE_CLOSE_MS);
 
     if (browserInstance && advancedScrapeCount >= MAX_ADVANCED_SCRAPES) {
         if (scrapeQueue.pending === 0) {
-            logger.info(`[Scraper] Request limit (${MAX_ADVANCED_SCRAPES}) reached. Recycling browser...`);
+            logger.info(`[Scraper:Internal] Request limit (${MAX_ADVANCED_SCRAPES}) reached. Recycling browser...`);
             await closeBrowser();
         }
     }
 
     if (browserInstance) return browserInstance;
+    if (browserLaunchPromise) return browserLaunchPromise;
 
-    logger.info('[Scraper] Launching new Playwright browser instance...');
+    logger.info('[Scraper:Internal] Launching new Playwright browser instance...');
 
-    // In Docker, we use the playwright-installed chromium.
-    // Locally (if playwright is missing), this might fail, but deployment is prioritized.
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     const launchOptions: any = {
         headless: true,
@@ -208,20 +237,28 @@ const getBrowser = async (): Promise<Browser> => {
         ],
     };
 
-    // Only set executablePath if it explicitly exists to avoid Playwright launch errors
     if (executablePath && fs.existsSync(executablePath)) {
         launchOptions.executablePath = executablePath;
     }
 
-    browserInstance = await chromiumStealth.launch(launchOptions);
+    browserLaunchPromise = chromiumStealth.launch(launchOptions).then((browser: Browser) => {
+        browserInstance = browser;
+        browserLaunchPromise = null;
 
-    browserInstance?.on('disconnected', () => {
-        logger.info('[Scraper] Browser disconnected.');
-        browserInstance = null;
-        advancedScrapeCount = 0;
+        browserInstance.on('disconnected', () => {
+            logger.info('[Scraper:Internal] Browser disconnected.');
+            browserInstance = null;
+            advancedScrapeCount = 0;
+            browserLaunchPromise = null;
+        });
+
+        return browser;
+    }).catch((err: any) => {
+        browserLaunchPromise = null;
+        throw err;
     });
 
-    return browserInstance!;
+    return browserLaunchPromise!;
 };
 
 // Load Readability script content once to inject it
@@ -242,25 +279,44 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
     let page: Page | null = null;
 
     try {
-        logger.info(`[Scraper] Starting Advanced Scrape (Playwright) [Req #${advancedScrapeCount}] for ${targetUrl}`);
+        const reqId = advancedScrapeCount;
+        logger.info(`[Scraper:Advanced] Starting scrape [Req #${reqId}] for ${targetUrl}`);
         const browser = await getBrowser();
+        const viewport = getRandomViewport();
         context = await browser.newContext({
-            viewport: { width: 800, height: 600 },
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            viewport,
+            userAgent: getRandomItem(USER_AGENTS),
+            locale: getRandomItem(LOCALES),
+            timezoneId: getRandomItem(TIMEZONES),
             bypassCSP: true,
             serviceWorkers: 'block',
             permissions: [],
+            extraHTTPHeaders: {
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+                'Sec-Ch-Ua-Mobile': '?0',
+                'Sec-Ch-Ua-Platform': '"Windows"',
+                'Upgrade-Insecure-Requests': '1',
+            }
         });
         page = await context.newPage();
 
-        // Block unnecessary resources
+        // Block unnecessary resources but allow some small images from same domain for stealth
         await page.route('**/*', (route: any) => {
             const request = route.request();
             const type = request.resourceType();
             const url = request.url();
 
-            if (['image', 'media', 'font', 'stylesheet'].includes(type) || isBlockedDomain(url)) {
+            if (['media', 'font', 'stylesheet'].includes(type) || isBlockedDomain(url)) {
                 route.abort();
+            } else if (type === 'image') {
+                // Heuristic: only block large images or images from different domains
+                const isExternal = !url.includes(new URL(targetUrl).hostname);
+                if (isExternal) {
+                    route.abort();
+                } else {
+                    route.continue();
+                }
             } else {
                 route.continue();
             }
@@ -285,6 +341,7 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
                     bodyText.includes('Website Firewall');
             });
             if (isStillBlocked) {
+                logger.warn(`[Scraper:Advanced] Blocked by WAF after bypass attempt for ${targetUrl}`);
                 return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'blocked' };
             }
         }
@@ -314,7 +371,7 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
         // Metascraper only needs the head/meta tags for 99% of its work
         const metadata = await metascraper({ html: pageData.html, url: pageData.url });
 
-        logger.info(`[Scraper] Advanced Scrape SUCCESS for ${targetUrl}`);
+        logger.info(`[Scraper:Advanced] SUCCESS [Req #${reqId}] for ${targetUrl}`);
         return {
             title: metadata.title || '',
             description: metadata.description || '',
@@ -323,7 +380,7 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
             scrapeStatus: 'success'
         };
     } catch (error: any) {
-        logger.error(`[Scraper] Advanced Scrape FAILED for ${targetUrl}: ${error.message}`);
+        logger.error(`[Scraper:Advanced] FAILED for ${targetUrl}: ${error.message}`);
         return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'failed' };
     } finally {
         if (context) await context.close();
@@ -332,18 +389,32 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
 
 /**
  * Advanced scraper using Playwright Stealth and Metascraper.
- * Uses p-queue for proper async concurrency control.
+ * Uses p-queue for proper async concurrency control with retries.
  */
-export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> => {
+export const advancedScrape = async (targetUrl: string, retryCount = 0): Promise<ScrapeResult> => {
+    const MAX_RETRIES = 2;
     try {
         // Queue the scrape task with a timeout
         const result = await scrapeQueue.add(
             () => advancedScrapeInternal(targetUrl),
             { timeout: SCRAPE_QUEUE_TIMEOUT }
         );
+
+        if (result?.scrapeStatus === 'blocked' && retryCount < MAX_RETRIES) {
+            const delay = (retryCount + 1) * 5000;
+            logger.warn(`[Scraper:Advanced] BLOCKED [Req #${advancedScrapeCount}]. Retrying in ${delay}ms... (Attempt ${retryCount + 1}/${MAX_RETRIES}) for ${targetUrl}`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return advancedScrape(targetUrl, retryCount + 1);
+        }
+
         return result ?? { title: '', description: '', image: '', favicon: '', scrapeStatus: 'failed' };
     } catch (error: any) {
         // Handle timeout or other queue errors
+        if (error.name === 'TimeoutError' && retryCount < MAX_RETRIES) {
+            logger.warn(`[Scraper] Advanced scrape TIMED OUT for ${targetUrl}. Retrying... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
+            return advancedScrape(targetUrl, retryCount + 1);
+        }
+
         if (error.name === 'TimeoutError') {
             logger.error(`[Scraper] Advanced scrape TIMED OUT in queue for ${targetUrl}`);
         } else {
@@ -402,17 +473,31 @@ async function handleWafChallenge(page: Page): Promise<boolean> {
             const isDdosGuard = html.includes('ddos-guard') ||
                 bodyText.includes('DDoS protection');
 
+            // Cloudflare Turnstile / HCaptcha / ReCaptcha
+            const hasCaptcha = html.includes('cf-turnstile') ||
+                html.includes('g-recaptcha') ||
+                html.includes('h-captcha') ||
+                bodyText.includes('Verify you are human');
+
+            // Press and Hold / Click to Verify
+            const hasPressAndHold = bodyText.includes('Press and hold') ||
+                bodyText.includes('Verify you are human') ||
+                html.includes('px-captcha'); // PerimeterX
+
             // Generic JS challenge (many sites use these)
             const hasClickToProceed = bodyText.includes('Click to Proceed') ||
                 bodyText.includes('click here to continue') ||
-                bodyText.includes('Press to continue');
+                bodyText.includes('Press to continue') ||
+                bodyText.includes('Verify you are human');
 
             return {
                 isSucuri,
                 isCloudflare,
                 isDdosGuard,
+                hasCaptcha,
+                hasPressAndHold,
                 hasClickToProceed,
-                isChallenge: isSucuri || isCloudflare || isDdosGuard || hasClickToProceed
+                isChallenge: isSucuri || isCloudflare || isDdosGuard || hasClickToProceed || hasPressAndHold || hasCaptcha
             };
         });
 
@@ -423,44 +508,58 @@ async function handleWafChallenge(page: Page): Promise<boolean> {
         logger.info(`[WAF] Challenge detected: Sucuri=${challengeInfo.isSucuri}, CF=${challengeInfo.isCloudflare}, DDosGuard=${challengeInfo.isDdosGuard}`);
 
         // Strategy 1: Look for and click "proceed" type buttons
-        if (challengeInfo.isSucuri || challengeInfo.hasClickToProceed) {
+        if (challengeInfo.isSucuri || challengeInfo.hasClickToProceed || challengeInfo.hasPressAndHold) {
             // Wait for any JS to execute that might reveal the button
-            await page.waitForTimeout(1500);
+            await page.waitForTimeout(2000);
 
             // Common selectors for WAF proceed buttons
             const buttonSelectors = [
                 'button:has-text("Proceed")',
                 'button:has-text("Continue")',
+                'button:has-text("Verify")',
                 'a:has-text("Click to Proceed")',
                 'a:has-text("Proceed to Page")',
                 'input[type="submit"]',
                 '.btn-sucuri',
                 '#challenge-form button',
-                'form button[type="submit"]'
+                'form button[type="submit"]',
+                '#px-captcha', // PerimeterX
+                'div[role="button"]:has-text("Verify")',
+                '#challenge-stage' // CF Challenge
             ];
 
             for (const selector of buttonSelectors) {
                 try {
                     const button = await page.$(selector);
                     if (button) {
-                        logger.info(`[WAF] Found proceed button: ${selector}`);
+                        logger.info(`[WAF] Found challenge element: ${selector}`);
 
-                        await button.click();
+                        if (challengeInfo.hasPressAndHold) {
+                            // Specialized click for Press and Hold
+                            const box = await button.boundingBox();
+                            if (box) {
+                                await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+                                await page.mouse.down();
+                                await page.waitForTimeout(3000); // Hold for 3s
+                                await page.mouse.up();
+                            }
+                        } else {
+                            await button.click();
+                        }
 
-                        // Wait for challenge content to disappear (much faster than waiting for URL change)
+                        // Wait for challenge content to disappear
                         await page.waitForFunction(() => {
                             const bodyText = document.body?.innerText || '';
                             return !bodyText.includes('Website Firewall') &&
                                 !bodyText.includes('Click to Proceed') &&
+                                !bodyText.includes('Verify you are human') &&
                                 !bodyText.includes('Sucuri');
-                        }, { timeout: 8000 }).catch(() => { });
+                        }, { timeout: 10000 }).catch(() => { });
 
-                        // Brief stabilization for any remaining JS
-                        await page.waitForTimeout(500);
+                        await page.waitForTimeout(1000);
                         return true;
                     }
                 } catch (e) {
-                    // Button not found or click failed, try next
                 }
             }
         }
@@ -522,18 +621,29 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
     let page: Page | null = null;
 
     try {
-        logger.info(`[ReaderScrape] Starting Reader Scrape (Playwright) [Req #${advancedScrapeCount}] for ${targetUrl}`);
+        const reqId = advancedScrapeCount;
+        logger.info(`[Scraper:Reader] Starting scrape [Req #${reqId}] for ${targetUrl}`);
         const browser = await getBrowser();
+        const viewport = getRandomViewport();
         context = await browser.newContext({
-            viewport: { width: 1024, height: 768 },
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            viewport,
+            userAgent: getRandomItem(USER_AGENTS),
+            locale: getRandomItem(LOCALES),
+            timezoneId: getRandomItem(TIMEZONES),
             bypassCSP: true,
             serviceWorkers: 'block',
             permissions: [],
+            extraHTTPHeaders: {
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+                'Sec-Ch-Ua-Mobile': '?0',
+                'Sec-Ch-Ua-Platform': '"Windows"',
+                'Upgrade-Insecure-Requests': '1',
+            }
         });
         page = await context.newPage();
 
-        // Block unnecessary resources but keep images for reader mode
+        // Block unnecessary resources but keep images for reader mode (smartly)
         await page.route('**/*', (route: any) => {
             const request = route.request();
             const type = request.resourceType();
@@ -541,6 +651,16 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
 
             if (['media', 'font', 'stylesheet'].includes(type) || isBlockedDomain(url)) {
                 route.abort();
+            } else if (type === 'image') {
+                // For reader mode, we want images, but maybe not huge external ones
+                const isExternal = !url.includes(new URL(targetUrl).hostname);
+                const isTracking = url.includes('pixel') || url.includes('analytics');
+                if (isTracking || isExternal) {
+                    // Still allow it if it looks like a content image but be cautious
+                    route.continue();
+                } else {
+                    route.continue();
+                }
             } else {
                 route.continue();
             }
@@ -574,6 +694,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
                     bodyText.includes('Website Firewall');
             });
             if (isStillBlocked) {
+                logger.warn(`[Scraper:Reader] Blocked by WAF after bypass attempt for ${targetUrl}`);
                 return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'blocked', error: 'Access blocked (403)' };
             }
         }
@@ -641,13 +762,22 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
                 p.setAttribute('data-aegis-paragraph', 'true');
             });
 
-            // Fix link targets and relative URLs
+            // Fix link targets and relative URLs, filtering out social links
+            const SOCIAL_DOMAINS = ['facebook.com', 'twitter.com', 'x.com', 'pinterest.com', 'whatsapp.com', 'linkedin.com', 'reddit.com', 'instagram.com', 't.me', 'telegram.me', 'discord.com'];
             const links = container.querySelectorAll('a');
             links.forEach(a => {
                 const href = a.getAttribute('href');
                 if (href) {
                     try {
                         const absUrl = new URL(href, baseUrl).href;
+                        const hostname = new URL(absUrl).hostname.toLowerCase();
+
+                        // Filter out social links
+                        if (SOCIAL_DOMAINS.some(domain => hostname.includes(domain))) {
+                            a.remove();
+                            return;
+                        }
+
                         a.setAttribute('href', absUrl);
                         if (isDownloadLink(absUrl, a.textContent || '')) {
                             a.setAttribute('data-aegis-download', 'true');
@@ -698,6 +828,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
 
         if (!result || !('article' in result) || !result.article) {
             const errorMsg = (result && 'error' in result) ? result.error : 'No readable content';
+            logger.warn(`[Scraper:Reader] Extraction FAILED [Req #${reqId}] for ${targetUrl}: ${errorMsg}`);
             return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: errorMsg as string };
         }
 
@@ -729,7 +860,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
                 </div>`;
         }
 
-        logger.info(`[ReaderScrape] SUCCESS for ${targetUrl}`);
+        logger.info(`[Scraper:Reader] SUCCESS [Req #${reqId}] for ${targetUrl}`);
         return {
             title: article.title || '',
             byline: article.byline || null,
@@ -739,7 +870,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             status: 'success'
         };
     } catch (error: any) {
-        logger.error(`[ReaderScrape] FAILED for ${targetUrl}: ${error.message}`);
+        logger.error(`[Scraper:Reader] FAILED for ${targetUrl}: ${error.message}`);
         return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: error.message };
     } finally {
         if (context) await context.close();
@@ -749,18 +880,32 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
 /**
  * Scrapes a URL and extracts readable article content using Mozilla Readability.
  * Preserves download links and buttons while stripping ads and clutter.
- * Uses p-queue for proper async concurrency control.
+ * Uses p-queue for proper async concurrency control with retries.
  */
-export const readerScrape = async (targetUrl: string): Promise<ReaderContentResult> => {
+export const readerScrape = async (targetUrl: string, retryCount = 0): Promise<ReaderContentResult> => {
+    const MAX_RETRIES = 1; // Reader mode is heavier, retry less
     try {
         // Queue the scrape task with a timeout
         const result = await scrapeQueue.add(
             () => readerScrapeInternal(targetUrl),
             { timeout: SCRAPE_QUEUE_TIMEOUT }
         );
+
+        if (result?.status === 'blocked' && retryCount < MAX_RETRIES) {
+            const delay = (retryCount + 1) * 3000;
+            logger.warn(`[Scraper:Reader] BLOCKED [Req #${advancedScrapeCount}]. Retrying in ${delay}ms... (Attempt ${retryCount + 1}/${MAX_RETRIES}) for ${targetUrl}`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return readerScrape(targetUrl, retryCount + 1);
+        }
+
         return result ?? { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: 'Queue returned undefined' };
     } catch (error: any) {
         // Handle timeout or other queue errors
+        if (error.name === 'TimeoutError' && retryCount < MAX_RETRIES) {
+            logger.warn(`[ReaderScrape] Reader scrape TIMED OUT for ${targetUrl}. Retrying... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
+            return readerScrape(targetUrl, retryCount + 1);
+        }
+
         if (error.name === 'TimeoutError') {
             logger.error(`[ReaderScrape] TIMED OUT in queue for ${targetUrl}`);
         } else {
