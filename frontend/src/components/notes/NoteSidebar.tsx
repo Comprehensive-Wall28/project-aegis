@@ -74,11 +74,16 @@ export const NoteSidebar: React.FC<NoteSidebarProps> = (props) => {
     } = props;
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             {/* Header */}
             <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <NoteAlt sx={{ color: 'primary.main', fontSize: 28 }} />
-                <Typography variant="h6" sx={{ flex: 1, fontWeight: 700 }}>Notes</Typography>
+                <Typography variant="h6" sx={{ flex: 1, fontWeight: 700 }}>
+                    {selectedFolderId
+                        ? (folders.find(f => f._id === selectedFolderId)?.name || 'Notes')
+                        : 'Notes'
+                    }
+                </Typography>
                 <Tooltip title="New Note">
                     <IconButton
                         color="primary"
@@ -145,7 +150,10 @@ export const NoteSidebar: React.FC<NoteSidebarProps> = (props) => {
             <FolderList
                 folders={folders}
                 selectedFolderId={selectedFolderId}
-                onSelectFolder={onSelectFolder}
+                onSelectFolder={(id) => {
+                    onSelectFolder(id);
+                    setFoldersExpanded(false);
+                }}
                 foldersExpanded={foldersExpanded}
                 setFoldersExpanded={setFoldersExpanded}
                 onOpenFolderDialog={onOpenFolderDialog}

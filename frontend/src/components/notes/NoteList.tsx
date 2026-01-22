@@ -61,7 +61,7 @@ const NoteItem = memo(({
             onDragEnd={onDragEnd}
             sx={{
                 mx: 1,
-                my: 0.5,
+                my: 0.25,
                 borderRadius: '12px',
                 transition: 'all 0.2s',
                 cursor: 'grab',
@@ -177,7 +177,7 @@ export const NoteList: React.FC<NoteListProps> = ({
                 style={{ height: '100%' }}
                 data={notes}
                 itemContent={(_index, note) => (
-                    <Box sx={{ py: 0.5 }}>
+                    <Box sx={{ py: 0 }}>
                         <NoteItem
                             key={note._id}
                             note={note}

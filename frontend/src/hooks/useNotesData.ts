@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import noteService from '../services/noteService';
 import type { NoteMetadata, NoteFolder } from '../services/noteService';
 import { useSessionStore } from '../stores/sessionStore';
@@ -32,6 +32,8 @@ export const useNotesData = () => {
     const [userTags, setUserTags] = useState<string[]>([]);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [decryptedTitles, setDecryptedTitles] = useState<Record<string, string>>({});
+    const activeNoteIdRef = useRef<string | null>(null);
+    const fetchAbortControllerRef = useRef<AbortController | null>(null);
 
     // Decrypt note titles
     const decryptTitles = useCallback(async (notesToDecrypt: NoteMetadata[]) => {
@@ -143,29 +145,76 @@ export const useNotesData = () => {
     }, [encryptNote, generateNoteHash, selectedFolderId]);
 
     const handleSelectNote = useCallback(async (note: NoteMetadata) => {
+        // Update the active note reference immediately
+        activeNoteIdRef.current = note._id;
+
         if (selectedNote?.metadata._id === note._id) {
             return;
         }
+
+        // Optimistic update: Show loading state immediately for specific note
+        setSelectedNote({
+            metadata: note,
+            content: null // Content is null while loading
+        });
+
+        // Abort previous request if it exists
+        if (fetchAbortControllerRef.current) {
+            fetchAbortControllerRef.current.abort();
+        }
+
+        // Create new controller for this request
+        const abortController = new AbortController();
+        fetchAbortControllerRef.current = abortController;
 
         try {
             setIsLoadingContent(true);
             setError(null);
 
-            const contentResponse = await noteService.getNoteContent(note._id);
+            const contentResponse = await noteService.getNoteContent(note._id, {
+                signal: abortController.signal
+            });
+
+            // Race condition check: active note changed while fetching
+            if (activeNoteIdRef.current !== note._id) {
+                return;
+            }
+
             const decryptedContent = await decryptNoteContent(
                 contentResponse.encryptedContent,
                 contentResponse.encapsulatedKey,
                 contentResponse.encryptedSymmetricKey
             );
 
+            // Race condition check: active note changed while decrypting
+            if (activeNoteIdRef.current !== note._id) {
+                return;
+            }
+
             setSelectedNote({
                 metadata: note,
                 content: decryptedContent,
             });
         } catch (err: any) {
-            setError(err.message || 'Failed to load note content');
+            // Ignore abort errors
+            if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+                return;
+            }
+
+            // Only set error if we are still on the same note
+            if (activeNoteIdRef.current === note._id) {
+                console.error('Failed to load note content:', err);
+                setError(err.message || 'Failed to load note content');
+            }
         } finally {
-            setIsLoadingContent(false);
+            // Only stop loading if we are still on the same note
+            if (activeNoteIdRef.current === note._id) {
+                setIsLoadingContent(false);
+            }
+            // Cleanup controller ref if it's still this one
+            if (fetchAbortControllerRef.current === abortController) {
+                fetchAbortControllerRef.current = null;
+            }
         }
     }, [selectedNote, decryptNoteContent]);
 

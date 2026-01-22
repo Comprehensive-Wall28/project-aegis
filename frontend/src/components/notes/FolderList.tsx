@@ -6,7 +6,6 @@ import {
     ListItemButton,
     ListItemText,
     IconButton,
-    Collapse,
     alpha,
     useTheme,
 } from '@mui/material';
@@ -19,6 +18,7 @@ import {
     ExpandMore,
     ChevronRight,
 } from '@mui/icons-material';
+import { Virtuoso } from 'react-virtuoso';
 import type { NoteFolder } from '../../services/noteService';
 import { useFolderDragDrop } from '../../hooks/useFolderDragDrop';
 
@@ -47,8 +47,8 @@ export const FolderList: React.FC<FolderListProps> = ({
     const { dragOverFolderId, handleFolderDragOver, handleFolderDragLeave, handleNoteDrop } = dragDrop;
 
     return (
-        <Box sx={{ py: 1 }}>
-            <Box sx={{ px: 2, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ py: 1, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+            <Box sx={{ px: 2, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
                 <Box
                     sx={{
                         display: 'flex',
@@ -73,8 +73,8 @@ export const FolderList: React.FC<FolderListProps> = ({
                 </IconButton>
             </Box>
 
-            <Collapse in={foldersExpanded}>
-                <List disablePadding>
+            {foldersExpanded && (
+                <List disablePadding sx={{ display: 'flex', flexDirection: 'column' }}>
                     <ListItemButton
                         selected={selectedFolderId === null}
                         onClick={() => onSelectFolder(null)}
@@ -87,6 +87,7 @@ export const FolderList: React.FC<FolderListProps> = ({
                             py: 0.5,
                             mb: 0.5,
                             transition: 'all 0.2s',
+                            flexShrink: 0,
                             bgcolor: dragOverFolderId === 'root' ? alpha(theme.palette.primary.main, 0.2) : 'transparent',
                             transform: dragOverFolderId === 'root' ? 'scale(1.02)' : 'scale(1)',
                             '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
@@ -96,58 +97,64 @@ export const FolderList: React.FC<FolderListProps> = ({
                         <ListItemText primary="All Notes" primaryTypographyProps={{ variant: 'body2', fontWeight: selectedFolderId === null ? 600 : 400 }} />
                     </ListItemButton>
 
-                    {folders.map(folder => (
-                        <ListItemButton
-                            key={folder._id}
-                            selected={selectedFolderId === folder._id}
-                            onClick={() => onSelectFolder(folder._id)}
-                            onDragOver={(e) => handleFolderDragOver(e, folder._id)}
-                            onDragLeave={handleFolderDragLeave}
-                            onDrop={(e) => handleNoteDrop(e, folder._id)}
-                            sx={{
-                                mx: 1,
-                                borderRadius: '10px',
-                                py: 0.5,
-                                mb: 0.5,
-                                transition: 'all 0.2s',
-                                bgcolor: dragOverFolderId === folder._id ? alpha(theme.palette.primary.main, 0.2) : 'transparent',
-                                transform: dragOverFolderId === folder._id ? 'scale(1.02)' : 'scale(1)',
-                                '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
-                            }}
-                        >
-                            <Folder sx={{ fontSize: 20, mr: 1.5, color: folder.color || (selectedFolderId === folder._id ? 'primary.main' : 'text.secondary') }} />
-                            <ListItemText
-                                primary={folder.name}
-                                primaryTypographyProps={{
-                                    variant: 'body2',
-                                    fontWeight: selectedFolderId === folder._id ? 600 : 400,
-                                    noWrap: true
-                                }}
-                            />
-                            <Box sx={{ display: 'flex', opacity: 0, '.MuiListItemButton-root:hover &': { opacity: 0.5 } }}>
-                                <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onOpenFolderDialog('rename', folder);
+                    <Box sx={{ height: '35vh', maxHeight: '300px' }}>
+                        <Virtuoso
+                            style={{ height: '100%' }}
+                            data={folders}
+                            itemContent={(_index, folder) => (
+                                <ListItemButton
+                                    key={folder._id}
+                                    selected={selectedFolderId === folder._id}
+                                    onClick={() => onSelectFolder(folder._id)}
+                                    onDragOver={(e) => handleFolderDragOver(e, folder._id)}
+                                    onDragLeave={handleFolderDragLeave}
+                                    onDrop={(e) => handleNoteDrop(e, folder._id)}
+                                    sx={{
+                                        mx: 1,
+                                        borderRadius: '10px',
+                                        py: 0.5,
+                                        mb: 0.5,
+                                        transition: 'all 0.2s',
+                                        bgcolor: dragOverFolderId === folder._id ? alpha(theme.palette.primary.main, 0.2) : 'transparent',
+                                        transform: dragOverFolderId === folder._id ? 'scale(1.02)' : 'scale(1)',
+                                        '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
                                     }}
                                 >
-                                    <EditIcon fontSize="inherit" />
-                                </IconButton>
-                                <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDeleteFolder(folder._id);
-                                    }}
-                                >
-                                    <Delete fontSize="inherit" />
-                                </IconButton>
-                            </Box>
-                        </ListItemButton>
-                    ))}
+                                    <Folder sx={{ fontSize: 20, mr: 1.5, color: folder.color || (selectedFolderId === folder._id ? 'primary.main' : 'text.secondary') }} />
+                                    <ListItemText
+                                        primary={folder.name}
+                                        primaryTypographyProps={{
+                                            variant: 'body2',
+                                            fontWeight: selectedFolderId === folder._id ? 600 : 400,
+                                            noWrap: true
+                                        }}
+                                    />
+                                    <Box sx={{ display: 'flex', opacity: 0, '.MuiListItemButton-root:hover &': { opacity: 0.5 } }}>
+                                        <IconButton
+                                            size="small"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onOpenFolderDialog('rename', folder);
+                                            }}
+                                        >
+                                            <EditIcon fontSize="inherit" />
+                                        </IconButton>
+                                        <IconButton
+                                            size="small"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeleteFolder(folder._id);
+                                            }}
+                                        >
+                                            <Delete fontSize="inherit" />
+                                        </IconButton>
+                                    </Box>
+                                </ListItemButton>
+                            )}
+                        />
+                    </Box>
                 </List>
-            </Collapse>
+            )}
         </Box>
     );
 };
