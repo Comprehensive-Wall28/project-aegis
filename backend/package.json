@@ -16,8 +16,16 @@
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
     "@noble/post-quantum": "^0.5.4",
+    "@playwright/test": "^1.57.0",
     "@simplewebauthn/browser": "^13.2.2",
     "@simplewebauthn/server": "^13.2.2",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/crypto-js": "^4.2.2",
+    "@types/csurf": "^1.11.5",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/uuid": "^11.0.0",
     "argon2": "^0.44.0",
     "axios": "^1.13.2",
     "cookie-parser": "^1.4.7",
@@ -29,6 +37,7 @@
     "express-rate-limit": "^8.2.1",
     "googleapis": "^170.0.0",
     "helmet": "^8.1.0",
+    "jsdom": "^27.4.0",
     "jsonwebtoken": "^9.0.3",
     "merkletreejs": "^0.6.0",
     "metascraper": "^5.49.15",
@@ -51,6 +60,8 @@
     "p-queue": "^9.1.0",
     "playwright": "^1.57.0",
     "playwright-extra": "^4.3.6",
+    "puppeteer": "^24.35.0",
+    "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "socket.io": "^4.8.3",
     "ts-node": "^10.9.2",
@@ -59,16 +70,8 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.57.0",
-    "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.19",
-    "@types/crypto-js": "^4.2.2",
-    "@types/csurf": "^1.11.5",
-    "@types/express": "^5.0.6",
     "@types/jsdom": "^27.0.0",
-    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.0.9",
-    "@types/uuid": "^11.0.0",
     "nodemon": "^3.1.11"
   }
 }
