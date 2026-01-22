@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import {
     Box,
     Typography,
@@ -24,6 +24,7 @@ import {
     DialogContentText,
     DialogActions,
     Collapse,
+    LinearProgress,
 } from '@mui/material';
 import {
     Add,
@@ -57,6 +58,113 @@ interface DecryptedNote {
     content: NoteContent | null;
 }
 
+const MemoizedNoteItem = memo(({
+    note,
+    isSelected,
+    decryptedTitle,
+    onSelect,
+    onDelete,
+    onDragStart,
+    onDragEnd,
+    theme
+}: {
+    note: NoteMetadata;
+    isSelected: boolean;
+    decryptedTitle: string;
+    onSelect: (note: NoteMetadata) => void;
+    onDelete: (id: string, e: React.MouseEvent) => void;
+    onDragStart: (e: React.DragEvent, id: string) => void;
+    onDragEnd: (e: React.DragEvent) => void;
+    theme: any;
+}) => (
+    <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -10 }}
+        transition={{ duration: 0.2 }}
+    >
+        <ListItemButton
+            selected={isSelected}
+            onClick={() => onSelect(note)}
+            draggable
+            onDragStart={(e) => onDragStart(e, note._id)}
+            onDragEnd={onDragEnd}
+            sx={{
+                mx: 1,
+                my: 0.5,
+                borderRadius: '12px',
+                transition: 'all 0.2s',
+                cursor: 'grab',
+                '&:active': { cursor: 'grabbing' },
+                '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                },
+                '&.Mui-selected': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.12),
+                    '&:hover': {
+                        bgcolor: alpha(theme.palette.primary.main, 0.16),
+                    },
+                },
+            }}
+        >
+            <ListItemText
+                primary={
+                    <Typography
+                        variant="body2"
+                        noWrap
+                        sx={{ fontWeight: 600 }}
+                    >
+                        {decryptedTitle || 'Decrypting...'}
+                    </Typography>
+                }
+                secondary={
+                    <Box component="span" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
+                        <Typography variant="caption" color="text.disabled">
+                            {new Date(note.updatedAt).toLocaleDateString()}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            {note.tags.slice(0, 1).map((tag: string) => (
+                                <Chip
+                                    key={tag}
+                                    label={tag}
+                                    size="small"
+                                    sx={{ height: 16, fontSize: '0.6rem', borderRadius: '4px' }}
+                                />
+                            ))}
+                        </Box>
+                    </Box>
+                }
+                slotProps={{
+                    secondary: { component: 'div' }
+                }}
+            />
+            <Tooltip title="Delete">
+                <IconButton
+                    size="small"
+                    onClick={(e) => onDelete(note._id, e)}
+                    sx={{
+                        opacity: 0,
+                        '.MuiListItemButton-root:hover &': { opacity: 0.5 },
+                        '&:hover': {
+                            opacity: 1 + ' !important',
+                            color: 'error.main',
+                        }
+                    }}
+                >
+                    <Delete fontSize="small" />
+                </IconButton>
+            </Tooltip>
+        </ListItemButton>
+    </motion.div>
+), (prev, next) => {
+    return (
+        prev.isSelected === next.isSelected &&
+        prev.decryptedTitle === next.decryptedTitle &&
+        prev.note.updatedAt === next.note.updatedAt &&
+        prev.note._id === next.note._id
+    );
+});
+
 const NotesPage: React.FC = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -67,6 +175,7 @@ const NotesPage: React.FC = () => {
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
     const [selectedNote, setSelectedNote] = useState<DecryptedNote | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [isLoadingContent, setIsLoadingContent] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -136,7 +245,12 @@ const NotesPage: React.FC = () => {
     // Load notes and folders
     const loadData = useCallback(async () => {
         try {
-            setIsLoading(true);
+            if (notes.length === 0) {
+                setIsLoading(true);
+            } else {
+                setIsRefreshing(true);
+            }
+
             setError(null);
             const [notesList, foldersList, tags] = await Promise.all([
                 noteService.getNotes({
@@ -146,6 +260,7 @@ const NotesPage: React.FC = () => {
                 noteService.getFolders(),
                 noteService.getUserTags(),
             ]);
+
             setNotes(notesList);
             setFolders(foldersList);
             setUserTags(tags);
@@ -158,8 +273,9 @@ const NotesPage: React.FC = () => {
             setError(err.message || 'Failed to load data');
         } finally {
             setIsLoading(false);
+            setIsRefreshing(false);
         }
-    }, [selectedTags, selectedFolderId, decryptTitles, pqcEngineStatus]);
+    }, [selectedTags, selectedFolderId, decryptTitles, pqcEngineStatus, notes.length]);
 
     useEffect(() => {
         loadData();
@@ -657,6 +773,19 @@ const NotesPage: React.FC = () => {
                 </Box>
             )}
 
+            {/* Refreshing Indicator */}
+            {isRefreshing && (
+                <LinearProgress
+                    sx={{
+                        height: 2,
+                        bgcolor: 'transparent',
+                        '& .MuiLinearProgress-bar': {
+                            bgcolor: alpha(theme.palette.primary.main, 0.4)
+                        }
+                    }}
+                />
+            )}
+
             {/* Notes List */}
             <Box sx={{
                 flex: 1,
@@ -681,85 +810,17 @@ const NotesPage: React.FC = () => {
                     <List disablePadding>
                         <AnimatePresence>
                             {filteredNotes.map(note => (
-                                <motion.div
+                                <MemoizedNoteItem
                                     key={note._id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                >
-                                    <ListItemButton
-                                        selected={selectedNote?.metadata._id === note._id}
-                                        onClick={() => handleSelectNote(note)}
-                                        draggable
-                                        onDragStart={(e) => handleNoteDragStart(e, note._id)}
-                                        onDragEnd={handleNoteDragEnd}
-                                        sx={{
-                                            mx: 1,
-                                            my: 0.5,
-                                            borderRadius: '12px',
-                                            transition: 'all 0.2s',
-                                            cursor: 'grab',
-                                            '&:active': { cursor: 'grabbing' },
-                                            '&:hover': {
-                                                bgcolor: alpha(theme.palette.primary.main, 0.08),
-                                            },
-                                            '&.Mui-selected': {
-                                                bgcolor: alpha(theme.palette.primary.main, 0.12),
-                                                '&:hover': {
-                                                    bgcolor: alpha(theme.palette.primary.main, 0.16),
-                                                },
-                                            },
-                                        }}
-                                    >
-                                        <ListItemText
-                                            primary={
-                                                <Typography
-                                                    variant="body2"
-                                                    noWrap
-                                                    sx={{ fontWeight: 600 }}
-                                                >
-                                                    {decryptedTitles[note._id] || 'Decrypting...'}
-                                                </Typography>
-                                            }
-                                            secondary={
-                                                <Box component="span" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
-                                                    <Typography variant="caption" color="text.disabled">
-                                                        {new Date(note.updatedAt).toLocaleDateString()}
-                                                    </Typography>
-                                                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                                        {note.tags.slice(0, 1).map(tag => (
-                                                            <Chip
-                                                                key={tag}
-                                                                label={tag}
-                                                                size="small"
-                                                                sx={{ height: 16, fontSize: '0.6rem', borderRadius: '4px' }}
-                                                            />
-                                                        ))}
-                                                    </Box>
-                                                </Box>
-                                            }
-                                            slotProps={{
-                                                secondary: { component: 'div' }
-                                            }}
-                                        />
-                                        <Tooltip title="Delete">
-                                            <IconButton
-                                                size="small"
-                                                onClick={(e) => handleDeleteNote(note._id, e)}
-                                                sx={{
-                                                    opacity: 0,
-                                                    '.MuiListItemButton-root:hover &': { opacity: 0.5 },
-                                                    '&:hover': {
-                                                        opacity: 1 + ' !important',
-                                                        color: 'error.main',
-                                                    }
-                                                }}
-                                            >
-                                                <Delete fontSize="small" />
-                                            </IconButton>
-                                        </Tooltip>
-                                    </ListItemButton>
-                                </motion.div>
+                                    note={note}
+                                    isSelected={selectedNote?.metadata._id === note._id}
+                                    decryptedTitle={decryptedTitles[note._id]}
+                                    onSelect={handleSelectNote}
+                                    onDelete={handleDeleteNote}
+                                    onDragStart={handleNoteDragStart}
+                                    onDragEnd={handleNoteDragEnd}
+                                    theme={theme}
+                                />
                             ))}
                         </AnimatePresence>
                     </List>
@@ -1093,14 +1154,28 @@ const NotesPage: React.FC = () => {
                     Delete {deleteConfirmMode === 'note' ? 'Note' : 'Folder'}?
                 </DialogTitle>
                 <DialogContent>
-                    <DialogContentText>
-                        Are you sure you want to delete <strong>{deleteConfirmTitle}</strong>?
+                    <DialogContentText component="div" sx={{ color: 'text.primary' }}>
+                        <Typography variant="body1" sx={{ mb: 2 }}>
+                            Are you sure you want to delete <strong>{deleteConfirmTitle}</strong>?
+                        </Typography>
+
                         {deleteConfirmMode === 'folder' && (
-                            <Box component="span" sx={{ display: 'block', mt: 1, fontSize: '0.875rem' }}>
-                                All notes in this folder will be moved to "All Notes".
+                            <Box sx={{
+                                p: 1.5,
+                                bgcolor: alpha(theme.palette.warning.main, 0.08),
+                                borderRadius: '8px',
+                                borderLeft: `4px solid ${theme.palette.warning.main}`,
+                                mb: 2
+                            }}>
+                                <Typography variant="body2" sx={{ color: 'warning.light', fontWeight: 600 }}>
+                                    All notes in this folder will be moved to "All Notes".
+                                </Typography>
                             </Box>
                         )}
-                        This action cannot be undone.
+
+                        <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.8 }}>
+                            This action cannot be undone.
+                        </Typography>
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions sx={{ p: 2, pt: 0 }}>

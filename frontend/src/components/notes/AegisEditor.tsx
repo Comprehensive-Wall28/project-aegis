@@ -1,8 +1,24 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { Box, IconButton, Tooltip, Divider, CircularProgress, alpha, useTheme } from '@mui/material';
+import {
+    Box,
+    IconButton,
+    Tooltip,
+    Divider,
+    CircularProgress,
+    alpha,
+    useTheme,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Button,
+    TextField,
+    Typography
+} from '@mui/material';
 import {
     FormatBold,
     FormatItalic,
@@ -49,6 +65,9 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     const [isSaving, setIsSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
     const [guideOpen, setGuideOpen] = useState(false);
+    const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+    const [linkUrl, setLinkUrl] = useState('');
+    const [linkText, setLinkText] = useState('');
     const [, setUpdateTick] = useState(0); // Dummy state to force re-render
     const theme = useTheme();
     const titleRef = useRef(title);
@@ -82,6 +101,12 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             }),
             Placeholder.configure({
                 placeholder: 'Start typing your note...',
+            }),
+            Link.configure({
+                openOnClick: false,
+                HTMLAttributes: {
+                    class: 'aegis-editor-link',
+                },
             }),
         ],
         content: initialContent,
@@ -167,21 +192,51 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     }, [initialContent, initialTitle]);
 
     // Set link handler
-    const setLink = useCallback(() => {
+    const openLinkDialog = useCallback(() => {
         if (!editor) return;
 
-        const previousUrl = editor.getAttributes('link').href;
-        const url = window.prompt('URL', previousUrl);
+        const previousUrl = editor.getAttributes('link').href || '';
+        setLinkUrl(previousUrl);
 
-        if (url === null) return;
+        // Get selected text for the display field
+        const { from, to } = editor.state.selection;
+        const selectedText = editor.state.doc.textBetween(from, to);
+        setLinkText(selectedText || previousUrl || '');
 
-        if (url === '') {
-            editor.chain().focus().extendMarkRange('link').unsetLink().run();
-            return;
-        }
-
-        editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+        setLinkDialogOpen(true);
     }, [editor]);
+
+    const handleLinkConfirm = useCallback(() => {
+        if (!editor) return;
+
+        if (linkUrl === '') {
+            editor.chain().focus().extendMarkRange('link').unsetLink().run();
+        } else {
+            // Ensure there is a protocol
+            const url = linkUrl.match(/^https?:\/\//) ? linkUrl : `https://${linkUrl}`;
+
+            const { from, to } = editor.state.selection;
+            const hasSelection = from !== to;
+
+            if (!hasSelection) {
+                // No selection: Insert the display text (or URL) and link it
+                const displayText = linkText || linkUrl;
+                editor.chain().focus().insertContent(`<a href="${url}">${displayText}</a> `).run();
+            } else {
+                // Has selection: If linkText was changed, we might want to replace selection, 
+                // but Tiptap's setLink usually applies to the existing selection.
+                // However, if user explicitly changed "Display Text" in dialog while having a selection, 
+                // we should probably replace it.
+                const selectedText = editor.state.doc.textBetween(from, to);
+                if (linkText && linkText !== selectedText) {
+                    editor.chain().focus().insertContent(`<a href="${url}">${linkText}</a>`).run();
+                } else {
+                    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+                }
+            }
+        }
+        setLinkDialogOpen(false);
+    }, [editor, linkUrl, linkText]);
 
     // Keyboard shortcut handler
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -386,7 +441,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                     <Tooltip title="Add Link">
                         <IconButton
                             size="small"
-                            onClick={setLink}
+                            onClick={openLinkDialog}
                             sx={getButtonStyle(editor.isActive('link'))}
                         >
                             <LinkIcon fontSize="small" />
@@ -541,10 +596,17 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                         borderColor: 'divider',
                         my: 2,
                     },
-                    '& .aegis-link': {
+                    '& a': {
                         color: 'primary.main',
                         textDecoration: 'underline',
+                        textDecorationThickness: '1px',
+                        textUnderlineOffset: '2px',
                         cursor: 'pointer',
+                        fontWeight: 500,
+                        transition: 'opacity 0.2s',
+                        '&:hover': {
+                            opacity: 0.8,
+                        },
                     },
                     '& .is-editor-empty:first-of-type::before': {
                         content: 'attr(data-placeholder)',
@@ -560,6 +622,67 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             }}>
                 <EditorContent editor={editor} />
             </Box>
+
+            {/* Link Dialog */}
+            <Dialog
+                open={linkDialogOpen}
+                onClose={() => setLinkDialogOpen(false)}
+                slotProps={{
+                    paper: {
+                        sx: { borderRadius: '16px', width: '100%', maxWidth: 400 }
+                    }
+                }}
+            >
+                <DialogTitle sx={{ fontWeight: 700 }}>Add/Edit Link</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Set the link destination and display text.
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            label="Display Text"
+                            placeholder="e.g. Click here"
+                            value={linkText}
+                            onChange={(e) => setLinkText(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleLinkConfirm();
+                                }
+                            }}
+                            variant="outlined"
+                        />
+                        <TextField
+                            autoFocus
+                            fullWidth
+                            size="small"
+                            label="URL"
+                            placeholder="https://example.com"
+                            value={linkUrl}
+                            onChange={(e) => setLinkUrl(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleLinkConfirm();
+                                }
+                            }}
+                            variant="outlined"
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 2, pt: 0 }}>
+                    <Button onClick={() => setLinkDialogOpen(false)}>Cancel</Button>
+                    <Button
+                        onClick={handleLinkConfirm}
+                        variant="contained"
+                        sx={{ borderRadius: '8px' }}
+                    >
+                        Apply
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             <ShortcutGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
         </Box>
