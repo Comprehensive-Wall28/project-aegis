@@ -235,6 +235,8 @@ export const LinksContainer = memo(({
                                             borderRadius: '12px',
                                             px: 6,
                                             py: 1,
+                                            minWidth: '200px', // Ensure enough width for text
+                                            height: '42px',    // Ensure fixed height
                                             bgcolor: alpha(theme.palette.primary.main, 0.9),
                                             '&:hover': {
                                                 bgcolor: theme.palette.primary.main,
