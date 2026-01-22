@@ -9,7 +9,11 @@ import {
     updateNoteContent,
     deleteNote,
     getUserTags,
-    getBacklinks
+    getBacklinks,
+    getFolders,
+    createFolder,
+    updateFolder,
+    deleteFolder
 } from '../controllers/noteController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection } from '../middleware/csrfMiddleware';
@@ -19,6 +23,12 @@ const router = Router();
 // All routes require authentication and CSRF protection
 router.use(protect);
 router.use(csrfProtection);
+
+// Folder CRUD (must be before /:id routes to avoid conflicts)
+router.get('/folders', getFolders);
+router.post('/folders', createFolder);
+router.put('/folders/:id', updateFolder);
+router.delete('/folders/:id', deleteFolder);
 
 // Note CRUD
 router.get('/', getNotes);
@@ -33,3 +43,4 @@ router.put('/:id/content', updateNoteContent);  // Update encrypted content
 router.delete('/:id', deleteNote);
 
 export default router;
+

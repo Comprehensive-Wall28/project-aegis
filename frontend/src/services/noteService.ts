@@ -2,6 +2,17 @@ import apiClient from './api';
 
 const PREFIX = '/notes';
 
+// Types for note folders
+export interface NoteFolder {
+    _id: string;
+    userId: string;
+    name: string;
+    parentId?: string;
+    color?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 // Types for note metadata (from backend)
 export interface NoteMetadata {
     _id: string;
@@ -10,6 +21,8 @@ export interface NoteMetadata {
     encryptedSymmetricKey: string;
     gridFsFileId: string;
     contentSize: number;
+    encryptedTitle?: string;
+    noteFolderId?: string;
     tags: string[];
     linkedEntityIds: string[];
     educationalContext?: {
@@ -34,6 +47,8 @@ export interface CreateNoteInput {
     encapsulatedKey: string;
     encryptedSymmetricKey: string;
     encryptedContent: string;  // Base64 encoded encrypted content
+    encryptedTitle?: string;
+    noteFolderId?: string;
     tags?: string[];
     linkedEntityIds?: string[];
     educationalContext?: {
@@ -45,6 +60,8 @@ export interface CreateNoteInput {
 
 // Types for updating note metadata
 export interface UpdateNoteMetadataInput {
+    encryptedTitle?: string;
+    noteFolderId?: string;
     tags?: string[];
     linkedEntityIds?: string[];
     educationalContext?: {
@@ -75,12 +92,14 @@ const noteService = {
     getNotes: async (filters?: {
         tags?: string[];
         subject?: string;
-        semester?: string
+        semester?: string;
+        folderId?: string;
     }): Promise<NoteMetadata[]> => {
         const params = new URLSearchParams();
         if (filters?.tags) params.append('tags', filters.tags.join(','));
         if (filters?.subject) params.append('subject', filters.subject);
         if (filters?.semester) params.append('semester', filters.semester);
+        if (filters?.folderId) params.append('folderId', filters.folderId);
 
         const response = await apiClient.get<NoteMetadata[]>(`${PREFIX}`, { params });
         return response.data;
@@ -93,12 +112,14 @@ const noteService = {
         limit: number;
         cursor?: string;
         tags?: string[];
+        folderId?: string;
         signal?: AbortSignal
     }): Promise<PaginatedNotes> => {
         const params = new URLSearchParams();
         params.append('limit', options.limit.toString());
         if (options.cursor) params.append('cursor', options.cursor);
         if (options.tags) params.append('tags', options.tags.join(','));
+        if (options.folderId) params.append('folderId', options.folderId);
 
         const response = await apiClient.get<PaginatedNotes>(`${PREFIX}`, {
             params,
@@ -132,7 +153,7 @@ const noteService = {
     },
 
     /**
-     * Update note metadata (tags, links, context)
+     * Update note metadata (tags, links, context, title, folder)
      */
     updateNoteMetadata: async (id: string, data: UpdateNoteMetadataInput): Promise<NoteMetadata> => {
         const response = await apiClient.put<NoteMetadata>(`${PREFIX}/${id}/metadata`, data);
@@ -169,6 +190,40 @@ const noteService = {
         const response = await apiClient.get<NoteMetadata[]>(`${PREFIX}/backlinks/${entityId}`);
         return response.data;
     },
+
+    // ==================== FOLDER METHODS ====================
+
+    /**
+     * Get all folders for the current user
+     */
+    getFolders: async (): Promise<NoteFolder[]> => {
+        const response = await apiClient.get<NoteFolder[]>(`${PREFIX}/folders`);
+        return response.data;
+    },
+
+    /**
+     * Create a new folder
+     */
+    createFolder: async (data: { name: string; parentId?: string; color?: string }): Promise<NoteFolder> => {
+        const response = await apiClient.post<NoteFolder>(`${PREFIX}/folders`, data);
+        return response.data;
+    },
+
+    /**
+     * Update a folder
+     */
+    updateFolder: async (id: string, data: { name?: string; parentId?: string | null; color?: string }): Promise<NoteFolder> => {
+        const response = await apiClient.put<NoteFolder>(`${PREFIX}/folders/${id}`, data);
+        return response.data;
+    },
+
+    /**
+     * Delete a folder
+     */
+    deleteFolder: async (id: string): Promise<void> => {
+        await apiClient.delete(`${PREFIX}/folders/${id}`);
+    },
+
 };
 
 export default noteService;

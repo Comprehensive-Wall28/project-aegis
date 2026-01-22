@@ -2,6 +2,9 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface INote extends Document {
     userId: mongoose.Types.ObjectId;
+    // Note Identity
+    encryptedTitle?: string;            // Encrypted note title (client-side encrypted)
+    noteFolderId?: mongoose.Types.ObjectId; // Reference to NoteFolder (null = root)
     // Encryption Metadata (Same pattern as Tasks)
     encapsulatedKey: string;        // ML-KEM-768 ciphertext (hex)
     encryptedSymmetricKey: string;  // Wrapped AES-256 key (hex)
@@ -20,6 +23,9 @@ export interface INote extends Document {
 
 const NoteSchema: Schema = new Schema({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    // Note identity
+    encryptedTitle: { type: String, default: null },
+    noteFolderId: { type: Schema.Types.ObjectId, ref: 'NoteFolder', default: null, index: true },
     // Encryption fields
     encapsulatedKey: { type: String, required: true },
     encryptedSymmetricKey: { type: String, required: true },
@@ -38,7 +44,9 @@ const NoteSchema: Schema = new Schema({
 
 // Compound indexes for efficient querying
 NoteSchema.index({ userId: 1, tags: 1 });
+NoteSchema.index({ userId: 1, noteFolderId: 1 });
 NoteSchema.index({ userId: 1, 'educationalContext.subject': 1 });
 NoteSchema.index({ userId: 1, createdAt: -1 });
 
 export default mongoose.model<INote>('Note', NoteSchema);
+

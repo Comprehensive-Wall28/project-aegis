@@ -16,29 +16,39 @@ import {
     Redo,
     Link as LinkIcon,
     LinkOff,
+    Fullscreen,
+    FullscreenExit,
 } from '@mui/icons-material';
 import type { JSONContent, Editor } from '@tiptap/react';
 
 interface AegisEditorProps {
+    initialTitle?: string;
     initialContent?: JSONContent;
-    onSave: (content: JSONContent) => Promise<void>;
+    onSave: (content: JSONContent, title: string) => Promise<void>;
     readOnly?: boolean;
     autoSaveDelay?: number;
+    onToggleFullscreen?: () => void;
+    fullscreen?: boolean;
 }
 
 /**
  * TipTap-based rich text editor for Aegis Notes
  */
 const AegisEditor: React.FC<AegisEditorProps> = ({
+    initialTitle = '',
     initialContent,
     onSave,
     readOnly = false,
     autoSaveDelay = 1500,
+    onToggleFullscreen,
+    fullscreen = false,
 }) => {
+    const [title, setTitle] = useState(initialTitle);
     const [isSaving, setIsSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastSavedContentRef = useRef<string>('');
+    const lastSavedTitleRef = useRef<string>(initialTitle);
 
     const editor = useEditor({
         extensions: [
@@ -62,13 +72,23 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             const currentContent = JSON.stringify(editor.getJSON());
             if (currentContent !== lastSavedContentRef.current) {
                 setHasChanges(true);
-                debouncedSave(editor);
+                debouncedSave(editor, title);
             }
         },
     });
 
+    // Handle title change
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newTitle = e.target.value;
+        setTitle(newTitle);
+        setHasChanges(true);
+        if (editor) {
+            debouncedSave(editor, newTitle);
+        }
+    };
+
     // Debounced auto-save
-    const debouncedSave = useCallback((editor: Editor) => {
+    const debouncedSave = useCallback((editor: Editor, currentTitle: string) => {
         if (saveTimeoutRef.current) {
             clearTimeout(saveTimeoutRef.current);
         }
@@ -77,11 +97,12 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             const content = editor.getJSON();
             const contentStr = JSON.stringify(content);
 
-            if (contentStr !== lastSavedContentRef.current) {
+            if (contentStr !== lastSavedContentRef.current || currentTitle !== lastSavedTitleRef.current) {
                 setIsSaving(true);
                 try {
-                    await onSave(content);
+                    await onSave(content, currentTitle);
                     lastSavedContentRef.current = contentStr;
+                    lastSavedTitleRef.current = currentTitle;
                     setHasChanges(false);
                 } catch (error) {
                     console.error('Auto-save failed:', error);
@@ -101,12 +122,16 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
         };
     }, []);
 
-    // Update initial content ref
+    // Update initial content/title refs
     useEffect(() => {
         if (initialContent) {
             lastSavedContentRef.current = JSON.stringify(initialContent);
         }
-    }, [initialContent]);
+        if (initialTitle !== undefined) {
+            setTitle(initialTitle);
+            lastSavedTitleRef.current = initialTitle;
+        }
+    }, [initialContent, initialTitle]);
 
     // Set link handler
     const setLink = useCallback(() => {
@@ -139,9 +164,30 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             flexDirection: 'column',
             height: '100%',
             bgcolor: 'background.paper',
-            borderRadius: '16px',
+            borderRadius: fullscreen ? 0 : '16px',
             overflow: 'hidden',
+            transition: 'border-radius 0.3s ease',
         }}>
+            {/* Title Block */}
+            <Box sx={{ px: 3, pt: 3, pb: 1 }}>
+                <input
+                    type="text"
+                    value={title}
+                    onChange={handleTitleChange}
+                    placeholder="Note Title"
+                    readOnly={readOnly}
+                    style={{
+                        width: '100%',
+                        border: 'none',
+                        outline: 'none',
+                        fontSize: '2.5rem',
+                        fontWeight: 700,
+                        backgroundColor: 'transparent',
+                        color: 'inherit',
+                        fontFamily: 'inherit',
+                    }}
+                />
+            </Box>
             {/* Toolbar */}
             {!readOnly && (
                 <Box sx={{
@@ -284,7 +330,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                         </span>
                     </Tooltip>
 
-                    {/* Save indicator */}
+                    {/* Save indicator & Fullscreen Toggle */}
                     <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
                         {isSaving && <CircularProgress size={16} />}
                         {hasChanges && !isSaving && (
@@ -294,6 +340,17 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                                 borderRadius: '50%',
                                 bgcolor: 'warning.main',
                             }} />
+                        )}
+                        {onToggleFullscreen && (
+                            <Tooltip title={fullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+                                <IconButton
+                                    size="small"
+                                    onClick={onToggleFullscreen}
+                                    sx={{ ml: 1 }}
+                                >
+                                    {fullscreen ? <FullscreenExit fontSize="small" /> : <Fullscreen fontSize="small" />}
+                                </IconButton>
+                            </Tooltip>
                         )}
                     </Box>
                 </Box>
@@ -376,6 +433,9 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                         pointerEvents: 'none',
                         height: 0,
                     },
+                    maxWidth: fullscreen ? '800px' : 'none',
+                    mx: fullscreen ? 'auto' : 'none',
+                    pb: fullscreen ? 10 : 2,
                 },
             }}>
                 <EditorContent editor={editor} />

@@ -16,7 +16,7 @@ export class NoteRepository extends BaseRepository<INote> {
      */
     async findByUserId(
         userId: string,
-        filters?: { tags?: string[]; subject?: string; semester?: string },
+        filters?: { tags?: string[]; subject?: string; semester?: string; folderId?: string | null },
         options: QueryOptions = {}
     ): Promise<INote[]> {
         const filter: SafeFilter<INote> = {
@@ -35,6 +35,15 @@ export class NoteRepository extends BaseRepository<INote> {
             (filter as any)['educationalContext.semester'] = { $eq: filters.semester };
         }
 
+        // Filter by folder (null = root level)
+        if (filters?.folderId !== undefined) {
+            if (filters.folderId === null) {
+                (filter as any).noteFolderId = { $eq: null };
+            } else {
+                (filter as any).noteFolderId = { $eq: new mongoose.Types.ObjectId(filters.folderId) };
+            }
+        }
+
         return this.findMany(filter, {
             sort: { updatedAt: -1 },
             ...options
@@ -46,7 +55,7 @@ export class NoteRepository extends BaseRepository<INote> {
      */
     async findByUserIdPaginated(
         userId: string,
-        options: { limit: number; cursor?: string; tags?: string[] }
+        options: { limit: number; cursor?: string; tags?: string[]; folderId?: string | null }
     ): Promise<{ items: INote[]; nextCursor: string | null }> {
         const filter: SafeFilter<INote> = {
             userId: { $eq: userId }
@@ -54,6 +63,15 @@ export class NoteRepository extends BaseRepository<INote> {
 
         if (options.tags && options.tags.length > 0) {
             (filter as any).tags = { $all: options.tags };
+        }
+
+        // Filter by folder (null = root level)
+        if (options.folderId !== undefined) {
+            if (options.folderId === null) {
+                (filter as any).noteFolderId = { $eq: null };
+            } else {
+                (filter as any).noteFolderId = { $eq: new mongoose.Types.ObjectId(options.folderId) };
+            }
         }
 
         // Cursor-based pagination using _id
@@ -152,5 +170,18 @@ export class NoteRepository extends BaseRepository<INote> {
         });
 
         return Array.from(tagSet).sort();
+    }
+
+    /**
+     * Move all notes from a folder to root (when deleting folder)
+     */
+    async moveNotesToRoot(userId: string, folderId: string): Promise<void> {
+        await this.model.updateMany(
+            {
+                userId: new mongoose.Types.ObjectId(userId),
+                noteFolderId: new mongoose.Types.ObjectId(folderId)
+            },
+            { $set: { noteFolderId: null } }
+        );
     }
 }

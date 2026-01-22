@@ -3,7 +3,9 @@ import { Request } from 'express';
 import { Readable } from 'stream';
 import { BaseService, ServiceError } from './base/BaseService';
 import { NoteRepository } from '../repositories/NoteRepository';
+import { NoteFolderRepository } from '../repositories/NoteFolderRepository';
 import { INote } from '../models/Note';
+import { INoteFolder } from '../models/NoteFolder';
 import {
     uploadBuffer,
     downloadToBuffer,
@@ -19,6 +21,8 @@ export interface CreateNoteDTO {
     encapsulatedKey: string;
     encryptedSymmetricKey: string;
     encryptedContent: string;         // Base64 encoded encrypted content
+    encryptedTitle?: string;           // Encrypted note title
+    noteFolderId?: string;             // Folder ID (null = root)
     tags?: string[];
     linkedEntityIds?: string[];
     educationalContext?: {
@@ -32,6 +36,8 @@ export interface CreateNoteDTO {
  * DTO for updating note metadata
  */
 export interface UpdateNoteMetadataDTO {
+    encryptedTitle?: string;
+    noteFolderId?: string | null;     // null to move to root
     tags?: string[];
     linkedEntityIds?: string[];
     educationalContext?: {
@@ -55,8 +61,11 @@ export interface UpdateNoteContentDTO {
  * NoteService handles business logic for note operations with GridFS content storage
  */
 export class NoteService extends BaseService<INote, NoteRepository> {
+    private folderRepository: NoteFolderRepository;
+
     constructor() {
         super(new NoteRepository());
+        this.folderRepository = new NoteFolderRepository();
     }
 
     /**
@@ -64,7 +73,7 @@ export class NoteService extends BaseService<INote, NoteRepository> {
      */
     async getNotes(
         userId: string,
-        filters?: { tags?: string[]; subject?: string; semester?: string }
+        filters?: { tags?: string[]; subject?: string; semester?: string; folderId?: string | null }
     ): Promise<INote[]> {
         try {
             return await this.repository.findByUserId(userId, filters);
@@ -78,13 +87,14 @@ export class NoteService extends BaseService<INote, NoteRepository> {
      */
     async getNotesPaginated(
         userId: string,
-        options: { limit: number; cursor?: string; tags?: string[] }
+        options: { limit: number; cursor?: string; tags?: string[]; folderId?: string | null }
     ): Promise<{ items: INote[]; nextCursor: string | null }> {
         try {
             return await this.repository.findByUserIdPaginated(userId, {
                 limit: Math.min(options.limit || 20, 100),
                 cursor: options.cursor,
-                tags: options.tags
+                tags: options.tags,
+                folderId: options.folderId
             });
         } catch (error) {
             this.handleRepositoryError(error);
@@ -175,6 +185,8 @@ export class NoteService extends BaseService<INote, NoteRepository> {
             // Create note metadata record
             const note = await this.repository.create({
                 userId: new mongoose.Types.ObjectId(userId),
+                encryptedTitle: data.encryptedTitle || null,
+                noteFolderId: data.noteFolderId ? new mongoose.Types.ObjectId(data.noteFolderId) : null,
                 encapsulatedKey: data.encapsulatedKey,
                 encryptedSymmetricKey: data.encryptedSymmetricKey,
                 gridFsFileId,
@@ -214,6 +226,14 @@ export class NoteService extends BaseService<INote, NoteRepository> {
 
             const updateData: Partial<INote> = {};
 
+            if (data.encryptedTitle !== undefined) {
+                updateData.encryptedTitle = data.encryptedTitle;
+            }
+            if (data.noteFolderId !== undefined) {
+                updateData.noteFolderId = data.noteFolderId === null
+                    ? null as any  // Explicitly set to null to move to root
+                    : new mongoose.Types.ObjectId(data.noteFolderId);
+            }
             if (data.tags !== undefined) {
                 updateData.tags = data.tags;
             }
@@ -368,6 +388,184 @@ export class NoteService extends BaseService<INote, NoteRepository> {
         try {
             return await this.repository.findMentionsOf(userId, entityId);
         } catch (error) {
+            this.handleRepositoryError(error);
+        }
+    }
+
+    // ==================== FOLDER OPERATIONS ====================
+
+    /**
+     * Get all folders for a user
+     */
+    async getFolders(userId: string): Promise<INoteFolder[]> {
+        try {
+            return await this.folderRepository.findByUserId(userId);
+        } catch (error) {
+            this.handleRepositoryError(error);
+        }
+    }
+
+    /**
+     * Get a single folder by ID
+     */
+    async getFolder(userId: string, folderId: string): Promise<INoteFolder> {
+        try {
+            const validatedId = this.validateId(folderId, 'folder ID');
+            const folder = await this.folderRepository.findByIdAndUser(validatedId, userId);
+
+            if (!folder) {
+                throw new ServiceError('Folder not found', 404, 'NOT_FOUND');
+            }
+
+            return folder;
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            this.handleRepositoryError(error);
+        }
+    }
+
+    /**
+     * Create a new folder
+     */
+    async createFolder(
+        userId: string,
+        data: { name: string; parentId?: string; color?: string },
+        req: Request
+    ): Promise<INoteFolder> {
+        try {
+            if (!data.name || data.name.trim().length === 0) {
+                throw new ServiceError('Folder name is required', 400, 'VALIDATION_ERROR');
+            }
+
+            const parentId = data.parentId || null;
+
+            // Check for duplicate name at same level
+            const exists = await this.folderRepository.existsWithName(userId, data.name.trim(), parentId);
+            if (exists) {
+                throw new ServiceError('A folder with this name already exists', 409, 'DUPLICATE');
+            }
+
+            const folder = await this.folderRepository.create({
+                userId: new mongoose.Types.ObjectId(userId),
+                name: data.name.trim(),
+                parentId: parentId ? new mongoose.Types.ObjectId(parentId) : undefined,
+                color: data.color || undefined,
+            } as Partial<INoteFolder>);
+
+            await this.logAction(userId, 'NOTE_FOLDER_CREATE', 'SUCCESS', req, {
+                folderId: folder._id.toString(),
+                name: folder.name
+            });
+
+            logger.info(`Note folder created: ${folder._id} by user ${userId}`);
+            return folder;
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            this.handleRepositoryError(error);
+        }
+    }
+
+    /**
+     * Update a folder
+     */
+    async updateFolder(
+        userId: string,
+        folderId: string,
+        data: { name?: string; parentId?: string | null; color?: string },
+        req: Request
+    ): Promise<INoteFolder> {
+        try {
+            const validatedId = this.validateId(folderId, 'folder ID');
+
+            const updateData: Partial<INoteFolder> = {};
+
+            if (data.name !== undefined) {
+                if (data.name.trim().length === 0) {
+                    throw new ServiceError('Folder name cannot be empty', 400, 'VALIDATION_ERROR');
+                }
+                // Check for duplicate name (excluding this folder)
+                const currentFolder = await this.folderRepository.findByIdAndUser(validatedId, userId);
+                const parentId = data.parentId !== undefined
+                    ? data.parentId
+                    : (currentFolder?.parentId?.toString() || null);
+                const exists = await this.folderRepository.existsWithName(
+                    userId,
+                    data.name.trim(),
+                    parentId,
+                    validatedId
+                );
+                if (exists) {
+                    throw new ServiceError('A folder with this name already exists', 409, 'DUPLICATE');
+                }
+                updateData.name = data.name.trim();
+            }
+
+            if (data.parentId !== undefined) {
+                updateData.parentId = data.parentId === null
+                    ? undefined
+                    : new mongoose.Types.ObjectId(data.parentId);
+            }
+
+            if (data.color !== undefined) {
+                updateData.color = data.color;
+            }
+
+            const folder = await this.folderRepository.updateByIdAndUser(validatedId, userId, updateData);
+
+            if (!folder) {
+                throw new ServiceError('Folder not found', 404, 'NOT_FOUND');
+            }
+
+            await this.logAction(userId, 'NOTE_FOLDER_UPDATE', 'SUCCESS', req, {
+                folderId: validatedId
+            });
+
+            return folder;
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            this.handleRepositoryError(error);
+        }
+    }
+
+    /**
+     * Delete a folder (moves notes to root)
+     */
+    async deleteFolder(
+        userId: string,
+        folderId: string,
+        req: Request
+    ): Promise<void> {
+        try {
+            const validatedId = this.validateId(folderId, 'folder ID');
+
+            // Check folder exists
+            const folder = await this.folderRepository.findByIdAndUser(validatedId, userId);
+            if (!folder) {
+                throw new ServiceError('Folder not found', 404, 'NOT_FOUND');
+            }
+
+            // Get all descendant folder IDs
+            const descendantIds = await this.folderRepository.getDescendantIds(userId, validatedId);
+            const allFolderIds = [validatedId, ...descendantIds];
+
+            // Move all notes from deleted folders to root
+            for (const id of allFolderIds) {
+                await this.repository.moveNotesToRoot(userId, id);
+            }
+
+            // Delete all folders (child folders first, then parent)
+            for (const id of [...descendantIds.reverse(), validatedId]) {
+                await this.folderRepository.deleteByIdAndUser(id, userId);
+            }
+
+            await this.logAction(userId, 'NOTE_FOLDER_DELETE', 'SUCCESS', req, {
+                folderId: validatedId,
+                descendantsDeleted: descendantIds.length
+            });
+
+            logger.info(`Note folder deleted: ${folderId} by user ${userId}`);
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
             this.handleRepositoryError(error);
         }
     }
