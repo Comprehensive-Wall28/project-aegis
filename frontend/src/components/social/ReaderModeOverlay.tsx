@@ -99,6 +99,23 @@ export const ReaderModeOverlay = memo(({
         loadContent();
     }, [open, link._id]);
 
+    // Close on Escape key
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && open) {
+                onClose();
+            }
+        };
+
+        if (open) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [open, onClose]);
+
     // Load annotations
     useEffect(() => {
         if (!open || !readerContent || readerContent.status !== 'success') return;
@@ -428,9 +445,33 @@ export const ReaderModeOverlay = memo(({
                                     flexShrink: 0,
                                 }}
                             >
-                                <IconButton onClick={onClose} aria-label="Close reader">
-                                    <CloseIcon />
-                                </IconButton>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <IconButton onClick={onClose} aria-label="Close reader">
+                                        <CloseIcon />
+                                    </IconButton>
+                                    {!isMobile && (
+                                        <Typography
+                                            variant="caption"
+                                            sx={{
+                                                bgcolor: alpha(theme.palette.text.primary, 0.1),
+                                                px: 0.8,
+                                                py: 0.2,
+                                                borderRadius: '4px',
+                                                fontSize: '0.65rem',
+                                                fontWeight: 700,
+                                                color: theme.palette.text.secondary,
+                                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                                pointerEvents: 'none',
+                                                userSelect: 'none',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                height: 20
+                                            }}
+                                        >
+                                            ESC
+                                        </Typography>
+                                    )}
+                                </Box>
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <Typography variant="subtitle1" noWrap sx={{ fontWeight: 600 }}>
                                         {readerContent?.title || link.previewData?.title || 'Reader Mode'}
