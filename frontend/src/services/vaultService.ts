@@ -37,12 +37,14 @@ const vaultService = {
         folderId?: string | null;
         limit: number;
         cursor?: string;
+        search?: string;
         signal?: AbortSignal;
     }): Promise<PaginatedFiles> => {
         const queryParams = new URLSearchParams();
         queryParams.append('limit', params.limit.toString());
         if (params.folderId) queryParams.append('folderId', params.folderId);
         if (params.cursor) queryParams.append('cursor', params.cursor);
+        if (params.search) queryParams.append('search', params.search);
 
         const response = await apiClient.get<PaginatedFiles>(`${PREFIX}/files`, {
             params: queryParams,

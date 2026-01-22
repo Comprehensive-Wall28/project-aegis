@@ -1,7 +1,7 @@
 {
   "name": "aegis-frontend",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.8.3",
   "description": "project-aegis' frontend",
   "type": "module",
   "scripts": {

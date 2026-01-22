@@ -127,18 +127,19 @@ export const getUserFiles = async (req: AuthRequest, res: Response) => {
         // Check for pagination params
         const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
         const cursor = req.query.cursor as string | undefined;
+        const search = req.query.search as string | undefined;
 
         if (limit !== undefined) {
             const result = await vaultService.getUserFilesPaginated(
                 req.user.id,
                 normalizedFolderId,
-                { limit, cursor }
+                { limit, cursor, search }
             );
             return res.json(result);
         }
 
         // Non-paginated fallback
-        const files = await vaultService.getUserFiles(req.user.id, folderId);
+        const files = await vaultService.getUserFiles(req.user.id, folderId, search);
         res.json(files);
     } catch (error) {
         handleError(error, res);

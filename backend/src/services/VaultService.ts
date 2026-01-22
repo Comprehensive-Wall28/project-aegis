@@ -246,10 +246,11 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
      */
     async getUserFiles(
         userId: string,
-        folderId?: string | null
+        folderId?: string | null,
+        search?: string
     ): Promise<IFileMetadata[]> {
         try {
-            if (folderId && folderId !== 'null') {
+            if (!search && folderId && folderId !== 'null') {
                 // Validate folderId before usage to prevent verbose CastErrors
                 if (!mongoose.isValidObjectId(folderId)) {
                     logger.warn(`Invalid folderId format in getUserFiles: ${folderId}`);
@@ -300,8 +301,8 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 );
             }
 
-            // Root level files
-            return await this.repository.findByOwnerAndFolder(userId, null);
+            // Root level files or Global Search
+            return await this.repository.findByOwnerAndFolder(userId, null, search);
         } catch (error: unknown) {
             if (error instanceof ServiceError) throw error;
 
@@ -380,7 +381,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
     async getUserFilesPaginated(
         userId: string,
         folderId: string | null,
-        options: { limit: number; cursor?: string }
+        options: { limit: number; cursor?: string; search?: string }
     ): Promise<{ items: IFileMetadata[]; nextCursor: string | null }> {
         try {
             // Root level files - user's own files
@@ -389,7 +390,8 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 folderId,
                 {
                     limit: Math.min(options.limit || 20, 100),
-                    cursor: options.cursor
+                    cursor: options.cursor,
+                    search: options.search
                 }
             );
         } catch (error) {

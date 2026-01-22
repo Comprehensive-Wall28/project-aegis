@@ -32,6 +32,7 @@ import taskService from '@/services/taskService';
 import calendarService from '@/services/calendarService';
 import { useTaskEncryption } from '@/hooks/useTaskEncryption';
 import { useCalendarEncryption } from '@/hooks/useCalendarEncryption';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export type MentionEntityType = 'file' | 'task' | 'event';
 
@@ -59,6 +60,8 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
     const [folderPath, setFolderPath] = useState<Folder[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
+
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
     const { decryptTasks } = useTaskEncryption();
     const { decryptEvents } = useCalendarEncryption();
@@ -128,36 +131,60 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
         setSelectedIndex(0);
     }, [searchQuery, activeTab, folders, paginatedFiles]);
 
-    // Fetch folders and files for Files tab (with pagination for files)
-    const fetchData = useCallback(async (folderId: string | null, signal?: AbortSignal) => {
-        setIsLoading(true);
-        try {
-            // Folders are typically not paginated (usually few)
-            const foldersData = await folderService.getFolders(folderId);
-            setFolders(foldersData);
 
-            // Paginated file fetch
-            const filesResult = await vaultService.getFilesPaginated({ folderId, limit: 20, signal });
-            setPaginatedFiles(filesResult.items);
-            setFilesCursor(filesResult.nextCursor);
-        } catch (err: any) {
-            if (err?.name !== 'AbortError' && err?.code !== 'ERR_CANCELED') {
-                console.error('Failed to fetch picker data:', err);
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
 
-    // Fetch files when Files tab is active and folder changes
+    // Fetch files when Files tab is active and folder changes or search query changes
     useEffect(() => {
         if (!anchorEl || activeTab !== 0) return;
 
         const controller = new AbortController();
-        fetchData(currentFolderId, controller.signal);
+
+        // If searching, we do a global search (folderId = null or ignored by backend if search is present)
+        // If not searching, we use currentFolderId
+        const effectiveFolderId = debouncedSearchQuery ? null : currentFolderId;
+
+        // Custom fetch logic for search vs navigation could be unified here
+        // We can reuse fetchData but we need to pass search param
+        const performFetch = async () => {
+            setIsLoading(true);
+            try {
+                // For global search, we don't fetch folders, just files
+                if (debouncedSearchQuery) {
+                    setFolders([]); // Clear folders in search view
+                    const filesResult = await vaultService.getFilesPaginated({
+                        folderId: null,
+                        limit: 20,
+                        signal: controller.signal,
+                        search: debouncedSearchQuery
+                    });
+                    setPaginatedFiles(filesResult.items);
+                    setFilesCursor(filesResult.nextCursor);
+                } else {
+                    // Normal folder navigation
+                    const foldersData = await folderService.getFolders(effectiveFolderId);
+                    setFolders(foldersData);
+
+                    const filesResult = await vaultService.getFilesPaginated({
+                        folderId: effectiveFolderId,
+                        limit: 20,
+                        signal: controller.signal
+                    });
+                    setPaginatedFiles(filesResult.items);
+                    setFilesCursor(filesResult.nextCursor);
+                }
+            } catch (err: any) {
+                if (err?.name !== 'AbortError' && err?.code !== 'ERR_CANCELED') {
+                    console.error('Failed to fetch picker data:', err);
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        performFetch();
 
         return () => controller.abort();
-    }, [currentFolderId, fetchData, anchorEl, activeTab]);
+    }, [currentFolderId, debouncedSearchQuery, anchorEl, activeTab]);
 
     const handleFolderClick = (folder: Folder) => {
         setFolderPath(prev => [...prev, folder]);
@@ -174,12 +201,24 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
     };
 
     const filteredFilesEntities = useMemo(() => {
-        const query = searchQuery.toLowerCase();
-        const f = paginatedFiles.filter(file => file.originalFileName.toLowerCase().includes(query));
-        const foldersList = folders.filter(folder => folder.name.toLowerCase().includes(query));
+        // If searching, the backend already did the search, so we just return the data (or we could still filter locally if we wanted mixed, but backend is better)
+        // But WAIT: backend search is paginated.
+        // If debouncedSearchQuery is present, we trust `paginatedFiles` contains our search results.
+        // If NO search query, `paginatedFiles` contains the folder's files.
+        // We only do local filtering if we haven't debounced yet? No, usually with server search we show loading until debounced.
+        // But for tasks/events we still do local filtering?? The implementation plan for tasks/events wasn't explicit about global backend search for them, only files.
+        // The user request was "Global search (in selected folder) in backend".
 
-        return { folders: foldersList, files: f };
-    }, [paginatedFiles, folders, searchQuery]);
+        // Actually, for files, we now rely on server side search.
+        if (debouncedSearchQuery) {
+            return { folders: [], files: paginatedFiles };
+        }
+
+        // For non-search state, return folders/files as is (or if we truly want local filter on top of folder view before search triggers... 
+        // but typically search replaces view)
+        // Let's assume empty query means normal view.
+        return { folders: folders, files: paginatedFiles };
+    }, [paginatedFiles, folders, debouncedSearchQuery]);
 
     const filteredTasks = useMemo(() => {
         const query = searchQuery.toLowerCase();
@@ -393,9 +432,10 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                                             setIsLoading(true);
                                             try {
                                                 const result = await vaultService.getFilesPaginated({
-                                                    folderId: currentFolderId,
+                                                    folderId: debouncedSearchQuery ? null : currentFolderId,
                                                     limit: 20,
-                                                    cursor: filesCursor
+                                                    cursor: filesCursor,
+                                                    search: debouncedSearchQuery || undefined
                                                 });
                                                 setPaginatedFiles(prev => [...prev, ...result.items]);
                                                 setFilesCursor(result.nextCursor);
