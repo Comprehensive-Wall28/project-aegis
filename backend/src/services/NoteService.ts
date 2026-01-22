@@ -54,6 +54,7 @@ export interface UpdateNoteContentDTO {
     encapsulatedKey: string;
     encryptedSymmetricKey: string;
     encryptedContent: string;         // Base64 encoded encrypted content
+    encryptedTitle?: string;           // Optional re-encrypted title
     recordHash: string;
 }
 
@@ -294,13 +295,19 @@ export class NoteService extends BaseService<INote, NoteRepository> {
             );
 
             // Update note to point to new content
-            const note = await this.repository.updateByIdAndUser(validatedId, userId, {
+            const updateData: Partial<INote> = {
                 encapsulatedKey: data.encapsulatedKey,
                 encryptedSymmetricKey: data.encryptedSymmetricKey,
                 gridFsFileId: newGridFsId,
                 contentSize: contentBuffer.length,
                 recordHash: data.recordHash
-            });
+            };
+
+            if (data.encryptedTitle !== undefined) {
+                updateData.encryptedTitle = data.encryptedTitle;
+            }
+
+            const note = await this.repository.updateByIdAndUser(validatedId, userId, updateData);
 
             if (!note) {
                 // Cleanup new file if update failed

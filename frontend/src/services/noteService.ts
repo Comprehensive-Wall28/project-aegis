@@ -76,6 +76,7 @@ export interface UpdateNoteContentInput {
     encapsulatedKey: string;
     encryptedSymmetricKey: string;
     encryptedContent: string;  // Base64 encoded
+    encryptedTitle?: string;
     recordHash: string;
 }
 
@@ -139,8 +140,13 @@ const noteService = {
     /**
      * Get note content (encrypted, base64 encoded)
      */
-    getNoteContent: async (id: string): Promise<NoteContentResponse> => {
-        const response = await apiClient.get<NoteContentResponse>(`${PREFIX}/${id}/content`);
+    /**
+     * Get note content (encrypted, base64 encoded)
+     */
+    getNoteContent: async (id: string, options?: { signal?: AbortSignal }): Promise<NoteContentResponse> => {
+        const response = await apiClient.get<NoteContentResponse>(`${PREFIX}/${id}/content`, {
+            signal: options?.signal
+        });
         return response.data;
     },
 
