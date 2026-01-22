@@ -76,6 +76,7 @@ export interface UpdateNoteContentInput {
     encapsulatedKey: string;
     encryptedSymmetricKey: string;
     encryptedContent: string;  // Base64 encoded
+    encryptedTitle?: string;
     recordHash: string;
 }
 

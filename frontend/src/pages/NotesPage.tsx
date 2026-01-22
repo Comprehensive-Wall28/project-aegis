@@ -96,11 +96,10 @@ const NotesPage: React.FC = () => {
     const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
 
     const {
-        encryptNoteContent,
+        encryptNote,
         decryptNoteContent,
         deriveAesKey,
         decryptString,
-        encryptString,
         generateNoteHash
     } = useNoteEncryption();
 
@@ -213,17 +212,11 @@ const NotesPage: React.FC = () => {
                 content: [{ type: 'paragraph' }],
             };
 
-            const encrypted = await encryptNoteContent(emptyContent);
-
-            // Encrypt default title
-            const aesKey = await deriveAesKey(encrypted.encapsulatedKey, encrypted.encryptedSymmetricKey);
-            const encryptedTitle = await encryptString('New Note', aesKey);
-
+            const encrypted = await encryptNote(emptyContent, 'New Note');
             const recordHash = await generateNoteHash(emptyContent, [], 'New Note');
 
             const newNote = await noteService.createNote({
                 ...encrypted,
-                encryptedTitle,
                 noteFolderId: selectedFolderId || undefined,
                 recordHash,
                 tags: [],
@@ -240,7 +233,7 @@ const NotesPage: React.FC = () => {
         } catch (err: any) {
             setError(err.message || 'Failed to create note');
         }
-    }, [encryptNoteContent, deriveAesKey, encryptString, generateNoteHash, selectedFolderId, isMobile]);
+    }, [encryptNote, generateNoteHash, selectedFolderId, isMobile]);
 
     // Save note content and metadata (including title)
     const handleSaveContent = useCallback(async (content: JSONContent, title?: string) => {
@@ -248,28 +241,24 @@ const NotesPage: React.FC = () => {
 
         try {
             const noteContent = content as NoteContent;
-            const encrypted = await encryptNoteContent(noteContent);
+            const currentTitle = title !== undefined ? title : decryptedTitles[selectedNote.metadata._id];
 
-            // Derive key and encrypt new title if provided
-            let encryptedTitle = selectedNote.metadata.encryptedTitle;
-            if (title !== undefined) {
-                const aesKey = await deriveAesKey(encrypted.encapsulatedKey, encrypted.encryptedSymmetricKey);
-                encryptedTitle = await encryptString(title, aesKey);
-            }
+            // Use encryptNote to get both content and title encrypted with the same new keys
+            const encrypted = await encryptNote(noteContent, currentTitle);
 
-            const recordHash = await generateNoteHash(noteContent, selectedNote.metadata.tags, title || decryptedTitles[selectedNote.metadata._id]);
+            const recordHash = await generateNoteHash(
+                noteContent,
+                selectedNote.metadata.tags,
+                currentTitle
+            );
 
             const updatedNote = await noteService.updateNoteContent(selectedNote.metadata._id, {
                 ...encrypted,
                 recordHash,
             });
 
-            // If title changed, we also need to update metadata
-            let finalNote = updatedNote;
-            if (title !== undefined && title !== decryptedTitles[selectedNote.metadata._id]) {
-                finalNote = await noteService.updateNoteMetadata(selectedNote.metadata._id, {
-                    encryptedTitle,
-                });
+            const finalNote = updatedNote;
+            if (title !== undefined) {
                 setDecryptedTitles(prev => ({ ...prev, [finalNote._id]: title }));
             }
 
@@ -287,7 +276,7 @@ const NotesPage: React.FC = () => {
             console.error('Failed to save note:', err);
             throw err;
         }
-    }, [selectedNote, encryptNoteContent, deriveAesKey, encryptString, generateNoteHash, decryptedTitles]);
+    }, [selectedNote, encryptNote, generateNoteHash, decryptedTitles]);
 
     // Handle folder operations
     const openFolderDialog = (mode: 'create' | 'rename', folder?: NoteFolder) => {

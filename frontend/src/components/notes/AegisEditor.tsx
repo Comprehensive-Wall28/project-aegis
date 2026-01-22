@@ -51,6 +51,12 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     const [guideOpen, setGuideOpen] = useState(false);
     const [, setUpdateTick] = useState(0); // Dummy state to force re-render
     const theme = useTheme();
+    const titleRef = useRef(title);
+
+    // Keep titleRef in sync with title state
+    useEffect(() => {
+        titleRef.current = title;
+    }, [title]);
 
     const getButtonStyle = (active: boolean) => ({
         bgcolor: active ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
@@ -89,7 +95,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             const currentContent = JSON.stringify(editor.getJSON());
             if (currentContent !== lastSavedContentRef.current) {
                 setHasChanges(true);
-                debouncedSave(editor, title);
+                debouncedSave(editor, titleRef.current);
             }
         },
         onTransaction: () => {
@@ -188,7 +194,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
         // Save: Ctrl + S
         if (isCtrl && e.key === 's') {
             e.preventDefault();
-            if (editor) debouncedSave(editor, title, true);
+            if (editor) debouncedSave(editor, titleRef.current, true);
         }
 
         // Fullscreen: Ctrl + F

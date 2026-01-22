@@ -20,6 +20,7 @@ export interface NoteContent {
  */
 export interface EncryptedNotePayload {
     encryptedContent: string;       // Base64 encoded encrypted content
+    encryptedTitle?: string;        // Optional encrypted title
     encapsulatedKey: string;        // ML-KEM-768 ciphertext (hex)
     encryptedSymmetricKey: string;  // IV + wrapped AES key (hex)
 }
@@ -87,9 +88,9 @@ export const useNoteEncryption = () => {
     }, [user]);
 
     /**
-     * Encrypt note content (TipTap JSON) for storage
+     * Encrypt note content and title together
      */
-    const encryptNoteContent = useCallback(async (content: NoteContent): Promise<EncryptedNotePayload> => {
+    const encryptNote = useCallback(async (content: NoteContent, title?: string): Promise<EncryptedNotePayload> => {
         if (!user || !user.publicKey) {
             throw new Error('User public key not found. PQC Engine must be operational.');
         }
@@ -97,18 +98,18 @@ export const useNoteEncryption = () => {
         try {
             setCryptoStatus('encrypting');
 
-            // Generate a random AES-256-GCM key for this note
+            // 1. Generate AES-256-GCM key
             const aesKey = await window.crypto.subtle.generateKey(
                 { name: 'AES-GCM', length: 256 },
                 true,
                 ['encrypt', 'decrypt']
             );
 
-            // Encapsulate using ML-KEM-768 to get shared secret
+            // 2. Encapsulate with ML-KEM-768
             const pubKeyBytes = hexToBytes(user.publicKey);
             const { cipherText: encapsulatedKeyBytes, sharedSecret } = ml_kem768.encapsulate(pubKeyBytes);
 
-            // Create wrapping key from shared secret
+            // 3. Create wrapping key and wrap AES key
             const wrappingKey = await window.crypto.subtle.importKey(
                 'raw',
                 sharedSecret.buffer.slice(
@@ -120,39 +121,49 @@ export const useNoteEncryption = () => {
                 ['encrypt']
             );
 
-            // Wrap the AES key with the shared secret
             const ivKey = window.crypto.getRandomValues(new Uint8Array(12));
             const rawKey = await window.crypto.subtle.exportKey('raw', aesKey);
-
             const encryptedKeyBuffer = await window.crypto.subtle.encrypt(
                 { name: 'AES-GCM', iv: ivKey },
                 wrappingKey,
                 rawKey
             );
-
             const encryptedSymmetricKey = bytesToHex(ivKey) + bytesToHex(new Uint8Array(encryptedKeyBuffer));
 
-            // Encrypt the note content with the AES key
+            // 4. Encrypt content
             const contentJson = JSON.stringify(content);
             const contentBytes = new TextEncoder().encode(contentJson);
-            const ivData = window.crypto.getRandomValues(new Uint8Array(12));
-
-            const encryptedDataBuffer = await window.crypto.subtle.encrypt(
-                { name: 'AES-GCM', iv: ivData },
+            const ivContent = window.crypto.getRandomValues(new Uint8Array(12));
+            const encryptedContentBuffer = await window.crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv: ivContent },
                 aesKey,
                 contentBytes
             );
 
-            // Combine IV + ciphertext and encode as base64
-            const combined = new Uint8Array(ivData.length + encryptedDataBuffer.byteLength);
-            combined.set(ivData);
-            combined.set(new Uint8Array(encryptedDataBuffer), ivData.length);
+            const combinedContent = new Uint8Array(ivContent.length + encryptedContentBuffer.byteLength);
+            combinedContent.set(ivContent);
+            combinedContent.set(new Uint8Array(encryptedContentBuffer), ivContent.length);
 
-            // Convert to base64 for transport
-            const encryptedContent = btoa(String.fromCharCode(...combined));
+            // 5. Encrypt title if provided
+            let encryptedTitle: string | undefined;
+            if (title !== undefined) {
+                const titleBytes = new TextEncoder().encode(title);
+                const ivTitle = window.crypto.getRandomValues(new Uint8Array(12));
+                const encryptedTitleBuffer = await window.crypto.subtle.encrypt(
+                    { name: 'AES-GCM', iv: ivTitle },
+                    aesKey,
+                    titleBytes
+                );
+
+                const combinedTitle = new Uint8Array(ivTitle.length + encryptedTitleBuffer.byteLength);
+                combinedTitle.set(ivTitle);
+                combinedTitle.set(new Uint8Array(encryptedTitleBuffer), ivTitle.length);
+                encryptedTitle = btoa(String.fromCharCode(...combinedTitle));
+            }
 
             return {
-                encryptedContent,
+                encryptedContent: btoa(String.fromCharCode(...combinedContent)),
+                encryptedTitle,
                 encapsulatedKey: bytesToHex(encapsulatedKeyBytes),
                 encryptedSymmetricKey,
             };
@@ -160,6 +171,13 @@ export const useNoteEncryption = () => {
             setCryptoStatus('idle');
         }
     }, [user, setCryptoStatus]);
+
+    /**
+     * Backward compatibility wrapper for encryptNote
+     */
+    const encryptNoteContent = useCallback(async (content: NoteContent): Promise<EncryptedNotePayload> => {
+        return encryptNote(content);
+    }, [encryptNote]);
 
     /**
      * Decrypt note content from backend response
@@ -264,6 +282,7 @@ export const useNoteEncryption = () => {
 
     return {
         encryptNoteContent,
+        encryptNote,
         decryptNoteContent,
         deriveAesKey,
         encryptString,
