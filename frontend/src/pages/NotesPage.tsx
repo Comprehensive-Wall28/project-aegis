@@ -909,11 +909,13 @@ const NotesPage: React.FC = () => {
                     anchor="right"
                     open={mobileEditorOpen}
                     onClose={handleMobileBack}
-                    PaperProps={{
-                        sx: {
-                            width: '100%',
-                            bgcolor: 'background.default',
-                        },
+                    slotProps={{
+                        paper: {
+                            sx: {
+                                width: '100%',
+                                bgcolor: 'background.default',
+                            },
+                        }
                     }}
                 >
                     {/* Mobile Editor Header */}
@@ -1049,8 +1051,10 @@ const NotesPage: React.FC = () => {
             <Dialog
                 open={folderDialogOpen}
                 onClose={() => setFolderDialogOpen(false)}
-                PaperProps={{
-                    sx: { borderRadius: '16px', width: '100%', maxWidth: 400 }
+                slotProps={{
+                    paper: {
+                        sx: { borderRadius: '16px', width: '100%', maxWidth: 400 }
+                    }
                 }}
             >
                 <DialogTitle sx={{ fontWeight: 700 }}>
@@ -1090,8 +1094,10 @@ const NotesPage: React.FC = () => {
             <Dialog
                 open={deleteConfirmOpen}
                 onClose={() => setDeleteConfirmOpen(false)}
-                PaperProps={{
-                    sx: { borderRadius: '16px', width: '100%', maxWidth: 400 }
+                slotProps={{
+                    paper: {
+                        sx: { borderRadius: '16px', width: '100%', maxWidth: 400 }
+                    }
                 }}
             >
                 <DialogTitle sx={{ fontWeight: 700, color: 'error.main' }}>

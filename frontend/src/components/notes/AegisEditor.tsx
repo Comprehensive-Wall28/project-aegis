@@ -2,7 +2,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { Box, IconButton, Tooltip, Divider, CircularProgress } from '@mui/material';
+import { Box, IconButton, Tooltip, Divider, CircularProgress, alpha, useTheme } from '@mui/material';
 import {
     FormatBold,
     FormatItalic,
@@ -18,7 +18,9 @@ import {
     LinkOff,
     Fullscreen,
     FullscreenExit,
+    Keyboard as KeyboardIcon,
 } from '@mui/icons-material';
+import { ShortcutGuide } from './ShortcutGuide';
 import type { JSONContent, Editor } from '@tiptap/react';
 
 interface AegisEditorProps {
@@ -46,6 +48,21 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     const [title, setTitle] = useState(initialTitle);
     const [isSaving, setIsSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
+    const [guideOpen, setGuideOpen] = useState(false);
+    const [, setUpdateTick] = useState(0); // Dummy state to force re-render
+    const theme = useTheme();
+
+    const getButtonStyle = (active: boolean) => ({
+        bgcolor: active ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
+        color: active ? 'primary.main' : 'text.secondary',
+        borderRadius: '8px',
+        transition: 'all 0.2s ease',
+        border: active ? `1px solid ${alpha(theme.palette.primary.main, 0.3)}` : '1px solid transparent',
+        '&:hover': {
+            bgcolor: active ? alpha(theme.palette.primary.main, 0.25) : alpha(theme.palette.action.hover, 0.1),
+            borderColor: active ? alpha(theme.palette.primary.main, 0.5) : 'transparent',
+        },
+    });
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastSavedContentRef = useRef<string>('');
     const lastSavedTitleRef = useRef<string>(initialTitle);
@@ -75,6 +92,10 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                 debouncedSave(editor, title);
             }
         },
+        onTransaction: () => {
+            // Force re-render on every transaction to keep toolbar in sync
+            setUpdateTick(tick => tick + 1);
+        },
     });
 
     // Handle title change
@@ -88,12 +109,12 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     };
 
     // Debounced auto-save
-    const debouncedSave = useCallback((editor: Editor, currentTitle: string) => {
+    const debouncedSave = useCallback((editor: Editor, currentTitle: string, immediate = false) => {
         if (saveTimeoutRef.current) {
             clearTimeout(saveTimeoutRef.current);
         }
 
-        saveTimeoutRef.current = setTimeout(async () => {
+        const runSave = async () => {
             const content = editor.getJSON();
             const contentStr = JSON.stringify(content);
 
@@ -110,7 +131,13 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                     setIsSaving(false);
                 }
             }
-        }, autoSaveDelay);
+        };
+
+        if (immediate) {
+            runSave();
+        } else {
+            saveTimeoutRef.current = setTimeout(runSave, autoSaveDelay);
+        }
     }, [onSave, autoSaveDelay]);
 
     // Cleanup on unmount
@@ -150,6 +177,69 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
         editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
     }, [editor]);
 
+    // Keyboard shortcut handler
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if (readOnly) return;
+
+        const isCtrl = e.ctrlKey || e.metaKey;
+        const isShift = e.shiftKey;
+        const isAlt = e.altKey;
+
+        // Save: Ctrl + S
+        if (isCtrl && e.key === 's') {
+            e.preventDefault();
+            if (editor) debouncedSave(editor, title, true);
+        }
+
+        // Fullscreen: Ctrl + F
+        if (isCtrl && e.key === 'f') {
+            e.preventDefault();
+            if (onToggleFullscreen) onToggleFullscreen();
+        }
+
+        // Shortcut Guide: Ctrl + /
+        if (isCtrl && e.key === '/') {
+            e.preventDefault();
+            setGuideOpen(prev => !prev);
+        }
+
+        // Strikethrough: Ctrl + Shift + X
+        if (isCtrl && isShift && e.key.toLowerCase() === 'x') {
+            e.preventDefault();
+            editor?.chain().focus().toggleStrike().run();
+        }
+
+        // Bullet List: Ctrl + Shift + 8
+        if (isCtrl && isShift && e.key === '8') {
+            e.preventDefault();
+            editor?.chain().focus().toggleBulletList().run();
+        }
+
+        // Numbered List: Ctrl + Shift + 7
+        if (isCtrl && isShift && e.key === '7') {
+            e.preventDefault();
+            editor?.chain().focus().toggleOrderedList().run();
+        }
+
+        // Blockquote: Ctrl + Q
+        if (isCtrl && e.key.toLowerCase() === 'q') {
+            e.preventDefault();
+            editor?.chain().focus().toggleBlockquote().run();
+        }
+
+        // Headings: Ctrl + Alt + 1/2/3
+        if (isCtrl && isAlt && ['1', '2', '3'].includes(e.key)) {
+            e.preventDefault();
+            editor?.chain().focus().toggleHeading({ level: parseInt(e.key) as any }).run();
+        }
+
+        // Exit Fullscreen: Esc
+        if (e.key === 'Escape' && fullscreen && onToggleFullscreen) {
+            e.preventDefault();
+            onToggleFullscreen();
+        }
+    }, [editor, title, debouncedSave, onToggleFullscreen, fullscreen, readOnly]);
+
     if (!editor) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -159,15 +249,18 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     }
 
     return (
-        <Box sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-            bgcolor: 'background.paper',
-            borderRadius: fullscreen ? 0 : '16px',
-            overflow: 'hidden',
-            transition: 'border-radius 0.3s ease',
-        }}>
+        <Box
+            onKeyDown={handleKeyDown}
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+                bgcolor: 'background.paper',
+                borderRadius: fullscreen ? 0 : '16px',
+                overflow: 'hidden',
+                transition: 'border-radius 0.3s ease',
+            }}
+        >
             {/* Title Block */}
             <Box sx={{ px: 3, pt: 3, pb: 1 }}>
                 <input
@@ -204,7 +297,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                         <IconButton
                             size="small"
                             onClick={() => editor.chain().focus().toggleBold().run()}
-                            color={editor.isActive('bold') ? 'primary' : 'default'}
+                            sx={getButtonStyle(editor.isActive('bold'))}
                         >
                             <FormatBold fontSize="small" />
                         </IconButton>
@@ -214,17 +307,17 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                         <IconButton
                             size="small"
                             onClick={() => editor.chain().focus().toggleItalic().run()}
-                            color={editor.isActive('italic') ? 'primary' : 'default'}
+                            sx={getButtonStyle(editor.isActive('italic'))}
                         >
                             <FormatItalic fontSize="small" />
                         </IconButton>
                     </Tooltip>
 
-                    <Tooltip title="Strikethrough">
+                    <Tooltip title="Strikethrough (Ctrl+Shift+X)">
                         <IconButton
                             size="small"
                             onClick={() => editor.chain().focus().toggleStrike().run()}
-                            color={editor.isActive('strike') ? 'primary' : 'default'}
+                            sx={getButtonStyle(editor.isActive('strike'))}
                         >
                             <FormatStrikethrough fontSize="small" />
                         </IconButton>
@@ -234,7 +327,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                         <IconButton
                             size="small"
                             onClick={() => editor.chain().focus().toggleCode().run()}
-                            color={editor.isActive('code') ? 'primary' : 'default'}
+                            sx={getButtonStyle(editor.isActive('code'))}
                         >
                             <Code fontSize="small" />
                         </IconButton>
@@ -242,31 +335,31 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
 
                     <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
 
-                    <Tooltip title="Bullet List">
+                    <Tooltip title="Bullet List (Ctrl+Shift+8)">
                         <IconButton
                             size="small"
                             onClick={() => editor.chain().focus().toggleBulletList().run()}
-                            color={editor.isActive('bulletList') ? 'primary' : 'default'}
+                            sx={getButtonStyle(editor.isActive('bulletList'))}
                         >
                             <FormatListBulleted fontSize="small" />
                         </IconButton>
                     </Tooltip>
 
-                    <Tooltip title="Numbered List">
+                    <Tooltip title="Numbered List (Ctrl+Shift+7)">
                         <IconButton
                             size="small"
                             onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                            color={editor.isActive('orderedList') ? 'primary' : 'default'}
+                            sx={getButtonStyle(editor.isActive('orderedList'))}
                         >
                             <FormatListNumbered fontSize="small" />
                         </IconButton>
                     </Tooltip>
 
-                    <Tooltip title="Quote">
+                    <Tooltip title="Quote (Ctrl+Q)">
                         <IconButton
                             size="small"
                             onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                            color={editor.isActive('blockquote') ? 'primary' : 'default'}
+                            sx={getButtonStyle(editor.isActive('blockquote'))}
                         >
                             <FormatQuote fontSize="small" />
                         </IconButton>
@@ -276,6 +369,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                         <IconButton
                             size="small"
                             onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                            sx={getButtonStyle(false)}
                         >
                             <HorizontalRule fontSize="small" />
                         </IconButton>
@@ -287,7 +381,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                         <IconButton
                             size="small"
                             onClick={setLink}
-                            color={editor.isActive('link') ? 'primary' : 'default'}
+                            sx={getButtonStyle(editor.isActive('link'))}
                         >
                             <LinkIcon fontSize="small" />
                         </IconButton>
@@ -298,6 +392,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                             <IconButton
                                 size="small"
                                 onClick={() => editor.chain().focus().unsetLink().run()}
+                                sx={getButtonStyle(false)}
                             >
                                 <LinkOff fontSize="small" />
                             </IconButton>
@@ -312,6 +407,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                                 size="small"
                                 onClick={() => editor.chain().focus().undo().run()}
                                 disabled={!editor.can().undo()}
+                                sx={getButtonStyle(false)}
                             >
                                 <Undo fontSize="small" />
                             </IconButton>
@@ -324,6 +420,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                                 size="small"
                                 onClick={() => editor.chain().focus().redo().run()}
                                 disabled={!editor.can().redo()}
+                                sx={getButtonStyle(false)}
                             >
                                 <Redo fontSize="small" />
                             </IconButton>
@@ -332,6 +429,19 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
 
                     {/* Save indicator & Fullscreen Toggle */}
                     <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Tooltip title="Shortcut Guide (Ctrl+/)">
+                            <IconButton
+                                size="small"
+                                onClick={() => setGuideOpen(true)}
+                                sx={{
+                                    ...getButtonStyle(guideOpen),
+                                    color: guideOpen ? 'primary.main' : 'text.secondary'
+                                }}
+                            >
+                                <KeyboardIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+
                         {isSaving && <CircularProgress size={16} />}
                         {hasChanges && !isSaving && (
                             <Box sx={{
@@ -339,14 +449,18 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                                 height: 8,
                                 borderRadius: '50%',
                                 bgcolor: 'warning.main',
+                                boxShadow: (theme) => `0 0 8px ${alpha(theme.palette.warning.main, 0.6)}`,
                             }} />
                         )}
                         {onToggleFullscreen && (
-                            <Tooltip title={fullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+                            <Tooltip title={fullscreen ? "Exit Fullscreen (Esc)" : "Fullscreen (Ctrl+F)"}>
                                 <IconButton
                                     size="small"
                                     onClick={onToggleFullscreen}
-                                    sx={{ ml: 1 }}
+                                    sx={{
+                                        ...getButtonStyle(fullscreen),
+                                        ml: 1
+                                    }}
                                 >
                                     {fullscreen ? <FullscreenExit fontSize="small" /> : <Fullscreen fontSize="small" />}
                                 </IconButton>
@@ -440,6 +554,8 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             }}>
                 <EditorContent editor={editor} />
             </Box>
+
+            <ShortcutGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
         </Box>
     );
 };
