@@ -196,9 +196,10 @@ function printReport(report: LoadTestReport): void {
     console.log(`\n🎯 Success Rate: ${successRate}%`);
 
     // Queue performance analysis
+    const REAL_CONCURRENCY = 4; // Matching SCRAPE_QUEUE_CONCURRENCY in scraper.ts
     console.log('\n📈 QUEUE ANALYSIS:');
-    console.log(`   With ${CONFIG.CONCURRENT_REQUESTS} concurrent requests and concurrency limit of 2:`);
-    const theoreticalMinTime = report.avgTimePerRequest * Math.ceil(report.totalRequests / 2);
+    console.log(`   With ${CONFIG.CONCURRENT_REQUESTS} concurrent requests and concurrency limit of ${REAL_CONCURRENCY}:`);
+    const theoreticalMinTime = report.avgTimePerRequest * Math.ceil(report.totalRequests / REAL_CONCURRENCY);
     console.log(`   - Theoretical min total time (sequential batches): ${(theoreticalMinTime / 1000).toFixed(2)}s`);
     console.log(`   - Actual total time: ${(report.totalTime / 1000).toFixed(2)}s`);
     console.log(`   - Queue efficiency: ${((theoreticalMinTime / report.totalTime) * 100).toFixed(1)}%`);

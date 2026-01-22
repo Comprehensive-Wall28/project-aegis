@@ -44,7 +44,7 @@ const metascraper = createMetascraper([
 // Using p-queue for proper async concurrency control instead of busy-wait polling.
 // This is more efficient and doesn't block the event loop.
 
-const SCRAPE_QUEUE_CONCURRENCY = 2; // Max simultaneous Puppeteer scrapes
+const SCRAPE_QUEUE_CONCURRENCY = 4; // Maximized for 2GB RAM environment with Playwright
 const SCRAPE_QUEUE_TIMEOUT = 60000; // 60 second timeout per queued task
 
 const scrapeQueue = new PQueue({
@@ -139,35 +139,19 @@ const IDLE_CLOSE_MS = 5 * 60 * 1000; // 5 minutes
  * Blocking these reduces bandwidth and speeds up page loads.
  */
 const BLOCKED_DOMAIN_PATTERNS = [
-    /google-analytics\.com/i,
-    /googletagmanager\.com/i,
-    /googlesyndication\.com/i,
-    /doubleclick\.net/i,
-    /facebook\.net/i,
-    /facebook\.com\/tr/i,
-    /connect\.facebook/i,
-    /analytics\./i,
-    /hotjar\.com/i,
-    /clarity\.ms/i,
-    /segment\.io/i,
-    /segment\.com/i,
-    /mixpanel\.com/i,
-    /amplitude\.com/i,
-    /newrelic\.com/i,
-    /sentry\.io/i,
-    /bugsnag\.com/i,
-    /cdn\.mxpnl\.com/i,
-    /stats\./i,
-    /pixel\./i,
-    /beacon\./i,
-    /tracking\./i,
-    /adservice\./i,
-    /adsystem\./i,
-    /pubads\./i,
+    // Social & Trackers
+    'googletagmanager.com', 'google-analytics.com', 'facebook.net', 'connect.facebook.net',
+    'twitter.com', 'platform.twitter.com', 'linkedin.com', 'bing.com', 'yandex.ru',
+    'doubleclick.net', 'adnxs.com', 'adsystem.com', 'adrolling.com', 'hotjar.com',
+    'segment.io', 'amplitude.com', 'mixpanel.com', 'sentry.io', 'intercom.io',
+    // Ads & Widgets
+    'disqus.com', 'disquscdn.com', 'gravatar.com', 'fontawesome.com', 'typekit.net',
+    'googlesyndication.com', 'taboola.com', 'outbrain.com', 'criteo.com',
+    'amazon-adsystem.com', 'adnxs.com', 'scorecardresearch.com'
 ];
 
 function isBlockedDomain(url: string): boolean {
-    return BLOCKED_DOMAIN_PATTERNS.some(pattern => pattern.test(url));
+    return BLOCKED_DOMAIN_PATTERNS.some(pattern => url.includes(pattern));
 }
 
 const closeBrowser = async () => {
@@ -217,6 +201,8 @@ const getBrowser = async (): Promise<Browser> => {
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
+            '--disable-software-rasterizer',
+            '--disable-extensions',
             '--no-zygote',
             '--js-flags=--max-old-space-size=512',
         ],
@@ -260,7 +246,10 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
         const browser = await getBrowser();
         context = await browser.newContext({
             viewport: { width: 800, height: 600 },
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            bypassCSP: true,
+            serviceWorkers: 'block',
+            permissions: [],
         });
         page = await context.newPage();
 
@@ -279,29 +268,44 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
 
         const response = await page.goto(targetUrl, {
             waitUntil: 'domcontentloaded',
-            timeout: 30000
+            timeout: 15000 // Fast fail for metadata
         });
 
         if (response?.status() === 403) {
             return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'blocked' };
         }
 
-        const html = await page.content();
-        const url = page.url();
-        const metadata = await metascraper({ html, url });
+        // Optimization: Instead of transferring the whole HTML (which can be MBs),
+        // we extract only the relevant meta tags and basic structure in-browser.
+        const pageData = await page.evaluate(() => {
+            const meta: Record<string, string> = {};
+            document.querySelectorAll('meta').forEach(el => {
+                const name = el.getAttribute('name') || el.getAttribute('property') || el.getAttribute('itemprop');
+                const content = el.getAttribute('content');
+                if (name && content) meta[name.toLowerCase()] = content;
+            });
 
-        const favicon = await page.evaluate(() => {
-            const icon = document.querySelector('link[rel="icon"]') ||
-                document.querySelector('link[rel="shortcut icon"]');
-            return (icon as HTMLLinkElement)?.href || '';
+            const favicon = (document.querySelector('link[rel="icon"]') as HTMLLinkElement)?.href ||
+                (document.querySelector('link[rel="shortcut icon"]') as HTMLLinkElement)?.href || '';
+
+            return {
+                html: `<head><title>${document.title}</title>` +
+                    Array.from(document.querySelectorAll('meta')).map(m => m.outerHTML).join('') +
+                    '</head>',
+                url: window.location.href,
+                favicon
+            };
         });
+
+        // Metascraper only needs the head/meta tags for 99% of its work
+        const metadata = await metascraper({ html: pageData.html, url: pageData.url });
 
         logger.info(`[Scraper] Advanced Scrape SUCCESS for ${targetUrl}`);
         return {
             title: metadata.title || '',
             description: metadata.description || '',
             image: metadata.image || '',
-            favicon: metadata.logo || metadata.favicon || favicon || '',
+            favicon: metadata.logo || metadata.favicon || pageData.favicon || '',
             scrapeStatus: 'success'
         };
     } catch (error: any) {
@@ -383,8 +387,14 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
         context = await browser.newContext({
             viewport: { width: 1024, height: 768 },
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            bypassCSP: true,
+            serviceWorkers: 'block',
+            permissions: [],
         });
         page = await context.newPage();
+
+        // 1. Pre-inject Readability so it's ready as soon as DOM is available
+        await page.addInitScript({ content: readabilityScript });
 
         // Block unnecessary resources but keep images for reader mode
         await page.route('**/*', (route: any) => {
@@ -408,11 +418,22 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'blocked', error: 'Access blocked (403)' };
         }
 
-        // Wait a bit for dynamic content if needed
-        await page.waitForTimeout(1000);
+        // 2. Smart Wait: Look for signs of "real content" rendered by JS
+        try {
+            await page.waitForFunction(() => {
+                // Heuristic for content availability
+                const article = document.querySelector('article, .article, .post, .content, main');
+                const pCount = document.querySelectorAll('p').length;
+                const bodyText = document.body?.innerText || '';
 
-        // 2. Inject and Run Readability + Processing in Browser
-        await page.addScriptTag({ content: readabilityScript });
+                // If we have an article tag or many paragraphs, it's likely ready
+                if (article || pCount > 10) return true;
+                // Fallback for smaller pages
+                return bodyText.length > 800 && !bodyText.includes('Loading...');
+            }, { timeout: 2000 }).catch(() => { });
+        } catch (e) { }
+
+        // 3. Extraction + Processing in Browser
         const result = await page.evaluate(({ baseUrl }) => {
             // @ts-ignore
             if (typeof Readability === 'undefined') {
