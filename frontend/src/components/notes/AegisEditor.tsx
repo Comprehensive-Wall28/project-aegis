@@ -139,7 +139,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             flexDirection: 'column',
             height: '100%',
             bgcolor: 'background.paper',
-            borderRadius: 2,
+            borderRadius: '16px',
             overflow: 'hidden',
         }}>
             {/* Toolbar */}
@@ -148,10 +148,11 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 0.5,
-                    p: 1,
+                    p: 1.5,
                     borderBottom: 1,
                     borderColor: 'divider',
                     flexWrap: 'wrap',
+                    bgcolor: 'background.paper',
                 }}>
                     <Tooltip title="Bold (Ctrl+B)">
                         <IconButton
