@@ -673,9 +673,18 @@ function extractDownloadLinks(html: string, baseUrl: string): string {
         let text = (a.textContent || '').trim();
 
         if (href && text && isDownloadLink(href, text)) {
+            // Filter out links with excessively long text (likely comments or paragraphs, not buttons)
+            if (text.length > 150) return;
+
             // Clean text: remove leading pipes, hyphens, and extra spaces
             text = text.replace(/^[|\s\-_/]+/, '').trim();
-            if (!text) return; // Skip if text became empty
+            if (!text) return;
+
+            // Truncate label if still too long (e.g., for pill UI)
+            const maxLength = 60;
+            const cleanedText = text.length > maxLength
+                ? text.substring(0, maxLength) + '...'
+                : text;
 
             // Make relative URLs absolute
             let absoluteHref = href;
@@ -690,7 +699,7 @@ function extractDownloadLinks(html: string, baseUrl: string): string {
             if (!downloadLinks.some(l => l.href === absoluteHref)) {
                 downloadLinks.push({
                     href: absoluteHref,
-                    text: text.toUpperCase(),
+                    text: cleanedText.toUpperCase(),
                     provider: getProvider(absoluteHref, text)
                 });
             }

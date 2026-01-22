@@ -13,6 +13,7 @@ import {
     alpha,
     Drawer,
     Tooltip,
+    LinearProgress,
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -472,10 +473,16 @@ export const ReaderModeOverlay = memo(({
                                         maxWidth: showPanel && !isMobile ? 'calc(100% - 360px)' : '100%',
                                     }}
                                 >
+                                    {isLoadingContent && (
+                                        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+                                            <LinearProgress />
+                                        </Box>
+                                    )}
                                     {isLoadingContent ? (
                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', gap: 2 }}>
-                                            <CircularProgress />
-                                            <Typography color="text.secondary">Loading article...</Typography>
+                                            <Typography color="text.secondary" variant="body2" sx={{ letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.7 }}>
+                                                Extracting Content...
+                                            </Typography>
                                         </Box>
                                     ) : contentError || readerContent?.status !== 'success' ? (
                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', gap: 2, textAlign: 'center' }}>
@@ -568,6 +575,8 @@ export const ReaderModeOverlay = memo(({
                                                     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                                                     border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                                                     bgcolor: alpha(theme.palette.background.paper, 0.6),
+                                                    maxWidth: '100%', // Ensure it doesn't overflow parent
+                                                    overflow: 'hidden',
                                                     '&:hover': {
                                                         transform: 'translateY(-2px)',
                                                         boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.2)}`,
@@ -580,6 +589,9 @@ export const ReaderModeOverlay = memo(({
                                                         textAlign: 'center',
                                                         color: theme.palette.text.primary,
                                                         whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        maxWidth: 240, // Limit pill width
                                                     },
                                                     '& .provider-icon': {
                                                         display: 'inline-block',
