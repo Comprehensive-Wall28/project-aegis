@@ -21,20 +21,6 @@ RUN npm run build
 # Stage 2: Production
 FROM node:20-slim
 
-# Install Playwright dependencies and Chromium
-# We use a global path to ensure the 'node' user can access the browsers
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN npx playwright install-deps chromium \
-  && npx playwright install chromium \
-  && chmod -R 777 /ms-playwright
-
-# Install fonts for high-quality rendering (Emoji, CJK, etc)
-RUN apt-get update && apt-get install -y \
-  fonts-noto-color-emoji \
-  fonts-liberation \
-  fonts-noto-cjk \
-  && rm -rf /var/lib/apt/lists/*
-
 # Create app directory
 WORKDIR /usr/src/app
 
@@ -43,8 +29,18 @@ COPY package*.json ./
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 RUN npm install --omit=dev
 
-# Set Puppeteer executable path to system chrome
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+# Install Playwright dependencies and Chromium
+# We do this AFTER npm install to avoid warnings and ensure version compatibility
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx playwright install --with-deps chromium \
+  && chmod -R 777 /ms-playwright
+
+# Install additional fonts for high-quality rendering (Emoji, CJK, etc)
+RUN apt-get update && apt-get install -y \
+  fonts-noto-color-emoji \
+  fonts-liberation \
+  fonts-noto-cjk \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy compiled artifacts from the build stage
 COPY --from=build /usr/src/app/dist ./dist

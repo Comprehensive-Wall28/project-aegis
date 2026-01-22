@@ -471,6 +471,8 @@ export const ReaderModeOverlay = memo(({
                                         overflowY: 'auto',
                                         p: { xs: 2, md: 4 },
                                         maxWidth: showPanel && !isMobile ? 'calc(100% - 360px)' : '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column',
                                     }}
                                 >
                                     {isLoadingContent && (
@@ -479,13 +481,13 @@ export const ReaderModeOverlay = memo(({
                                         </Box>
                                     )}
                                     {isLoadingContent ? (
-                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', gap: 2 }}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 2 }}>
                                             <Typography color="text.secondary" variant="body2" sx={{ letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.7 }}>
                                                 Extracting Content...
                                             </Typography>
                                         </Box>
                                     ) : contentError || readerContent?.status !== 'success' ? (
-                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', gap: 2, textAlign: 'center' }}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 2, textAlign: 'center' }}>
                                             <ErrorIcon sx={{ fontSize: 60, color: 'error.main', opacity: 0.5 }} />
                                             <Typography variant="h6">Unable to load article</Typography>
                                             <Typography color="text.secondary" sx={{ maxWidth: 400 }}>
