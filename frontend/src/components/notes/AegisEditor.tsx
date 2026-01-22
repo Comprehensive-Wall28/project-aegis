@@ -1,6 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import {
@@ -98,15 +97,16 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                 heading: {
                     levels: [1, 2, 3],
                 },
+                // @ts-ignore
+                link: {
+                    openOnClick: false,
+                    HTMLAttributes: {
+                        class: 'aegis-editor-link',
+                    },
+                },
             }),
             Placeholder.configure({
                 placeholder: 'Start typing your note...',
-            }),
-            Link.configure({
-                openOnClick: false,
-                HTMLAttributes: {
-                    class: 'aegis-editor-link',
-                },
             }),
         ],
         content: initialContent,
