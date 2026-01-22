@@ -6,6 +6,22 @@ import http from 'http';
 import https from 'https';
 import { ServiceError } from './base/BaseService';
 import logger from '../utils/logger';
+import CachedImage from '../models/CachedImage';
+import { getBucket } from './gridfsService';
+import { PassThrough } from 'stream';
+
+const USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.2; rv:121.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0',
+];
+
+function getRandomItem<T>(arr: T[]): T {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
 
 export interface ProxyImageResponse {
     stream: Readable;
@@ -85,12 +101,38 @@ const httpsAgent = new https.Agent({ lookup: ssrfSafeLookup });
  */
 export class LinkPreviewService {
     /**
-     * Proxy an image URL to bypass CORS and mask user IP
+     * Proxy an image URL to bypass CORS and mask user IP.
+     * Caches successful responses in GridFS.
      */
-    async proxyImage(url: string): Promise<ProxyImageResponse> {
+    async proxyImage(url: string, retryCount = 0): Promise<ProxyImageResponse> {
+        const MAX_RETRIES = 2; // Total 3 attempts
+
         try {
             if (!url) {
                 throw new ServiceError('URL is required', 400);
+            }
+
+            // 1. Check Cache
+            try {
+                const cached = await CachedImage.findOne({ url });
+                if (cached) {
+                    try {
+                        const bucket = getBucket();
+                        // openDownloadStream requires an ObjectId
+                        const downloadStream = bucket.openDownloadStream(cached.fileId);
+
+                        return {
+                            stream: downloadStream,
+                            contentType: cached.contentType
+                        };
+                    } catch (err: any) {
+                        logger.error(`GridFS download failed for cached file: ${err.message}`);
+                        // If file is missing in GridFS but exists in DB, consume error and re-fetch
+                    }
+                }
+            } catch (err) {
+                logger.warn(`Cache lookup failed for ${url}`, { error: err });
+                // Continue to fetch if cache fails
             }
 
             let parsed: URL;
@@ -112,6 +154,19 @@ export class LinkPreviewService {
                 }
             }
 
+            const headers = {
+                'User-Agent': getRandomItem(USER_AGENTS),
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': parsed.origin + '/',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+                'Sec-Ch-Ua-Mobile': '?0',
+                'Sec-Ch-Ua-Platform': '"Windows"',
+                'Upgrade-Insecure-Requests': '1',
+            };
+
             const response = await axios({
                 method: 'get',
                 url: url,
@@ -120,14 +175,7 @@ export class LinkPreviewService {
                 maxRedirects: 5,
                 httpAgent,
                 httpsAgent,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Referer': parsed.origin + '/',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                },
+                headers,
                 validateStatus: (status) => status < 400
             });
 
@@ -136,8 +184,60 @@ export class LinkPreviewService {
                 ? contentType
                 : 'image/png';
 
+            // 2. Cache the result (Fork the stream)
+            const userStream = new PassThrough();
+            const cacheStream = new PassThrough();
+
+            response.data.pipe(userStream);
+            response.data.pipe(cacheStream);
+
+            // Handle Caching Async
+            (async () => {
+                try {
+                    const bucket = getBucket();
+                    // Generate filename safe for GridFS
+                    const filename = `proxy-cache-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+                    const uploadStream = bucket.openUploadStream(filename, {
+                        metadata: {
+                            originalUrl: url,
+                            contentType: finalContentType
+                        }
+                    });
+
+                    cacheStream.pipe(uploadStream);
+
+                    uploadStream.on('finish', async () => {
+                        try {
+                            // Check if already cached to avoid race conditions
+                            const exists = await CachedImage.findOne({ url });
+                            if (!exists) {
+                                await CachedImage.create({
+                                    url,
+                                    fileId: uploadStream.id,
+                                    contentType: finalContentType,
+                                    size: 0
+                                });
+                                logger.info(`Cached image for ${url} (FileID: ${uploadStream.id})`);
+                            } else {
+                                // Clean up duplicate upload if race condition
+                                bucket.delete(uploadStream.id).catch(() => { });
+                            }
+                        } catch (e: any) {
+                            logger.error(`Failed to save CachedImage doc: ${e.message}`);
+                        }
+                    });
+
+                    uploadStream.on('error', (err: any) => {
+                        logger.error(`GridFS upload failed for ${url}: ${err.message}`);
+                    });
+
+                } catch (err: any) {
+                    logger.error(`Failed to initiate cache upload for ${url}: ${err.message}`);
+                }
+            })();
+
             return {
-                stream: response.data,
+                stream: userStream,
                 contentType: finalContentType
             };
 
@@ -153,7 +253,18 @@ export class LinkPreviewService {
                 throw new ServiceError('Access to private IP denied', 400);
             }
 
-            logger.warn(`Failed to proxy image: ${url}`, error.message);
+            // Retry Logic for 5xx errors or timeouts
+            const status = error.response?.status;
+            const isRetryable = status === 502 || status === 503 || status === 504 || error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT';
+
+            if (isRetryable && retryCount < MAX_RETRIES) {
+                const delay = (retryCount + 1) * 1000;
+                logger.warn(`Proxy failed (${status || error.message}) for ${url}. Retrying in ${delay}ms... (Attempt ${retryCount + 1})`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.proxyImage(url, retryCount + 1);
+            }
+
+            logger.warn(`Failed to proxy image: ${url}`, { error: error.message, status });
             throw new ServiceError('Failed to fetch image', 500);
         }
     }
