@@ -16,6 +16,22 @@ export class ReaderContentCacheRepository {
     }
 
     /**
+     * Find cached reader content by URL, excluding failed/blocked entries.
+     * This allows auto-retry when a previous scrape failed.
+     */
+    async findValidByUrl(url: string): Promise<IReaderContentCache | null> {
+        try {
+            return await ReaderContentCache.findOne({
+                url,
+                status: { $nin: ['failed', 'blocked'] }
+            }).lean();
+        } catch (error) {
+            logger.error('Error finding cached reader content:', error);
+            return null;
+        }
+    }
+
+    /**
      * Upsert reader content cache
      */
     async upsertContent(url: string, content: ReaderContentResult): Promise<void> {

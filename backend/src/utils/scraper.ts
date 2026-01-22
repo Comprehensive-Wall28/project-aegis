@@ -266,13 +266,27 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
             }
         });
 
-        const response = await page.goto(targetUrl, {
+        let response = await page.goto(targetUrl, {
             waitUntil: 'domcontentloaded',
             timeout: 15000 // Fast fail for metadata
         });
 
+        // Handle WAF Challenge Pages (Sucuri, Cloudflare, etc.)
+        const wafBypassed = await handleWafChallenge(page);
+        if (wafBypassed) {
+            logger.info(`[Scraper] WAF challenge bypassed for ${targetUrl}`);
+        }
+
         if (response?.status() === 403) {
-            return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'blocked' };
+            // Double check if we're still on a challenge page after attempted bypass
+            const isStillBlocked = await page.evaluate(() => {
+                const bodyText = document.body?.innerText || '';
+                return bodyText.includes('Access Denied') ||
+                    bodyText.includes('Website Firewall');
+            });
+            if (isStillBlocked) {
+                return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'blocked' };
+            }
         }
 
         // Optimization: Instead of transferring the whole HTML (which can be MBs),
@@ -360,6 +374,132 @@ export const smartScrape = async (targetUrl: string): Promise<ScrapeResult> => {
 };
 
 // =============================================================================
+// WAF CHALLENGE BYPASS
+// =============================================================================
+
+/**
+ * Detects and attempts to bypass WAF challenge pages (Sucuri, Cloudflare JS Challenge, etc.)
+ * Returns true if a challenge was detected and bypassed, false otherwise.
+ */
+async function handleWafChallenge(page: Page): Promise<boolean> {
+    try {
+        // Check for common WAF challenge indicators
+        const challengeInfo = await page.evaluate(() => {
+            const bodyText = document.body?.innerText || '';
+            const html = document.documentElement?.outerHTML || '';
+
+            // Sucuri WAF detection
+            const isSucuri = html.includes('sucuri.net') ||
+                bodyText.includes('Website Firewall') ||
+                bodyText.includes('Sucuri WebSite Firewall');
+
+            // Cloudflare JS Challenge (not captcha)
+            const isCloudflare = html.includes('cf-browser-verification') ||
+                html.includes('cf_chl_opt') ||
+                bodyText.includes('Checking your browser');
+
+            // DDoS-Guard
+            const isDdosGuard = html.includes('ddos-guard') ||
+                bodyText.includes('DDoS protection');
+
+            // Generic JS challenge (many sites use these)
+            const hasClickToProceed = bodyText.includes('Click to Proceed') ||
+                bodyText.includes('click here to continue') ||
+                bodyText.includes('Press to continue');
+
+            return {
+                isSucuri,
+                isCloudflare,
+                isDdosGuard,
+                hasClickToProceed,
+                isChallenge: isSucuri || isCloudflare || isDdosGuard || hasClickToProceed
+            };
+        });
+
+        if (!challengeInfo.isChallenge) {
+            return false;
+        }
+
+        logger.info(`[WAF] Challenge detected: Sucuri=${challengeInfo.isSucuri}, CF=${challengeInfo.isCloudflare}, DDosGuard=${challengeInfo.isDdosGuard}`);
+
+        // Strategy 1: Look for and click "proceed" type buttons
+        if (challengeInfo.isSucuri || challengeInfo.hasClickToProceed) {
+            // Wait for any JS to execute that might reveal the button
+            await page.waitForTimeout(1500);
+
+            // Common selectors for WAF proceed buttons
+            const buttonSelectors = [
+                'button:has-text("Proceed")',
+                'button:has-text("Continue")',
+                'a:has-text("Click to Proceed")',
+                'a:has-text("Proceed to Page")',
+                'input[type="submit"]',
+                '.btn-sucuri',
+                '#challenge-form button',
+                'form button[type="submit"]'
+            ];
+
+            for (const selector of buttonSelectors) {
+                try {
+                    const button = await page.$(selector);
+                    if (button) {
+                        logger.info(`[WAF] Found proceed button: ${selector}`);
+
+                        await button.click();
+
+                        // Wait for challenge content to disappear (much faster than waiting for URL change)
+                        await page.waitForFunction(() => {
+                            const bodyText = document.body?.innerText || '';
+                            return !bodyText.includes('Website Firewall') &&
+                                !bodyText.includes('Click to Proceed') &&
+                                !bodyText.includes('Sucuri');
+                        }, { timeout: 8000 }).catch(() => { });
+
+                        // Brief stabilization for any remaining JS
+                        await page.waitForTimeout(500);
+                        return true;
+                    }
+                } catch (e) {
+                    // Button not found or click failed, try next
+                }
+            }
+        }
+
+        // Strategy 2: Cloudflare JS Challenge - just wait for auto-redirect
+        if (challengeInfo.isCloudflare) {
+            logger.info('[WAF] Cloudflare challenge detected, waiting for auto-verification...');
+            try {
+                // CF JS challenges auto-verify and redirect after a few seconds
+                await page.waitForFunction(() => {
+                    const html = document.documentElement?.outerHTML || '';
+                    return !html.includes('cf-browser-verification') &&
+                        !html.includes('cf_chl_opt');
+                }, { timeout: 15000 });
+                return true;
+            } catch (e) {
+                logger.warn('[WAF] Cloudflare challenge bypass timed out');
+            }
+        }
+
+        // Strategy 3: Generic wait - some challenges auto-resolve
+        await page.waitForTimeout(3000);
+
+        // Check if we're past the challenge
+        const stillOnChallenge = await page.evaluate(() => {
+            const bodyText = document.body?.innerText || '';
+            return bodyText.includes('Website Firewall') ||
+                bodyText.includes('Checking your browser') ||
+                bodyText.includes('Click to Proceed');
+        });
+
+        return !stillOnChallenge;
+    } catch (error: any) {
+        logger.warn(`[WAF] Challenge bypass error: ${error.message}`);
+        return false;
+    }
+}
+
+// =============================================================================
 // READER MODE SCRAPER
 // =============================================================================
 
@@ -406,13 +546,36 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             }
         });
 
-        const response = await page.goto(targetUrl, {
+        let response = await page.goto(targetUrl, {
             waitUntil: 'domcontentloaded',
             timeout: 45000
         });
 
+        // Handle WAF Challenge Pages (Sucuri, Cloudflare, etc.)
+        const wafBypassed = await handleWafChallenge(page);
+        if (wafBypassed) {
+            logger.info(`[ReaderScrape] WAF challenge bypassed for ${targetUrl}`);
+            // Wait for page to fully load after bypass (important for images)
+            try {
+                await page.waitForLoadState('load', { timeout: 8000 });
+            } catch (e) {
+                // Continue even if timeout - page might already be loaded
+            }
+            // Re-check the response status after bypass
+            response = page.mainFrame().url() !== targetUrl ? null : response;
+        }
+
         if (response?.status() === 403) {
-            return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'blocked', error: 'Access blocked (403)' };
+            // Double check if we're still on a challenge page after attempted bypass
+            const isStillBlocked = await page.evaluate(() => {
+                const bodyText = document.body?.innerText || '';
+                return bodyText.includes('Access Denied') ||
+                    bodyText.includes('Access blocked') ||
+                    bodyText.includes('Website Firewall');
+            });
+            if (isStillBlocked) {
+                return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'blocked', error: 'Access blocked (403)' };
+            }
         }
 
         // 2. Smart Wait: Look for signs of "real content" rendered by JS

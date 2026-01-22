@@ -931,8 +931,8 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Not a member of this room', 403);
             }
 
-            // Check cache first
-            const cached = await this.readerContentCacheRepo.findByUrl(linkPost.url);
+            // Check cache first (skip failed/blocked entries to allow retry)
+            const cached = await this.readerContentCacheRepo.findValidByUrl(linkPost.url);
             let readerResult: ReaderContentResult;
 
             if (cached) {
