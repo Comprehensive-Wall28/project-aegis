@@ -1,5 +1,8 @@
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { chromium, Browser, BrowserContext, Page } from 'playwright';
+const { chromium: chromiumStealth } = require('playwright-extra');
+const stealth = require('puppeteer-extra-plugin-stealth')();
+chromiumStealth.use(stealth);
+
 import createMetascraper from 'metascraper';
 import metascraperTitle from 'metascraper-title';
 import metascraperDescription from 'metascraper-description';
@@ -13,9 +16,9 @@ import metascraperTwitter from 'metascraper-twitter';
 import metascraperInstagram from 'metascraper-instagram';
 import metascraperAmazon from 'metascraper-amazon';
 import ogs from 'open-graph-scraper';
-import { Readability } from '@mozilla/readability';
-import { JSDOM } from 'jsdom';
 import PQueue from 'p-queue';
+import fs from 'fs';
+import path from 'path';
 import logger from './logger';
 
 // Setup Metascraper
@@ -33,8 +36,7 @@ const metascraper = createMetascraper([
     metascraperAmazon()
 ]);
 
-// Setup Puppeteer Stealth
-puppeteer.use(StealthPlugin());
+// Setup Puppeteer Stealth is removed in favor of Playwright Stealth
 
 // =============================================================================
 // ASYNC QUEUE FOR SCRAPER CONCURRENCY
@@ -121,14 +123,14 @@ const simpleScrape = async (targetUrl: string): Promise<{ data: ScrapeResult | n
 };
 
 /**
- * Advanced scraper using Puppeteer Stealth and Metascraper.
+ * Advanced scraper using Playwright and In-Browser Extraction.
  */
 // Singleton browser instance management
-let browserInstance: any = null;
+let browserInstance: Browser | null = null;
 let advancedScrapeCount = 0;
-const MAX_ADVANCED_SCRAPES = 5; // Reduced for 2GB RAM environments - recycle browser more frequently
+const MAX_ADVANCED_SCRAPES = 20; // Increased as Playwright is more stable
 let idleTimeout: NodeJS.Timeout | null = null;
-const IDLE_CLOSE_MS = 3 * 60 * 1000; // 3 minutes (reduced from 5 for memory)
+const IDLE_CLOSE_MS = 5 * 60 * 1000; // 5 minutes
 
 // Note: Concurrency is now managed by scrapeQueue (p-queue)
 
@@ -170,7 +172,7 @@ function isBlockedDomain(url: string): boolean {
 
 const closeBrowser = async () => {
     if (browserInstance) {
-        logger.info('[Scraper] Closing Puppeteer browser instance to reclaim memory...');
+        logger.info('[Scraper] Closing Playwright browser instance...');
         try {
             await browserInstance.close();
         } catch (err: any) {
@@ -181,27 +183,20 @@ const closeBrowser = async () => {
     }
 };
 
-const getBrowser = async () => {
-    // Reset idle timeout every time browser is requested
+const getBrowser = async (): Promise<Browser> => {
     if (idleTimeout) {
         clearTimeout(idleTimeout);
         idleTimeout = null;
     }
 
-    // Set a new idle timeout
     idleTimeout = setTimeout(() => {
-        // Only close if no scrapes are active (check queue pending count)
         if (scrapeQueue.pending === 0) {
-            logger.info('[Scraper] Browser idle for 5 minutes, shutting down...');
+            logger.info('[Scraper] Browser idle timeout reached, shutting down...');
             closeBrowser();
-        } else {
-            logger.info('[Scraper] Browser idle timeout reached but scrapes are active, postponing close.');
         }
     }, IDLE_CLOSE_MS);
 
-    // If request limit reached, cycle the browser
     if (browserInstance && advancedScrapeCount >= MAX_ADVANCED_SCRAPES) {
-        // Wait until all current scrapes finish before closing (check queue pending count)
         if (scrapeQueue.pending === 0) {
             logger.info(`[Scraper] Request limit (${MAX_ADVANCED_SCRAPES}) reached. Recycling browser...`);
             await closeBrowser();
@@ -210,99 +205,84 @@ const getBrowser = async () => {
 
     if (browserInstance) return browserInstance;
 
-    logger.info('[Scraper] Launching new Puppeteer browser instance...');
-    browserInstance = await puppeteer.launch({
+    logger.info('[Scraper] Launching new Playwright browser instance...');
+
+    // In Docker, we use the playwright-installed chromium.
+    // Locally (if playwright is missing), this might fail, but deployment is prioritized.
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    const launchOptions: any = {
         headless: true,
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // Critical for Docker/limited memory environments
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
+            '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--disable-extensions',
-            '--disable-background-networking',
-            '--disable-sync',
-            '--disable-default-apps',
-            '--mute-audio',
-            '--disable-ipc-flooding-protection',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-breakpad',
-            '--disable-component-update',
-            '--disable-domain-reliability',
-            '--disable-features=AudioServiceOutOfProcess,TranslateUI',
-            '--disable-hang-monitor',
-            '--disable-notifications',
-            '--disable-offer-store-unmasked-wallet-cards',
-            '--disable-popup-blocking',
-            '--disable-print-preview',
-            '--disable-prompt-on-repost',
-            '--disable-renderer-backgrounding',
-            '--disable-speech-api',
-            '--disable-web-security',
-            '--js-flags=--max-old-space-size=256', // Limit V8 heap to 256MB
-            '--window-size=800,600' // Smaller viewport = less rendering work
+            '--no-zygote',
+            '--js-flags=--max-old-space-size=512',
         ],
-    });
+    };
 
-    // Handle unexpected disconnects
-    browserInstance.on('disconnected', () => {
-        logger.info('[Scraper] Browser disconnected internally, clearing reference.');
+    // Only set executablePath if it explicitly exists to avoid Playwright launch errors
+    if (executablePath && fs.existsSync(executablePath)) {
+        launchOptions.executablePath = executablePath;
+    }
+
+    browserInstance = await chromiumStealth.launch(launchOptions);
+
+    browserInstance?.on('disconnected', () => {
+        logger.info('[Scraper] Browser disconnected.');
         browserInstance = null;
         advancedScrapeCount = 0;
     });
 
-    return browserInstance;
+    return browserInstance!;
 };
 
+// Load Readability script content once to inject it
+let readabilityScript = '';
+try {
+    const readabilityPath = path.resolve(__dirname, '../../node_modules/@mozilla/readability/Readability.js');
+    readabilityScript = fs.readFileSync(readabilityPath, 'utf8');
+} catch (err) {
+    logger.error(`[Scraper] Failed to load Readability script: ${err}`);
+}
+
 /**
- * Internal implementation of advanced scraping (runs inside the queue).
+ * Internal implementation of advanced scraping using Playwright.
  */
 const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> => {
     advancedScrapeCount++;
-    let context: any;
-    let page: any;
+    let context: BrowserContext | null = null;
+    let page: Page | null = null;
 
     try {
-        logger.info(`[Scraper] Starting Advanced Scrape (Puppeteer) [Req #${advancedScrapeCount}] for ${targetUrl}`);
-
+        logger.info(`[Scraper] Starting Advanced Scrape (Playwright) [Req #${advancedScrapeCount}] for ${targetUrl}`);
         const browser = await getBrowser();
-
-        // Use a fresh Browser Context for session isolation and easier memory cleanup
-        context = await browser.createBrowserContext();
+        context = await browser.newContext({
+            viewport: { width: 800, height: 600 },
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        });
         page = await context.newPage();
 
-        // Enable request interception to block unnecessary resources
-        await page.setRequestInterception(true);
-        page.on('request', (req: any) => {
-            const resourceType = req.resourceType();
-            const url = req.url();
+        // Block unnecessary resources
+        await page.route('**/*', (route: any) => {
+            const request = route.request();
+            const type = request.resourceType();
+            const url = request.url();
 
-            // Block images, fonts, media, stylesheets, and tracking/analytics
-            if (['image', 'stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
-                req.abort();
-            } else if (isBlockedDomain(url)) {
-                req.abort();
+            if (['image', 'media', 'font', 'stylesheet'].includes(type) || isBlockedDomain(url)) {
+                route.abort();
             } else {
-                req.continue();
+                route.continue();
             }
         });
 
-        // Smaller viewport = less rendering work (optimized for 1CPU)
-        await page.setViewport({ width: 800, height: 600 });
-
-        // Go to page
         const response = await page.goto(targetUrl, {
             waitUntil: 'domcontentloaded',
-            timeout: 45000 // Increased timeout for slow sites
+            timeout: 30000
         });
 
-        const status = response?.status();
-        if (status === 403) {
-            logger.warn(`[Scraper] Advanced Scrape BLOCKED (403) for ${targetUrl}`);
+        if (response?.status() === 403) {
             return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'blocked' };
         }
 
@@ -310,7 +290,6 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
         const url = page.url();
         const metadata = await metascraper({ html, url });
 
-        // Extract favicon manually from page if needed
         const favicon = await page.evaluate(() => {
             const icon = document.querySelector('link[rel="icon"]') ||
                 document.querySelector('link[rel="shortcut icon"]');
@@ -329,19 +308,12 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
         logger.error(`[Scraper] Advanced Scrape FAILED for ${targetUrl}: ${error.message}`);
         return { title: '', description: '', image: '', favicon: '', scrapeStatus: 'failed' };
     } finally {
-        // Ensure context and all its pages are closed
-        if (context) {
-            try {
-                await context.close();
-            } catch (err: any) {
-                logger.error(`[Scraper] Error closing browser context: ${err.message}`);
-            }
-        }
+        if (context) await context.close();
     }
 };
 
 /**
- * Advanced scraper using Puppeteer Stealth and Metascraper.
+ * Advanced scraper using Playwright Stealth and Metascraper.
  * Uses p-queue for proper async concurrency control.
  */
 export const advancedScrape = async (targetUrl: string): Promise<ScrapeResult> => {
@@ -398,81 +370,158 @@ export interface ReaderContentResult {
 }
 
 /**
- * Internal implementation of reader scraping (runs inside the queue).
+ * Internal implementation of reader scraping using Playwright + In-Browser Readability.
  */
 const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentResult> => {
     advancedScrapeCount++;
-    let context: any;
-    let page: any;
+    let context: BrowserContext | null = null;
+    let page: Page | null = null;
 
     try {
-        logger.info(`[ReaderScrape] Starting Reader Scrape [Req #${advancedScrapeCount}] for ${targetUrl}`);
-
+        logger.info(`[ReaderScrape] Starting Reader Scrape (Playwright) [Req #${advancedScrapeCount}] for ${targetUrl}`);
         const browser = await getBrowser();
-        context = await browser.createBrowserContext();
+        context = await browser.newContext({
+            viewport: { width: 1024, height: 768 },
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        });
         page = await context.newPage();
 
-        // Enable request interception - but for reader mode, we need images
-        await page.setRequestInterception(true);
-        page.on('request', (req: any) => {
-            const resourceType = req.resourceType();
-            const url = req.url();
+        // Block unnecessary resources but keep images for reader mode
+        await page.route('**/*', (route: any) => {
+            const request = route.request();
+            const type = request.resourceType();
+            const url = request.url();
 
-            // Block fonts, media, stylesheets, and tracking/analytics, but KEEP images for reader
-            if (['stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
-                req.abort();
-            } else if (isBlockedDomain(url)) {
-                req.abort();
+            if (['media', 'font', 'stylesheet'].includes(type) || isBlockedDomain(url)) {
+                route.abort();
             } else {
-                req.continue();
+                route.continue();
             }
         });
-
-        // Smaller viewport = less rendering work (optimized for 1CPU)
-        await page.setViewport({ width: 800, height: 600 });
 
         const response = await page.goto(targetUrl, {
             waitUntil: 'domcontentloaded',
             timeout: 45000
         });
 
-        const status = response?.status();
-        if (status === 403) {
-            logger.warn(`[ReaderScrape] BLOCKED (403) for ${targetUrl}`);
-            return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'blocked', error: 'Access blocked by website' };
+        if (response?.status() === 403) {
+            return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'blocked', error: 'Access blocked (403)' };
         }
 
-        const html = await page.content();
-        const finalUrl = page.url();
+        // Wait a bit for dynamic content if needed
+        await page.waitForTimeout(1000);
 
-        // IMPORTANT: Extract download links BEFORE Readability strips them
-        const downloadLinksHtml = extractDownloadLinks(html, finalUrl);
+        // 2. Inject and Run Readability + Processing in Browser
+        await page.addScriptTag({ content: readabilityScript });
+        const result = await page.evaluate(({ baseUrl }) => {
+            // @ts-ignore
+            if (typeof Readability === 'undefined') {
+                return { error: 'Readability script not found in browser context' };
+            }
 
-        // Parse with JSDOM and Readability
-        const dom = new JSDOM(html, { url: finalUrl });
-        const reader = new Readability(dom.window.document, {
-            // Keep certain elements that Readability might remove
-            keepClasses: true,
-        });
+            // A. Helper for download links
+            const isDownloadLink = (href: string, text: string) => {
+                const patterns = [
+                    /\.(zip|7z|rar|iso|exe|dmg|pkg|apk|pdf)$/i,
+                    /mega\.nz|mediafire\.com|terabox|drive\.google|pixeldrain|doodrive|gdrive|1drv\.ms|dropbox\.com/i,
+                    /zippyshare|krakenfiles|workupload|gofile\.io|anonfiles|bayfiles/i,
+                ];
+                const textPatterns = [
+                    /download/i, /get\s+(?:it|now|here)/i, /mega/i, /gdrive/i, /google\s*drive/i, /pixel/i,
+                    /mirrored/i, /zippyshare/i, /doodrive/i, /terabox/i
+                ];
+                return patterns.some(p => p.test(href)) || textPatterns.some(p => p.test(text));
+            };
 
-        const article = reader.parse();
+            // B. Run Readability
+            // @ts-ignore
+            const docClone = document.cloneNode(true);
+            // @ts-ignore
+            const reader = new Readability(docClone, { keepClasses: true });
+            const article = reader.parse();
+            if (!article || !article.title) return null;
 
-        if (!article || !article.content) {
-            logger.warn(`[ReaderScrape] No readable content found for ${targetUrl}`);
-            return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: 'No readable content found' };
+            // C. Post-process extracted content
+            const container = document.createElement('div');
+            container.innerHTML = article.content;
+
+            // Add paragraph IDs for targeting
+            const paragraphs = container.querySelectorAll('p');
+            paragraphs.forEach((p, idx) => {
+                if (!p.id) {
+                    const text = (p.textContent || '').slice(0, 30).replace(/\s+/g, '_');
+                    p.id = `aegis-p-${idx}`;
+                }
+                p.setAttribute('data-aegis-paragraph', 'true');
+            });
+
+            // Fix link targets and relative URLs
+            const links = container.querySelectorAll('a');
+            links.forEach(a => {
+                const href = a.getAttribute('href');
+                if (href) {
+                    try {
+                        const absUrl = new URL(href, baseUrl).href;
+                        a.setAttribute('href', absUrl);
+                        if (isDownloadLink(absUrl, a.textContent || '')) {
+                            a.setAttribute('data-aegis-download', 'true');
+                        }
+                    } catch (e) { }
+                }
+                a.setAttribute('target', '_blank');
+                a.setAttribute('rel', 'noopener noreferrer');
+            });
+
+            // D. Extract Download Links from the FULL page (not just article)
+            const allLinks = Array.from(document.querySelectorAll('a'));
+            const downloadLinks = allLinks
+                .filter(a => isDownloadLink(a.href, a.textContent || ''))
+                .map(a => ({
+                    href: a.href,
+                    text: (a.textContent || '').trim().replace(/^[|\s\-_/]+/, '').toUpperCase()
+                }))
+                .filter(l => l.text.length > 0 && l.text.length < 100)
+                .slice(0, 25);
+
+            // E. Search for password
+            const passwordMatch = document.body.innerText.match(/Password\s*[:]\s*([^\n\s]+)/i);
+
+            return {
+                article: {
+                    ...article,
+                    content: container.innerHTML
+                },
+                downloadLinks,
+                password: passwordMatch ? passwordMatch[1] : null
+            };
+        }, { baseUrl: targetUrl });
+
+        if (!result || !('article' in result) || !result.article) {
+            const errorMsg = (result && 'error' in result) ? result.error : 'No readable content';
+            return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: errorMsg as string };
         }
 
-        // Post-process the content to:
-        // 1. Add paragraph IDs for annotation targeting
-        // 2. Ensure download links are preserved
-        let processedContent = processReaderContent(article.content, finalUrl);
+        const { article, downloadLinks = [], password = null } = result;
+        let processedContent = article.content;
 
-        // Append extracted download links if any were found
-        if (downloadLinksHtml) {
-            processedContent += downloadLinksHtml;
+        // Append download section if links found
+        if (downloadLinks.length > 0) {
+            const linksHtml = downloadLinks.map(l =>
+                `<a href="${l.href}" target="_blank" rel="noopener noreferrer" data-aegis-download="true">${l.text}</a>`
+            ).join('');
+
+            const passwordHtml = password ?
+                `<div class="aegis-password-container"><span class="password-label">Password:</span><code class="password-value">${password}</code></div>` : '';
+
+            processedContent += `
+                <div class="aegis-download-section">
+                    <div class="aegis-download-header"><h3>Download Links</h3></div>
+                    <div class="aegis-download-grid">${linksHtml}</div>
+                    ${passwordHtml}
+                </div>`;
         }
 
-        logger.info(`[ReaderScrape] SUCCESS for ${targetUrl} - Title: ${article.title}`);
+        logger.info(`[ReaderScrape] SUCCESS for ${targetUrl}`);
         return {
             title: article.title || '',
             byline: article.byline || null,
@@ -485,13 +534,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
         logger.error(`[ReaderScrape] FAILED for ${targetUrl}: ${error.message}`);
         return { title: '', byline: null, content: '', textContent: '', siteName: null, status: 'failed', error: error.message };
     } finally {
-        if (context) {
-            try {
-                await context.close();
-            } catch (err: any) {
-                logger.error(`[ReaderScrape] Error closing browser context: ${err.message}`);
-            }
-        }
+        if (context) await context.close();
     }
 };
 
@@ -519,228 +562,3 @@ export const readerScrape = async (targetUrl: string): Promise<ReaderContentResu
     }
 };
 
-/**
- * Process reader content to add paragraph IDs and ensure proper link handling.
- */
-function processReaderContent(htmlContent: string, baseUrl: string): string {
-    const dom = new JSDOM(htmlContent);
-    const doc = dom.window.document;
-
-    // Add unique IDs to paragraphs for annotation targeting
-    const paragraphs = doc.querySelectorAll('p');
-    paragraphs.forEach((p, index) => {
-        if (!p.id) {
-            // Create a stable ID based on position and content hash
-            const textSnippet = (p.textContent || '').slice(0, 50).replace(/\s+/g, '_');
-            p.id = `aegis-p-${index}-${hashString(textSnippet)}`;
-        }
-        // Add data attribute for annotation discovery
-        p.setAttribute('data-aegis-paragraph', 'true');
-    });
-
-    // Ensure all links have proper href and target attributes
-    const links = doc.querySelectorAll('a');
-    links.forEach((a) => {
-        const href = a.getAttribute('href');
-        if (href) {
-            // Make relative URLs absolute
-            if (href.startsWith('/') || (!href.startsWith('http') && !href.startsWith('mailto:'))) {
-                try {
-                    const absoluteUrl = new URL(href, baseUrl).href;
-                    a.setAttribute('href', absoluteUrl);
-                } catch {
-                    // Keep original if URL parsing fails
-                }
-            }
-            // Mark download links for preservation
-            if (isDownloadLink(href, a.textContent || '')) {
-                a.setAttribute('data-aegis-download', 'true');
-            }
-        }
-        // Open all links in new tab
-        a.setAttribute('target', '_blank');
-        a.setAttribute('rel', 'noopener noreferrer');
-    });
-
-    // Add IDs to headings for structure
-    const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    headings.forEach((h, index) => {
-        if (!h.id) {
-            const text = (h.textContent || '').slice(0, 30).replace(/\s+/g, '-').toLowerCase();
-            h.id = `heading-${index}-${text}`;
-        }
-    });
-
-    return doc.body.innerHTML;
-}
-
-/**
- * Simple hash function for creating stable paragraph IDs.
- */
-function hashString(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-    }
-    return Math.abs(hash).toString(36).slice(0, 8);
-}
-
-/**
- * Detect if a link is likely a download link based on href and text.
- */
-function isDownloadLink(href: string, text: string): boolean {
-    // File extension patterns
-    const filePatterns = [
-        /\.pdf$/i, /\.zip$/i, /\.rar$/i, /\.7z$/i,
-        /\.doc[x]?$/i, /\.xls[x]?$/i, /\.ppt[x]?$/i,
-        /\.mp3$/i, /\.mp4$/i, /\.mov$/i, /\.avi$/i, /\.mkv$/i,
-        /\.exe$/i, /\.dmg$/i, /\.pkg$/i, /\.apk$/i, /\.iso$/i
-    ];
-
-    // Cloud hosting service patterns
-    const hostingPatterns = [
-        /mega\.nz/i, /mega\.co\.nz/i,
-        /terabox/i, /teraboxapp/i,
-        /onedrive\.live/i, /1drv\.ms/i,
-        /drive\.google/i,
-        /dropbox\.com/i,
-        /mediafire\.com/i,
-        /zippyshare/i,
-        /uploadhaven/i,
-        /pixeldrain/i,
-        /gofile\.io/i,
-        /anonfiles/i,
-        /bayfiles/i,
-        /krakenfiles/i,
-        /workupload/i,
-        /filehost/i,
-        /uploadfiles/i,
-        /adshrink/i,
-        /ouo\.(?:io|press)/i,
-        /doodrive/i,
-        /pixeldrain/i,
-        /linkvertise/i,
-        /shrinkme/i
-    ];
-
-    // Text content patterns
-    const textPatterns = [
-        /download/i, /get\s+(?:it|now|here)/i, /\bfree\b.*\bdownload\b/i,
-        /mega/i, /gdrive/i, /google\s*drive/i, /onedrive/i, /terabox/i,
-        /mediafire/i, /dropbox/i, /\blink\b/i, /doodrive/i, /pixel/i,
-        /mirrored/i, /zippyshare/i, /ouo/i, /adshrink/i
-    ];
-
-    // Check URL against file and hosting patterns
-    if (filePatterns.some(p => p.test(href)) || hostingPatterns.some(p => p.test(href))) {
-        return true;
-    }
-
-    // Check text content
-    if (textPatterns.some(p => p.test(text))) {
-        return true;
-    }
-
-    return false;
-}
-
-/**
- * Extract download links from raw HTML before Readability strips them.
- * Returns HTML section with download links to append to content.
- */
-function extractDownloadLinks(html: string, baseUrl: string): string {
-    const dom = new JSDOM(html);
-    const doc = dom.window.document;
-    const links = doc.querySelectorAll('a');
-    const downloadLinks: { href: string; text: string; provider?: string }[] = [];
-
-    const getProvider = (href: string, text: string): string | undefined => {
-        if (/mega\.nz|mega\.co\.nz/i.test(href) || /mega/i.test(text)) return 'mega';
-        if (/mediafire\.com/i.test(href) || /mediafire/i.test(text)) return 'mediafire';
-        if (/terabox/i.test(href) || /terabox/i.test(text)) return 'terabox';
-        if (/onedrive/i.test(href) || /1drv\.ms/i.test(href) || /onedrive/i.test(text)) return 'onedrive';
-        if (/drive\.google/i.test(href) || /gdrive/i.test(text)) return 'google-drive';
-        if (/pixeldrain/i.test(href) || /pixel/i.test(text)) return 'pixeldrain';
-        if (/doodrive/i.test(href) || /doodrive/i.test(text)) return 'doodrive';
-        if (/gofile/i.test(href)) return 'gofile';
-        return undefined;
-    };
-
-    links.forEach((a) => {
-        const href = a.getAttribute('href');
-        let text = (a.textContent || '').trim();
-
-        if (href && text && isDownloadLink(href, text)) {
-            // Filter out links with excessively long text (likely comments or paragraphs, not buttons)
-            if (text.length > 150) return;
-
-            // Clean text: remove leading pipes, hyphens, and extra spaces
-            text = text.replace(/^[|\s\-_/]+/, '').trim();
-            if (!text) return;
-
-            // Truncate label if still too long (e.g., for pill UI)
-            const maxLength = 60;
-            const cleanedText = text.length > maxLength
-                ? text.substring(0, maxLength) + '...'
-                : text;
-
-            // Make relative URLs absolute
-            let absoluteHref = href;
-            if (href.startsWith('/') || (!href.startsWith('http') && !href.startsWith('mailto:'))) {
-                try {
-                    absoluteHref = new URL(href, baseUrl).href;
-                } catch {
-                    // Keep original
-                }
-            }
-            // Avoid duplicates
-            if (!downloadLinks.some(l => l.href === absoluteHref)) {
-                downloadLinks.push({
-                    href: absoluteHref,
-                    text: cleanedText.toUpperCase(),
-                    provider: getProvider(absoluteHref, text)
-                });
-            }
-        }
-    });
-
-    if (downloadLinks.length === 0) {
-        return '';
-    }
-
-    // Build structured download grid
-    const linksHtml = downloadLinks.map(({ href, text, provider }) =>
-        `<a href="${href}" target="_blank" rel="noopener noreferrer" data-aegis-download="true" data-aegis-provider="${provider || 'generic'}">
-            <span class="provider-icon"></span>
-            <span class="link-label">${text}</span>
-        </a>`
-    ).join('');
-
-    // Look for password in the document
-    let passwordLine = '';
-    const bodyText = doc.body.textContent || '';
-    const passwordMatch = bodyText.match(/Password\s*:\s*([^\n\s]+)/i);
-    if (passwordMatch) {
-        passwordLine = `
-            <div class="aegis-password-container">
-                <span class="password-label">Password:</span>
-                <code class="password-value">${passwordMatch[1]}</code>
-            </div>
-        `;
-    }
-
-    return `
-        <div class="aegis-download-section">
-            <div class="aegis-download-header">
-                <span class="header-icon">📥</span>
-                <h3>Download Links</h3>
-            </div>
-            <div class="aegis-download-grid">
-                ${linksHtml}
-            </div>
-            ${passwordLine}
-        </div>
-    `;
-}

@@ -21,19 +21,19 @@ RUN npm run build
 # Stage 2: Production
 FROM node:20-slim
 
-# Install latest chrome dev package and fonts to support major charsets
-# This is needed at runtime for Puppeteer/Scraper features
-RUN apt-get update \
-  && apt-get install -y wget gnupg \
-  && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg \
-  && sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
-  && apt-get update \
-  && apt-get install -y google-chrome-stable fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
-  --no-install-recommends \
-  && rm -rf /var/lib/apt/lists/*
+# Install Playwright dependencies and Chromium
+# We use a global path to ensure the 'node' user can access the browsers
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx playwright install-deps chromium \
+  && npx playwright install chromium \
+  && chmod -R 777 /ms-playwright
 
-# Determine the path of the installed Google Chrome
-RUN which google-chrome-stable > /tmp/chrome-path
+# Install fonts for high-quality rendering (Emoji, CJK, etc)
+RUN apt-get update && apt-get install -y \
+  fonts-noto-color-emoji \
+  fonts-liberation \
+  fonts-noto-cjk \
+  && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
 WORKDIR /usr/src/app
