@@ -393,9 +393,6 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
         });
         page = await context.newPage();
 
-        // 1. Pre-inject Readability so it's ready as soon as DOM is available
-        await page.addInitScript({ content: readabilityScript });
-
         // Block unnecessary resources but keep images for reader mode
         await page.route('**/*', (route: any) => {
             const request = route.request();
@@ -434,6 +431,11 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
         } catch (e) { }
 
         // 3. Extraction + Processing in Browser
+        if (!readabilityScript) {
+            logger.warn('[ReaderScrape] Readability script is empty, extraction may fail.');
+        }
+        await page.addScriptTag({ content: readabilityScript });
+
         const result = await page.evaluate(({ baseUrl }) => {
             // @ts-ignore
             if (typeof Readability === 'undefined') {
