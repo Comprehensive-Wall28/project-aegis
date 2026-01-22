@@ -11,7 +11,6 @@ import {
     DialogActions,
     Button,
     TextField,
-    alpha,
     Typography
 } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -338,7 +337,7 @@ const NotesPage: React.FC = () => {
                                     width: 320,
                                     flexShrink: 0,
                                     border: 1,
-                                    borderColor: alpha(theme.palette.divider, 0.1),
+                                    borderColor: theme.palette.divider,
                                     borderRadius: '16px',
                                     bgcolor: 'background.paper',
                                     overflow: 'hidden',
@@ -379,7 +378,7 @@ const NotesPage: React.FC = () => {
                         height: '100%',
                         position: 'relative',
                         border: 1,
-                        borderColor: alpha(theme.palette.divider, 0.1),
+                        borderColor: theme.palette.divider,
                         borderRadius: '16px',
                         overflow: 'hidden'
                     }}>

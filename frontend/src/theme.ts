@@ -34,7 +34,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#f8fafc', // Slate 50
                 secondary: '#94a3b8', // Slate 400
             },
-            divider: 'rgba(148, 163, 184, 0.08)',
+            divider: 'rgba(148, 163, 184, 0.2)',
         },
         catppuccin: {
             background: {
@@ -64,7 +64,7 @@ export const getTheme = (mode: ThemeMode) => {
             success: {
                 main: '#a6e3a1',    // Green
             },
-            divider: 'rgba(108, 112, 134, 0.12)', // Overlay 0 with alpha refined to 0.12 for visibility
+            divider: 'rgba(108, 112, 134, 0.25)', // Overlay 0 with alpha increased for better structural definition
         },
         purple: {
             background: {
@@ -82,7 +82,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#faf5ff', // Purple 50
                 secondary: '#a78bfa', // Violet 400 (Darker than 300)
             },
-            divider: 'rgba(147, 51, 234, 0.12)',
+            divider: 'rgba(147, 51, 234, 0.2)',
         },
         amoled: {
             background: {
@@ -100,7 +100,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#ffffff',
                 secondary: '#a1a1aa',
             },
-            divider: 'rgba(255, 255, 255, 0.08)',
+            divider: 'rgba(255, 255, 255, 0.25)',
         },
         light: {
             background: {
@@ -136,7 +136,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#ededed',
                 secondary: '#a1a1aa',
             },
-            divider: 'rgba(255, 255, 255, 0.08)',
+            divider: 'rgba(255, 255, 255, 0.25)',
         },
         ocean: {
             background: {
@@ -154,7 +154,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#f1f5f9',
                 secondary: '#94a3b8',
             },
-            divider: 'rgba(148, 163, 184, 0.08)',
+            divider: 'rgba(148, 163, 184, 0.2)',
         },
         tokyonight: {
             background: {
@@ -184,7 +184,7 @@ export const getTheme = (mode: ThemeMode) => {
             success: {
                 main: '#9ece6a',
             },
-            divider: 'rgba(56, 62, 90, 0.12)', // Slightly increased for visibility while remaining subtle
+            divider: 'rgba(74, 86, 132, 0.4)', // Higher visibility for tokyonight specifically
         },
     };
 
