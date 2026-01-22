@@ -506,6 +506,9 @@ export const ReaderModeOverlay = memo(({
                                             sx={{
                                                 maxWidth: 720,
                                                 mx: 'auto',
+                                                width: '100%',
+                                                wordBreak: 'break-word',
+                                                overflowWrap: 'break-word',
                                                 // Reader typography - use site font
                                                 fontFamily: theme.typography.fontFamily,
                                                 fontSize: '1.125rem',
@@ -642,6 +645,7 @@ export const ReaderModeOverlay = memo(({
                                                 '& .aegis-password-container': {
                                                     display: 'flex',
                                                     alignItems: 'center',
+                                                    flexWrap: 'wrap',
                                                     gap: 1.5,
                                                     p: 2,
                                                     borderRadius: 2,
@@ -661,6 +665,7 @@ export const ReaderModeOverlay = memo(({
                                                     userSelect: 'all',
                                                     cursor: 'pointer',
                                                     transition: 'color 0.2s',
+                                                    wordBreak: 'break-all',
                                                     '&:hover': {
                                                         color: theme.palette.warning.main,
                                                     }
@@ -683,10 +688,20 @@ export const ReaderModeOverlay = memo(({
                                                     bgcolor: alpha(theme.palette.text.primary, 0.05),
                                                     borderRadius: 1,
                                                     p: 0.5,
+                                                    maxWidth: '100%',
+                                                    overflowX: 'auto',
                                                 },
                                                 '& pre': {
                                                     p: 2,
                                                     overflowX: 'auto',
+                                                    whiteSpace: 'pre-wrap',
+                                                    wordBreak: 'break-all',
+                                                },
+                                                '& table': {
+                                                    display: 'block',
+                                                    width: '100%',
+                                                    overflowX: 'auto',
+                                                    borderCollapse: 'collapse',
                                                 },
                                             }}
                                             dangerouslySetInnerHTML={{ __html: readerContent.content }}
