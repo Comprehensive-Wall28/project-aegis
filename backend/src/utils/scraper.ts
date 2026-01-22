@@ -496,12 +496,26 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             });
 
             // D. Extract Download Links from the FULL page (not just article)
+            const getProvider = (href: string): string => {
+                const h = href.toLowerCase();
+                if (h.includes('mega.nz')) return 'mega';
+                if (h.includes('mediafire.com')) return 'mediafire';
+                if (h.includes('terabox')) return 'terabox';
+                if (h.includes('google.com/drive') || h.includes('drive.google')) return 'google-drive';
+                if (h.includes('pixeldrain.com')) return 'pixeldrain';
+                if (h.includes('doodrive.com')) return 'doodrive';
+                if (h.includes('1drv.ms') || h.includes('onedrive')) return 'onedrive';
+                if (h.includes('zippyshare.com')) return 'zippyshare';
+                return 'direct';
+            };
+
             const allLinks = Array.from(document.querySelectorAll('a'));
             const downloadLinks = allLinks
                 .filter(a => isDownloadLink(a.href, a.textContent || ''))
                 .map(a => ({
                     href: a.href,
-                    text: (a.textContent || '').trim().replace(/^[|\s\-_/]+/, '').toUpperCase()
+                    text: (a.textContent || '').trim().replace(/^[|\s\-_/]+/, '').toUpperCase(),
+                    provider: getProvider(a.href)
                 }))
                 .filter(l => l.text.length > 0 && l.text.length < 100)
                 .slice(0, 25);
@@ -529,16 +543,24 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
 
         // Append download section if links found
         if (downloadLinks.length > 0) {
-            const linksHtml = downloadLinks.map(l =>
-                `<a href="${l.href}" target="_blank" rel="noopener noreferrer" data-aegis-download="true">${l.text}</a>`
-            ).join('');
+            const linksHtml = downloadLinks.map(l => {
+                const isSpecial = l.text.includes('DOWNLOAD NOW') || l.text.includes('DIRECT');
+                const label = isSpecial ? (l.text.includes('DOWNLOAD NOW') ? '⬇ DOWNLOAD NOW' : l.text) : l.text;
+                return `<a href="${l.href}" target="_blank" rel="noopener noreferrer" data-aegis-download="true" data-aegis-provider="${l.provider}">
+                    <span class="provider-dot"></span>
+                    <span class="link-label">${label}</span>
+                </a>`;
+            }).join('');
 
             const passwordHtml = password ?
                 `<div class="aegis-password-container"><span class="password-label">Password:</span><code class="password-value">${password}</code></div>` : '';
 
             processedContent += `
                 <div class="aegis-download-section">
-                    <div class="aegis-download-header"><h3>Download Links</h3></div>
+                    <div class="aegis-download-header">
+                        <span class="header-icon">📥</span>
+                        <h3>Download Links</h3>
+                    </div>
                     <div class="aegis-download-grid">${linksHtml}</div>
                     ${passwordHtml}
                 </div>`;

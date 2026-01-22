@@ -579,67 +579,64 @@ export const ReaderModeOverlay = memo(({
                                                     textDecoration: 'none',
                                                     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                                                     border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                                                    bgcolor: alpha(theme.palette.background.paper, 0.6),
-                                                    maxWidth: '100%', // Ensure it doesn't overflow parent
+                                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                                                    maxWidth: '100%',
                                                     overflow: 'hidden',
                                                     '&:hover': {
                                                         transform: 'translateY(-2px)',
                                                         boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.2)}`,
-                                                        borderColor: alpha(theme.palette.primary.main, 0.4),
+                                                        bgcolor: alpha(theme.palette.background.paper, 0.6),
                                                     },
-                                                    '& .link-label': {
-                                                        fontSize: '0.8125rem',
-                                                        fontWeight: 600,
-                                                        letterSpacing: '0.02em',
-                                                        textAlign: 'center',
-                                                        color: theme.palette.text.primary,
-                                                        whiteSpace: 'nowrap',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        maxWidth: 240, // Limit pill width
-                                                    },
-                                                    '& .provider-icon': {
-                                                        display: 'inline-block',
+                                                    '& .provider-dot': {
                                                         width: 8,
                                                         height: 8,
                                                         borderRadius: '50%',
                                                         bgcolor: theme.palette.text.disabled,
+                                                        flexShrink: 0,
                                                     },
-                                                    // Provider Specific Colors
+                                                    '& .link-label': {
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 700,
+                                                        letterSpacing: '0.05em',
+                                                        color: theme.palette.text.primary,
+                                                        whiteSpace: 'nowrap',
+                                                    },
+                                                    // Provider Specific Styles
                                                     '&[data-aegis-provider="mega"]': {
-                                                        '&:hover': { bgcolor: alpha('#ff0000', 0.1), borderColor: '#ff0000' },
+                                                        borderColor: alpha('#ff4d4d', 0.3),
+                                                        '& .provider-dot': { bgcolor: '#ff4d4d' },
                                                         '& .link-label': { color: '#ff4d4d' },
-                                                        '& .provider-icon': { bgcolor: '#ff4d4d' }
+                                                        '&:hover': { bgcolor: alpha('#ff4d4d', 0.1), borderColor: '#ff4d4d' }
                                                     },
                                                     '&[data-aegis-provider="mediafire"]': {
-                                                        '&:hover': { bgcolor: alpha('#007bff', 0.1), borderColor: '#007bff' },
+                                                        borderColor: alpha('#4da3ff', 0.3),
+                                                        '& .provider-dot': { bgcolor: '#4da3ff' },
                                                         '& .link-label': { color: '#4da3ff' },
-                                                        '& .provider-icon': { bgcolor: '#4da3ff' }
+                                                        '&:hover': { bgcolor: alpha('#4da3ff', 0.1), borderColor: '#4da3ff' }
                                                     },
                                                     '&[data-aegis-provider="terabox"]': {
-                                                        '&:hover': { bgcolor: alpha('#ff6b00', 0.1), borderColor: '#ff6b00' },
+                                                        borderColor: alpha('#ff944d', 0.3),
+                                                        '& .provider-dot': { bgcolor: '#ff944d' },
                                                         '& .link-label': { color: '#ff944d' },
-                                                        '& .provider-icon': { bgcolor: '#ff944d' }
-                                                    },
-                                                    '&[data-aegis-provider="onedrive"]': {
-                                                        '&:hover': { bgcolor: alpha('#00a1f1', 0.1), borderColor: '#00a1f1' },
-                                                        '& .link-label': { color: '#4dbdff' },
-                                                        '& .provider-icon': { bgcolor: '#4dbdff' }
-                                                    },
-                                                    '&[data-aegis-provider="google-drive"]': {
-                                                        '&:hover': { bgcolor: alpha('#34a853', 0.1), borderColor: '#34a853' },
-                                                        '& .link-label': { color: '#68c182' },
-                                                        '& .provider-icon': { bgcolor: '#68c182' }
+                                                        '&:hover': { bgcolor: alpha('#ff944d', 0.1), borderColor: '#ff944d' }
                                                     },
                                                     '&[data-aegis-provider="pixeldrain"]': {
-                                                        '&:hover': { bgcolor: alpha('#7e57c2', 0.1), borderColor: '#7e57c2' },
+                                                        borderColor: alpha('#a188d3', 0.3),
+                                                        '& .provider-dot': { bgcolor: '#a188d3' },
                                                         '& .link-label': { color: '#a188d3' },
-                                                        '& .provider-icon': { bgcolor: '#a188d3' }
+                                                        '&:hover': { bgcolor: alpha('#a188d3', 0.1), borderColor: '#a188d3' }
                                                     },
-                                                    '&[data-aegis-provider="doodrive"]': {
-                                                        '&:hover': { bgcolor: alpha('#fbc02d', 0.1), borderColor: '#fbc02d' },
+                                                    '&[data-aegis-provider="google-drive"]': {
+                                                        borderColor: alpha('#68c182', 0.3),
+                                                        '& .provider-dot': { bgcolor: '#68c182' },
+                                                        '& .link-label': { color: '#68c182' },
+                                                        '&:hover': { bgcolor: alpha('#68c182', 0.1), borderColor: '#68c182' }
+                                                    },
+                                                    '&[data-aegis-provider="zippyshare"]': {
+                                                        borderColor: alpha('#fdd835', 0.3),
+                                                        '& .provider-dot': { bgcolor: '#fdd835' },
                                                         '& .link-label': { color: '#fdd835' },
-                                                        '& .provider-icon': { bgcolor: '#fdd835' }
+                                                        '&:hover': { bgcolor: alpha('#fdd835', 0.1), borderColor: '#fdd835' }
                                                     },
                                                 },
                                                 '& .aegis-password-container': {
@@ -671,10 +668,12 @@ export const ReaderModeOverlay = memo(({
                                                     }
                                                 },
                                                 '& img': {
-                                                    maxWidth: '100%',
+                                                    display: 'block',
+                                                    width: '100%',
                                                     height: 'auto',
                                                     borderRadius: 2,
                                                     my: 2,
+                                                    mx: 'auto',
                                                 },
                                                 '& blockquote': {
                                                     borderLeft: `4px solid ${theme.palette.primary.main}`,
