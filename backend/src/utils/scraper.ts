@@ -725,8 +725,37 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             if (typeof Readability === 'undefined') {
                 return { error: 'Readability script not found in browser context' };
             }
+            // A. Helper for noise removal (Pre-extraction)
+            const NOISE_SELECTORS = [
+                '.related', '#recommended', '.read-more', '.js-related-posts',
+                '.wp-block-related-posts', '.entry-related', '.post-navigation',
+                '.social-share', '.author-box', '.newsletter-signup',
+                '.comments-area', 'aside', 'nav', '.widget', '.ads', '.ad-unit'
+            ];
 
-            // A. Helper for download links
+            NOISE_SELECTORS.forEach(selector => {
+                document.querySelectorAll(selector).forEach(el => el.remove());
+            });
+
+            // B. Link Density Filter for Article Blocks
+            const filterHighLinkDensity = () => {
+                const candidates = document.querySelectorAll('div, section, article');
+                candidates.forEach(el => {
+                    const textLength = el.textContent?.trim().length || 0;
+                    if (textLength < 100) return;
+
+                    const linkCount = el.querySelectorAll('a').length;
+                    const density = (linkCount * 20) / textLength;
+
+                    // If high link density and contains "related" or "read" keywords
+                    if (density > 0.4 && /related|read|more|recommended/i.test(el.className + el.id)) {
+                        el.remove();
+                    }
+                });
+            };
+            filterHighLinkDensity();
+
+            // C. Helper for download links
             const isDownloadLink = (href: string, text: string) => {
                 const patterns = [
                     /\.(zip|7z|rar|iso|exe|dmg|pkg|apk|pdf)$/i,
@@ -740,7 +769,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
                 return patterns.some(p => p.test(href)) || textPatterns.some(p => p.test(text));
             };
 
-            // B. Run Readability
+            // D. Run Readability
             // @ts-ignore
             const docClone = document.cloneNode(true);
             // @ts-ignore
@@ -748,7 +777,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             const article = reader.parse();
             if (!article || !article.title) return null;
 
-            // C. Post-process extracted content
+            // E. Post-process extracted content
             const container = document.createElement('div');
             container.innerHTML = article.content;
 

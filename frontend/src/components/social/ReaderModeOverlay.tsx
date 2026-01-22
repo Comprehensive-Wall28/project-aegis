@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useCallback, useRef } from 'react';
+import { useState, useEffect, memo, useCallback, useRef, useMemo } from 'react';
 import {
     Box,
     Paper,
@@ -43,6 +43,16 @@ interface ReaderModeOverlayProps {
     decryptAnnotation: (encryptedText: string) => Promise<string>;
     currentUserId?: string;
 }
+
+const StaticReaderContent = memo(({ content, sx, onMouseUp }: { content: string; sx: any; onMouseUp: () => void }) => (
+    <Box
+        onMouseUp={onMouseUp}
+        sx={sx}
+        dangerouslySetInnerHTML={{ __html: content }}
+    />
+));
+
+StaticReaderContent.displayName = 'StaticReaderContent';
 
 export const ReaderModeOverlay = memo(({
     open,
@@ -148,6 +158,53 @@ export const ReaderModeOverlay = memo(({
             container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         }
     };
+
+    // Handle image loading and broken images in reader content to prevent flickering
+    useEffect(() => {
+        const container = contentRef.current;
+        if (!container || !open || !readerContent) return;
+
+        const handleLoad = (e: Event) => {
+            const target = e.target as HTMLImageElement;
+            if (target && target.tagName === 'IMG') {
+                target.classList.add('aegis-loaded');
+            }
+        };
+
+        const handleError = (e: Event) => {
+            const target = e.target as HTMLImageElement;
+            if (target && target.tagName === 'IMG') {
+                target.style.display = 'none';
+                // Also hide parent if it's a small container or figure
+                const parent = target.parentElement;
+                if (parent && (parent.tagName === 'FIGURE' || (parent.children.length === 1 && parent.innerText.trim() === ''))) {
+                    parent.style.display = 'none';
+                }
+            }
+        };
+
+        // Use capture phase because these events don't bubble
+        container.addEventListener('load', handleLoad, true);
+        container.addEventListener('error', handleError, true);
+
+        // Process images that finished before listeners were attached
+        const images = container.querySelectorAll('img');
+        images.forEach(img => {
+            const image = img as HTMLImageElement;
+            if (image.complete) {
+                if (image.naturalWidth > 0) {
+                    image.classList.add('aegis-loaded');
+                } else {
+                    image.style.display = 'none';
+                }
+            }
+        });
+
+        return () => {
+            container.removeEventListener('load', handleLoad, true);
+            container.removeEventListener('error', handleError, true);
+        };
+    }, [open, readerContent]);
 
     // Load annotations
     useEffect(() => {
@@ -262,6 +319,214 @@ export const ReaderModeOverlay = memo(({
         const date = new Date(dateStr);
         return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     };
+
+    // Memoize reader styles to prevent StaticReaderContent from re-rendering
+    // when unrelated state (like annotations) changes.
+    const readerStyles = useMemo(() => ({
+        maxWidth: 720,
+        mx: 'auto',
+        width: '100%',
+        wordBreak: 'break-word' as const,
+        overflowWrap: 'break-word' as const,
+        // Reader typography - use site font
+        fontFamily: theme.typography.fontFamily,
+        fontSize: '1.125rem',
+        lineHeight: 1.8,
+        color: theme.palette.text.primary,
+        '& h1, & h2, & h3, & h4, & h5, & h6': {
+            fontFamily: theme.typography.fontFamily,
+            fontWeight: 700,
+            mt: 3,
+            mb: 2,
+        },
+        '& p': {
+            mb: 2,
+            position: 'relative',
+        },
+        '& [data-aegis-paragraph="true"]': {
+            cursor: 'text',
+            transition: 'background-color 0.2s',
+            borderRadius: 1,
+            px: 0.5,
+            mx: -0.5,
+            '&:hover': {
+                bgcolor: alpha(theme.palette.primary.main, 0.05),
+            },
+        },
+        '& a': {
+            color: theme.palette.primary.main,
+            textDecoration: 'underline',
+        },
+        '& .aegis-download-section': {
+            mt: 4,
+            p: 3,
+            borderRadius: 4,
+            bgcolor: alpha(theme.palette.background.paper, 0.4),
+            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            backdropFilter: 'blur(10px)',
+            boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.2)}`,
+        },
+        '& .aegis-download-header': {
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            mb: 2.5,
+            '& h3': {
+                m: 0,
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: theme.palette.text.primary,
+            },
+            '& .header-icon': {
+                fontSize: '1.5rem',
+            },
+        },
+        '& .aegis-download-grid': {
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 1.5,
+            mb: 3,
+        },
+        '& a[data-aegis-download="true"]': {
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
+            px: 2,
+            py: 1,
+            borderRadius: '100px', // Pill shape
+            textDecoration: 'none',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            bgcolor: alpha(theme.palette.background.paper, 0.4),
+            maxWidth: '100%',
+            overflow: 'hidden',
+            '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.2)}`,
+                bgcolor: alpha(theme.palette.background.paper, 0.6),
+            },
+            '& .provider-dot': {
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                bgcolor: theme.palette.text.disabled,
+                flexShrink: 0,
+            },
+            '& .link-label': {
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+                color: theme.palette.text.primary,
+                whiteSpace: 'nowrap',
+            },
+            // Provider Specific Styles
+            '&[data-aegis-provider="mega"]': {
+                borderColor: alpha('#ff4d4d', 0.3),
+                '& .provider-dot': { bgcolor: '#ff4d4d' },
+                '& .link-label': { color: '#ff4d4d' },
+                '&:hover': { bgcolor: alpha('#ff4d4d', 0.1), borderColor: '#ff4d4d' }
+            },
+            '&[data-aegis-provider="mediafire"]': {
+                borderColor: alpha('#4da3ff', 0.3),
+                '& .provider-dot': { bgcolor: '#4da3ff' },
+                '& .link-label': { color: '#4da3ff' },
+                '&:hover': { bgcolor: alpha('#4da3ff', 0.1), borderColor: '#4da3ff' }
+            },
+            '&[data-aegis-provider="terabox"]': {
+                borderColor: alpha('#ff944d', 0.3),
+                '& .provider-dot': { bgcolor: '#ff944d' },
+                '& .link-label': { color: '#ff944d' },
+                '&:hover': { bgcolor: alpha('#ff944d', 0.1), borderColor: '#ff944d' }
+            },
+            '&[data-aegis-provider="pixeldrain"]': {
+                borderColor: alpha('#a188d3', 0.3),
+                '& .provider-dot': { bgcolor: '#a188d3' },
+                '& .link-label': { color: '#a188d3' },
+                '&:hover': { bgcolor: alpha('#a188d3', 0.1), borderColor: '#a188d3' }
+            },
+            '&[data-aegis-provider="google-drive"]': {
+                borderColor: alpha('#68c182', 0.3),
+                '& .provider-dot': { bgcolor: '#68c182' },
+                '& .link-label': { color: '#68c182' },
+                '&:hover': { bgcolor: alpha('#68c182', 0.1), borderColor: '#68c182' }
+            },
+            '&[data-aegis-provider="zippyshare"]': {
+                borderColor: alpha('#fdd835', 0.3),
+                '& .provider-dot': { bgcolor: '#fdd835' },
+                '& .link-label': { color: '#fdd835' },
+                '&:hover': { bgcolor: alpha('#fdd835', 0.1), borderColor: '#fdd835' }
+            },
+        },
+        '& .aegis-password-container': {
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 1.5,
+            p: 2,
+            borderRadius: 2,
+            bgcolor: alpha(theme.palette.common.black, 0.3),
+            border: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+        },
+        '& .password-label': {
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: theme.palette.text.secondary,
+        },
+        '& .password-value': {
+            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            fontSize: '1rem',
+            color: theme.palette.warning.light,
+            letterSpacing: '0.05em',
+            userSelect: 'all',
+            cursor: 'pointer',
+            transition: 'color 0.2s',
+            wordBreak: 'break-all',
+            '&:hover': {
+                color: theme.palette.warning.main,
+            }
+        },
+        '& img': {
+            display: 'block',
+            width: '100%',
+            height: 'auto',
+            borderRadius: 2,
+            my: 2,
+            mx: 'auto',
+            opacity: 0,
+            transition: 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&.aegis-loaded': {
+                opacity: 1,
+            },
+        },
+        '& blockquote': {
+            borderLeft: `4px solid ${theme.palette.primary.main}`,
+            pl: 2,
+            ml: 0,
+            fontStyle: 'italic',
+            color: theme.palette.text.secondary,
+        },
+        '& pre, & code': {
+            fontFamily: 'monospace',
+            bgcolor: alpha(theme.palette.text.primary, 0.05),
+            borderRadius: 1,
+            p: 0.5,
+            maxWidth: '100%',
+            overflowX: 'auto',
+        },
+        '& pre': {
+            p: 2,
+            overflowX: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
+        },
+        '& table': {
+            display: 'block',
+            width: '100%',
+            overflowX: 'auto',
+            borderCollapse: 'collapse',
+        },
+    }), [theme]);
 
     // Render annotation panel content
     const renderAnnotationPanel = () => (
@@ -576,208 +841,10 @@ export const ReaderModeOverlay = memo(({
                                             </Button>
                                         </Box>
                                     ) : (
-                                        <Box
-                                            sx={{
-                                                maxWidth: 720,
-                                                mx: 'auto',
-                                                width: '100%',
-                                                wordBreak: 'break-word',
-                                                overflowWrap: 'break-word',
-                                                // Reader typography - use site font
-                                                fontFamily: theme.typography.fontFamily,
-                                                fontSize: '1.125rem',
-                                                lineHeight: 1.8,
-                                                color: theme.palette.text.primary,
-                                                '& h1, & h2, & h3, & h4, & h5, & h6': {
-                                                    fontFamily: theme.typography.fontFamily,
-                                                    fontWeight: 700,
-                                                    mt: 3,
-                                                    mb: 2,
-                                                },
-                                                '& p': {
-                                                    mb: 2,
-                                                    position: 'relative',
-                                                },
-                                                '& [data-aegis-paragraph="true"]': {
-                                                    cursor: 'text',
-                                                    transition: 'background-color 0.2s',
-                                                    borderRadius: 1,
-                                                    px: 0.5,
-                                                    mx: -0.5,
-                                                    '&:hover': {
-                                                        bgcolor: alpha(theme.palette.primary.main, 0.05),
-                                                    },
-                                                },
-                                                '& a': {
-                                                    color: theme.palette.primary.main,
-                                                    textDecoration: 'underline',
-                                                },
-                                                '& .aegis-download-section': {
-                                                    mt: 4,
-                                                    p: 3,
-                                                    borderRadius: 4,
-                                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
-                                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                                                    backdropFilter: 'blur(10px)',
-                                                    boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.2)}`,
-                                                },
-                                                '& .aegis-download-header': {
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 1.5,
-                                                    mb: 2.5,
-                                                    '& h3': {
-                                                        m: 0,
-                                                        fontSize: '1.25rem',
-                                                        fontWeight: 700,
-                                                        color: theme.palette.text.primary,
-                                                    },
-                                                    '& .header-icon': {
-                                                        fontSize: '1.5rem',
-                                                    },
-                                                },
-                                                '& .aegis-download-grid': {
-                                                    display: 'flex',
-                                                    flexWrap: 'wrap',
-                                                    gap: 1.5,
-                                                    mb: 3,
-                                                },
-                                                '& a[data-aegis-download="true"]': {
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: 1,
-                                                    px: 2,
-                                                    py: 1,
-                                                    borderRadius: '100px', // Pill shape
-                                                    textDecoration: 'none',
-                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
-                                                    maxWidth: '100%',
-                                                    overflow: 'hidden',
-                                                    '&:hover': {
-                                                        transform: 'translateY(-2px)',
-                                                        boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.2)}`,
-                                                        bgcolor: alpha(theme.palette.background.paper, 0.6),
-                                                    },
-                                                    '& .provider-dot': {
-                                                        width: 8,
-                                                        height: 8,
-                                                        borderRadius: '50%',
-                                                        bgcolor: theme.palette.text.disabled,
-                                                        flexShrink: 0,
-                                                    },
-                                                    '& .link-label': {
-                                                        fontSize: '0.75rem',
-                                                        fontWeight: 700,
-                                                        letterSpacing: '0.05em',
-                                                        color: theme.palette.text.primary,
-                                                        whiteSpace: 'nowrap',
-                                                    },
-                                                    // Provider Specific Styles
-                                                    '&[data-aegis-provider="mega"]': {
-                                                        borderColor: alpha('#ff4d4d', 0.3),
-                                                        '& .provider-dot': { bgcolor: '#ff4d4d' },
-                                                        '& .link-label': { color: '#ff4d4d' },
-                                                        '&:hover': { bgcolor: alpha('#ff4d4d', 0.1), borderColor: '#ff4d4d' }
-                                                    },
-                                                    '&[data-aegis-provider="mediafire"]': {
-                                                        borderColor: alpha('#4da3ff', 0.3),
-                                                        '& .provider-dot': { bgcolor: '#4da3ff' },
-                                                        '& .link-label': { color: '#4da3ff' },
-                                                        '&:hover': { bgcolor: alpha('#4da3ff', 0.1), borderColor: '#4da3ff' }
-                                                    },
-                                                    '&[data-aegis-provider="terabox"]': {
-                                                        borderColor: alpha('#ff944d', 0.3),
-                                                        '& .provider-dot': { bgcolor: '#ff944d' },
-                                                        '& .link-label': { color: '#ff944d' },
-                                                        '&:hover': { bgcolor: alpha('#ff944d', 0.1), borderColor: '#ff944d' }
-                                                    },
-                                                    '&[data-aegis-provider="pixeldrain"]': {
-                                                        borderColor: alpha('#a188d3', 0.3),
-                                                        '& .provider-dot': { bgcolor: '#a188d3' },
-                                                        '& .link-label': { color: '#a188d3' },
-                                                        '&:hover': { bgcolor: alpha('#a188d3', 0.1), borderColor: '#a188d3' }
-                                                    },
-                                                    '&[data-aegis-provider="google-drive"]': {
-                                                        borderColor: alpha('#68c182', 0.3),
-                                                        '& .provider-dot': { bgcolor: '#68c182' },
-                                                        '& .link-label': { color: '#68c182' },
-                                                        '&:hover': { bgcolor: alpha('#68c182', 0.1), borderColor: '#68c182' }
-                                                    },
-                                                    '&[data-aegis-provider="zippyshare"]': {
-                                                        borderColor: alpha('#fdd835', 0.3),
-                                                        '& .provider-dot': { bgcolor: '#fdd835' },
-                                                        '& .link-label': { color: '#fdd835' },
-                                                        '&:hover': { bgcolor: alpha('#fdd835', 0.1), borderColor: '#fdd835' }
-                                                    },
-                                                },
-                                                '& .aegis-password-container': {
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    flexWrap: 'wrap',
-                                                    gap: 1.5,
-                                                    p: 2,
-                                                    borderRadius: 2,
-                                                    bgcolor: alpha(theme.palette.common.black, 0.3),
-                                                    border: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
-                                                },
-                                                '& .password-label': {
-                                                    fontSize: '0.875rem',
-                                                    fontWeight: 600,
-                                                    color: theme.palette.text.secondary,
-                                                },
-                                                '& .password-value': {
-                                                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                                                    fontSize: '1rem',
-                                                    color: theme.palette.warning.light,
-                                                    letterSpacing: '0.05em',
-                                                    userSelect: 'all',
-                                                    cursor: 'pointer',
-                                                    transition: 'color 0.2s',
-                                                    wordBreak: 'break-all',
-                                                    '&:hover': {
-                                                        color: theme.palette.warning.main,
-                                                    }
-                                                },
-                                                '& img': {
-                                                    display: 'block',
-                                                    width: '100%',
-                                                    height: 'auto',
-                                                    borderRadius: 2,
-                                                    my: 2,
-                                                    mx: 'auto',
-                                                },
-                                                '& blockquote': {
-                                                    borderLeft: `4px solid ${theme.palette.primary.main}`,
-                                                    pl: 2,
-                                                    ml: 0,
-                                                    fontStyle: 'italic',
-                                                    color: theme.palette.text.secondary,
-                                                },
-                                                '& pre, & code': {
-                                                    fontFamily: 'monospace',
-                                                    bgcolor: alpha(theme.palette.text.primary, 0.05),
-                                                    borderRadius: 1,
-                                                    p: 0.5,
-                                                    maxWidth: '100%',
-                                                    overflowX: 'auto',
-                                                },
-                                                '& pre': {
-                                                    p: 2,
-                                                    overflowX: 'auto',
-                                                    whiteSpace: 'pre-wrap',
-                                                    wordBreak: 'break-all',
-                                                },
-                                                '& table': {
-                                                    display: 'block',
-                                                    width: '100%',
-                                                    overflowX: 'auto',
-                                                    borderCollapse: 'collapse',
-                                                },
-                                            }}
-                                            dangerouslySetInnerHTML={{ __html: readerContent.content }}
+                                        <StaticReaderContent
+                                            content={readerContent.content}
+                                            onMouseUp={handleMouseUp}
+                                            sx={readerStyles}
                                         />
                                     )}
                                 </Box>
