@@ -40,7 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   fonts-noto-color-emoji \
   fonts-liberation \
   fonts-noto-cjk \
-  && npx playwright install --with-deps chromium \
+  && ./node_modules/.bin/playwright install --with-deps chromium \
   && rm -rf /var/lib/apt/lists/* \
   && chmod -R 755 /ms-playwright
 
