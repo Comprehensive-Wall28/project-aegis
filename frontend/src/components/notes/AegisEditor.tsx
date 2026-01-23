@@ -4,6 +4,10 @@ import Placeholder from '@tiptap/extension-placeholder';
 import ImageResize from 'tiptap-extension-resize-image';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { SearchExtension } from './SearchExtension';
+import { SecureImage } from './SecureImageExtension';
+import { generateDEK, wrapKey, bytesToHex } from '../../lib/cryptoUtils';
+import { useSessionStore } from '../../stores/sessionStore';
+import apiClient from '../../services/api';
 import {
     Box,
     CircularProgress,
@@ -60,8 +64,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
 
 
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const lastSavedContentRef = useRef<string>('');
-    const lastSavedTitleRef = useRef<string>(initialTitle);
+    const isDirtyRef = useRef(false);
 
     const editor = useEditor({
         extensions: [
@@ -81,8 +84,9 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                 placeholder: 'Start typing your note...',
             }),
             SearchExtension,
+            SecureImage,
             ImageResize.configure({
-                allowBase64: true,
+                allowBase64: false, // Disallow Base64 to save memory/space
                 HTMLAttributes: {
                     class: 'aegis-editor-image',
                 },
@@ -105,27 +109,89 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                     const file = imageItem.getAsFile();
                     if (!file) return false;
 
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const src = e.target?.result as string;
-                        if (src) {
-                            const node = view.state.schema.nodes.imageResize.create({ src });
-                            const transaction = view.state.tr.replaceSelectionWith(node);
-                            view.dispatch(transaction);
+                    // Manual Upload & Encryption Logic to get fileId
+                    (async () => {
+                        try {
+                            const { user, vaultCtrKey, setCryptoStatus } = useSessionStore.getState();
+                            const masterKey = user?.vaultKey;
+
+                            if (!vaultCtrKey || !masterKey) {
+                                throw new Error('Vault keys not ready');
+                            }
+
+                            setCryptoStatus('encrypting');
+
+                            // 1. Generate DEK and wrap
+                            const dek = await generateDEK();
+                            const encryptedDEK = await wrapKey(dek, masterKey);
+
+                            // 2. Encrypt filename
+                            const nameIv = window.crypto.getRandomValues(new Uint8Array(16));
+                            const nameEnc = await window.crypto.subtle.encrypt(
+                                { name: 'AES-CTR', counter: nameIv, length: 64 },
+                                vaultCtrKey,
+                                new TextEncoder().encode(file.name || 'note-image.png')
+                            );
+                            const encryptedFileName = bytesToHex(nameIv) + ':' + bytesToHex(new Uint8Array(nameEnc));
+
+                            // 3. Encrypt file content (single chunk for simplicity in notes)
+                            const arrayBuffer = await file.arrayBuffer();
+                            const iv = window.crypto.getRandomValues(new Uint8Array(16));
+                            const encrypted = await window.crypto.subtle.encrypt(
+                                { name: 'AES-CTR', counter: iv, length: 64 },
+                                dek,
+                                arrayBuffer
+                            );
+
+                            // Combine IV + Ciphertext
+                            const finalEncryptedBuffer = new Uint8Array(iv.length + encrypted.byteLength);
+                            finalEncryptedBuffer.set(iv);
+                            finalEncryptedBuffer.set(new Uint8Array(encrypted), iv.length);
+
+                            // 4. Init Upload
+                            const initResponse = await apiClient.post('/vault/upload-init', {
+                                fileName: encryptedFileName,
+                                originalFileName: file.name || 'note-image.png',
+                                fileSize: finalEncryptedBuffer.byteLength,
+                                encryptedSymmetricKey: encryptedDEK,
+                                encapsulatedKey: 'AES-KW',
+                                mimeType: file.type || 'image/png',
+                            });
+
+                            const { fileId } = initResponse.data;
+
+                            // 5. Upload Chunk (Single)
+                            await apiClient.put(`/vault/upload-chunk?fileId=${fileId}`, finalEncryptedBuffer, {
+                                headers: {
+                                    'Content-Type': 'application/octet-stream',
+                                    'Content-Range': `bytes 0-${finalEncryptedBuffer.byteLength - 1}/${finalEncryptedBuffer.byteLength}`
+                                }
+                            });
+
+                            // 6. Insert Secure Image Node
+                            if (view.state) {
+                                view.dispatch(
+                                    view.state.tr.replaceSelectionWith(
+                                        view.state.schema.nodes.secureImage.create({ fileId })
+                                    )
+                                );
+                            }
+                        } catch (err) {
+                            console.error('Failed to upload note image:', err);
+                        } finally {
+                            useSessionStore.getState().setCryptoStatus('idle');
                         }
-                    };
-                    reader.readAsDataURL(file);
+                    })();
+
                     return true;
                 }
                 return false;
             },
         },
         onUpdate: ({ editor }) => {
-            const currentContent = JSON.stringify(editor.getJSON());
-            if (currentContent !== lastSavedContentRef.current) {
-                setHasChanges(true);
-                debouncedSave(editor, titleRef.current);
-            }
+            isDirtyRef.current = true;
+            setHasChanges(true);
+            debouncedSave(editor, titleRef.current);
         },
         // Removed onTransaction render force, handled in EditorToolbar
     });
@@ -161,21 +227,20 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
         }
 
         const runSave = async () => {
-            const content = editor.getJSON();
-            const contentStr = JSON.stringify(content);
+            if (!isDirtyRef.current && currentTitle === titleRef.current) {
+                return;
+            }
 
-            if (contentStr !== lastSavedContentRef.current || currentTitle !== lastSavedTitleRef.current) {
-                setIsSaving(true);
-                try {
-                    await onSave(content, currentTitle);
-                    lastSavedContentRef.current = contentStr;
-                    lastSavedTitleRef.current = currentTitle;
-                    setHasChanges(false);
-                } catch (error) {
-                    console.error('Auto-save failed:', error);
-                } finally {
-                    setIsSaving(false);
-                }
+            const content = editor.getJSON();
+            setIsSaving(true);
+            try {
+                await onSave(content, currentTitle);
+                isDirtyRef.current = false;
+                setHasChanges(false);
+            } catch (error) {
+                console.error('Auto-save failed:', error);
+            } finally {
+                setIsSaving(false);
             }
         };
 
@@ -197,12 +262,8 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
 
     // Update initial content/title refs
     useEffect(() => {
-        if (initialContent) {
-            lastSavedContentRef.current = JSON.stringify(initialContent);
-        }
         if (initialTitle !== undefined) {
             setTitle(initialTitle);
-            lastSavedTitleRef.current = initialTitle;
         }
     }, [initialContent, initialTitle]);
 

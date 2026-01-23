@@ -22,11 +22,10 @@ import {
     Close as CloseIcon,
     Delete
 } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { Virtuoso } from 'react-virtuoso';
 import type { NoteMetadata, NoteFolder } from '../../services/noteService';
 import { useFolderDragDrop } from '../../hooks/useFolderDragDrop';
-
-const ITEMS_PER_PAGE = 30;
 
 interface NotesPanelProps {
     notes: NoteMetadata[];
@@ -232,21 +231,6 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
     const theme = useTheme();
     const { handleNoteDragStart, handleNoteDragEnd, isDragging } = dragDrop;
 
-    // Pagination state
-    const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
-
-    // Reset visible count when notes change (e.g., folder switch, search)
-    React.useEffect(() => {
-        setVisibleCount(ITEMS_PER_PAGE);
-    }, [selectedFolderId, searchQuery]);
-
-    const visibleNotes = notes.slice(0, visibleCount);
-    const hasMore = notes.length > visibleCount;
-
-    const handleLoadMore = useCallback(() => {
-        setVisibleCount(prev => prev + ITEMS_PER_PAGE);
-    }, []);
-
     // Hover preview state
     const [previewNote, setPreviewNote] = useState<NoteMetadata | null>(null);
     const [previewAnchor, setPreviewAnchor] = useState<HTMLElement | null>(null);
@@ -426,45 +410,36 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
                     </Box>
                 ) : (
                     <Box sx={{
-                        overflowY: 'auto',
-                        overflowX: 'hidden',
                         height: '100%',
-                        scrollbarGutter: 'stable',
                         opacity: isLoading ? 0.7 : 1,
-                        transition: 'opacity 0.2s'
+                        transition: 'opacity 0.2s',
+                        '& .virtuoso-scrollbar': {
+                            scrollbarGutter: 'stable',
+                        }
                     }}>
-                        <AnimatePresence mode="popLayout" initial={false}>
-                            {visibleNotes.map((note, index) => (
-                                <NoteItem
-                                    key={note._id}
-                                    note={note}
-                                    index={index}
-                                    isSelected={selectedNoteId === note._id}
-                                    decryptedTitle={decryptedTitles[note._id] || ''}
-                                    onSelect={onSelectNote}
-                                    onDelete={onDeleteNote}
-                                    onDragStart={handleNoteDragStart}
-                                    onDragEnd={handleNoteDragEnd}
-                                    onHoverStart={handleHoverStart}
-                                    onHoverEnd={handleHoverEnd}
-                                    theme={theme}
-                                />
-                            ))}
-                        </AnimatePresence>
-                        {hasMore && (
-                            <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
-                                <Chip
-                                    label={`Load more (${notes.length - visibleCount} remaining)`}
-                                    onClick={handleLoadMore}
-                                    sx={{
-                                        cursor: 'pointer',
-                                        '&:hover': {
-                                            bgcolor: alpha(theme.palette.primary.main, 0.15)
-                                        }
-                                    }}
-                                />
-                            </Box>
-                        )}
+                        <Virtuoso
+                            style={{ height: '100%' }}
+                            data={notes}
+                            increaseViewportBy={200}
+                            itemContent={(index, note) => (
+                                <Box sx={{ p: 0 }}>
+                                    <NoteItem
+                                        key={note._id}
+                                        note={note}
+                                        index={index}
+                                        isSelected={selectedNoteId === note._id}
+                                        decryptedTitle={decryptedTitles[note._id] || ''}
+                                        onSelect={onSelectNote}
+                                        onDelete={onDeleteNote}
+                                        onDragStart={handleNoteDragStart}
+                                        onDragEnd={handleNoteDragEnd}
+                                        onHoverStart={handleHoverStart}
+                                        onHoverEnd={handleHoverEnd}
+                                        theme={theme}
+                                    />
+                                </Box>
+                            )}
+                        />
                     </Box>
                 )}
             </Box>
