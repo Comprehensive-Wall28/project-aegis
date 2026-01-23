@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback, useRef } from 'react';
+import React, { memo, useCallback, useRef } from 'react';
 import {
     Box,
     Typography,
@@ -11,10 +11,7 @@ import {
     ListItemText,
     alpha,
     useTheme,
-    CircularProgress,
-    Popper,
-    Paper,
-    Fade
+    CircularProgress
 } from '@mui/material';
 import {
     Search,
@@ -42,11 +39,11 @@ interface NotesPanelProps {
     isLoading: boolean;
     decryptedTitles: Map<string, string>;
     dragDrop: ReturnType<typeof useFolderDragDrop>;
+    onPreviewChange: (note: NoteMetadata | null) => void;
 }
 
-// Hover preview delay in ms - fast for responsiveness
-const HOVER_DELAY = 200;
-const HOVER_OUT_DELAY = 100;
+// Hover preview delay in ms
+const HOVER_DELAY = 150; // Delay before showing preview (debounce)
 
 // Memoized Note Item with hover preview support
 const NoteItem = memo(({
@@ -69,29 +66,12 @@ const NoteItem = memo(({
     onDelete: (id: string, e: React.MouseEvent) => void;
     onDragStart: (e: React.DragEvent, id: string) => void;
     onDragEnd: (e: React.DragEvent) => void;
-    onHoverStart: (note: NoteMetadata, element: HTMLElement) => void;
+    onHoverStart: (note: NoteMetadata) => void;
     onHoverEnd: () => void;
     theme: any;
     index: number;
 }) => {
     const itemRef = useRef<HTMLDivElement>(null);
-    const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const handleMouseEnter = useCallback(() => {
-        hoverTimeoutRef.current = setTimeout(() => {
-            if (itemRef.current) {
-                onHoverStart(note, itemRef.current);
-            }
-        }, HOVER_DELAY);
-    }, [note, onHoverStart]);
-
-    const handleMouseLeave = useCallback(() => {
-        if (hoverTimeoutRef.current) {
-            clearTimeout(hoverTimeoutRef.current);
-            hoverTimeoutRef.current = null;
-        }
-        onHoverEnd();
-    }, [onHoverEnd]);
 
     return (
         <motion.div
@@ -114,8 +94,8 @@ const NoteItem = memo(({
                 draggable
                 onDragStart={(e) => onDragStart(e, note._id)}
                 onDragEnd={onDragEnd}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
+                onMouseEnter={() => onHoverStart(note)}
+                onMouseLeave={onHoverEnd}
                 sx={{
                     mx: 1,
                     my: 0.5,
@@ -197,21 +177,6 @@ const NoteItem = memo(({
     );
 });
 
-// Format relative time for preview
-const getRelativeTime = (date: Date): string => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-};
-
 export const NotesPanel: React.FC<NotesPanelProps> = ({
     notes,
     folders,
@@ -226,45 +191,40 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
     onToggleTag,
     isLoading,
     decryptedTitles,
-    dragDrop
+    dragDrop,
+    onPreviewChange
 }) => {
     const theme = useTheme();
     const { handleNoteDragStart, handleNoteDragEnd, isDragging } = dragDrop;
 
-    // Hover preview state
-    const [previewNote, setPreviewNote] = useState<NoteMetadata | null>(null);
-    const [previewAnchor, setPreviewAnchor] = useState<HTMLElement | null>(null);
-    const hoverOutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Timeouts for debouncing
+    const enterTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const handleHoverStart = useCallback((note: NoteMetadata, element: HTMLElement) => {
+    const handleHoverStart = useCallback((note: NoteMetadata) => {
         // Don't show preview while dragging
         if (isDragging) return;
 
-        if (hoverOutTimeoutRef.current) {
-            clearTimeout(hoverOutTimeoutRef.current);
-            hoverOutTimeoutRef.current = null;
+        // Cancel any pending "enter" action (debounce)
+        // If we moved from A to B quickly, A might still be waiting to show. Cancel it.
+        if (enterTimeoutRef.current) {
+            clearTimeout(enterTimeoutRef.current);
+            enterTimeoutRef.current = null;
         }
-        setPreviewNote(note);
-        setPreviewAnchor(element);
-    }, [isDragging]);
+
+        // Schedule showing this note
+        enterTimeoutRef.current = setTimeout(() => {
+            onPreviewChange(note);
+            enterTimeoutRef.current = null;
+        }, HOVER_DELAY);
+    }, [isDragging, onPreviewChange]);
 
     const handleHoverEnd = useCallback(() => {
-        hoverOutTimeoutRef.current = setTimeout(() => {
-            setPreviewNote(null);
-            setPreviewAnchor(null);
-        }, HOVER_OUT_DELAY);
-    }, []);
-
-    const handlePreviewMouseEnter = useCallback(() => {
-        if (hoverOutTimeoutRef.current) {
-            clearTimeout(hoverOutTimeoutRef.current);
-            hoverOutTimeoutRef.current = null;
+        // Cancel pending "enter" action
+        // If we left before the debounce time, don't show it at all.
+        if (enterTimeoutRef.current) {
+            clearTimeout(enterTimeoutRef.current);
+            enterTimeoutRef.current = null;
         }
-    }, []);
-
-    const handlePreviewMouseLeave = useCallback(() => {
-        setPreviewNote(null);
-        setPreviewAnchor(null);
     }, []);
 
     const folderName = selectedFolderId
@@ -443,96 +403,6 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
                     </Box>
                 )}
             </Box>
-
-            {/* Hover Preview Popper */}
-            <Popper
-                open={Boolean(previewNote && previewAnchor && !isDragging)}
-                anchorEl={previewAnchor}
-                placement="right-start"
-                transition
-                sx={{ zIndex: 1200 }}
-                modifiers={[
-                    { name: 'offset', options: { offset: [0, 8] } },
-                    { name: 'preventOverflow', options: { boundary: 'viewport', padding: 16 } }
-                ]}
-            >
-                {({ TransitionProps }) => (
-                    <Fade {...TransitionProps} timeout={150}>
-                        <Paper
-                            elevation={12}
-                            onMouseEnter={handlePreviewMouseEnter}
-                            onMouseLeave={handlePreviewMouseLeave}
-                            sx={{
-                                width: 320,
-                                maxHeight: 280,
-                                overflow: 'hidden',
-                                borderRadius: '12px',
-                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                                bgcolor: 'background.paper',
-                            }}
-                        >
-                            {previewNote && (
-                                <>
-                                    {/* Preview Header */}
-                                    <Box sx={{
-                                        p: 2,
-                                        borderBottom: 1,
-                                        borderColor: alpha(theme.palette.divider, 0.1),
-                                        bgcolor: alpha(theme.palette.primary.main, 0.03)
-                                    }}>
-                                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
-                                            {decryptedTitles.get(previewNote._id) || 'Untitled'}
-                                        </Typography>
-                                        <Typography variant="caption" color="text.disabled">
-                                            {new Date(previewNote.updatedAt).toLocaleString()}
-                                        </Typography>
-                                    </Box>
-
-                                    {/* Preview Info */}
-                                    <Box sx={{ p: 2 }}>
-                                        {/* Tags */}
-                                        {previewNote.tags.length > 0 && (
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
-                                                {previewNote.tags.slice(0, 4).map((tag: string) => (
-                                                    <Chip
-                                                        key={tag}
-                                                        label={tag}
-                                                        size="small"
-                                                        sx={{ height: 20, fontSize: '0.7rem', borderRadius: '6px' }}
-                                                    />
-                                                ))}
-                                            </Box>
-                                        )}
-
-                                        {/* Metadata */}
-                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                            <Typography variant="caption" color="text.secondary">
-                                                Modified: {getRelativeTime(new Date(previewNote.updatedAt))}
-                                            </Typography>
-                                            <Typography variant="caption" color="text.secondary">
-                                                Created: {new Date(previewNote.createdAt).toLocaleDateString()}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-
-                                    {/* Click hint */}
-                                    <Box sx={{
-                                        px: 2,
-                                        py: 1,
-                                        borderTop: 1,
-                                        borderColor: alpha(theme.palette.divider, 0.1),
-                                        bgcolor: alpha(theme.palette.background.default, 0.5)
-                                    }}>
-                                        <Typography variant="caption" color="text.disabled">
-                                            Click to open
-                                        </Typography>
-                                    </Box>
-                                </>
-                            )}
-                        </Paper>
-                    </Fade>
-                )}
-            </Popper>
         </Box>
     );
 };

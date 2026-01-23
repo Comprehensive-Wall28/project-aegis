@@ -23,11 +23,6 @@ export const SecureImageComponent: React.FC<NodeViewProps> = ({ node, updateAttr
         isMounted.current = true;
         return () => {
             isMounted.current = false;
-            // Final cleanup on unmount - ONLY if we own the URL
-            if (isOwnedUrl.current && blobUrlRef.current) {
-                URL.revokeObjectURL(blobUrlRef.current);
-                blobUrlRef.current = null;
-            }
         };
     }, []);
 
@@ -62,11 +57,6 @@ export const SecureImageComponent: React.FC<NodeViewProps> = ({ node, updateAttr
 
                 if (blob && isMounted.current) {
                     const url = URL.createObjectURL(blob);
-
-                    // Cleanup previous OWNED URL if it exists
-                    if (isOwnedUrl.current && blobUrlRef.current) {
-                        URL.revokeObjectURL(blobUrlRef.current);
-                    }
 
                     blobUrlRef.current = url;
                     isOwnedUrl.current = true;

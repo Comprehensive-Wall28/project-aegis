@@ -5,36 +5,29 @@ import {
     LinearProgress,
     Button
 } from '@mui/material';
-import { motion } from 'framer-motion';
 import { Add, NoteAlt, ArrowBack } from '@mui/icons-material';
-import AegisEditor from './AegisEditor';
 import type { DecryptedNote } from '../../hooks/useNotesData';
-import type { JSONContent } from '@tiptap/react';
 
 interface NoteDetailViewProps {
     selectedNote: DecryptedNote | null;
-    decryptedTitle?: string;
     isLoadingContent: boolean;
-    onSaveContent: (content: JSONContent, title: string) => Promise<void>;
     onCreateNote: () => void;
     isMobile: boolean;
     onMobileBack: () => void;
     onToggleFullscreen?: () => void;
+    containerRef?: (node: HTMLElement | null) => void;
+    editorInstance?: React.ReactNode;
 }
 
 export const NoteDetailView: React.FC<NoteDetailViewProps> = ({
     selectedNote,
-    decryptedTitle,
     isLoadingContent,
-    onSaveContent,
     onCreateNote,
     isMobile,
     onMobileBack,
-    onToggleFullscreen
+    containerRef,
+    editorInstance
 }) => {
-
-    // ... (existing helper logic or loading checks if any, though the block below is main render)
-
     if (isLoadingContent) {
         return (
             <Box sx={{
@@ -110,20 +103,18 @@ export const NoteDetailView: React.FC<NoteDetailViewProps> = ({
                 </Box>
             )}
             <Box
-                component={motion.div}
                 key={selectedNote.metadata._id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.2 }}
                 sx={{ flex: 1, height: '100%', overflow: 'hidden' }}
             >
-                <AegisEditor
-                    initialContent={selectedNote.content as JSONContent}
-                    initialTitle={decryptedTitle || (selectedNote.metadata.encryptedTitle ? 'Loading...' : 'Untitled Note')}
-                    onSave={onSaveContent}
-                    onToggleFullscreen={onToggleFullscreen}
-                />
+                {editorInstance ? (
+                    editorInstance
+                ) : (
+                    <div
+                        ref={containerRef}
+                        style={{ width: '100%', height: '100%' }}
+                    />
+                )}
             </Box>
         </Box>
     );
-}
+};

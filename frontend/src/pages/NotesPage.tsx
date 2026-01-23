@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
     Box,
     useTheme,
@@ -23,8 +24,11 @@ import { NoteDetailView } from '../components/notes/NoteDetailView';
 import { NoteFullView } from '../components/notes/NoteFullView';
 import { FolderPanel } from '../components/notes/FolderPanel';
 import { NotesPanel } from '../components/notes/NotesPanel';
+import { NotePreviewPanel } from '../components/notes/NotePreviewPanel';
 import type { NoteFolder, NoteMetadata } from '../services/noteService';
 import { NoteAlt, Add } from '@mui/icons-material';
+import AegisEditor from '../components/notes/AegisEditor';
+import type { JSONContent } from '@tiptap/react';
 
 const NotesPage: React.FC = () => {
     const theme = useTheme();
@@ -85,6 +89,18 @@ const NotesPage: React.FC = () => {
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
 
+    // Preview Panel State
+    const [previewNote, setPreviewNote] = useState<NoteMetadata | null>(null);
+
+    // Editor Portal State
+    const [editorContainer, setEditorContainer] = useState<HTMLElement | null>(null);
+    const [isZenMode, setIsZenMode] = useState(false);
+
+    // Callback to capture the container ref from child components
+    const handleEditorContainerRef = useCallback((node: HTMLElement | null) => {
+        setEditorContainer(node);
+    }, []);
+
     const handleSearchChange = (query: string) => {
         setSearchQuery(query);
     };
@@ -115,6 +131,8 @@ const NotesPage: React.FC = () => {
     // Close NoteFullView (desktop)
     const handleCloseNote = useCallback(() => {
         setSelectedNote(null);
+        setIsZenMode(false); // Reset Zen mode
+        setEditorContainer(null);
     }, [setSelectedNote]);
 
     const openFolderDialog = (mode: 'create' | 'rename', folder?: NoteFolder) => {
@@ -183,6 +201,22 @@ const NotesPage: React.FC = () => {
         openDeleteConfirm('note', id, title);
     };
 
+    const editorElement = selectedNote ? (
+        <AegisEditor
+            key={selectedNote.metadata._id}
+            initialContent={selectedNote.content as JSONContent}
+            initialTitle={decryptedTitles.get(selectedNote.metadata._id) || (selectedNote.metadata.encryptedTitle ? 'Loading...' : 'Untitled Note')}
+            onSave={handleSaveContent}
+            autoSaveDelay={1000}
+            fullscreen={true}
+            compact={isZenMode}
+            onToggleFullscreen={handleCloseNote}
+        />
+    ) : null;
+
+    // Folder State
+    const [foldersExpanded, setFoldersExpanded] = useState(true);
+
     // ============ MOBILE LAYOUT ============
     if (isMobile) {
         return (
@@ -210,8 +244,8 @@ const NotesPage: React.FC = () => {
                         userTags={userTags}
                         selectedTags={selectedTags}
                         onToggleTag={handleToggleTag}
-                        foldersExpanded={true}
-                        setFoldersExpanded={() => { }}
+                        foldersExpanded={foldersExpanded}
+                        setFoldersExpanded={setFoldersExpanded}
                         onOpenFolderDialog={openFolderDialog}
                         onDeleteFolder={(id) => openDeleteConfirm('folder', id, folders.find(f => f._id === id)?.name || 'this folder')}
                         isRefreshing={isRefreshing}
@@ -225,16 +259,15 @@ const NotesPage: React.FC = () => {
                     anchor="right"
                     open={mobileEditorOpen}
                     onClose={() => setMobileEditorOpen(false)}
-                    PaperProps={{ sx: { width: '100%' } }}
+                    PaperProps={{ sx: { width: '100%', display: 'flex', flexDirection: 'column' } }}
                 >
                     <NoteDetailView
                         selectedNote={selectedNote}
-                        decryptedTitle={selectedNote ? decryptedTitles.get(selectedNote.metadata._id) : undefined}
                         isLoadingContent={isLoadingContent}
-                        onSaveContent={handleSaveContent}
                         onCreateNote={handleCreateNoteWrapper}
                         isMobile={true}
                         onMobileBack={() => setMobileEditorOpen(false)}
+                        editorInstance={editorElement}
                     />
                 </Drawer>
 
@@ -342,7 +375,7 @@ const NotesPage: React.FC = () => {
                         />
                     </Box>
 
-                    {/* Right Panel - Notes List */}
+                    {/* Middle Panel - Notes List */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         <NotesPanel
                             notes={filteredNotes}
@@ -359,8 +392,19 @@ const NotesPage: React.FC = () => {
                             isLoading={isLoading || isFiltering}
                             decryptedTitles={decryptedTitles}
                             dragDrop={dragDrop}
+                            onPreviewChange={setPreviewNote}
                         />
                     </Box>
+
+                    {/* Right Panel - Preview (Desktop Only) */}
+                    {!isMobile && (
+                        <Box sx={{ width: 280, flexShrink: 0 }}>
+                            <NotePreviewPanel
+                                previewNote={previewNote}
+                                decryptedTitles={decryptedTitles}
+                            />
+                        </Box>
+                    )}
                 </Box>
             </Box>
 
@@ -415,10 +459,18 @@ const NotesPage: React.FC = () => {
                         note={selectedNote}
                         decryptedTitle={decryptedTitles.get(selectedNote.metadata._id) || 'Untitled Note'}
                         onClose={handleCloseNote}
-                        onSave={handleSaveContent}
+                        containerRef={handleEditorContainerRef}
+                        isZenMode={isZenMode}
+                        onToggleZenMode={() => setIsZenMode(prev => !prev)}
                     />
                 )}
             </AnimatePresence>
+
+            {/* Single Editor Instance using Portal */}
+            {selectedNote && editorContainer && createPortal(
+                editorElement,
+                editorContainer
+            )}
         </React.Fragment>
     );
 };

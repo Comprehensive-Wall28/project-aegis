@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -15,8 +15,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DialogPortal } from '../social/DialogPortal';
 import { SOCIAL_DIALOG_Z_INDEX, SOCIAL_RADIUS_XLARGE } from '../social/constants';
-import AegisEditor from './AegisEditor';
-import type { JSONContent } from '@tiptap/react';
 import type { NoteMetadata } from '@/services/noteService';
 
 interface NoteFullViewProps {
@@ -27,7 +25,9 @@ interface NoteFullViewProps {
         content: any;
     };
     decryptedTitle: string;
-    onSave: (content: JSONContent, title: string) => Promise<void>;
+    containerRef: (node: HTMLElement | null) => void;
+    isZenMode: boolean;
+    onToggleZenMode: () => void;
 }
 
 export const NoteFullView = memo(({
@@ -35,11 +35,13 @@ export const NoteFullView = memo(({
     onClose,
     note,
     decryptedTitle,
-    onSave,
+    containerRef,
+    isZenMode,
+    onToggleZenMode,
 }: NoteFullViewProps) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const [isZenMode, setIsZenMode] = useState(false);
+    // Removed isZenMode state - now controlled by parent
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -50,12 +52,12 @@ export const NoteFullView = memo(({
             // Toggle Zen Mode: Ctrl+Alt+Z
             if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'z') {
                 e.preventDefault();
-                setIsZenMode(prev => !prev);
+                onToggleZenMode();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose, open]);
+    }, [onClose, open, onToggleZenMode]);
 
     if (!note) return null;
 
@@ -160,7 +162,7 @@ export const NoteFullView = memo(({
                                             </Box>
 
                                             <IconButton
-                                                onClick={() => setIsZenMode(true)}
+                                                onClick={onToggleZenMode}
                                                 size="small"
                                                 sx={{
                                                     bgcolor: alpha(theme.palette.text.primary, 0.03),
@@ -189,7 +191,7 @@ export const NoteFullView = memo(({
                                     }}
                                 >
                                     <IconButton
-                                        onClick={() => setIsZenMode(false)}
+                                        onClick={onToggleZenMode}
                                         sx={{
                                             bgcolor: theme.palette.background.paper,
                                             boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
@@ -207,18 +209,12 @@ export const NoteFullView = memo(({
                                 </Box>
                             )}
 
-                            {/* Editor Container */}
+                            {/* Editor Container - Portal Target */}
                             <Box sx={{ flex: 1, overflow: 'hidden', bgcolor: 'background.default' }}>
                                 {note.content ? (
-                                    <AegisEditor
-                                        key={note.metadata._id + '-fullview'}
-                                        initialTitle={decryptedTitle}
-                                        initialContent={note.content as JSONContent}
-                                        onSave={onSave}
-                                        autoSaveDelay={1000}
-                                        fullscreen
-                                        onToggleFullscreen={onClose}
-                                        compact={isZenMode}
+                                    <div
+                                        ref={containerRef}
+                                        style={{ width: '100%', height: '100%' }}
                                     />
                                 ) : (
                                     <Box sx={{
