@@ -15,7 +15,31 @@ export type AuditAction =
     | 'PROFILE_UPDATE'
     | 'PREFERENCES_UPDATE'
     | 'COURSE_CREATE'
-    | 'COURSE_DELETE';
+    | 'COURSE_DELETE'
+    | 'CALENDAR_EVENT_CREATE'
+    | 'CALENDAR_EVENT_UPDATE'
+    | 'CALENDAR_EVENT_DELETE'
+    | 'PASSKEY_REGISTER'
+    | 'PASSKEY_LOGIN'
+    | 'PASSKEY_REMOVE'
+    | 'PASSWORD_REMOVE'
+    | 'PASSWORD_UPDATE'
+    | 'TASK_CREATE'
+    | 'TASK_UPDATE'
+    | 'TASK_DELETE'
+    | 'TASK_REORDER'
+    | 'NOTE_CREATE'
+    | 'NOTE_UPDATE_METADATA'
+    | 'NOTE_UPDATE_CONTENT'
+    | 'NOTE_DELETE'
+    | 'NOTE_FOLDER_CREATE'
+    | 'NOTE_FOLDER_UPDATE'
+    | 'NOTE_FOLDER_DELETE'
+    | 'ROOM_CREATE'
+    | 'ROOM_INVITE_CREATE'
+    | 'ROOM_JOIN'
+    | 'LINK_POST'
+    | 'COLLECTION_DELETE';
 
 export type AuditStatus = 'SUCCESS' | 'FAILURE';
 
@@ -58,6 +82,30 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
     PREFERENCES_UPDATE: 'Preferences Changed',
     COURSE_CREATE: 'Course Added',
     COURSE_DELETE: 'Course Removed',
+    CALENDAR_EVENT_CREATE: 'Calendar Event Created',
+    CALENDAR_EVENT_UPDATE: 'Calendar Event Updated',
+    CALENDAR_EVENT_DELETE: 'Calendar Event Deleted',
+    PASSKEY_REGISTER: 'Passkey Registered',
+    PASSKEY_LOGIN: 'Passkey Login',
+    PASSKEY_REMOVE: 'Passkey Removed',
+    PASSWORD_REMOVE: 'Password Removed',
+    PASSWORD_UPDATE: 'Password Updated',
+    TASK_CREATE: 'Task Created',
+    TASK_UPDATE: 'Task Updated',
+    TASK_DELETE: 'Task Deleted',
+    TASK_REORDER: 'Tasks Reordered',
+    NOTE_CREATE: 'Note Created',
+    NOTE_UPDATE_METADATA: 'Note Settings Updated',
+    NOTE_UPDATE_CONTENT: 'Note Content Updated',
+    NOTE_DELETE: 'Note Deleted',
+    NOTE_FOLDER_CREATE: 'Note Folder Created',
+    NOTE_FOLDER_UPDATE: 'Note Folder Updated',
+    NOTE_FOLDER_DELETE: 'Note Folder Deleted',
+    ROOM_CREATE: 'Room Created',
+    ROOM_INVITE_CREATE: 'Room Invite Created',
+    ROOM_JOIN: 'Room Joined',
+    LINK_POST: 'Link Posted',
+    COLLECTION_DELETE: 'Collection Deleted',
 };
 
 /**
@@ -76,6 +124,30 @@ export const ACTION_ICONS: Record<AuditAction, string> = {
     PREFERENCES_UPDATE: 'Settings',
     COURSE_CREATE: 'BookPlus',
     COURSE_DELETE: 'BookMinus',
+    CALENDAR_EVENT_CREATE: 'Calendar',
+    CALENDAR_EVENT_UPDATE: 'Calendar',
+    CALENDAR_EVENT_DELETE: 'Calendar',
+    PASSKEY_REGISTER: 'Key',
+    PASSKEY_LOGIN: 'LogIn',
+    PASSKEY_REMOVE: 'Trash2',
+    PASSWORD_REMOVE: 'Trash2',
+    PASSWORD_UPDATE: 'KeyRound',
+    TASK_CREATE: 'ClipboardList',
+    TASK_UPDATE: 'ClipboardCheck',
+    TASK_DELETE: 'Trash2',
+    TASK_REORDER: 'ListOrdered',
+    NOTE_CREATE: 'FilePlus',
+    NOTE_UPDATE_METADATA: 'Settings',
+    NOTE_UPDATE_CONTENT: 'FileText',
+    NOTE_DELETE: 'FileMinus',
+    NOTE_FOLDER_CREATE: 'FolderPlus',
+    NOTE_FOLDER_UPDATE: 'Folder',
+    NOTE_FOLDER_DELETE: 'FolderMinus',
+    ROOM_CREATE: 'Home',
+    ROOM_INVITE_CREATE: 'UserPlus',
+    ROOM_JOIN: 'Users',
+    LINK_POST: 'Link',
+    COLLECTION_DELETE: 'Trash2',
 };
 
 const auditService = {
@@ -124,7 +196,14 @@ const auditService = {
      * Get human-readable label for an action.
      */
     getActionLabel: (action: AuditAction): string => {
-        return ACTION_LABELS[action] || action;
+        if (ACTION_LABELS[action]) return ACTION_LABELS[action];
+
+        // Fallback: Convert UNDERSCORE_CASE to Title Case
+        return action
+            .toLowerCase()
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     },
 
     /**

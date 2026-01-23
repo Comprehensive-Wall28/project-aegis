@@ -152,10 +152,11 @@ export function DashboardLayout() {
     return (
         <Box
             sx={{
-                height: ['100vh', '100dvh'],
+                minHeight: ['100vh', '100dvh'],
                 bgcolor: 'background.default',
                 display: 'flex',
-                overflow: 'hidden',
+                overflowX: 'hidden',
+                overflowY: { xs: 'auto', lg: 'hidden' },
                 position: 'relative'
             }}
         >
@@ -213,7 +214,8 @@ export function DashboardLayout() {
                     }),
                     display: 'flex',
                     flexDirection: 'column',
-                    height: ['100vh', '100dvh'],
+                    minHeight: { xs: 'none', lg: '100dvh' },
+                    height: { xs: 'auto', lg: '100dvh' },
                     position: 'relative',
                     zIndex: 1,
                     minWidth: 0
@@ -234,11 +236,12 @@ export function DashboardLayout() {
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.3 }}
                         sx={{
-                            height: '100%',
+                            height: { xs: 'auto', lg: '100%' },
+                            minHeight: { xs: '100vh', lg: 'auto' },
                             display: 'flex',
                             flexDirection: 'column',
-                            borderRadius: '16px',
-                            overflow: 'hidden',
+                            borderRadius: { xs: '0px', sm: '16px' },
+                            overflow: { xs: 'visible', lg: 'hidden' },
                             // Solid stage for professionalism and performance
                             bgcolor: theme.palette.background.paper,
                             border: `1px solid ${alpha(theme.palette.primary.main, 0.05)}`,
@@ -253,7 +256,7 @@ export function DashboardLayout() {
                                     sm: isCalendarPage ? 0 : 3,
                                     md: isCalendarPage ? 0 : 6
                                 },
-                                overflowY: isCalendarPage ? 'hidden' : 'auto',
+                                overflowY: { xs: 'visible', lg: isCalendarPage ? 'hidden' : 'auto' },
                                 '&::-webkit-scrollbar': { width: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: 3 }
                             }}

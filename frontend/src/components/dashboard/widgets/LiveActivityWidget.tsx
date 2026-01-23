@@ -131,7 +131,8 @@ export function LiveActivityWidget() {
         bgcolor: theme.palette.background.paper, // Force opaque
         backgroundImage: 'none', // Ensure no gradient
         backdropFilter: 'none', // Disable blur
-        border: `1px solid ${theme.palette.divider}`,
+        border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+        boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
     }), [theme]);
 
     const handleViewAll = () => {
