@@ -45,7 +45,9 @@ export function CumulativeGPAChart({ data }: CumulativeGPAChartProps) {
                 minHeight: 380,
                 borderRadius: '24px',
                 bgcolor: theme.palette.background.paper,
-                border: `1px solid ${alpha(theme.palette.divider, 0.06)}`,
+                border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+                boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
+                elevation: 0,
                 position: 'relative',
                 overflow: 'hidden',
                 '&::before': {
