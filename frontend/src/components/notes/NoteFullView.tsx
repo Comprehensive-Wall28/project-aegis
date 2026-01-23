@@ -150,15 +150,43 @@ export const NoteFullView = memo(({
 
                             {/* Editor Container */}
                             <Box sx={{ flex: 1, overflow: 'hidden', bgcolor: 'background.default' }}>
-                                <AegisEditor
-                                    key={note.metadata._id + '-fullview'}
-                                    initialTitle={decryptedTitle}
-                                    initialContent={note.content as JSONContent}
-                                    onSave={onSave}
-                                    autoSaveDelay={1000}
-                                    fullscreen
-                                    onToggleFullscreen={onClose}
-                                />
+                                {note.content ? (
+                                    <AegisEditor
+                                        key={note.metadata._id + '-fullview'}
+                                        initialTitle={decryptedTitle}
+                                        initialContent={note.content as JSONContent}
+                                        onSave={onSave}
+                                        autoSaveDelay={1000}
+                                        fullscreen
+                                        onToggleFullscreen={onClose}
+                                    />
+                                ) : (
+                                    <Box sx={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        height: '100%',
+                                        flexDirection: 'column',
+                                        gap: 2
+                                    }}>
+                                        <Box sx={{
+                                            width: 40,
+                                            height: 40,
+                                            borderRadius: '50%',
+                                            border: '3px solid',
+                                            borderColor: 'primary.main',
+                                            borderTopColor: 'transparent',
+                                            animation: 'spin 1s linear infinite',
+                                            '@keyframes spin': {
+                                                '0%': { transform: 'rotate(0deg)' },
+                                                '100%': { transform: 'rotate(360deg)' }
+                                            }
+                                        }} />
+                                        <Typography variant="body2" color="text.secondary">
+                                            Decrypting note...
+                                        </Typography>
+                                    </Box>
+                                )}
                             </Box>
                         </Box>
                     </>

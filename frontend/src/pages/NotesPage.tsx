@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     Box,
     useTheme,
@@ -13,7 +13,7 @@ import {
     TextField,
     Typography
 } from '@mui/material';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
 import { useNotesData } from '../hooks/useNotesData';
 import { useFolderDragDrop } from '../hooks/useFolderDragDrop';
@@ -21,8 +21,10 @@ import { useNotesSearch } from '../hooks/useNotesSearch';
 import { NoteSidebar } from '../components/notes/NoteSidebar';
 import { NoteDetailView } from '../components/notes/NoteDetailView';
 import { NoteFullView } from '../components/notes/NoteFullView';
-import type { NoteFolder } from '../services/noteService';
-import { NoteAlt, Menu as MenuIcon, MenuOpen as MenuOpenIcon, Add } from '@mui/icons-material';
+import { FolderPanel } from '../components/notes/FolderPanel';
+import { NotesPanel } from '../components/notes/NotesPanel';
+import type { NoteFolder, NoteMetadata } from '../services/noteService';
+import { NoteAlt, Add } from '@mui/icons-material';
 
 const NotesPage: React.FC = () => {
     const theme = useTheme();
@@ -36,7 +38,7 @@ const NotesPage: React.FC = () => {
         selectedFolderId,
         setSelectedFolderId,
         selectedNote,
-        // setSelectedNote - removed unused
+        setSelectedNote,
         isLoading,
         isRefreshing,
         isLoadingContent,
@@ -65,13 +67,12 @@ const NotesPage: React.FC = () => {
     // Drag & Drop Hook
     const dragDrop = useFolderDragDrop({
         notes,
-        moveNote
+        moveNote,
+        decryptedTitles
     });
 
     // UI State
     const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
-    const [fullViewOpen, setFullViewOpen] = useState(false);
-    const [foldersExpanded, setFoldersExpanded] = useState(true);
 
     // Dialog States
     const [folderDialogOpen, setFolderDialogOpen] = useState(false);
@@ -84,32 +85,37 @@ const NotesPage: React.FC = () => {
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
 
-    const [sidebarVisible, setSidebarVisible] = useState(true);
-
     const handleSearchChange = (query: string) => {
         setSearchQuery(query);
-        if (query.trim().length > 0) {
-            setFoldersExpanded(false);
-        } else {
-            // Optional: expand back if cleared? Maybe not.
-            // setFoldersExpanded(true); 
-        }
     };
 
-    // Handlers
-    const handleSelectNoteWrapper = (note: any) => {
-        handleSelectNote(note);
-        if (isMobile) setMobileEditorOpen(true);
-    };
+    // Handlers - Desktop: click opens NoteFullView
+    const handleSelectNoteDesktop = useCallback(async (note: NoteMetadata) => {
+        await handleSelectNote(note);
+        // Note is now selected and will be shown in NoteFullView
+    }, [handleSelectNote]);
 
-    const handleCreateNoteWrapper = async () => {
+    // Mobile: opens drawer
+    const handleSelectNoteMobile = useCallback(async (note: NoteMetadata) => {
+        await handleSelectNote(note);
+        setMobileEditorOpen(true);
+    }, [handleSelectNote]);
+
+    // Create note - opens in full view on desktop, drawer on mobile
+    const handleCreateNoteWrapper = useCallback(async () => {
         try {
             await handleCreateNote();
             if (isMobile) setMobileEditorOpen(true);
+            // On desktop, selectedNote will trigger NoteFullView to open
         } catch (err) {
             // Error managed in hook
         }
-    };
+    }, [handleCreateNote, isMobile]);
+
+    // Close NoteFullView (desktop)
+    const handleCloseNote = useCallback(() => {
+        setSelectedNote(null);
+    }, [setSelectedNote]);
 
     const openFolderDialog = (mode: 'create' | 'rename', folder?: NoteFolder) => {
         setFolderDialogMode(mode);
@@ -177,6 +183,7 @@ const NotesPage: React.FC = () => {
         openDeleteConfirm('note', id, title);
     };
 
+    // ============ MOBILE LAYOUT ============
     if (isMobile) {
         return (
             <React.Fragment>
@@ -198,13 +205,13 @@ const NotesPage: React.FC = () => {
                         onSearchChange={handleSearchChange}
                         onCreateNote={handleCreateNoteWrapper}
                         onSelectFolder={setSelectedFolderId}
-                        onSelectNote={handleSelectNoteWrapper}
+                        onSelectNote={handleSelectNoteMobile}
                         onDeleteNote={handleDeleteNoteWrapper}
                         userTags={userTags}
                         selectedTags={selectedTags}
                         onToggleTag={handleToggleTag}
-                        foldersExpanded={foldersExpanded}
-                        setFoldersExpanded={setFoldersExpanded}
+                        foldersExpanded={true}
+                        setFoldersExpanded={() => { }}
                         onOpenFolderDialog={openFolderDialog}
                         onDeleteFolder={(id) => openDeleteConfirm('folder', id, folders.find(f => f._id === id)?.name || 'this folder')}
                         isRefreshing={isRefreshing}
@@ -228,7 +235,6 @@ const NotesPage: React.FC = () => {
                         onCreateNote={handleCreateNoteWrapper}
                         isMobile={true}
                         onMobileBack={() => setMobileEditorOpen(false)}
-                        onToggleFullscreen={() => setFullViewOpen(true)}
                     />
                 </Drawer>
 
@@ -278,6 +284,7 @@ const NotesPage: React.FC = () => {
         );
     }
 
+    // ============ DESKTOP LAYOUT ============
     return (
         <React.Fragment>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%', p: 3 }}>
@@ -288,19 +295,6 @@ const NotesPage: React.FC = () => {
                     justifyContent: 'space-between',
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {/* 
-                         We need icons for MenuOpen/Menu logic. 
-                         Import MenuOpen, MenuIcon from @mui/icons-material. 
-                         Add them to imports first! 
-                         For now assuming we will fix imports in next step or use what's available. 
-                         NotesPage imports might be missing these specific icons.
-                     */}
-                        <Button
-                            onClick={() => setSidebarVisible(!sidebarVisible)}
-                            sx={{ minWidth: 40, width: 40, height: 40, borderRadius: '50%', color: 'text.secondary', mr: 1, p: 0 }}
-                        >
-                            {sidebarVisible ? <MenuOpenIcon /> : <MenuIcon />}
-                        </Button>
                         <Box>
                             <Typography
                                 variant="h4"
@@ -311,9 +305,6 @@ const NotesPage: React.FC = () => {
                                     gap: 1.5,
                                 }}
                             >
-                                {/* NoteAlt is imported */}
-                                {/* <NoteAlt sx={{ fontSize: 32, color: 'primary.main' }} /> */}
-                                {/* Reusing existing imports */}
                                 <NoteAlt sx={{ fontSize: 32, color: 'primary.main' }} />
                                 Secure Notes
                             </Typography>
@@ -337,75 +328,37 @@ const NotesPage: React.FC = () => {
                     </Button>
                 </Box>
 
+                {/* Two-Panel Layout */}
                 <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden', gap: 2 }}>
-                    {/* Sidebar */}
-                    <AnimatePresence initial={false}>
-                        {sidebarVisible && (
-                            <motion.div
-                                initial={{ width: 0, opacity: 0 }}
-                                animate={{ width: 320, opacity: 1 }}
-                                exit={{ width: 0, opacity: 0 }}
-                                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                style={{ overflow: 'hidden', display: 'flex' }}
-                            >
-                                <Box sx={{
-                                    width: 320,
-                                    flexShrink: 0,
-                                    border: 1,
-                                    borderColor: theme.palette.divider,
-                                    borderRadius: '16px',
-                                    bgcolor: 'background.paper',
-                                    overflow: 'hidden',
-                                    display: 'flex',
-                                    flexDirection: 'column'
-                                }}>
-                                    <NoteSidebar
-                                        notes={filteredNotes}
-                                        folders={folders}
-                                        selectedFolderId={selectedFolderId}
-                                        selectedNoteId={selectedNote?.metadata._id || null}
-                                        searchQuery={searchQuery}
-                                        onSearchChange={handleSearchChange}
-                                        onCreateNote={handleCreateNoteWrapper}
-                                        onSelectFolder={setSelectedFolderId}
-                                        onSelectNote={handleSelectNoteWrapper}
-                                        onDeleteNote={handleDeleteNoteWrapper}
-                                        userTags={userTags}
-                                        selectedTags={selectedTags}
-                                        onToggleTag={handleToggleTag}
-                                        foldersExpanded={foldersExpanded}
-                                        setFoldersExpanded={setFoldersExpanded}
-                                        onOpenFolderDialog={openFolderDialog}
-                                        onDeleteFolder={(id) => openDeleteConfirm('folder', id, folders.find(f => f._id === id)?.name || 'this folder')}
-                                        isRefreshing={isRefreshing}
-                                        isLoading={isLoading || isFiltering}
-                                        decryptedTitles={decryptedTitles}
-                                        dragDrop={dragDrop}
-                                    />
-                                </Box>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    {/* Left Panel - Folders */}
+                    <Box sx={{ width: 260, flexShrink: 0 }}>
+                        <FolderPanel
+                            folders={folders}
+                            selectedFolderId={selectedFolderId}
+                            onSelectFolder={setSelectedFolderId}
+                            onOpenFolderDialog={openFolderDialog}
+                            onDeleteFolder={(id) => openDeleteConfirm('folder', id, folders.find(f => f._id === id)?.name || 'this folder')}
+                            dragDrop={dragDrop}
+                        />
+                    </Box>
 
-                    {/* Main Content */}
-                    <Box sx={{
-                        flex: 1,
-                        height: '100%',
-                        position: 'relative',
-                        border: 1,
-                        borderColor: theme.palette.divider,
-                        borderRadius: '16px',
-                        overflow: 'hidden'
-                    }}>
-                        <NoteDetailView
-                            selectedNote={selectedNote}
-                            decryptedTitle={selectedNote ? decryptedTitles[selectedNote.metadata._id] : undefined}
-                            isLoadingContent={isLoadingContent}
-                            onSaveContent={handleSaveContent}
-                            onCreateNote={handleCreateNoteWrapper}
-                            isMobile={false}
-                            onMobileBack={() => { }}
-                            onToggleFullscreen={() => setFullViewOpen(true)}
+                    {/* Right Panel - Notes List */}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <NotesPanel
+                            notes={filteredNotes}
+                            folders={folders}
+                            selectedFolderId={selectedFolderId}
+                            selectedNoteId={selectedNote?.metadata._id || null}
+                            searchQuery={searchQuery}
+                            onSearchChange={handleSearchChange}
+                            onSelectNote={handleSelectNoteDesktop}
+                            onDeleteNote={handleDeleteNoteWrapper}
+                            userTags={userTags}
+                            selectedTags={selectedTags}
+                            onToggleTag={handleToggleTag}
+                            isLoading={isLoading || isFiltering}
+                            decryptedTitles={decryptedTitles}
+                            dragDrop={dragDrop}
                         />
                     </Box>
                 </Box>
@@ -454,14 +407,14 @@ const NotesPage: React.FC = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* Full View Modal */}
+            {/* NoteFullView - Opens when a note is selected */}
             <AnimatePresence>
-                {fullViewOpen && selectedNote && (
+                {selectedNote && (
                     <NoteFullView
                         open={true}
                         note={selectedNote}
                         decryptedTitle={decryptedTitles[selectedNote.metadata._id] || 'Untitled Note'}
-                        onClose={() => setFullViewOpen(false)}
+                        onClose={handleCloseNote}
                         onSave={handleSaveContent}
                     />
                 )}

@@ -35,7 +35,8 @@ const NoteItem = memo(({
     onDelete,
     onDragStart,
     onDragEnd,
-    theme
+    theme,
+    index
 }: {
     note: NoteMetadata;
     isSelected: boolean;
@@ -45,13 +46,17 @@ const NoteItem = memo(({
     onDragStart: (e: React.DragEvent, id: string) => void;
     onDragEnd: (e: React.DragEvent) => void;
     theme: any;
+    index: number;
 }) => (
     <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -10 }}
-        transition={{ duration: 0.2 }}
-        layout
+        transition={{
+            duration: 0.25,
+            delay: Math.min(index * 0.03, 0.3),
+            ease: "easeOut"
+        }}
     >
         <ListItemButton
             selected={isSelected}
@@ -65,6 +70,7 @@ const NoteItem = memo(({
                 borderRadius: '12px',
                 transition: 'all 0.2s',
                 cursor: 'grab',
+                willChange: 'transform',
                 '&:active': { cursor: 'grabbing' },
                 '&:hover': {
                     bgcolor: alpha(theme.palette.primary.main, 0.08),
@@ -131,7 +137,8 @@ const NoteItem = memo(({
         prev.isSelected === next.isSelected &&
         prev.decryptedTitle === next.decryptedTitle &&
         prev.note.updatedAt === next.note.updatedAt &&
-        prev.note._id === next.note._id
+        prev.note._id === next.note._id &&
+        prev.index === next.index
     );
 });
 
@@ -149,49 +156,62 @@ export const NoteList: React.FC<NoteListProps> = ({
     const theme = useTheme();
     const { handleNoteDragStart, handleNoteDragEnd } = dragDrop;
 
-    if (isLoading) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4, flex: 1, borderTop: 1, borderColor: alpha(theme.palette.divider, 0.1) }}>
-                <CircularProgress size={24} />
-            </Box>
-        );
-    }
-
-    if (notes.length === 0) {
-        return (
-            <Box sx={{ p: 3, textAlign: 'center', color: 'text.secondary', flex: 1, borderTop: 1, borderColor: alpha(theme.palette.divider, 0.1) }}>
-                <Typography variant="body2">No notes found</Typography>
-            </Box>
-        );
-    }
-
     return (
         <Box sx={{
             flex: 1,
-            // Virtualization handles overflow
             height: '100%',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            scrollbarGutter: 'stable',
             borderTop: 1,
             borderColor: alpha(theme.palette.divider, 0.1),
+            position: 'relative',
+            opacity: isLoading && notes.length > 0 ? 0.7 : 1,
+            transition: 'opacity 0.2s'
         }}>
-            <Virtuoso
-                style={{ height: '100%' }}
-                data={notes}
-                itemContent={(_index, note) => (
-                    <Box sx={{ py: 0 }}>
-                        <NoteItem
-                            key={note._id}
-                            note={note}
-                            isSelected={selectedNoteId === note._id}
-                            decryptedTitle={decryptedTitles[note._id] || ''}
-                            onSelect={onSelectNote}
-                            onDelete={onDeleteNote}
-                            onDragStart={handleNoteDragStart}
-                            onDragEnd={handleNoteDragEnd}
-                            theme={theme}
-                        />
-                    </Box>
-                )}
-            />
+            {isLoading && notes.length > 0 && (
+                <CircularProgress
+                    size={20}
+                    sx={{
+                        position: 'absolute',
+                        top: 12,
+                        right: 12,
+                        zIndex: 10,
+                        opacity: 0.6
+                    }}
+                />
+            )}
+
+            {isLoading && notes.length === 0 ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4, flex: 1 }}>
+                    <CircularProgress size={24} />
+                </Box>
+            ) : notes.length === 0 ? (
+                <Box sx={{ p: 3, textAlign: 'center', color: 'text.secondary', flex: 1 }}>
+                    <Typography variant="body2">No notes found</Typography>
+                </Box>
+            ) : (
+                <Virtuoso
+                    style={{ height: '100%' }}
+                    data={notes}
+                    itemContent={(index, note) => (
+                        <Box sx={{ py: 0 }}>
+                            <NoteItem
+                                key={note._id}
+                                note={note}
+                                index={index}
+                                isSelected={selectedNoteId === note._id}
+                                decryptedTitle={decryptedTitles[note._id] || ''}
+                                onSelect={onSelectNote}
+                                onDelete={onDeleteNote}
+                                onDragStart={handleNoteDragStart}
+                                onDragEnd={handleNoteDragEnd}
+                                theme={theme}
+                            />
+                        </Box>
+                    )}
+                />
+            )}
         </Box>
     );
 };
