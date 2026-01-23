@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useState } from 'react';
 import {
     Box,
     Typography,
@@ -9,6 +9,8 @@ import {
 } from '@mui/material';
 import {
     Close as CloseIcon,
+    KeyboardDoubleArrowUp as MinimizeIcon,
+    ExpandMore as ExpandIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DialogPortal } from '../social/DialogPortal';
@@ -37,23 +39,23 @@ export const NoteFullView = memo(({
 }: NoteFullViewProps) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const [isZenMode, setIsZenMode] = useState(false);
 
-    // Close on Escape key
+    // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && open) {
                 onClose();
             }
+            // Toggle Zen Mode: Ctrl+Alt+Z
+            if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                setIsZenMode(prev => !prev);
+            }
         };
-
-        if (open) {
-            window.addEventListener('keydown', handleKeyDown);
-        }
-
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [open, onClose]);
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onClose, open]);
 
     if (!note) return null;
 
@@ -103,50 +105,107 @@ export const NoteFullView = memo(({
                             }}
                         >
                             {/* Header */}
-                            <Box
-                                sx={{
-                                    p: 2,
-                                    px: { xs: 2, md: 3 },
-                                    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 2,
-                                    flexShrink: 0,
-                                    bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                }}
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <IconButton onClick={onClose} edge="start" aria-label="Close full view">
-                                        <CloseIcon />
+                            <AnimatePresence initial={false}>
+                                {!isZenMode && (
+                                    <Box
+                                        component={motion.div}
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                        sx={{
+                                            flexShrink: 0,
+                                            bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                            overflow: 'hidden',
+                                        }}
+                                    >
+                                        <Box sx={{
+                                            p: 2,
+                                            px: { xs: 2, md: 3 },
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 2,
+                                            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                        }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <IconButton onClick={onClose} edge="start" aria-label="Close full view">
+                                                    <CloseIcon />
+                                                </IconButton>
+                                                {!isMobile && (
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{
+                                                            bgcolor: alpha(theme.palette.text.primary, 0.05),
+                                                            px: 0.8,
+                                                            py: 0.3,
+                                                            borderRadius: '6px',
+                                                            fontSize: '0.65rem',
+                                                            fontWeight: 800,
+                                                            color: theme.palette.text.secondary,
+                                                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                                            userSelect: 'none',
+                                                        }}
+                                                    >
+                                                        ESC
+                                                    </Typography>
+                                                )}
+                                            </Box>
+                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700 }}>
+                                                    {decryptedTitle || 'Untitled Note'}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    Last modified {new Date(note.metadata.updatedAt).toLocaleDateString()}
+                                                </Typography>
+                                            </Box>
+
+                                            <IconButton
+                                                onClick={() => setIsZenMode(true)}
+                                                size="small"
+                                                sx={{
+                                                    bgcolor: alpha(theme.palette.text.primary, 0.03),
+                                                    '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.08) }
+                                                }}
+                                                title="Zen Mode"
+                                            >
+                                                <MinimizeIcon fontSize="small" />
+                                            </IconButton>
+                                        </Box>
+                                    </Box>
+                                )}
+                            </AnimatePresence>
+
+                            {/* Restore Button (Floating) */}
+                            {isZenMode && (
+                                <Box
+                                    component={motion.div}
+                                    initial={{ y: -20, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    sx={{
+                                        position: 'absolute',
+                                        top: 16,
+                                        right: 24,
+                                        zIndex: 10,
+                                    }}
+                                >
+                                    <IconButton
+                                        onClick={() => setIsZenMode(false)}
+                                        sx={{
+                                            bgcolor: theme.palette.background.paper,
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                            '&:hover': {
+                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                color: theme.palette.primary.main,
+                                            }
+                                        }}
+                                        size="small"
+                                        title="Exit Zen Mode"
+                                    >
+                                        <ExpandIcon />
                                     </IconButton>
-                                    {!isMobile && (
-                                        <Typography
-                                            variant="caption"
-                                            sx={{
-                                                bgcolor: alpha(theme.palette.text.primary, 0.05),
-                                                px: 0.8,
-                                                py: 0.3,
-                                                borderRadius: '6px',
-                                                fontSize: '0.65rem',
-                                                fontWeight: 800,
-                                                color: theme.palette.text.secondary,
-                                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                                                userSelect: 'none',
-                                            }}
-                                        >
-                                            ESC
-                                        </Typography>
-                                    )}
                                 </Box>
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700 }}>
-                                        {decryptedTitle || 'Untitled Note'}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Last modified {new Date(note.metadata.updatedAt).toLocaleDateString()}
-                                    </Typography>
-                                </Box>
-                            </Box>
+                            )}
 
                             {/* Editor Container */}
                             <Box sx={{ flex: 1, overflow: 'hidden', bgcolor: 'background.default' }}>
@@ -159,6 +218,7 @@ export const NoteFullView = memo(({
                                         autoSaveDelay={1000}
                                         fullscreen
                                         onToggleFullscreen={onClose}
+                                        compact={isZenMode}
                                     />
                                 ) : (
                                     <Box sx={{

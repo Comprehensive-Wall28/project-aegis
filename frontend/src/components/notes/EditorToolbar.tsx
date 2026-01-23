@@ -53,6 +53,8 @@ interface EditorToolbarProps {
     onToggleSearch?: () => void;
     showReplace?: boolean;
     onToggleReplace?: () => void;
+    spellcheckEnabled?: boolean;
+    onToggleSpellcheck?: () => void;
 }
 
 // Regex icon component
@@ -99,6 +101,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     onToggleSearch,
     showReplace = false,
     onToggleReplace,
+    spellcheckEnabled = true,
+    onToggleSpellcheck,
 }) => {
     const theme = useTheme();
     const [tick, setTick] = useState(0);
@@ -384,6 +388,16 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 </Tooltip>
 
                 <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Tooltip title={`${spellcheckEnabled ? 'Disable' : 'Enable'} Spellcheck`}>
+                        <IconButton
+                            size="small"
+                            onClick={onToggleSpellcheck}
+                            sx={getButtonStyle(!!spellcheckEnabled)}
+                        >
+                            <MatchCaseIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+
                     <Tooltip title="Shortcut Guide (Ctrl+/)">
                         <IconButton
                             size="small"

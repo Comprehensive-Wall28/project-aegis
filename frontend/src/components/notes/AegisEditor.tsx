@@ -1,16 +1,20 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import ImageResize from 'tiptap-extension-resize-image';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { SearchExtension } from './SearchExtension';
 import {
     Box,
     CircularProgress,
+    useTheme,
+    alpha,
 } from '@mui/material';
 import { ShortcutGuide } from './ShortcutGuide';
 import { EditorToolbar } from './EditorToolbar';
 import { LinkDialog } from './LinkDialog';
 import type { JSONContent, Editor } from '@tiptap/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AegisEditorProps {
     initialTitle?: string;
@@ -20,6 +24,7 @@ interface AegisEditorProps {
     autoSaveDelay?: number;
     onToggleFullscreen?: () => void;
     fullscreen?: boolean;
+    compact?: boolean;
 }
 
 /**
@@ -33,7 +38,9 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     autoSaveDelay = 1500,
     onToggleFullscreen,
     fullscreen = false,
+    compact = false,
 }) => {
+    const theme = useTheme();
     const [title, setTitle] = useState(initialTitle);
     const [isSaving, setIsSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
@@ -43,12 +50,14 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     const [linkText, setLinkText] = useState('');
     const [showSearch, setShowSearch] = useState(false);
     const [showReplace, setShowReplace] = useState(false);
+    const [spellcheckEnabled, setSpellcheckEnabled] = useState(true);
     const titleRef = useRef(title);
 
     // Keep titleRef in sync with title state
     useEffect(() => {
         titleRef.current = title;
     }, [title]);
+
 
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastSavedContentRef = useRef<string>('');
@@ -72,12 +81,43 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                 placeholder: 'Start typing your note...',
             }),
             SearchExtension,
+            ImageResize.configure({
+                allowBase64: true,
+                HTMLAttributes: {
+                    class: 'aegis-editor-image',
+                },
+            }),
         ],
         content: initialContent,
         editable: !readOnly,
         editorProps: {
             attributes: {
                 class: 'aegis-editor-content',
+                spellcheck: spellcheckEnabled ? 'true' : 'false',
+            },
+            handlePaste: (view, event) => {
+                const { clipboardData } = event;
+                const items = Array.from(clipboardData?.items || []);
+                const imageItem = items.find(item => item.type.startsWith('image/'));
+
+                if (imageItem) {
+                    event.preventDefault();
+                    const file = imageItem.getAsFile();
+                    if (!file) return false;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const src = e.target?.result as string;
+                        if (src) {
+                            const node = view.state.schema.nodes.imageResize.create({ src });
+                            const transaction = view.state.tr.replaceSelectionWith(node);
+                            view.dispatch(transaction);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                    return true;
+                }
+                return false;
             },
         },
         onUpdate: ({ editor }) => {
@@ -89,6 +129,20 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
         },
         // Removed onTransaction render force, handled in EditorToolbar
     });
+
+    // Update editor spellcheck attribute dynamically
+    useEffect(() => {
+        if (editor) {
+            editor.setOptions({
+                editorProps: {
+                    attributes: {
+                        ...editor.options.editorProps.attributes,
+                        spellcheck: spellcheckEnabled ? 'true' : 'false',
+                    },
+                },
+            });
+        }
+    }, [editor, spellcheckEnabled]);
 
     // Handle title change
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,44 +337,70 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             }}
         >
             {/* Title Block */}
-            <Box sx={{ px: 3, pt: 3, pb: 1 }}>
-                <input
-                    type="text"
-                    value={title}
-                    onChange={handleTitleChange}
-                    placeholder="Note Title"
-                    readOnly={readOnly}
-                    style={{
-                        width: '100%',
-                        border: 'none',
-                        outline: 'none',
-                        fontSize: '2.5rem',
-                        fontWeight: 700,
-                        backgroundColor: 'transparent',
-                        color: 'inherit',
-                        fontFamily: 'inherit',
-                    }}
-                />
-            </Box>
+            <AnimatePresence initial={false}>
+                {!compact && (
+                    <Box
+                        component={motion.div}
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        sx={{ overflow: 'hidden' }}
+                    >
+                        <Box sx={{ px: 3, pt: 3, pb: 1 }}>
+                            <input
+                                type="text"
+                                value={title}
+                                onChange={handleTitleChange}
+                                placeholder="Note Title"
+                                readOnly={readOnly}
+                                style={{
+                                    width: '100%',
+                                    border: 'none',
+                                    outline: 'none',
+                                    fontSize: '2.5rem',
+                                    fontWeight: 700,
+                                    backgroundColor: 'transparent',
+                                    color: 'inherit',
+                                    fontFamily: 'inherit',
+                                }}
+                            />
+                        </Box>
+                    </Box>
+                )}
+            </AnimatePresence>
 
             {/* Toolbar */}
-            {!readOnly && (
-                <EditorToolbar
-                    editor={editor}
-                    onAddLink={openLinkDialog}
-                    isSaving={isSaving}
-                    hasChanges={hasChanges}
-                    guideOpen={guideOpen}
-                    onToggleGuide={() => setGuideOpen(o => !o)}
-                    showSearch={showSearch}
-                    onToggleSearch={() => {
-                        setShowSearch(o => !o);
-                        if (showSearch) setShowReplace(false);
-                    }}
-                    showReplace={showReplace}
-                    onToggleReplace={() => setShowReplace(o => !o)}
-                />
-            )}
+            <AnimatePresence initial={false}>
+                {!readOnly && !compact && (
+                    <Box
+                        component={motion.div}
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        sx={{ overflow: 'hidden' }}
+                    >
+                        <EditorToolbar
+                            editor={editor}
+                            onAddLink={openLinkDialog}
+                            isSaving={isSaving}
+                            hasChanges={hasChanges}
+                            guideOpen={guideOpen}
+                            onToggleGuide={() => setGuideOpen(o => !o)}
+                            showSearch={showSearch}
+                            onToggleSearch={() => {
+                                setShowSearch(o => !o);
+                                if (showSearch) setShowReplace(false);
+                            }}
+                            showReplace={showReplace}
+                            onToggleReplace={() => setShowReplace(o => !o)}
+                            spellcheckEnabled={spellcheckEnabled}
+                            onToggleSpellcheck={() => setSpellcheckEnabled(s => !s)}
+                        />
+                    </Box>
+                )}
+            </AnimatePresence>
 
             {/* Editor Content */}
             <Box
@@ -356,8 +436,17 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                             lineHeight: 1.7,
                         },
                         '& ul, & ol': {
-                            pl: 3,
+                            pl: 4,
                             mb: 1,
+                            '& li': {
+                                mb: 0.5,
+                            },
+                        },
+                        '& ul': {
+                            listStyleType: 'disc',
+                        },
+                        '& ol': {
+                            listStyleType: 'decimal',
                         },
                         '& blockquote': {
                             borderLeft: 3,
@@ -409,6 +498,14 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                             pointerEvents: 'none',
                             height: 0,
                         },
+                        '& img': {
+                            maxWidth: '100%',
+                            height: 'auto',
+                            borderRadius: '12px',
+                            my: 2,
+                            display: 'block',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                        },
                         pb: fullscreen ? 10 : 2,
                     },
                 }}>
@@ -427,6 +524,53 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                     background-color: rgba(255, 152, 0, 0.5);
                     border-bottom: 2px solid rgba(255, 152, 0, 0.8);
                     box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+                }
+
+                /* Image Resize Extension Polishing */
+                .aegis-editor-image + div, 
+                div[style*="position: relative"][style*="dashed"] {
+                    border: 2px dashed ${theme.palette.primary.main} !important;
+                    border-radius: 12px;
+                }
+
+                /* Resize Handles (Dots) */
+                div[style*="position: absolute"][style*="border-radius: 50%"] {
+                    background-color: ${theme.palette.primary.main} !important;
+                    border: 2px solid ${theme.palette.background.paper} !important;
+                    width: 12px !important;
+                    height: 12px !important;
+                    box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+                    z-index: 1001 !important;
+                }
+
+                /* Alignment Controller (Toolbar) */
+                div[style*="position: absolute"][style*="translate(-50%, -50%)"] {
+                    background-color: ${theme.palette.background.paper} !important;
+                    border: 1px solid ${alpha(theme.palette.divider, 0.1)} !important;
+                    border-radius: 30px !important;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+                    padding: 4px 12px !important;
+                    height: 36px !important;
+                    width: auto !important;
+                    min-width: 100px;
+                    backdrop-filter: blur(8px);
+                }
+
+                /* Alignment Icons */
+                div[style*="translate(-50%, -50%)"] img {
+                    filter: invert(1) brightness(2) !important;
+                    width: 20px !important;
+                    height: 20px !important;
+                    margin: 0 4px !important;
+                    opacity: 0.8 !important;
+                    transition: opacity 0.2s ease, transform 0.2s ease;
+                    border-radius: 0 !important;
+                    box-shadow: none !important;
+                }
+
+                div[style*="translate(-50%, -50%)"] img:hover {
+                    opacity: 1 !important;
+                    transform: scale(1.1);
                 }
                 `}
             </style>
