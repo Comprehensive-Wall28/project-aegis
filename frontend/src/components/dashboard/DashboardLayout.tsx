@@ -152,11 +152,11 @@ export function DashboardLayout() {
     return (
         <Box
             sx={{
-                minHeight: ['100vh', '100dvh'],
+                height: ['100vh', '100dvh'],
                 bgcolor: 'background.default',
                 display: 'flex',
                 overflowX: 'hidden',
-                overflowY: { xs: 'auto', lg: 'hidden' },
+                overflowY: 'hidden',
                 position: 'relative'
             }}
         >
@@ -214,8 +214,8 @@ export function DashboardLayout() {
                     }),
                     display: 'flex',
                     flexDirection: 'column',
-                    minHeight: { xs: 'none', lg: '100dvh' },
-                    height: { xs: 'auto', lg: '100dvh' },
+                    minHeight: 0,
+                    height: { xs: '100vh', lg: '100dvh' },
                     position: 'relative',
                     zIndex: 1,
                     minWidth: 0
@@ -236,12 +236,12 @@ export function DashboardLayout() {
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.3 }}
                         sx={{
-                            height: { xs: 'auto', lg: '100%' },
-                            minHeight: { xs: '100vh', lg: 'auto' },
+                            height: '100%',
+                            minHeight: 0,
                             display: 'flex',
                             flexDirection: 'column',
-                            borderRadius: { xs: '0px', sm: '16px' },
-                            overflow: { xs: 'visible', lg: 'hidden' },
+                            borderRadius: '16px',
+                            overflow: 'hidden',
                             // Solid stage for professionalism and performance
                             bgcolor: theme.palette.background.paper,
                             border: `1px solid ${alpha(theme.palette.primary.main, 0.05)}`,
@@ -256,7 +256,7 @@ export function DashboardLayout() {
                                     sm: isCalendarPage ? 0 : 3,
                                     md: isCalendarPage ? 0 : 6
                                 },
-                                overflowY: { xs: 'visible', lg: isCalendarPage ? 'hidden' : 'auto' },
+                                overflowY: isCalendarPage ? 'hidden' : 'auto',
                                 '&::-webkit-scrollbar': { width: '6px' },
                                 '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.1), borderRadius: 3 }
                             }}

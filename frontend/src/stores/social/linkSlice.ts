@@ -47,27 +47,20 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
                     return prev;
                 }
 
-                // Create a map of existing links to aid reconciliation
-                // This is crucial for preserving updates (like scraping completion) that 
-                // arrived via socket while this fetch was in-flight.
                 const existingLinks = new Map(prev.links.map(l => [l._id, l]));
 
                 const reconcileLink = (newL: LinkPost) => {
                     const existing = existingLinks.get(newL._id);
                     if (!existing) return newL;
 
-                    // If existing link has better preview data (e.g. it finished scraping 
-                    // while we were fetching), prefer the existing version.
                     const isExistingBetter = existing.previewData?.scrapeStatus !== 'scraping' &&
                         newL.previewData?.scrapeStatus === 'scraping';
 
                     return isExistingBetter ? existing : newL;
                 };
 
-                // Calculate new links
                 let newLinks = prev.links;
                 if (!isLoadMore) {
-                    // Initial Load / Refresh
                     if (silent) {
                         const existingLinkIds = new Set(prev.links.map(l => l._id));
                         const refreshedLinks = result.links.map(reconcileLink);
@@ -88,7 +81,6 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
                     newLinks = [...prev.links, ...uniqueNewLinks];
                 }
 
-                // Calculate other state updates
                 let newViewedLinkIds = prev.viewedLinkIds;
                 if (!isLoadMore && !silent) {
                     newViewedLinkIds = new Set(result.viewedLinkIds);
@@ -114,16 +106,13 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
                     viewedLinkIds: newViewedLinkIds,
                     commentCounts: newCommentCounts,
                     hasMoreLinks: result.hasMore,
-                    isLoadingLinks: false,
                     linksCache: newLinksCache
                 };
             });
         } catch (error) {
             console.error('Failed to fetch collection links:', error);
-            const currentState = get();
-            if (currentState.currentCollectionId === collectionId) {
-                set({ isLoadingLinks: false });
-            }
+        } finally {
+            set({ isLoadingLinks: false });
         }
     },
 

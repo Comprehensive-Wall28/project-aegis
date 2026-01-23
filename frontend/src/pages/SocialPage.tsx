@@ -187,15 +187,23 @@ export function SocialPage() {
     // Reader mode overlay state
     const [readerLink, setReaderLink] = useState<LinkPost | null>(null);
 
-    // Socket room management cleanup
+    // Socket room management cleanup: 
+    // Leave the room when the roomId changes or we unmount.
     useEffect(() => {
+        const activeRoomId = currentRoom?._id;
         return () => {
-            if (currentRoom) {
-                socketService.leaveRoom(currentRoom._id);
-                clearRoomContent();
+            if (activeRoomId) {
+                socketService.leaveRoom(activeRoomId);
             }
         };
-    }, [currentRoom, clearRoomContent]);
+    }, [currentRoom?._id]);
+
+    // Page-level cleanup: Clear everything only when navigating away from Social completely.
+    useEffect(() => {
+        return () => {
+            clearRoomContent();
+        };
+    }, [clearRoomContent]);
 
     // Hot Share Listener: Listen for AEGIS_SHARE_INTENT events from browser extension
     useEffect(() => {
