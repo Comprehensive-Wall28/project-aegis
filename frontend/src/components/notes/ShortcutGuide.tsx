@@ -116,6 +116,8 @@ export const ShortcutGuide: React.FC<ShortcutGuideProps> = ({ open, onClose }) =
                 </Typography>
                 <ShortcutItem label="Save Changes" keys={['Ctrl', 'S']} />
                 <ShortcutItem label="Search in Note" keys={['Ctrl', 'F']} />
+                <ShortcutItem label="Find and Replace" keys={['Ctrl', 'H']} />
+                <ShortcutItem label="Replace All" keys={['Ctrl', 'Shift', 'Enter']} />
                 <ShortcutItem label="Shortcut Guide" keys={['Ctrl', '/']} />
                 <ShortcutItem label="Undo" keys={['Ctrl', 'Z']} />
                 <ShortcutItem label="Redo" keys={['Ctrl', 'Shift', 'Z']} />

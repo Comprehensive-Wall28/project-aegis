@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
     Box,
     IconButton,
@@ -7,7 +7,15 @@ import {
     alpha,
     useTheme,
     CircularProgress,
-    Typography
+    Typography,
+    Button,
+    Popper,
+    Paper,
+    List,
+    ListItemButton,
+    ListItemText,
+    ClickAwayListener,
+    Collapse
 } from '@mui/material';
 import {
     FormatBold,
@@ -27,7 +35,10 @@ import {
     ChevronLeft,
     ChevronRight,
     Close as CloseIcon,
-    Abc as MatchCaseIcon
+    Abc as MatchCaseIcon,
+    Clear as ClearIcon,
+    SwapHoriz as ReplaceIcon,
+    KeyboardArrowUp
 } from '@mui/icons-material';
 import { Editor } from '@tiptap/react';
 
@@ -40,7 +51,42 @@ interface EditorToolbarProps {
     guideOpen?: boolean;
     showSearch?: boolean;
     onToggleSearch?: () => void;
+    showReplace?: boolean;
+    onToggleReplace?: () => void;
 }
+
+// Regex icon component
+const RegexIcon: React.FC<{ fontSize?: 'small' | 'medium' }> = ({ fontSize = 'small' }) => (
+    <Typography
+        component="span"
+        sx={{
+            fontFamily: 'monospace',
+            fontWeight: 700,
+            fontSize: fontSize === 'small' ? '0.75rem' : '0.875rem',
+            lineHeight: 1
+        }}
+    >
+        .*
+    </Typography>
+);
+
+// Whole word icon component
+const WholeWordIcon: React.FC<{ fontSize?: 'small' | 'medium' }> = ({ fontSize = 'small' }) => (
+    <Typography
+        component="span"
+        sx={{
+            fontFamily: 'monospace',
+            fontWeight: 700,
+            fontSize: fontSize === 'small' ? '0.7rem' : '0.8rem',
+            lineHeight: 1,
+            border: '1px solid currentColor',
+            borderRadius: '2px',
+            px: 0.3
+        }}
+    >
+        ab
+    </Typography>
+);
 
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     editor,
@@ -51,21 +97,20 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     guideOpen = false,
     showSearch = false,
     onToggleSearch,
+    showReplace = false,
+    onToggleReplace,
 }) => {
     const theme = useTheme();
-    // Force re-render on selection update to update button states
     const [tick, setTick] = useState(0);
+    const [historyAnchor, setHistoryAnchor] = useState<HTMLElement | null>(null);
+    const [localSearchTerm, setLocalSearchTerm] = useState('');
+    const [localReplaceText, setLocalReplaceText] = useState('');
 
     useEffect(() => {
         if (!editor) return;
 
-        const handleTransaction = () => {
-            setTick(t => t + 1);
-        };
-
-        const handleUpdate = () => {
-            setTick(t => t + 1);
-        };
+        const handleTransaction = () => setTick(t => t + 1);
+        const handleUpdate = () => setTick(t => t + 1);
 
         editor.on('transaction', handleTransaction);
         editor.on('update', handleUpdate);
@@ -74,6 +119,41 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             editor.off('update', handleUpdate);
         };
     }, [editor]);
+
+    // Debounced search term update
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (localSearchTerm !== storage.searchTerm) {
+                editor.commands.setSearchTerm(localSearchTerm);
+            }
+        }, 150);
+        return () => clearTimeout(timer);
+    }, [localSearchTerm]);
+
+    // Sync local state with storage
+    const storage = (editor.storage as any).search || {
+        results: [],
+        currentIndex: 0,
+        searchTerm: '',
+        caseSensitive: false,
+        useRegex: false,
+        wholeWord: false,
+        replaceText: '',
+        regexError: false,
+        searchHistory: [],
+        lastReplacedCount: 0
+    };
+
+    // Keep local state in sync when search is opened
+    useEffect(() => {
+        if (showSearch) {
+            setLocalSearchTerm(storage.searchTerm);
+            setLocalReplaceText(storage.replaceText);
+        }
+    }, [showSearch]);
+
+    const resultsCount = (storage.results || []).length;
+    const currentIndex = resultsCount > 0 ? storage.currentIndex + 1 : 0;
 
     const getButtonStyle = (active: boolean) => ({
         bgcolor: active ? alpha(theme.palette.primary.main, 0.15) : 'transparent',
@@ -156,12 +236,86 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         },
     ], [editor, onAddLink, tick]);
 
-    const storage = (editor.storage as any).search || { results: [], currentIndex: 0, searchTerm: '', caseSensitive: false };
-    const resultsCount = (storage.results || []).length;
-    const currentIndex = resultsCount > 0 ? storage.currentIndex + 1 : 0;
+    const handleClearSearch = useCallback(() => {
+        setLocalSearchTerm('');
+        editor.commands.clearSearch();
+    }, [editor]);
+
+    const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            // Add to history on enter
+            if (localSearchTerm) {
+                editor.commands.addToSearchHistory(localSearchTerm);
+            }
+            if (e.shiftKey) {
+                editor.commands.previousSearchMatch();
+            } else {
+                editor.commands.nextSearchMatch();
+            }
+        } else if (e.key === 'Escape') {
+            onToggleSearch?.();
+        }
+    }, [editor, localSearchTerm, onToggleSearch]);
+
+    const handleReplaceKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            if (e.ctrlKey && e.shiftKey) {
+                // Replace all
+                editor.commands.setReplaceText(localReplaceText);
+                editor.commands.replaceAllMatches();
+            } else {
+                // Replace current
+                editor.commands.setReplaceText(localReplaceText);
+                editor.commands.replaceCurrentMatch();
+            }
+        } else if (e.key === 'Escape') {
+            onToggleSearch?.();
+        }
+    }, [editor, localReplaceText, onToggleSearch]);
+
+    const handleReplaceCurrent = useCallback(() => {
+        editor.commands.setReplaceText(localReplaceText);
+        editor.commands.replaceCurrentMatch();
+    }, [editor, localReplaceText]);
+
+    const handleReplaceAll = useCallback(() => {
+        editor.commands.setReplaceText(localReplaceText);
+        editor.commands.replaceAllMatches();
+    }, [editor, localReplaceText]);
+
+    const handleHistoryClick = (term: string) => {
+        setLocalSearchTerm(term);
+        editor.commands.setSearchTerm(term);
+        setHistoryAnchor(null);
+    };
+
+    const inputStyle = {
+        border: 'none',
+        outline: 'none',
+        background: 'transparent',
+        color: theme.palette.text.primary,
+        fontSize: '0.875rem',
+        width: '100%',
+    };
+
+    const inputContainerStyle = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1,
+        bgcolor: alpha(theme.palette.text.primary, 0.05),
+        borderRadius: '8px',
+        px: 1.5,
+        py: 0.5,
+        flex: { xs: 1, sm: '0 1 280px' },
+        border: '1px solid',
+        borderColor: storage.regexError
+            ? theme.palette.error.main
+            : alpha(theme.palette.divider, 0.1),
+    };
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+            {/* Main Toolbar */}
             <Box sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -266,10 +420,11 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 </Box>
             </Box>
 
+            {/* Search Bar */}
             {showSearch && (
                 <Box sx={{
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     gap: 1,
                     p: 1,
                     px: 1.5,
@@ -280,95 +435,244 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                     zIndex: 10,
                     width: '100%',
                 }}>
-                    <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        bgcolor: alpha(theme.palette.text.primary, 0.05),
-                        borderRadius: '8px',
-                        px: 1.5,
-                        py: 0.5,
-                        flex: { xs: 1, sm: '0 1 300px' },
-                        border: '1px solid',
-                        borderColor: alpha(theme.palette.divider, 0.1),
-                    }}>
-                        <SearchIcon fontSize="small" sx={{ color: 'text.disabled' }} />
-                        <input
-                            autoFocus
-                            placeholder="Search in note..."
-                            value={storage.searchTerm}
-                            onChange={(e) => editor.commands.setSearchTerm(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    if (e.shiftKey) editor.commands.previousSearchMatch();
-                                    else editor.commands.nextSearchMatch();
-                                } else if (e.key === 'Escape') {
-                                    onToggleSearch?.();
-                                }
-                            }}
-                            style={{
-                                border: 'none',
-                                outline: 'none',
-                                background: 'transparent',
-                                color: theme.palette.text.primary,
-                                fontSize: '0.875rem',
-                                width: '100%',
-                            }}
-                        />
-                        {storage.searchTerm && (
-                            <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                                {resultsCount > 0 ? `${currentIndex}/${resultsCount}` : '0/0'}
-                            </Typography>
-                        )}
-                    </Box>
+                    {/* Search Row */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        <ClickAwayListener onClickAway={() => setHistoryAnchor(null)}>
+                            <Box sx={inputContainerStyle}>
+                                <SearchIcon fontSize="small" sx={{ color: 'text.disabled', flexShrink: 0 }} />
+                                <input
+                                    autoFocus
+                                    placeholder="Search in note..."
+                                    value={localSearchTerm}
+                                    onChange={(e) => setLocalSearchTerm(e.target.value)}
+                                    onKeyDown={handleSearchKeyDown}
+                                    onFocus={(e) => {
+                                        if (storage.searchHistory?.length > 0) {
+                                            setHistoryAnchor(e.currentTarget.parentElement);
+                                        }
+                                    }}
+                                    style={inputStyle}
+                                    aria-label="Search in note"
+                                />
+                                {localSearchTerm && (
+                                    <Tooltip title="Clear search">
+                                        <IconButton
+                                            size="small"
+                                            onClick={handleClearSearch}
+                                            sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
+                                        >
+                                            <ClearIcon sx={{ fontSize: 16 }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+                                {localSearchTerm && (
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            color: storage.regexError ? 'error.main' : 'text.secondary',
+                                            whiteSpace: 'nowrap',
+                                            fontVariantNumeric: 'tabular-nums',
+                                            flexShrink: 0
+                                        }}
+                                    >
+                                        {storage.regexError ? 'Invalid' : resultsCount > 0 ? `${currentIndex}/${resultsCount}` : '0/0'}
+                                    </Typography>
+                                )}
+                            </Box>
+                        </ClickAwayListener>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Tooltip title="Match Case">
+                        {/* Search History Popper */}
+                        <Popper
+                            open={Boolean(historyAnchor) && (storage.searchHistory?.length || 0) > 0}
+                            anchorEl={historyAnchor}
+                            placement="bottom-start"
+                            sx={{ zIndex: 1300 }}
+                        >
+                            <Paper
+                                elevation={8}
+                                sx={{
+                                    mt: 0.5,
+                                    maxHeight: 200,
+                                    overflow: 'auto',
+                                    minWidth: 250,
+                                    borderRadius: '8px'
+                                }}
+                            >
+                                <List dense disablePadding>
+                                    {(storage.searchHistory || []).map((term: string, i: number) => (
+                                        <ListItemButton
+                                            key={i}
+                                            onClick={() => handleHistoryClick(term)}
+                                            sx={{ py: 0.5 }}
+                                        >
+                                            <ListItemText
+                                                primary={term}
+                                                primaryTypographyProps={{ fontSize: '0.875rem' }}
+                                            />
+                                        </ListItemButton>
+                                    ))}
+                                </List>
+                            </Paper>
+                        </Popper>
+
+                        {/* Toggle buttons */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Tooltip title="Match Case">
+                                <IconButton
+                                    size="small"
+                                    onClick={() => editor.commands.setCaseSensitive(!storage.caseSensitive)}
+                                    sx={getButtonStyle(storage.caseSensitive)}
+                                    aria-label="Toggle case sensitivity"
+                                >
+                                    <MatchCaseIcon sx={{ fontSize: 18 }} />
+                                </IconButton>
+                            </Tooltip>
+
+                            <Tooltip title="Use Regex">
+                                <IconButton
+                                    size="small"
+                                    onClick={() => editor.commands.setUseRegex(!storage.useRegex)}
+                                    sx={getButtonStyle(storage.useRegex)}
+                                    aria-label="Toggle regex search"
+                                >
+                                    <RegexIcon />
+                                </IconButton>
+                            </Tooltip>
+
+                            <Tooltip title="Whole Word">
+                                <IconButton
+                                    size="small"
+                                    onClick={() => editor.commands.setWholeWord(!storage.wholeWord)}
+                                    sx={getButtonStyle(storage.wholeWord)}
+                                    aria-label="Toggle whole word matching"
+                                >
+                                    <WholeWordIcon />
+                                </IconButton>
+                            </Tooltip>
+
+                            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 20, alignSelf: 'center' }} />
+
+                            <Tooltip title="Previous Match (Shift+Enter)">
+                                <span>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => editor.commands.previousSearchMatch()}
+                                        disabled={resultsCount === 0}
+                                        sx={getButtonStyle(false)}
+                                        aria-label="Previous match"
+                                    >
+                                        <ChevronLeft fontSize="small" />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+
+                            <Tooltip title="Next Match (Enter)">
+                                <span>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => editor.commands.nextSearchMatch()}
+                                        disabled={resultsCount === 0}
+                                        sx={getButtonStyle(false)}
+                                        aria-label="Next match"
+                                    >
+                                        <ChevronRight fontSize="small" />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+
+                            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 20, alignSelf: 'center' }} />
+
+                            <Tooltip title={showReplace ? 'Hide Replace' : 'Show Replace (Ctrl+H)'}>
+                                <IconButton
+                                    size="small"
+                                    onClick={onToggleReplace}
+                                    sx={getButtonStyle(showReplace)}
+                                    aria-label="Toggle replace"
+                                >
+                                    {showReplace ? <KeyboardArrowUp fontSize="small" /> : <ReplaceIcon sx={{ fontSize: 18 }} />}
+                                </IconButton>
+                            </Tooltip>
+
                             <IconButton
                                 size="small"
-                                onClick={() => editor.commands.setCaseSensitive(!storage.caseSensitive)}
-                                sx={getButtonStyle(storage.caseSensitive)}
+                                onClick={onToggleSearch}
+                                sx={{ ml: 0.5, color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
+                                aria-label="Close search"
                             >
-                                <MatchCaseIcon sx={{ fontSize: 18 }} />
+                                <CloseIcon fontSize="small" />
                             </IconButton>
-                        </Tooltip>
-
-                        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 20, alignSelf: 'center' }} />
-
-                        <Tooltip title="Previous Match (Shift+Enter)">
-                            <span>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => editor.commands.previousSearchMatch()}
-                                    disabled={resultsCount === 0}
-                                    sx={getButtonStyle(false)}
-                                >
-                                    <ChevronLeft fontSize="small" />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-
-                        <Tooltip title="Next Match (Enter)">
-                            <span>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => editor.commands.nextSearchMatch()}
-                                    disabled={resultsCount === 0}
-                                    sx={getButtonStyle(false)}
-                                >
-                                    <ChevronRight fontSize="small" />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-
-                        <IconButton
-                            size="small"
-                            onClick={onToggleSearch}
-                            sx={{ ml: 1, color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
-                        >
-                            <CloseIcon fontSize="small" />
-                        </IconButton>
+                        </Box>
                     </Box>
+
+                    {/* Replace Row */}
+                    <Collapse in={showReplace}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', pt: 0.5 }}>
+                            <Box sx={{ ...inputContainerStyle, borderColor: alpha(theme.palette.divider, 0.1) }}>
+                                <ReplaceIcon fontSize="small" sx={{ color: 'text.disabled', flexShrink: 0 }} />
+                                <input
+                                    placeholder="Replace with..."
+                                    value={localReplaceText}
+                                    onChange={(e) => setLocalReplaceText(e.target.value)}
+                                    onKeyDown={handleReplaceKeyDown}
+                                    style={inputStyle}
+                                    aria-label="Replace text"
+                                />
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Tooltip title="Replace (Enter in replace field)">
+                                    <span>
+                                        <Button
+                                            size="small"
+                                            variant="outlined"
+                                            onClick={handleReplaceCurrent}
+                                            disabled={resultsCount === 0}
+                                            sx={{
+                                                borderRadius: '6px',
+                                                textTransform: 'none',
+                                                fontSize: '0.75rem',
+                                                py: 0.25,
+                                                px: 1.5,
+                                                minWidth: 'auto'
+                                            }}
+                                        >
+                                            Replace
+                                        </Button>
+                                    </span>
+                                </Tooltip>
+
+                                <Tooltip title="Replace All (Ctrl+Shift+Enter)">
+                                    <span>
+                                        <Button
+                                            size="small"
+                                            variant="outlined"
+                                            onClick={handleReplaceAll}
+                                            disabled={resultsCount === 0}
+                                            sx={{
+                                                borderRadius: '6px',
+                                                textTransform: 'none',
+                                                fontSize: '0.75rem',
+                                                py: 0.25,
+                                                px: 1.5,
+                                                minWidth: 'auto'
+                                            }}
+                                        >
+                                            Replace All
+                                        </Button>
+                                    </span>
+                                </Tooltip>
+
+                                {storage.lastReplacedCount > 0 && (
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'success.main', ml: 1 }}
+                                    >
+                                        {storage.lastReplacedCount} replaced
+                                    </Typography>
+                                )}
+                            </Box>
+                        </Box>
+                    </Collapse>
                 </Box>
             )}
         </Box>

@@ -42,7 +42,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     const [linkUrl, setLinkUrl] = useState('');
     const [linkText, setLinkText] = useState('');
     const [showSearch, setShowSearch] = useState(false);
-    // const theme = useTheme(); // Removed unused theme
+    const [showReplace, setShowReplace] = useState(false);
     const titleRef = useRef(title);
 
     // Keep titleRef in sync with title state
@@ -216,6 +216,13 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                 action: () => setShowSearch(prev => !prev)
             },
             {
+                check: () => isCtrl && key === 'h',
+                action: () => {
+                    setShowSearch(true);
+                    setShowReplace(prev => !prev);
+                }
+            },
+            {
                 check: () => isCtrl && key === '/',
                 action: () => setGuideOpen(prev => !prev)
             },
@@ -306,7 +313,12 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                     guideOpen={guideOpen}
                     onToggleGuide={() => setGuideOpen(o => !o)}
                     showSearch={showSearch}
-                    onToggleSearch={() => setShowSearch(o => !o)}
+                    onToggleSearch={() => {
+                        setShowSearch(o => !o);
+                        if (showSearch) setShowReplace(false);
+                    }}
+                    showReplace={showReplace}
+                    onToggleReplace={() => setShowReplace(o => !o)}
                 />
             )}
 
