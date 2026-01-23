@@ -98,7 +98,11 @@ const NoteItem = memo(({
         <motion.div
             ref={itemRef}
             initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={{
+                opacity: 1,
+                y: 0,
+                transitionEnd: { transform: 'none' }
+            }}
             transition={{
                 duration: 0.3,
                 delay: Math.min(index * 0.04, 0.4), // Cap delay for large pages
@@ -119,7 +123,8 @@ const NoteItem = memo(({
                     borderRadius: '12px',
                     transition: 'background-color 0.2s, transform 0.2s',
                     cursor: 'pointer',
-                    willChange: 'transform',
+                    WebkitFontSmoothing: 'antialiased',
+                    MozOsxFontSmoothing: 'grayscale',
                     '&:hover': {
                         bgcolor: alpha(theme.palette.primary.main, 0.08),
                         transform: 'translateX(4px)'

@@ -323,92 +323,95 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             )}
 
             {/* Editor Content */}
-            <Box sx={{
-                flex: 1,
-                overflow: 'auto',
-                p: 2,
-                '& .aegis-editor-content': {
-                    outline: 'none',
-                    minHeight: '100%',
-                    '& > *:first-of-type': {
-                        marginTop: 0,
-                    },
-                    '& h1': {
-                        fontSize: '2rem',
-                        fontWeight: 600,
-                        mb: 2,
-                    },
-                    '& h2': {
-                        fontSize: '1.5rem',
-                        fontWeight: 600,
-                        mb: 1.5,
-                    },
-                    '& h3': {
-                        fontSize: '1.25rem',
-                        fontWeight: 600,
-                        mb: 1,
-                    },
-                    '& p': {
-                        mb: 1,
-                        lineHeight: 1.7,
-                    },
-                    '& ul, & ol': {
-                        pl: 3,
-                        mb: 1,
-                    },
-                    '& blockquote': {
-                        borderLeft: 3,
-                        borderColor: 'primary.main',
-                        pl: 2,
-                        ml: 0,
-                        fontStyle: 'italic',
-                        color: 'text.secondary',
-                    },
-                    '& code': {
-                        bgcolor: 'action.hover',
-                        px: 0.5,
-                        py: 0.25,
-                        borderRadius: 0.5,
-                        fontFamily: 'monospace',
-                    },
-                    '& pre': {
-                        bgcolor: 'action.hover',
-                        p: 2,
-                        borderRadius: 1,
-                        overflow: 'auto',
+            <Box
+                onClick={() => editor.commands.focus()}
+                sx={{
+                    flex: 1,
+                    overflow: 'auto',
+                    p: 2,
+                    cursor: 'text',
+                    '& .aegis-editor-content': {
+                        outline: 'none',
+                        minHeight: '100%',
+                        '& > *:first-of-type': {
+                            marginTop: 0,
+                        },
+                        '& h1': {
+                            fontSize: '2rem',
+                            fontWeight: 600,
+                            mb: 2,
+                        },
+                        '& h2': {
+                            fontSize: '1.5rem',
+                            fontWeight: 600,
+                            mb: 1.5,
+                        },
+                        '& h3': {
+                            fontSize: '1.25rem',
+                            fontWeight: 600,
+                            mb: 1,
+                        },
+                        '& p': {
+                            mb: 1,
+                            lineHeight: 1.7,
+                        },
+                        '& ul, & ol': {
+                            pl: 3,
+                            mb: 1,
+                        },
+                        '& blockquote': {
+                            borderLeft: 3,
+                            borderColor: 'primary.main',
+                            pl: 2,
+                            ml: 0,
+                            fontStyle: 'italic',
+                            color: 'text.secondary',
+                        },
                         '& code': {
-                            bgcolor: 'transparent',
-                            p: 0,
+                            bgcolor: 'action.hover',
+                            px: 0.5,
+                            py: 0.25,
+                            borderRadius: 0.5,
+                            fontFamily: 'monospace',
                         },
-                    },
-                    '& hr': {
-                        border: 'none',
-                        borderTop: 1,
-                        borderColor: 'divider',
-                        my: 2,
-                    },
-                    '& a': {
-                        color: 'primary.main',
-                        textDecoration: 'underline',
-                        textDecorationThickness: '1px',
-                        textUnderlineOffset: '2px',
-                        cursor: 'pointer',
-                        fontWeight: 500,
-                        transition: 'opacity 0.2s',
-                        '&:hover': {
-                            opacity: 0.8,
+                        '& pre': {
+                            bgcolor: 'action.hover',
+                            p: 2,
+                            borderRadius: 1,
+                            overflow: 'auto',
+                            '& code': {
+                                bgcolor: 'transparent',
+                                p: 0,
+                            },
                         },
+                        '& hr': {
+                            border: 'none',
+                            borderTop: 1,
+                            borderColor: 'divider',
+                            my: 2,
+                        },
+                        '& a': {
+                            color: 'primary.main',
+                            textDecoration: 'underline',
+                            textDecorationThickness: '1px',
+                            textUnderlineOffset: '2px',
+                            cursor: 'pointer',
+                            fontWeight: 500,
+                            transition: 'opacity 0.2s',
+                            '&:hover': {
+                                opacity: 0.8,
+                            },
+                        },
+                        '& .is-editor-empty:first-of-type::before': {
+                            content: 'attr(data-placeholder)',
+                            float: 'left',
+                            color: 'text.disabled',
+                            pointerEvents: 'none',
+                            height: 0,
+                        },
+                        pb: fullscreen ? 10 : 2,
                     },
-                    '& .is-editor-empty:first-of-type::before': {
-                        content: 'attr(data-placeholder)',
-                        float: 'left',
-                        color: 'text.disabled',
-                        pointerEvents: 'none',
-                        height: 0,
-                    },
-                    pb: fullscreen ? 10 : 2,
-                },
-            }}>
+                }}>
                 <EditorContent editor={editor} />
             </Box>
 

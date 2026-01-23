@@ -50,7 +50,11 @@ const NoteItem = memo(({
 }) => (
     <motion.div
         initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
+        animate={{
+            opacity: 1,
+            x: 0,
+            transitionEnd: { transform: 'none' }
+        }}
         exit={{ opacity: 0, x: -10 }}
         transition={{
             duration: 0.25,
@@ -70,7 +74,8 @@ const NoteItem = memo(({
                 borderRadius: '12px',
                 transition: 'all 0.2s',
                 cursor: 'grab',
-                willChange: 'transform',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale',
                 '&:active': { cursor: 'grabbing' },
                 '&:hover': {
                     bgcolor: alpha(theme.palette.primary.main, 0.08),

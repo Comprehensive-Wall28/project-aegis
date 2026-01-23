@@ -92,7 +92,8 @@ export const FolderPanel: React.FC<FolderPanelProps> = ({
                         borderRadius: '10px',
                         py: 1,
                         transition: 'all 0.2s',
-                        willChange: 'transform',
+                        WebkitFontSmoothing: 'antialiased',
+                        MozOsxFontSmoothing: 'grayscale',
                         bgcolor: dragOverFolderId === 'root'
                             ? alpha(theme.palette.primary.main, 0.2)
                             : 'transparent',
@@ -133,7 +134,11 @@ export const FolderPanel: React.FC<FolderPanelProps> = ({
                     itemContent={(index, folder) => (
                         <motion.div
                             initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
+                            animate={{
+                                opacity: 1,
+                                x: 0,
+                                transitionEnd: { transform: 'none' }
+                            }}
                             transition={{
                                 duration: 0.25,
                                 delay: Math.min(index * 0.03, 0.3),
@@ -152,7 +157,8 @@ export const FolderPanel: React.FC<FolderPanelProps> = ({
                                     py: 0.75,
                                     mb: 0.5,
                                     transition: 'all 0.2s',
-                                    willChange: 'transform',
+                                    WebkitFontSmoothing: 'antialiased',
+                                    MozOsxFontSmoothing: 'grayscale',
                                     bgcolor: dragOverFolderId === folder._id
                                         ? alpha(theme.palette.primary.main, 0.2)
                                         : 'transparent',

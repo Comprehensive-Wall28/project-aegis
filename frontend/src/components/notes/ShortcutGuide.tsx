@@ -59,6 +59,7 @@ export const ShortcutGuide: React.FC<ShortcutGuideProps> = ({ open, onClose }) =
         <Dialog
             open={open}
             onClose={onClose}
+            sx={{ zIndex: 11000 }}
             slotProps={{
                 paper: {
                     sx: {

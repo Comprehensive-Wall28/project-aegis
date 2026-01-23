@@ -44,6 +44,7 @@ export const LinkDialog: React.FC<LinkDialogProps> = ({
         <Dialog
             open={open}
             onClose={onClose}
+            sx={{ zIndex: 11000 }}
             slotProps={{
                 paper: {
                     sx: { borderRadius: '16px', width: '100%', maxWidth: 400 }
