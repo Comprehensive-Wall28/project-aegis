@@ -117,58 +117,62 @@ export const fetchAndDecryptFile = async (
     }
 
     const contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
-
-    // 3. Stream and decrypt chunks using AES-CTR
-    const decryptedChunks: ArrayBuffer[] = [];
-    let encryptedBuffer = new Uint8Array(0);
     let totalBytesRead = 0;
 
-    while (true) {
-        const { done, value } = await reader.read();
+    // Use a ReadableStream to process chunks on-the-fly
+    const decryptedStream = new ReadableStream({
+        async start(controller) {
+            let encryptedBuffer = new Uint8Array(0);
 
-        if (done) {
-            // Process any remaining data as the last chunk
-            if (encryptedBuffer.length > 0) {
-                const decryptedChunk = await decryptChunkCtr(encryptedBuffer, dek);
-                decryptedChunks.push(decryptedChunk);
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+
+                    if (done) {
+                        // Process any remaining data as the last chunk
+                        if (encryptedBuffer.length > 0) {
+                            const decryptedChunk = await decryptChunkCtr(encryptedBuffer, dek);
+                            controller.enqueue(new Uint8Array(decryptedChunk));
+                        }
+                        controller.close();
+                        break;
+                    }
+
+                    // Append new data to buffer - we still need to buffer up to ENCRYPTED_CHUNK_SIZE
+                    // but we discard processed data immediately
+                    const newBuffer = new Uint8Array(encryptedBuffer.length + value.length);
+                    newBuffer.set(encryptedBuffer);
+                    newBuffer.set(value, encryptedBuffer.length);
+                    encryptedBuffer = newBuffer;
+                    totalBytesRead += value.length;
+
+                    // Process complete chunks
+                    while (encryptedBuffer.length >= ENCRYPTED_CHUNK_SIZE) {
+                        const chunk = encryptedBuffer.slice(0, ENCRYPTED_CHUNK_SIZE);
+                        encryptedBuffer = encryptedBuffer.slice(ENCRYPTED_CHUNK_SIZE);
+
+                        const decryptedChunk = await decryptChunkCtr(chunk, dek);
+                        controller.enqueue(new Uint8Array(decryptedChunk));
+                    }
+
+                    // Update progress via callback
+                    if (onProgress && contentLength > 0) {
+                        const progress = Math.min(99, Math.round((totalBytesRead / contentLength) * 100));
+                        onProgress(progress);
+                    }
+                }
+            } catch (err) {
+                controller.error(err);
             }
-            break;
         }
+    });
 
-        // Append new data to buffer
-        const newBuffer = new Uint8Array(encryptedBuffer.length + value.length);
-        newBuffer.set(encryptedBuffer);
-        newBuffer.set(value, encryptedBuffer.length);
-        encryptedBuffer = newBuffer;
-        totalBytesRead += value.length;
+    // Create a blob directly from the decrypted stream
+    // This is more memory-efficient than accumulating all chunks in an array
+    const decryptedBlob = await new Response(decryptedStream).blob();
 
-        // Process complete chunks
-        while (encryptedBuffer.length >= ENCRYPTED_CHUNK_SIZE) {
-            const chunk = encryptedBuffer.slice(0, ENCRYPTED_CHUNK_SIZE);
-            encryptedBuffer = encryptedBuffer.slice(ENCRYPTED_CHUNK_SIZE);
-
-            const decryptedChunk = await decryptChunkCtr(chunk, dek);
-            decryptedChunks.push(decryptedChunk);
-        }
-
-        // Update progress via callback
-        if (onProgress && contentLength > 0) {
-            const progress = Math.round((totalBytesRead / contentLength) * 100);
-            onProgress(progress);
-        }
-    }
-
-    // 4. Combine all decrypted chunks into final blob
-    const totalLength = decryptedChunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
-    const result = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of decryptedChunks) {
-        result.set(new Uint8Array(chunk), offset);
-        offset += chunk.byteLength;
-    }
-
-    // Return as blob with original MIME type
-    return new Blob([result], { type: file.mimeType });
+    // The Response.blob() doesn't preserve the MIME type if we don't wrap it or the stream doesn't have it
+    return new Blob([decryptedBlob], { type: file.mimeType });
 };
 
 // --- React Hook ---
