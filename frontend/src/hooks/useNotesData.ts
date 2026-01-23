@@ -31,7 +31,8 @@ export const useNotesData = () => {
     const [error, setError] = useState<string | null>(null);
     const [userTags, setUserTags] = useState<string[]>([]);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
-    const [decryptedTitles, setDecryptedTitles] = useState<Record<string, string>>({});
+    const [decryptedTitles, setDecryptedTitles] = useState<Map<string, string>>(new Map());
+    const decryptedTitlesRef = useRef<Map<string, string>>(new Map());
     const activeNoteIdRef = useRef<string | null>(null);
     const fetchAbortControllerRef = useRef<AbortController | null>(null);
 
@@ -39,31 +40,43 @@ export const useNotesData = () => {
     const decryptTitles = useCallback(async (notesToDecrypt: NoteMetadata[]) => {
         if (pqcEngineStatus !== 'operational') return;
 
-        const newTitles: Record<string, string> = { ...decryptedTitles };
+        const currentMap = decryptedTitlesRef.current;
+        const newTitles = new Map<string, string>();
         let changed = false;
 
         for (const note of notesToDecrypt) {
-            if (note.encryptedTitle && !newTitles[note._id]) {
+            // Check ref to see if we already have it (blocking re-renders)
+            if (note.encryptedTitle && !currentMap.has(note._id)) {
                 try {
                     const aesKey = await deriveAesKey(note.encapsulatedKey, note.encryptedSymmetricKey);
                     const title = await decryptString(note.encryptedTitle, aesKey);
-                    newTitles[note._id] = title;
+                    newTitles.set(note._id, title);
+                    currentMap.set(note._id, title); // Update ref immediately
                     changed = true;
                 } catch (err) {
                     console.error('Failed to decrypt title for note:', note._id, err);
-                    newTitles[note._id] = 'Untitled Note';
+                    const title = 'Untitled Note';
+                    newTitles.set(note._id, title);
+                    currentMap.set(note._id, title);
                     changed = true;
                 }
-            } else if (!note.encryptedTitle && !newTitles[note._id]) {
-                newTitles[note._id] = 'Untitled Note';
+            } else if (!note.encryptedTitle && !currentMap.has(note._id)) {
+                const title = 'Untitled Note';
+                newTitles.set(note._id, title);
+                currentMap.set(note._id, title);
                 changed = true;
             }
         }
 
         if (changed) {
-            setDecryptedTitles(prev => ({ ...prev, ...newTitles }));
+            // Merge new titles into a NEW Map to trigger state update
+            setDecryptedTitles(prev => {
+                const updated = new Map(prev);
+                newTitles.forEach((value, key) => updated.set(key, value));
+                return updated;
+            });
         }
-    }, [deriveAesKey, decryptString, pqcEngineStatus, decryptedTitles]); // Added decryptedTitles to dep array but effectively it might cause loops if not careful. 
+    }, [deriveAesKey, decryptString, pqcEngineStatus]); // Removed decryptedTitles from dependency array 
     // Optimization: avoid re-running if keys already exist.
     // However, existing code had this. I'll stick to logic but maybe Ref is better for accumulated titles.
 
@@ -129,7 +142,14 @@ export const useNotesData = () => {
             });
 
             setNotes(prev => [newNote, ...prev]);
-            setDecryptedTitles(prev => ({ ...prev, [newNote._id]: 'New Note' }));
+
+            const title = 'New Note';
+            decryptedTitlesRef.current.set(newNote._id, title);
+            setDecryptedTitles(prev => {
+                const next = new Map(prev);
+                next.set(newNote._id, title);
+                return next;
+            });
             setSelectedNote({
                 metadata: newNote,
                 content: emptyContent,
@@ -220,7 +240,7 @@ export const useNotesData = () => {
 
         try {
             const noteContent = content as NoteContent;
-            const currentTitle = title !== undefined ? title : decryptedTitles[selectedNote.metadata._id];
+            const currentTitle = title !== undefined ? title : (decryptedTitles.get(selectedNote.metadata._id) || 'Untitled Note');
 
             // Use encryptNote to get both content and title encrypted with the same new keys
             const encrypted = await encryptNote(noteContent, currentTitle);
@@ -238,7 +258,12 @@ export const useNotesData = () => {
 
             const finalNote = updatedNote;
             if (title !== undefined) {
-                setDecryptedTitles(prev => ({ ...prev, [finalNote._id]: title }));
+                decryptedTitlesRef.current.set(finalNote._id, title);
+                setDecryptedTitles(prev => {
+                    const next = new Map(prev);
+                    next.set(finalNote._id, title);
+                    return next;
+                });
             }
 
             setSelectedNote(prev => prev ? {
@@ -294,6 +319,16 @@ export const useNotesData = () => {
         try {
             await noteService.deleteNote(id);
             setNotes(prev => prev.filter(n => n._id !== id));
+
+            // Prune cache
+            if (decryptedTitlesRef.current.has(id)) {
+                decryptedTitlesRef.current.delete(id);
+                setDecryptedTitles(prev => {
+                    const next = new Map(prev);
+                    next.delete(id);
+                    return next;
+                });
+            }
             if (selectedNote?.metadata._id === id) {
                 setSelectedNote(null);
             }

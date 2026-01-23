@@ -179,7 +179,7 @@ const NotesPage: React.FC = () => {
 
     const handleDeleteNoteWrapper = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        const title = decryptedTitles[id] || 'this note';
+        const title = decryptedTitles.get(id) || 'this note';
         openDeleteConfirm('note', id, title);
     };
 
@@ -229,7 +229,7 @@ const NotesPage: React.FC = () => {
                 >
                     <NoteDetailView
                         selectedNote={selectedNote}
-                        decryptedTitle={selectedNote ? decryptedTitles[selectedNote.metadata._id] : undefined}
+                        decryptedTitle={selectedNote ? decryptedTitles.get(selectedNote.metadata._id) : undefined}
                         isLoadingContent={isLoadingContent}
                         onSaveContent={handleSaveContent}
                         onCreateNote={handleCreateNoteWrapper}
@@ -413,7 +413,7 @@ const NotesPage: React.FC = () => {
                     <NoteFullView
                         open={true}
                         note={selectedNote}
-                        decryptedTitle={decryptedTitles[selectedNote.metadata._id] || 'Untitled Note'}
+                        decryptedTitle={decryptedTitles.get(selectedNote.metadata._id) || 'Untitled Note'}
                         onClose={handleCloseNote}
                         onSave={handleSaveContent}
                     />

@@ -4,10 +4,10 @@ import type { NoteMetadata } from '../services/noteService';
 interface UseFolderDragDropProps {
     notes: NoteMetadata[];
     moveNote: (noteId: string, folderId: string | null) => Promise<void>;
-    decryptedTitles?: Record<string, string>;
+    decryptedTitles?: Map<string, string>;
 }
 
-export const useFolderDragDrop = ({ notes, moveNote, decryptedTitles = {} }: UseFolderDragDropProps) => {
+export const useFolderDragDrop = ({ notes, moveNote, decryptedTitles = new Map() }: UseFolderDragDropProps) => {
     const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
     const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -55,7 +55,7 @@ export const useFolderDragDrop = ({ notes, moveNote, decryptedTitles = {} }: Use
 
         // Set custom drag image
         if (dragImageRef.current) {
-            const title = decryptedTitles[noteId] || 'Note';
+            const title = decryptedTitles.get(noteId) || 'Note';
             dragImageRef.current.textContent = `📄 ${title}`;
             e.dataTransfer.setDragImage(dragImageRef.current, 20, 20);
         }

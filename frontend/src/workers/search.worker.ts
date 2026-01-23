@@ -17,7 +17,7 @@ type FilterPayload = {
 };
 
 type WorkerMessage =
-    | { type: 'UPDATE_DATA'; payload: { notes: any[]; decryptedTitles: Record<string, string> } }
+    | { type: 'UPDATE_DATA'; payload: { notes: any[]; decryptedTitles: Map<string, string> } }
     | { type: 'SEARCH'; payload: FilterPayload };
 
 let searchIndex: NoteSearchData[] = [];
@@ -43,7 +43,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
         searchIndex = notes.map(note => ({
             _id: note._id,
             tags: note.tags || [],
-            decryptedTitle: (decryptedTitles[note._id] || 'Untitled Note'),
+            decryptedTitle: (decryptedTitles.get(note._id) || 'Untitled Note'),
             folderId: note.noteFolderId || null,
             createdAt: note.createdAt,
             updatedAt: note.updatedAt

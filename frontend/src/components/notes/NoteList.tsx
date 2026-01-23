@@ -19,7 +19,7 @@ import { useFolderDragDrop } from '../../hooks/useFolderDragDrop';
 interface NoteListProps {
     notes: NoteMetadata[];
     selectedNoteId: string | null;
-    decryptedTitles: Record<string, string>;
+    decryptedTitles: Map<string, string>;
     onSelectNote: (note: NoteMetadata) => void;
     onDeleteNote: (id: string, e: React.MouseEvent) => void;
     isLoading: boolean;
@@ -206,7 +206,7 @@ export const NoteList: React.FC<NoteListProps> = ({
                                 note={note}
                                 index={index}
                                 isSelected={selectedNoteId === note._id}
-                                decryptedTitle={decryptedTitles[note._id] || ''}
+                                decryptedTitle={decryptedTitles.get(note._id) || ''}
                                 onSelect={onSelectNote}
                                 onDelete={onDeleteNote}
                                 onDragStart={handleNoteDragStart}

@@ -3,7 +3,7 @@ import type { NoteMetadata } from '../services/noteService';
 
 export const useNotesSearch = (
     notes: NoteMetadata[],
-    decryptedTitles: Record<string, string>,
+    decryptedTitles: Map<string, string>,
     selectedFolderId: string | null,
     selectedTags: string[]
 ) => {

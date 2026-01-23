@@ -43,7 +43,7 @@ interface NoteSidebarProps {
     onDeleteFolder: (id: string) => void;
     isRefreshing: boolean;
     isLoading: boolean;
-    decryptedTitles: Record<string, string>;
+    decryptedTitles: Map<string, string>;
     dragDrop: ReturnType<typeof useFolderDragDrop>;
 }
 

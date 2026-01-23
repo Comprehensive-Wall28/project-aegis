@@ -40,7 +40,7 @@ interface NotesPanelProps {
     selectedTags: string[];
     onToggleTag: (tag: string) => void;
     isLoading: boolean;
-    decryptedTitles: Record<string, string>;
+    decryptedTitles: Map<string, string>;
     dragDrop: ReturnType<typeof useFolderDragDrop>;
 }
 
@@ -428,7 +428,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
                                         note={note}
                                         index={index}
                                         isSelected={selectedNoteId === note._id}
-                                        decryptedTitle={decryptedTitles[note._id] || ''}
+                                        decryptedTitle={decryptedTitles.get(note._id) || ''}
                                         onSelect={onSelectNote}
                                         onDelete={onDeleteNote}
                                         onDragStart={handleNoteDragStart}
@@ -481,7 +481,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
                                         bgcolor: alpha(theme.palette.primary.main, 0.03)
                                     }}>
                                         <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
-                                            {decryptedTitles[previewNote._id] || 'Untitled'}
+                                            {decryptedTitles.get(previewNote._id) || 'Untitled'}
                                         </Typography>
                                         <Typography variant="caption" color="text.disabled">
                                             {new Date(previewNote.updatedAt).toLocaleString()}
