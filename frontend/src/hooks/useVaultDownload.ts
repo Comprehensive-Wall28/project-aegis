@@ -58,6 +58,7 @@ const getCsrfToken = (): string | null => {
 export const fetchAndDecryptFile = async (
     file: FileMetadata,
     user: User,
+    downloadUrl?: string,
     onProgress?: (progress: number) => void
 ): Promise<Blob> => {
     if (!user.vaultCtrKey || !user.vaultKey) {
@@ -98,7 +99,9 @@ export const fetchAndDecryptFile = async (
         headers['X-XSRF-TOKEN'] = csrfToken;
     }
 
-    const response = await fetch(`${API_URL}/vault/download/${file._id}`, {
+    const finalUrl = downloadUrl || `${API_URL}/vault/download/${file._id}`;
+
+    const response = await fetch(finalUrl, {
         method: 'GET',
         credentials: 'include',
         headers
@@ -179,7 +182,7 @@ export const useVaultDownload = () => {
 
     const { vaultCtrKey, setCryptoStatus } = useSessionStore();
 
-    const downloadAndDecrypt = useCallback(async (file: FileMetadata): Promise<Blob | null> => {
+    const downloadAndDecrypt = useCallback(async (file: FileMetadata, downloadUrl?: string): Promise<Blob | null> => {
         const { user: sessionUser, vaultCtrKey, setCryptoStatus } = useSessionStore.getState();
         const vaultKey = sessionUser?.vaultKey;
         const privateKey = sessionUser?.privateKey;
@@ -197,7 +200,7 @@ export const useVaultDownload = () => {
             const blob = await fetchAndDecryptFile(
                 file,
                 { vaultCtrKey, vaultKey, privateKey },
-
+                downloadUrl,
                 (progress) => {
                     setState(prev => ({
                         ...prev,

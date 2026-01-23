@@ -1,13 +1,15 @@
 import { Request, Response } from 'express';
 import { NoteService, ServiceError } from '../services';
+import { NoteMediaService } from '../services/NoteMediaService';
 import logger from '../utils/logger';
 
 interface AuthRequest extends Request {
     user?: { id: string; username: string };
 }
 
-// Service instance
+// Service instances
 const noteService = new NoteService();
+const mediaService = new NoteMediaService();
 
 /**
  * Get all notes for the authenticated user.
@@ -284,6 +286,112 @@ export const deleteFolder = async (req: AuthRequest, res: Response) => {
 
         await noteService.deleteFolder(req.user.id, req.params.id, req);
         res.status(200).json({ message: 'Folder deleted successfully' });
+    } catch (error) {
+        handleError(error, res);
+    }
+};
+
+// ==================== MEDIA ENDPOINTS ====================
+
+/**
+ * Initialize a note media upload session
+ */
+export const uploadMediaInit = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user?.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        const result = await mediaService.initUpload(req.user.id, req.body, req);
+        res.status(200).json(result);
+    } catch (error) {
+        handleError(error, res);
+    }
+};
+
+/**
+ * Upload a note media chunk
+ */
+export const uploadMediaChunk = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user?.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        const mediaId = req.query.mediaId as string;
+        const contentRange = req.headers['content-range'] as string;
+        const contentLength = parseInt(req.headers['content-length'] || '0', 10);
+
+        if (contentLength === 0) {
+            throw new ServiceError('Missing Content-Length', 400);
+        }
+
+        const result = await mediaService.uploadChunk(
+            req.user.id,
+            mediaId,
+            contentRange,
+            req, // Pass the request stream directly
+            contentLength
+        );
+
+        if (result.complete) {
+            res.status(200).json({
+                message: 'Upload successful',
+                complete: true
+            });
+        } else {
+            res.status(308).set('Range', `bytes=0-${result.receivedSize! - 1}`).send();
+        }
+    } catch (error) {
+        handleError(error, res);
+    }
+};
+
+/**
+ * Download note media
+ */
+export const downloadMedia = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user?.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        const { stream, media } = await mediaService.getDownloadStream(
+            req.user.id,
+            req.params.id
+        );
+
+        // Handle stream errors
+        stream.on('error', (err) => {
+            logger.error(`GridFS media stream error: ${err}`);
+            if (!res.headersSent) {
+                res.status(500).json({ message: 'Download failed' });
+            }
+        });
+
+        res.setHeader('Content-Type', media.mimeType || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${media.originalFileName}"`);
+        res.setHeader('Content-Length', media.fileSize.toString());
+        res.setHeader('X-Encapsulated-Key', media.encapsulatedKey);
+        res.setHeader('X-Encrypted-Symmetric-Key', media.encryptedSymmetricKey);
+
+        stream.pipe(res);
+    } catch (error) {
+        handleError(error, res);
+    }
+};
+
+/**
+ * Get media metadata
+ */
+export const getMediaMetadata = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user?.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        const media = await mediaService.getMedia(req.user.id, req.params.id);
+        res.json(media);
     } catch (error) {
         handleError(error, res);
     }

@@ -13,7 +13,11 @@ import {
     getFolders,
     createFolder,
     updateFolder,
-    deleteFolder
+    deleteFolder,
+    uploadMediaInit,
+    uploadMediaChunk,
+    downloadMedia,
+    getMediaMetadata
 } from '../controllers/noteController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection } from '../middleware/csrfMiddleware';
@@ -41,6 +45,12 @@ router.post('/', createNote);
 router.put('/:id/metadata', updateNoteMetadata);  // Update tags, links, context
 router.put('/:id/content', updateNoteContent);  // Update encrypted content
 router.delete('/:id', deleteNote);
+
+// Note Media
+router.post('/media/upload-init', uploadMediaInit);
+router.put('/media/upload-chunk', uploadMediaChunk);
+router.get('/media/download/:id', downloadMedia);
+router.get('/media/metadata/:id', getMediaMetadata);
 
 export default router;
 

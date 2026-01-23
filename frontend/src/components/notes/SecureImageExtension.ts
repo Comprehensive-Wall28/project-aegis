@@ -8,10 +8,14 @@ export const SecureImage = Node.create({
     group: 'block',
 
     draggable: true,
+    selectable: true,
 
     addAttributes() {
         return {
             fileId: {
+                default: null,
+            },
+            mediaId: {
                 default: null,
             },
             alt: {

@@ -111,7 +111,7 @@ export const initiateUpload = (fileName: string, metadata?: Record<string, any>)
  */
 export const appendChunk = async (
     streamId: string,
-    chunk: Buffer,
+    chunk: Buffer | Readable,
     rangeStart: number,
     rangeEnd: number,
     totalSize: number
@@ -127,20 +127,38 @@ export const appendChunk = async (
     }
 
     session.totalSize = totalSize;
-    session.receivedSize += chunk.length;
+    // session.receivedSize += chunk.length; // This doesn't work for streams
 
     // Write chunk with backpressure handling
-    // If the internal buffer is full, wait for drain event before proceeding
-    const canContinue = session.passthrough.write(chunk);
+    let chunkLength = 0;
+    if (Buffer.isBuffer(chunk)) {
+        chunkLength = chunk.length;
+        session.receivedSize += chunkLength;
+        const canContinue = session.passthrough.write(chunk);
+        if (!canContinue) {
+            await new Promise<void>((resolve) => {
+                session.passthrough.once('drain', resolve);
+            });
+        }
+    } else {
+        // Stream handle
+        const readable = chunk as Readable;
+        readable.on('data', (data: Buffer) => {
+            chunkLength += data.length;
+        });
 
-    if (!canContinue) {
-        // Backpressure: wait for the stream to drain before accepting more data
-        await new Promise<void>((resolve) => {
-            session.passthrough.once('drain', resolve);
+        readable.pipe(session.passthrough, { end: false });
+
+        await new Promise<void>((resolve, reject) => {
+            readable.on('end', () => {
+                session.receivedSize += chunkLength;
+                resolve();
+            });
+            readable.on('error', reject);
         });
     }
 
-    logger.info(`GridFS chunk streamed: streamId=${streamId}, chunkSize=${chunk.length}, received=${session.receivedSize}/${totalSize}`);
+    logger.info(`GridFS chunk streamed: streamId=${streamId}, chunkSize=${chunkLength}, received=${session.receivedSize}/${totalSize}`);
 
     // Check if upload is complete
     const complete = session.receivedSize >= totalSize;

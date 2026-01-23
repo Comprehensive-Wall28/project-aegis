@@ -5,9 +5,10 @@ import ImageResize from 'tiptap-extension-resize-image';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { SearchExtension } from './SearchExtension';
 import { SecureImage } from './SecureImageExtension';
+import noteMediaService from '../../services/noteMediaService';
+import { blobCache } from '../../lib/blobCache';
 import { generateDEK, wrapKey, bytesToHex } from '../../lib/cryptoUtils';
 import { useSessionStore } from '../../stores/sessionStore';
-import apiClient from '../../services/api';
 import {
     Box,
     CircularProgress,
@@ -148,8 +149,8 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                             finalEncryptedBuffer.set(iv);
                             finalEncryptedBuffer.set(new Uint8Array(encrypted), iv.length);
 
-                            // 4. Init Upload
-                            const initResponse = await apiClient.post('/vault/upload-init', {
+                            // 4. Init Upload (to Note Media service, stored in GridFS)
+                            const initResponse = await noteMediaService.initUpload({
                                 fileName: encryptedFileName,
                                 originalFileName: file.name || 'note-image.png',
                                 fileSize: finalEncryptedBuffer.byteLength,
@@ -158,21 +159,20 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                                 mimeType: file.type || 'image/png',
                             });
 
-                            const { fileId } = initResponse.data;
+                            const { mediaId } = initResponse;
 
                             // 5. Upload Chunk (Single)
-                            await apiClient.put(`/vault/upload-chunk?fileId=${fileId}`, finalEncryptedBuffer, {
-                                headers: {
-                                    'Content-Type': 'application/octet-stream',
-                                    'Content-Range': `bytes 0-${finalEncryptedBuffer.byteLength - 1}/${finalEncryptedBuffer.byteLength}`
-                                }
-                            });
+                            await noteMediaService.uploadChunk(mediaId, finalEncryptedBuffer, 0, finalEncryptedBuffer.byteLength);
 
-                            // 6. Insert Secure Image Node
+                            // 6. Cache the local blob URL for instant rendering
+                            const localUrl = URL.createObjectURL(new Blob([arrayBuffer], { type: file.type }));
+                            blobCache.set(mediaId, localUrl);
+
+                            // 7. Insert Secure Image Node with mediaId
                             if (view.state) {
                                 view.dispatch(
                                     view.state.tr.replaceSelectionWith(
-                                        view.state.schema.nodes.secureImage.create({ fileId })
+                                        view.state.schema.nodes.secureImage.create({ mediaId })
                                     )
                                 );
                             }
