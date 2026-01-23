@@ -61,10 +61,10 @@ export function FilesHeader({
                     {fileCount} file{fileCount !== 1 ? 's' : ''} in your vault
                 </Typography>
             </Box>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1.5 }}>
                 <AnimatePresence>
                     {selectedCount > 0 && (
-                        <Stack component={motion.div} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} direction="row" spacing={1}>
+                        <Stack component={motion.div} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} direction="row" spacing={1.5}>
                             <Button
                                 variant="contained"
                                 color="warning"
@@ -109,7 +109,7 @@ export function FilesHeader({
                         '&:hover': { borderColor: theme.palette.warning.main, bgcolor: alpha(theme.palette.warning.main, 0.15) }
                     }}
                 >
-                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>New </Box>Folder
+                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, mr: 0.5 }}>New</Box>Folder
                 </Button>
                 <Button
                     variant="outlined"

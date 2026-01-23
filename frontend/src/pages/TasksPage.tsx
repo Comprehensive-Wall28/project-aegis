@@ -30,6 +30,7 @@ import { useTaskEncryption } from '@/hooks/useTaskEncryption';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { TaskDialog, type TaskDialogData } from '@/components/tasks/TaskDialog';
 import { TaskPreviewDialog } from '@/components/tasks/TaskPreviewDialog';
+import type { DeleteStatus } from '@/components/tasks/DeleteZone';
 
 type SnackbarState = {
     open: boolean;
@@ -97,6 +98,7 @@ export function TasksPage() {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [deleteStatus, setDeleteStatus] = useState<DeleteStatus>('idle');
 
     const [snackbar, setSnackbar] = useState<SnackbarState>({
         open: false,
@@ -192,12 +194,25 @@ export function TasksPage() {
     const handleDeleteTask = useCallback(async (taskId: string) => {
         try {
             setIsSaving(true);
+            setDeleteStatus('deleting');
             await deleteTask(taskId);
-            showSnackbar('Task deleted successfully', 'success');
+            setDeleteStatus('success');
+
+            // Revert status to idle after delay
+            setTimeout(() => {
+                setDeleteStatus('idle');
+            }, 2000);
+
             setDialogOpen(false);
             setPreviewOpen(false);
         } catch (error: any) {
+            setDeleteStatus('error');
             showSnackbar(error.message || 'Failed to delete task', 'error');
+
+            // Revert status to idle after delay
+            setTimeout(() => {
+                setDeleteStatus('idle');
+            }, 3000);
         } finally {
             setIsSaving(false);
         }
@@ -401,6 +416,7 @@ export function TasksPage() {
                         onDeleteTask={handleDeleteTask}
                         sortMode={sortMode}
                         isDragDisabled={!!searchTerm.trim()}
+                        deleteStatus={deleteStatus}
                     />
                 </Box>
             )}
