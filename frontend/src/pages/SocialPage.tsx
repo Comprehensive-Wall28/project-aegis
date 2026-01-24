@@ -187,6 +187,10 @@ export function SocialPage() {
     // Reader mode overlay state
     const [readerLink, setReaderLink] = useState<LinkPost | null>(null);
 
+    // Preview (Maximize) overlay state
+    const [previewLink, setPreviewLink] = useState<LinkPost | null>(null);
+    const [showPreview, setShowPreview] = useState(false);
+
     // Socket room management cleanup: 
     // Leave the room when the roomId changes or we unmount.
     useEffect(() => {
@@ -285,13 +289,80 @@ export function SocialPage() {
         }
     }, [viewMode, roomId]);
 
-    // Load room if roomId in URL
-    // Clear error when returning to rooms list
+    // URL Synchronization Helper
+    const toggleOverlay = useCallback((key: string, value: string | boolean | null) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (value === null || value === false) {
+                next.delete(key);
+            } else {
+                next.set(key, String(value));
+            }
+            return next;
+        });
+    }, [setSearchParams]);
+
+    // Sync URL parameters with overlay states
     useEffect(() => {
-        if (!roomId && error) {
-            clearError();
+        const commentsId = searchParams.get('comments');
+        const readerId = searchParams.get('reader');
+        const moveId = searchParams.get('move');
+        const previewId = searchParams.get('preview');
+        const post = searchParams.get('post') === 'true';
+        const createRoom = searchParams.get('createRoom') === 'true';
+        const createCol = searchParams.get('createCol') === 'true';
+
+        // Use functional updates to avoid unnecessary triggers if already in sync
+        if (commentsId) {
+            const link = links.find(l => l._id === commentsId);
+            if (link && commentsLink?._id !== commentsId) setCommentsLink(link);
+        } else if (commentsLink) {
+            setCommentsLink(null);
         }
-    }, [roomId, error, clearError]);
+
+        if (readerId) {
+            const link = links.find(l => l._id === readerId);
+            if (link && readerLink?._id !== readerId) setReaderLink(link);
+        } else if (readerLink) {
+            setReaderLink(null);
+        }
+
+        if (moveId) {
+            const link = links.find(l => l._id === moveId);
+            if (link && (linkToMove?._id !== moveId || !showMoveDialog)) {
+                setLinkToMove(link);
+                setShowMoveDialog(true);
+            }
+        } else if (showMoveDialog) {
+            setShowMoveDialog(false);
+            setLinkToMove(null);
+        }
+
+        if (previewId) {
+            const link = links.find(l => l._id === previewId);
+            if (link && (previewLink?._id !== previewId || !showPreview)) {
+                setPreviewLink(link);
+                setShowPreview(true);
+            }
+        } else if (showPreview) {
+            setShowPreview(false);
+            setPreviewLink(null);
+        }
+
+        if (post !== showPostLinkDialog) setShowPostLinkDialog(post);
+        if (createRoom !== showCreateDialog) setShowCreateDialog(createRoom);
+        if (createCol !== showCollectionDialog) setShowCollectionDialog(createCol);
+
+    }, [searchParams, links, commentsLink?._id, readerLink?._id, showMoveDialog, linkToMove?._id, showPostLinkDialog, showCreateDialog, showCollectionDialog, showPreview, previewLink?._id]);
+
+    // Reset room state when navigating back to the main social page
+    useEffect(() => {
+        if (!roomId) {
+            setOptimisticRoomId(null);
+            clearRoomContent();
+            if (error) clearError();
+        }
+    }, [roomId, clearRoomContent, clearError, error]);
 
     useEffect(() => {
         if (roomId && pqcEngineStatus === 'operational') {
@@ -369,7 +440,7 @@ export function SocialPage() {
         try {
             setIsCreating(true);
             const room = await createRoom(name, description);
-            setShowCreateDialog(false);
+            toggleOverlay('createRoom', null);
             showSnackbar('Room created with end-to-end encryption', 'success');
             // Navigate to new room
             handleSelectRoom(room._id);
@@ -389,7 +460,7 @@ export function SocialPage() {
             setPostLinkError(null);
             await postLink(linkToPost.trim());
             setNewLinkUrl('');
-            setShowPostLinkDialog(false);
+            toggleOverlay('post', null);
             showSnackbar('Link shared successfully', 'success');
         } catch (error: any) {
             const message = error.response?.data?.message || error.message || 'Failed to post link';
@@ -408,7 +479,7 @@ export function SocialPage() {
         setIsCreatingCollection(true);
         try {
             await createCollection(name.trim());
-            setShowCollectionDialog(false);
+            toggleOverlay('createCol', null);
             showSnackbar('Collection created successfully', 'success');
         } catch (error: any) {
             showSnackbar(error.message || 'Failed to create collection', 'error');
@@ -440,7 +511,7 @@ export function SocialPage() {
         setIsMovingLink(true);
         try {
             await moveLink(linkToMove._id, collectionId);
-            setShowMoveDialog(false);
+            toggleOverlay('move', null);
             setLinkToMove(null);
             showSnackbar('Link moved successfully', 'success');
         } catch (error: any) {
@@ -451,9 +522,8 @@ export function SocialPage() {
     }, [linkToMove, isMovingLink, moveLink, showSnackbar]);
 
     const handleOpenMoveDialog = useCallback((link: LinkPost) => {
-        setLinkToMove(link);
-        setShowMoveDialog(true);
-    }, []);
+        toggleOverlay('move', link._id);
+    }, [toggleOverlay]);
 
     const handleCollectionContextMenu = useCallback((event: React.MouseEvent, collectionId: string) => {
         event.preventDefault();
@@ -809,8 +879,10 @@ export function SocialPage() {
                                                         setDraggedLinkId={setDraggedLinkId}
                                                         markLinkViewed={markLinkViewed}
                                                         unmarkLinkViewed={unmarkLinkViewed}
-                                                        setCommentsLink={setCommentsLink}
-                                                        setReaderLink={setReaderLink}
+                                                        setCommentsLink={(link) => toggleOverlay('comments', link?._id || null)}
+                                                        setReaderLink={(link) => toggleOverlay('reader', link?._id || null)}
+                                                        previewLinkId={previewLink?._id || null}
+                                                        setPreviewLink={(link) => toggleOverlay('preview', link?._id || null)}
                                                         viewedLinkIds={viewedLinkIds}
                                                         commentCounts={commentCounts}
                                                         currentUserId={currentUserId}
@@ -831,8 +903,7 @@ export function SocialPage() {
                                 {/* Create Room Dialog */}
                                 <CreateRoomDialog
                                     open={showCreateDialog}
-                                    onClose={() => setShowCreateDialog(false)
-                                    }
+                                    onClose={() => toggleOverlay('createRoom', null)}
                                     onSubmit={handleCreateRoom}
                                     isLoading={isCreating}
                                 />
@@ -840,7 +911,7 @@ export function SocialPage() {
                                 {/* Create Collection Dialog */}
                                 <CreateCollectionDialog
                                     open={showCollectionDialog}
-                                    onClose={() => setShowCollectionDialog(false)}
+                                    onClose={() => toggleOverlay('createCol', null)}
                                     onSubmit={handleCreateCollection}
                                     isLoading={isCreatingCollection}
                                 />
@@ -849,7 +920,7 @@ export function SocialPage() {
                                 <PostLinkDialog
                                     open={showPostLinkDialog}
                                     onClose={() => {
-                                        setShowPostLinkDialog(false);
+                                        toggleOverlay('post', null);
                                         setPostLinkError(null);
                                     }}
                                     onSubmit={handlePostLink}
@@ -861,7 +932,7 @@ export function SocialPage() {
                                 <MoveLinkDialog
                                     open={showMoveDialog}
                                     onClose={() => {
-                                        setShowMoveDialog(false);
+                                        toggleOverlay('move', null);
                                         setLinkToMove(null);
                                     }}
                                     onSubmit={handleMoveLink}
@@ -876,7 +947,7 @@ export function SocialPage() {
                                         <Fab
                                             color="primary"
                                             aria-label="add link"
-                                            onClick={() => setShowPostLinkDialog(true)}
+                                            onClick={() => toggleOverlay('post', true)}
                                             sx={{
                                                 position: 'fixed',
                                                 bottom: 24,
@@ -955,7 +1026,7 @@ export function SocialPage() {
                         <CommentsOverlay
                             open={!!commentsLink}
                             link={commentsLink}
-                            onClose={() => setCommentsLink(null)}
+                            onClose={() => toggleOverlay('comments', null)}
                             currentUserId={currentUserId}
                             encryptComment={async (text) => {
                                 if (!currentRoom) throw new Error('No room selected');
@@ -979,7 +1050,7 @@ export function SocialPage() {
                         <ReaderModeOverlay
                             open={!!readerLink}
                             link={readerLink}
-                            onClose={() => setReaderLink(null)}
+                            onClose={() => toggleOverlay('reader', null)}
                             currentUserId={currentUserId}
                             encryptAnnotation={async (text) => {
                                 if (!currentRoom) throw new Error('No room selected');

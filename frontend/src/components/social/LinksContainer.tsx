@@ -52,6 +52,8 @@ export const LinksContainer = memo(({
     hasMoreLinks,
     loadAllLinks,
     onMoveLink,
+    previewLinkId,
+    setPreviewLink,
 }: LinksContainerProps) => {
     const theme = useTheme();
     const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
@@ -68,6 +70,7 @@ export const LinksContainer = memo(({
     const handleUnview = useCallback((id: string) => unmarkLinkViewed(id), [unmarkLinkViewed]);
     const handleCommentsClick = useCallback((link: LinkPost) => setCommentsLink(link), [setCommentsLink]);
     const handleReaderClick = useCallback((link: LinkPost) => setReaderLink(link), [setReaderLink]);
+    const handlePreviewClick = useCallback((link: LinkPost) => setPreviewLink(link), [setPreviewLink]);
     const handleLoadAll = useCallback(() => loadAllLinks(), [loadAllLinks]);
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
     const handleClearSearch = useCallback((e: React.MouseEvent) => {
@@ -211,6 +214,8 @@ export const LinksContainer = memo(({
                                             onUnview={handleUnview}
                                             onCommentsClick={handleCommentsClick}
                                             onReaderClick={handleReaderClick}
+                                            onPreviewClick={handlePreviewClick}
+                                            showPreview={previewLinkId === link._id}
                                             isViewed={viewedLinkIds.has(link._id)}
                                             commentCount={commentCounts[link._id] || 0}
                                             canDelete={

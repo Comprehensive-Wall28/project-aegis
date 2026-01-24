@@ -56,20 +56,17 @@ const renderHighlightedText = (text: string, query?: string) => {
     );
 };
 
-export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick, highlight }: LinkCardProps) => {
+export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewClick, showPreview, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick, highlight }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
     const username = typeof link.userId === 'object' ? link.userId.username : 'Unknown';
 
     const [isDragging, setIsDragging] = useState(false);
-    const [showPreview, setShowPreview] = useState(false);
+    // showPreview is now controlled by prop
 
     const previewImage = previewData.image ? getProxiedUrl(previewData.image) : '';
     const faviconImage = previewData.favicon ? getProxiedUrl(previewData.favicon) : '';
-
-    // Close preview
-    const closePreview = () => setShowPreview(false);
 
     return (
         <>
@@ -347,7 +344,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onDelete, 
                                     size="small"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setShowPreview(true);
+                                        onPreviewClick?.(link);
                                     }}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
                                     aria-label="Show preview"
@@ -435,7 +432,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onDelete, 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={closePreview}
+                            onClick={() => onPreviewClick?.(link)}
                             sx={{
                                 position: 'fixed',
                                 inset: 0,
@@ -515,7 +512,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onDelete, 
 
                                     {/* Close Button */}
                                     <IconButton
-                                        onClick={closePreview}
+                                        onClick={() => onPreviewClick?.(link)}
                                         sx={{
                                             position: 'absolute',
                                             top: 16,
