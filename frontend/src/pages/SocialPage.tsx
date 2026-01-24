@@ -6,7 +6,6 @@ import {
     Typography,
     alpha,
     useTheme,
-    CircularProgress,
     LinearProgress,
     Snackbar,
     Alert,
@@ -648,24 +647,10 @@ export function SocialPage() {
     };
 
 
-    // Loading state
-    if (pqcEngineStatus !== 'operational') {
-        return (
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minHeight: 400,
-                    gap: 2,
-                }}
-            >
-                <CircularProgress />
-                <Typography color="text.secondary">Initializing PQC Engine...</Typography>
-            </Box>
-        );
-    }
+    // Loading context for skeletons
+    const isInitializing = pqcEngineStatus !== 'operational';
+    const effectiveIsLoadingRooms = isLoadingRooms || isInitializing;
+    const effectiveIsLoadingContent = isLoadingContent || isInitializing;
 
     return (
         <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden', position: 'relative' }}>
@@ -800,7 +785,7 @@ export function SocialPage() {
                                         }}
                                     >
                                         <AnimatePresence>
-                                            {isLoadingRooms && (
+                                            {effectiveIsLoadingRooms && (
                                                 <Box
                                                     component={motion.div}
                                                     initial={{ opacity: 0 }}
@@ -832,10 +817,12 @@ export function SocialPage() {
                                             </SocialErrorBoundary>
                                         ))}
 
-                                        <CreateRoomCard
-                                            onClick={() => toggleOverlay('createRoom', true)}
-                                            index={rooms.length}
-                                        />
+                                        {!isInitializing && (
+                                            <CreateRoomCard
+                                                onClick={() => toggleOverlay('createRoom', true)}
+                                                index={rooms.length}
+                                            />
+                                        )}
                                     </Box>
                                 ) : (
                                     <Box
@@ -856,7 +843,7 @@ export function SocialPage() {
                                                         handleCollectionContextMenu={handleCollectionContextMenu}
                                                         handleCollectionTouchStart={handleCollectionTouchStart}
                                                         handleCollectionTouchEnd={handleCollectionTouchEnd}
-                                                        isLoadingContent={isLoadingContent}
+                                                        isLoadingContent={effectiveIsLoadingContent}
                                                         dropTargetId={dropTargetId}
                                                         setDropTargetId={setDropTargetId}
                                                         handleDrop={handleDrop}
@@ -874,7 +861,7 @@ export function SocialPage() {
                                                         setMobileDrawerOpen={setMobileDrawerOpen}
                                                         searchQuery={searchQuery}
                                                         setSearchQuery={setSearchQuery}
-                                                        isLoadingContent={isLoadingContent}
+                                                        isLoadingContent={effectiveIsLoadingContent}
                                                         isLoadingLinks={isLoadingLinks}
                                                         isSearchingLinks={isSearchingLinks}
                                                         filteredLinks={filteredLinks}

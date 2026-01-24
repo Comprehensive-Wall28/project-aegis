@@ -4,7 +4,6 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
 import authService from '@/services/authService';
 import { clearStoredSeed } from '@/lib/cryptoUtils';
-import { motion } from 'framer-motion';
 import {
     Person as UserIcon,
     Logout as LogOutIcon,
@@ -76,10 +75,6 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
         >
             {/* Left: Section Title & Welcome Footprint */}
             <Box
-                component={motion.div}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3 }}
                 sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}
             >
                 <Typography
@@ -119,7 +114,8 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                             fontWeight: 500,
                             letterSpacing: 0,
                             color: alpha(theme.palette.text.secondary, 0.4),
-                            display: { xs: 'none', md: 'inline' }
+                            display: { xs: 'none', md: 'inline' },
+                            minWidth: 100, // Stabilize layout before username populates
                         }}
                     >
                         Welcome, {username}

@@ -184,14 +184,14 @@ export const LinksContainer = memo(({
                     </Box>
                 )}
 
-                <AnimatePresence initial={false}>
+                <AnimatePresence initial={false} mode="popLayout">
                     {filteredLinks.length > 0 ? (
                         <Box
                             key="links-grid"
                             component={motion.div}
-                            initial={{ opacity: 0, scale: 0.99 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.99, transition: { duration: 0.1 } }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, transition: { duration: 0.1 } }}
                             transition={{
                                 duration: 0.15,
                                 ease: 'easeOut'
