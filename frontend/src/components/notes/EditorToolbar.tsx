@@ -328,7 +328,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 gap: 0.5,
                 p: 1.5,
                 borderBottom: 1,
-                borderColor: 'divider',
+                borderColor: alpha(theme.palette.divider, 0.08),
                 flexWrap: 'wrap',
                 bgcolor: 'background.paper',
             }}>
