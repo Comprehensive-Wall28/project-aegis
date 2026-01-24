@@ -428,9 +428,9 @@
   /* #f7768e */
   --destructive-foreground: 240 16% 10%;
 
-  --border: 228 24% 28%;
-  /* #343b59 - More visible border */
-  --input: 228 24% 28%;
+  --border: 228 24% 35%;
+  /* #444b6a - Lighter/More visible border for tokyonight */
+  --input: 228 24% 35%;
   --ring: 221 91% 72%;
 
   /* Aegis Custom Variables (Tokyo Night) */
@@ -454,28 +454,22 @@ body,
   font-family: var(--font-sans);
 }
 
-/* Aggressive Layout Lock for Dashboard Mode */
-[data-dashboard-active="true"],
-[data-dashboard-active="true"] body {
-  overflow: hidden !important;
-  height: 100% !important;
-  height: 100dvh !important;
-  /* Mobile browser bottom-bar protection */
-  position: fixed;
-  /* Prevents certain 'rubber-band' scroll artifacts on iOS */
-  width: 100%;
+/* OOM Fix: Avoid locking layout on root if we want browser chrome to respond to scroll */
+[data-dashboard-active="true"] {
+  height: 100%;
+  height: 100dvh;
 }
 
 /* Opaque Panel Refinements - Optimized for GPU */
 .glass-panel {
   background: var(--color-card-aegis);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
 }
 
 .glass-card {
   background: var(--color-card-aegis);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

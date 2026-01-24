@@ -1,6 +1,7 @@
 import { BaseRepository } from './base/BaseRepository';
 import FileMetadata, { IFileMetadata } from '../models/FileMetadata';
 import { QueryOptions, SafeFilter, BulkWriteOperation } from './base/types';
+import { escapeRegex } from '../utils/regexUtils';
 
 /**
  * FileMetadataRepository handles all file metadata database operations
@@ -38,13 +39,17 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
     async findByOwnerAndFolder(
         ownerId: string,
         folderId: string | null,
+        search?: string,
         options: QueryOptions = {}
     ): Promise<IFileMetadata[]> {
-        const filter: SafeFilter<IFileMetadata> = {
+        const filter: any = {
             ownerId: { $eq: ownerId }
         };
 
-        if (folderId) {
+        if (search) {
+            filter.originalFileName = { $regex: escapeRegex(search), $options: 'i' };
+            // Global search ignores folderId
+        } else if (folderId) {
             filter.folderId = { $eq: folderId };
         } else {
             filter.folderId = null;
@@ -140,13 +145,16 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
     async findByOwnerAndFolderPaginated(
         ownerId: string,
         folderId: string | null,
-        options: { limit: number; cursor?: string }
+        options: { limit: number; cursor?: string; search?: string }
     ): Promise<{ items: IFileMetadata[]; nextCursor: string | null }> {
-        const filter: SafeFilter<IFileMetadata> = {
+        const filter: any = {
             ownerId: { $eq: ownerId }
         };
 
-        if (folderId) {
+        if (options.search) {
+            filter.originalFileName = { $regex: escapeRegex(options.search), $options: 'i' };
+            // Global search ignores folderId
+        } else if (folderId) {
             filter.folderId = { $eq: folderId };
         } else {
             filter.folderId = null;

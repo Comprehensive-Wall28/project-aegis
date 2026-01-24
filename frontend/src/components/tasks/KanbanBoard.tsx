@@ -22,7 +22,7 @@ import { useKanbanLogic } from '@/hooks/useKanbanLogic';
 
 export type SortMode = 'manual' | 'priority' | 'date';
 
-import { DeleteZone } from './DeleteZone';
+import { DeleteZone, type DeleteStatus } from './DeleteZone';
 
 interface KanbanBoardProps {
     tasks: DecryptedTask[];
@@ -32,6 +32,7 @@ interface KanbanBoardProps {
     onDeleteTask?: (id: string) => void;
     sortMode: SortMode;
     isDragDisabled?: boolean;
+    deleteStatus?: DeleteStatus;
 }
 
 const COLUMN_ICONS = {
@@ -73,7 +74,7 @@ const styles = {
     },
 } as const;
 
-const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, onDeleteTask, sortMode, isDragDisabled }: KanbanBoardProps) => {
+const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, onDeleteTask, sortMode, isDragDisabled, deleteStatus = 'idle' }: KanbanBoardProps) => {
     const {
         sensors,
         activeId,
@@ -136,7 +137,7 @@ const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, onDel
                     ) : null}
                 </DragOverlay>
 
-                <DeleteZone isVisible={activeId !== null} />
+                <DeleteZone isVisible={activeId !== null} status={deleteStatus} />
             </Box>
         </DndContext>
     );

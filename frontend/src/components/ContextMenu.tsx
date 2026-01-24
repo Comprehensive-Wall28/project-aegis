@@ -42,13 +42,15 @@ export function ContextMenu({ open, anchorPosition, onClose, items }: ContextMen
             onClose={onClose}
             anchorReference="anchorPosition"
             anchorPosition={{ top: anchorPosition.y, left: anchorPosition.x }}
-            PaperProps={{
-                sx: {
-                    borderRadius: '16px',
-                    bgcolor: theme.palette.background.paper,
-                    backgroundImage: 'none',
-                    boxShadow: theme.shadows[20],
-                    border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+            slotProps={{
+                paper: {
+                    sx: {
+                        borderRadius: '16px',
+                        bgcolor: theme.palette.background.paper,
+                        backgroundImage: 'none',
+                        boxShadow: theme.shadows[20],
+                        border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                    }
                 }
             }}
         >

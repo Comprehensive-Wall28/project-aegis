@@ -12,6 +12,7 @@ import {
     CheckCircle as TasksIcon,
     Share as ShareIcon,
     Palette as PaletteIcon,
+    NoteAlt as NotesIcon,
 } from '@mui/icons-material';
 import {
     Box,
@@ -40,6 +41,7 @@ const navItems = [
     { name: 'Social', icon: ShareIcon, href: '/dashboard/social' },
     { name: 'Files', href: '/dashboard/files', icon: FolderOpenIcon },
     { name: 'Tasks', href: '/dashboard/tasks', icon: TasksIcon },
+    { name: 'Notes', href: '/dashboard/notes', icon: NotesIcon },
     { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
     { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
     // { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
@@ -209,7 +211,7 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                                     </ListItemIcon>
                                     <ListItemText
                                         primary={currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}
-                                        primaryTypographyProps={{ fontSize: '14px', fontWeight: 500 }}
+                                        slotProps={{ primary: { fontSize: '14px', fontWeight: 500 } }}
                                     />
                                 </ListItemButton>
                             </ListItem>
@@ -245,9 +247,11 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                             {!isCollapsed && (
                                 <ListItemText
                                     primary="Logout"
-                                    primaryTypographyProps={{
-                                        fontSize: '14px',
-                                        fontWeight: 500
+                                    slotProps={{
+                                        primary: {
+                                            fontSize: '14px',
+                                            fontWeight: 500
+                                        }
                                     }}
                                 />
                             )}

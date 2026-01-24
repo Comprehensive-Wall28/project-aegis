@@ -12,7 +12,7 @@ const publicShareService = new PublicShareService();
 export const getLinkMetadata = async (req: Request, res: Response) => {
     try {
         const { token } = req.params;
-        const result = await publicShareService.getLinkMetadata(token);
+        const result = await publicShareService.getLinkMetadata(token as string);
         res.json(result);
     } catch (error) {
         handleError(error, res);
@@ -26,7 +26,7 @@ export const getLinkMetadata = async (req: Request, res: Response) => {
 export const downloadSharedFile = async (req: Request, res: Response) => {
     try {
         const { token } = req.params;
-        const { stream, mimeType, fileName, fileSize } = await publicShareService.downloadSharedFile(token);
+        const { stream, mimeType, fileName, fileSize } = await publicShareService.downloadSharedFile(token as string);
 
         res.setHeader('Content-Type', mimeType);
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);

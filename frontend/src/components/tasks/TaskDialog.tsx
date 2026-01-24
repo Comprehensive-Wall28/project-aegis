@@ -246,12 +246,14 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
                                 onChange={(e) => handleChange('priority')(e as SelectChangeEvent)}
                                 sx={{ borderRadius: '12px' }}
                                 MenuProps={{
-                                    PaperProps: {
-                                        sx: {
-                                            minWidth: 180,
-                                            borderRadius: '12px',
-                                            boxShadow: theme.shadows[10],
-                                            bgcolor: theme.palette.background.paper,
+                                    slotProps: {
+                                        paper: {
+                                            sx: {
+                                                minWidth: 180,
+                                                borderRadius: '12px',
+                                                boxShadow: theme.shadows[10],
+                                                bgcolor: theme.palette.background.paper,
+                                            }
                                         }
                                     }
                                 }}
@@ -466,13 +468,15 @@ export const TaskDialog = memo(({ open, onClose, onSubmit, onDelete, task, isSav
             fullWidth
             maxWidth="sm"
             fullScreen={isMobile}
-            PaperProps={{
-                variant: 'solid',
-                sx: {
-                    borderRadius: isMobile ? 0 : '24px',
-                    boxShadow: theme.shadows[20],
-                    backgroundImage: 'none',
-                    bgcolor: theme.palette.background.paper,
+            slotProps={{
+                paper: {
+                    variant: 'solid',
+                    sx: {
+                        borderRadius: isMobile ? 0 : '24px',
+                        boxShadow: theme.shadows[20],
+                        backgroundImage: 'none',
+                        bgcolor: theme.palette.background.paper,
+                    }
                 }
             }}
         >

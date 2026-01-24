@@ -76,7 +76,7 @@ export const discoverUser = async (req: AuthRequest, res: Response) => {
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        const result = await authService.discoverUser(req.params.email);
+        const result = await authService.discoverUser(req.params.email as string);
         res.json(result);
     } catch (error) {
         handleError(error, res);

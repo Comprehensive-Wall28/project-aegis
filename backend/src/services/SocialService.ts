@@ -8,10 +8,13 @@ import { LinkPostRepository } from '../repositories/LinkPostRepository';
 import { LinkViewRepository } from '../repositories/LinkViewRepository';
 import { LinkMetadataRepository } from '../repositories/LinkMetadataRepository';
 import { LinkCommentRepository } from '../repositories/LinkCommentRepository';
+import { ReaderAnnotationRepository } from '../repositories/ReaderAnnotationRepository';
+import { ReaderContentCacheRepository } from '../repositories/ReaderContentCacheRepository';
 import { IRoom, IRoomMember } from '../models/Room';
 import { ICollection } from '../models/Collection';
 import { ILinkPost, IPreviewData } from '../models/LinkPost';
-import { advancedScrape, smartScrape } from '../utils/scraper';
+import { IReaderAnnotation } from '../models/ReaderAnnotation';
+import { advancedScrape, smartScrape, readerScrape, ReaderContentResult } from '../utils/scraper';
 import logger from '../utils/logger';
 import SocketManager from '../utils/SocketManager';
 
@@ -60,6 +63,8 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
     private linkViewRepo: LinkViewRepository;
     private linkMetadataRepo: LinkMetadataRepository;
     private linkCommentRepo: LinkCommentRepository;
+    private readerAnnotationRepo: ReaderAnnotationRepository;
+    private readerContentCacheRepo: ReaderContentCacheRepository;
 
     constructor() {
         super(new RoomRepository());
@@ -68,6 +73,8 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
         this.linkViewRepo = new LinkViewRepository();
         this.linkMetadataRepo = new LinkMetadataRepository();
         this.linkCommentRepo = new LinkCommentRepository();
+        this.readerAnnotationRepo = new ReaderAnnotationRepository();
+        this.readerContentCacheRepo = new ReaderContentCacheRepository();
     }
 
     // ============== Room Operations ==============
@@ -902,6 +909,176 @@ export class SocialService extends BaseService<IRoom, RoomRepository> {
             if (error instanceof ServiceError) throw error;
             logger.error('Delete comment error:', error);
             throw new ServiceError('Failed to delete comment', 500);
+        }
+    }
+
+    // ============== Reader Mode Operations ==============
+
+    async getReaderContent(userId: string, linkId: string): Promise<ReaderContentResult & { annotationCounts: Record<string, number> }> {
+        try {
+            const linkPost = await this.linkPostRepo.findById(linkId);
+            if (!linkPost) {
+                throw new ServiceError('Link not found', 404);
+            }
+
+            const collection = await this.collectionRepo.findById(linkPost.collectionId.toString());
+            if (!collection) {
+                throw new ServiceError('Collection not found', 404);
+            }
+
+            const room = await this.repository.findByIdAndMember(collection.roomId.toString(), userId);
+            if (!room) {
+                throw new ServiceError('Not a member of this room', 403);
+            }
+
+            // Check cache first (skip failed/blocked entries to allow retry)
+            const cached = await this.readerContentCacheRepo.findValidByUrl(linkPost.url);
+            let readerResult: ReaderContentResult;
+
+            if (cached) {
+                logger.debug(`[Social:Reader] Cache HIT for link ${linkId} (${linkPost.url})`);
+                readerResult = {
+                    title: cached.title,
+                    byline: cached.byline,
+                    content: cached.content,
+                    textContent: cached.textContent,
+                    siteName: cached.siteName,
+                    status: cached.status,
+                    error: cached.error
+                };
+            } else {
+                // Fetch fresh and cache
+                logger.info(`[Social:Reader] Cache MISS - Fetching fresh for link ${linkId} (${linkPost.url})`);
+                readerResult = await readerScrape(linkPost.url);
+
+                // Cache in background (fire-and-forget)
+                this.readerContentCacheRepo.upsertContent(linkPost.url, readerResult);
+            }
+
+            // Get annotation counts by paragraph for highlighting
+            const annotationCounts = await this.readerAnnotationRepo.countByParagraphForLink(linkId);
+
+            return {
+                ...readerResult,
+                annotationCounts
+            };
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Get reader content error:', error);
+            throw new ServiceError('Failed to get reader content', 500);
+        }
+    }
+
+    async getAnnotations(userId: string, linkId: string): Promise<IReaderAnnotation[]> {
+        try {
+            const linkPost = await this.linkPostRepo.findById(linkId);
+            if (!linkPost) {
+                throw new ServiceError('Link not found', 404);
+            }
+
+            const collection = await this.collectionRepo.findById(linkPost.collectionId.toString());
+            if (!collection) {
+                throw new ServiceError('Collection not found', 404);
+            }
+
+            const room = await this.repository.findByIdAndMember(collection.roomId.toString(), userId);
+            if (!room) {
+                throw new ServiceError('Not a member of this room', 403);
+            }
+
+            return this.readerAnnotationRepo.findByLinkId(linkId);
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Get annotations error:', error);
+            throw new ServiceError('Failed to get annotations', 500);
+        }
+    }
+
+    async createAnnotation(
+        userId: string,
+        linkId: string,
+        paragraphId: string,
+        highlightText: string,
+        encryptedContent: string
+    ): Promise<IReaderAnnotation> {
+        try {
+            if (!paragraphId || !highlightText || !encryptedContent) {
+                throw new ServiceError('Missing required fields: paragraphId, highlightText, encryptedContent', 400);
+            }
+
+            const linkPost = await this.linkPostRepo.findById(linkId);
+            if (!linkPost) {
+                throw new ServiceError('Link not found', 404);
+            }
+
+            const collection = await this.collectionRepo.findById(linkPost.collectionId.toString());
+            if (!collection) {
+                throw new ServiceError('Collection not found', 404);
+            }
+
+            const room = await this.repository.findByIdAndMember(collection.roomId.toString(), userId);
+            if (!room) {
+                throw new ServiceError('Not a member of this room', 403);
+            }
+
+            const annotation = await this.readerAnnotationRepo.createAnnotation({
+                linkId,
+                roomId: collection.roomId.toString(),
+                userId,
+                paragraphId,
+                highlightText: highlightText.slice(0, 500), // Enforce max length
+                encryptedContent
+            });
+
+            // Broadcast to room
+            SocketManager.broadcastToRoom(collection.roomId.toString(), 'NEW_ANNOTATION', {
+                linkId,
+                annotation
+            });
+
+            logger.info(`Annotation created on link ${linkId} by user ${userId}`);
+            return annotation;
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Create annotation error:', error);
+            throw new ServiceError('Failed to create annotation', 500);
+        }
+    }
+
+    async deleteAnnotation(userId: string, annotationId: string): Promise<void> {
+        try {
+            const annotation = await this.readerAnnotationRepo.findById(annotationId);
+            if (!annotation) {
+                throw new ServiceError('Annotation not found', 404);
+            }
+
+            const room = await this.repository.findById(annotation.roomId.toString());
+            if (!room) {
+                throw new ServiceError('Room not found', 404);
+            }
+
+            const isAnnotationAuthor = annotation.userId.toString() === userId;
+            const isRoomOwner = room.members.some(
+                m => m.userId.toString() === userId && m.role === 'owner'
+            );
+
+            if (!isAnnotationAuthor && !isRoomOwner) {
+                throw new ServiceError('Permission denied', 403);
+            }
+
+            await this.readerAnnotationRepo.deleteById(annotationId);
+
+            // Broadcast to room
+            SocketManager.broadcastToRoom(room._id.toString(), 'ANNOTATION_DELETED', {
+                linkId: annotation.linkId.toString(),
+                annotationId
+            });
+
+            logger.info(`Annotation ${annotationId} deleted by user ${userId}`);
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Delete annotation error:', error);
+            throw new ServiceError('Failed to delete annotation', 500);
         }
     }
 

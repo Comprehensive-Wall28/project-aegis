@@ -29,7 +29,7 @@ export function RenameFolderDialog({ open, folder, onClose, onRename }: RenameFo
             onClose={onClose}
             maxWidth="xs"
             fullWidth
-            PaperProps={{ variant: 'translucent' as any }}
+            slotProps={{ paper: { variant: 'translucent' as any } }}
         >
             <DialogTitle sx={{ fontWeight: 700 }}>Rename Folder</DialogTitle>
             <DialogContent>

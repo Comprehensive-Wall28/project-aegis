@@ -225,12 +225,14 @@ export const SocialSidebar = memo(({
                 anchor="left"
                 open={mobileDrawerOpen}
                 onClose={handleCloseDrawer}
-                PaperProps={{
-                    sx: {
-                        bgcolor: 'background.default',
-                        backgroundImage: 'none',
-                        width: 240,
-                        p: 2,
+                slotProps={{
+                    paper: {
+                        sx: {
+                            bgcolor: 'background.default',
+                            backgroundImage: 'none',
+                            width: 240,
+                            p: 2,
+                        }
                     }
                 }}
             >

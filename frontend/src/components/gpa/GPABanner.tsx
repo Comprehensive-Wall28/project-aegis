@@ -18,9 +18,10 @@ export const GPABanner = ({ unmigratedCount, isMigrating, migrationProgress, onM
         <Paper
             sx={{
                 p: 2,
-                borderRadius: '12px',
-                bgcolor: alpha('#ed6c02', 0.1), // warning.main equivalent
-                border: `1px solid ${alpha('#ed6c02', 0.3)}`,
+                borderRadius: '16px',
+                bgcolor: alpha('#ed6c02', 0.05), // warning.main equivalent
+                border: `1px solid ${alpha('#ed6c02', 0.15)}`,
+                boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',

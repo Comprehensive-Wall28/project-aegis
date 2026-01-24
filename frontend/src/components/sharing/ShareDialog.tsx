@@ -38,12 +38,14 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({ open, onClose, item, t
             onClose={onClose}
             maxWidth="sm"
             fullWidth
-            PaperProps={{
-                sx: {
-                    borderRadius: '24px',
-                    backgroundImage: 'none',
-                    bgcolor: 'background.paper',
-                    overflow: 'hidden'
+            slotProps={{
+                paper: {
+                    sx: {
+                        borderRadius: '24px',
+                        backgroundImage: 'none',
+                        bgcolor: 'background.paper',
+                        overflow: 'hidden'
+                    }
                 }
             }}
         >

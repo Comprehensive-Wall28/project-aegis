@@ -472,13 +472,15 @@ export function FilesPage() {
                 onClose={() => setShowUpload(false)}
                 maxWidth="sm"
                 fullWidth
-                PaperProps={{
-                    sx: {
-                        borderRadius: '24px',
-                        bgcolor: alpha(theme.palette.background.paper, 0.98),
-                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                        backgroundImage: 'none',
-                        overflow: 'hidden'
+                slotProps={{
+                    paper: {
+                        sx: {
+                            borderRadius: '24px',
+                            bgcolor: alpha(theme.palette.background.paper, 0.98),
+                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                            backgroundImage: 'none',
+                            overflow: 'hidden'
+                        }
                     }
                 }}
             >

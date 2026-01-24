@@ -36,7 +36,6 @@ import {
     History as HistoryIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSocialStore } from '@/stores/useSocialStore';
 import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
 import type { SocialHeaderProps } from './types';
 import {
@@ -72,7 +71,6 @@ export const SocialHeader = memo(({
 }: SocialHeaderProps) => {
     const theme = useTheme();
     const [uploaderSearch, setUploaderSearch] = useState('');
-    const isLoadingContent = useSocialStore((state) => state.isLoadingContent);
     const { name: decryptedName, isDecrypting } = useDecryptedRoomMetadata(currentRoom);
 
     const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
@@ -91,6 +89,10 @@ export const SocialHeader = memo(({
         u.username.toLowerCase().includes(uploaderSearch.toLowerCase())
     );
 
+    const showSkeleton = isDecrypting ||
+        (viewMode === 'room-content' && !currentRoom) ||
+        (optimisticRoomId && currentRoom?._id !== optimisticRoomId);
+
     return (
         <Paper
             elevation={1}
@@ -106,7 +108,7 @@ export const SocialHeader = memo(({
         >
             <Box sx={{ display: 'grid', alignItems: 'center', justifyItems: 'start', gap: 2, flexShrink: 0 }}>
                 <AnimatePresence>
-                    {viewMode === 'room-content' && (optimisticRoomId || currentRoom) ? (
+                    {viewMode === 'room-content' ? (
                         <Box
                             key="room-header-title-area"
                             component={motion.div}
@@ -121,12 +123,12 @@ export const SocialHeader = memo(({
                             </IconButton>
                             <Box sx={{ minWidth: 120 }}>
                                 <Typography variant="h6" noWrap sx={{ fontWeight: 600 }}>
-                                    {isLoadingContent || isDecrypting || (optimisticRoomId && currentRoom && optimisticRoomId !== currentRoom._id)
+                                    {showSkeleton
                                         ? <Skeleton width={120} />
                                         : (decryptedName || '...')}
                                 </Typography>
                                 <Box sx={{ height: 20 }}>
-                                    {isLoadingContent || (optimisticRoomId && currentRoom && optimisticRoomId !== currentRoom._id) ? (
+                                    {showSkeleton ? (
                                         <Skeleton width={80} height={20} />
                                     ) : currentRoom && (
                                         <Typography variant="caption" color="text.secondary">
@@ -238,19 +240,21 @@ export const SocialHeader = memo(({
                             open={Boolean(filterAnchorEl)}
                             onClose={handleFilterClose}
                             disableScrollLock
-                            PaperProps={{
-                                variant: 'solid',
-                                elevation: 8,
-                                sx: {
-                                    minWidth: 260,
-                                    mt: 1,
-                                    bgcolor: theme.palette.background.paper,
-                                    backgroundImage: 'none',
-                                    border: `1px solid ${theme.palette.divider}`,
-                                    borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                    '& .MuiList-root': {
-                                        pt: 0,
-                                    },
+                            slotProps={{
+                                paper: {
+                                    variant: 'solid',
+                                    elevation: 8,
+                                    sx: {
+                                        minWidth: 260,
+                                        mt: 1,
+                                        bgcolor: theme.palette.background.paper,
+                                        backgroundImage: 'none',
+                                        border: `1px solid ${theme.palette.divider}`,
+                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                        '& .MuiList-root': {
+                                            pt: 0,
+                                        },
+                                    }
                                 }
                             }}
                         >
@@ -262,7 +266,7 @@ export const SocialHeader = memo(({
                                 <ListItemIcon sx={{ minWidth: 36 }}>
                                     <HistoryIcon fontSize="small" color={sortOrder === 'latest' ? 'primary' : 'inherit'} />
                                 </ListItemIcon>
-                                <ListItemText primary="Latest First" primaryTypographyProps={{ variant: 'body2', fontWeight: sortOrder === 'latest' ? 600 : 400 }} />
+                                <ListItemText primary="Latest First" slotProps={{ primary: { variant: 'body2', fontWeight: sortOrder === 'latest' ? 600 : 400 } }} />
                                 {sortOrder === 'latest' && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
 
@@ -270,7 +274,7 @@ export const SocialHeader = memo(({
                                 <ListItemIcon sx={{ minWidth: 36 }}>
                                     <TimeIcon fontSize="small" color={sortOrder === 'oldest' ? 'primary' : 'inherit'} />
                                 </ListItemIcon>
-                                <ListItemText primary="Oldest First" primaryTypographyProps={{ variant: 'body2', fontWeight: sortOrder === 'oldest' ? 600 : 400 }} />
+                                <ListItemText primary="Oldest First" slotProps={{ primary: { variant: 'body2', fontWeight: sortOrder === 'latest' ? 600 : 400 } }} />
                                 {sortOrder === 'oldest' && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
 
@@ -284,7 +288,7 @@ export const SocialHeader = memo(({
                                 <ListItemIcon sx={{ minWidth: 36 }}>
                                     <FilterListIcon fontSize="small" color={viewFilter === 'all' ? 'primary' : 'inherit'} />
                                 </ListItemIcon>
-                                <ListItemText primary="All Links" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'all' ? 600 : 400 }} />
+                                <ListItemText primary="All Links" slotProps={{ primary: { variant: 'body2', fontWeight: viewFilter === 'all' ? 600 : 400 } }} />
                                 {viewFilter === 'all' && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
 
@@ -292,7 +296,7 @@ export const SocialHeader = memo(({
                                 <ListItemIcon sx={{ minWidth: 36 }}>
                                     <VisibilityIcon fontSize="small" color={viewFilter === 'viewed' ? 'primary' : 'inherit'} />
                                 </ListItemIcon>
-                                <ListItemText primary="Viewed" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'viewed' ? 600 : 400 }} />
+                                <ListItemText primary="Viewed" slotProps={{ primary: { variant: 'body2', fontWeight: viewFilter === 'viewed' ? 600 : 400 } }} />
                                 {viewFilter === 'viewed' && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
 
@@ -300,7 +304,7 @@ export const SocialHeader = memo(({
                                 <ListItemIcon sx={{ minWidth: 36 }}>
                                     <VisibilityOffIcon fontSize="small" color={viewFilter === 'unviewed' ? 'primary' : 'inherit'} />
                                 </ListItemIcon>
-                                <ListItemText primary="Unviewed" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'unviewed' ? 600 : 400 }} />
+                                <ListItemText primary="Unviewed" slotProps={{ primary: { variant: 'body2', fontWeight: viewFilter === 'unviewed' ? 600 : 400 } }} />
                                 {viewFilter === 'unviewed' && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
 
@@ -344,7 +348,7 @@ export const SocialHeader = memo(({
                                     <ListItemIcon sx={{ minWidth: 36 }}>
                                         <GroupIcon fontSize="small" color={selectedUploader === null ? 'primary' : 'inherit'} />
                                     </ListItemIcon>
-                                    <ListItemText primary="All Uploaders" primaryTypographyProps={{ variant: 'body2', fontWeight: selectedUploader === null ? 600 : 400 }} />
+                                    <ListItemText primary="All Uploaders" slotProps={{ primary: { variant: 'body2', fontWeight: selectedUploader === null ? 600 : 400 } }} />
                                     {selectedUploader === null && <CheckIcon fontSize="small" color="primary" />}
                                 </MenuItem>
 
@@ -359,7 +363,7 @@ export const SocialHeader = memo(({
                                             <ListItemIcon sx={{ minWidth: 36 }}>
                                                 <PersonIcon fontSize="small" color={selectedUploader === uploader.id ? 'primary' : 'inherit'} />
                                             </ListItemIcon>
-                                            <ListItemText primary={uploader.username} primaryTypographyProps={{ variant: 'body2', fontWeight: selectedUploader === uploader.id ? 600 : 400 }} />
+                                            <ListItemText primary={uploader.username} slotProps={{ primary: { variant: 'body2', fontWeight: selectedUploader === uploader.id ? 600 : 400 } }} />
                                             {selectedUploader === uploader.id && <CheckIcon fontSize="small" color="primary" />}
                                         </MenuItem>
                                     ))}

@@ -26,12 +26,13 @@ export class LinkMetadataRepository extends BaseRepository<ILinkMetadata> {
     }
 
     /**
-     * Find cached metadata by URL, excluding failed entries
+     * Find cached metadata by URL, excluding failed/blocked entries.
+     * This allows auto-retry when a previous scrape failed or was blocked.
      */
     async findValidByUrl(url: string): Promise<ILinkMetadata | null> {
         return this.findOne({
             url: { $eq: url },
-            scrapeStatus: { $ne: 'failed' as any }
+            scrapeStatus: { $nin: ['failed', 'blocked'] as any }
         } as SafeFilter<ILinkMetadata>);
     }
 

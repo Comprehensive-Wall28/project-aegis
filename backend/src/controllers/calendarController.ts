@@ -65,7 +65,7 @@ export const updateEvent = async (req: AuthRequest, res: Response) => {
 
         const event = await calendarService.updateEvent(
             req.user.id,
-            req.params.id,
+            req.params.id as string,
             req.body,
             req
         );
@@ -84,7 +84,7 @@ export const deleteEvent = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        await calendarService.deleteEvent(req.user.id, req.params.id, req);
+        await calendarService.deleteEvent(req.user.id, req.params.id as string, req);
         res.status(200).json({ message: 'Event deleted successfully' });
     } catch (error) {
         handleError(error, res);

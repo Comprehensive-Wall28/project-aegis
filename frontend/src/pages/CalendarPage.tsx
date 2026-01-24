@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { extractMentionedIds } from '@/utils/mentionUtils';
 import {
     Box,
@@ -52,46 +53,91 @@ export function CalendarPage() {
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
     const [popoverState, setPopoverState] = useState<{ anchorEl: HTMLElement | null; date: Date | null }>({ anchorEl: null, date: null });
     const calendarRef = useRef<any>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const toggleCalendarParam = useCallback((key: 'event' | 'edit' | 'new', value: string | null) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (value === null) {
+                next.delete(key);
+            } else {
+                // Mutual exclusivity for clarity
+                if (key === 'event') { next.delete('edit'); next.delete('new'); }
+                if (key === 'edit') { next.delete('event'); next.delete('new'); }
+                if (key === 'new') { next.delete('event'); next.delete('edit'); }
+                next.set(key, value);
+            }
+            return next;
+        });
+    }, [setSearchParams]);
 
     const showSnackbar = (message: string, severity: 'success' | 'error' = 'success') => {
         setSnackbar({ open: true, message, severity });
     };
 
+    // Sync state FROM URL
+    useEffect(() => {
+        const urlEventId = searchParams.get('event');
+        const urlEditId = searchParams.get('edit');
+        const urlNewDate = searchParams.get('new');
+
+        if (urlEditId) {
+            const event = events.find(e => e._id === urlEditId);
+            if (event && (selectedEvent?._id !== urlEditId || !dialogOpen)) {
+                setSelectedEvent({
+                    ...event,
+                    id: event._id,
+                    start: event.startDate,
+                    end: event.endDate,
+                    allDay: event.isAllDay,
+                });
+                setDialogOpen(true);
+                setPreviewOpen(false);
+            }
+        } else if (urlNewDate) {
+            if (!dialogOpen || selectedEvent?._id || selectedEvent?.start !== urlNewDate) {
+                setSelectedEvent({ start: urlNewDate, end: urlNewDate });
+                setDialogOpen(true);
+                setPreviewOpen(false);
+            }
+        } else if (urlEventId) {
+            const event = events.find(e => e._id === urlEventId);
+            if (event && (selectedEvent?._id !== urlEventId || !previewOpen)) {
+                setSelectedEvent({
+                    ...event,
+                    id: event._id,
+                    start: event.startDate,
+                    end: event.endDate,
+                    allDay: event.isAllDay,
+                });
+                setPreviewOpen(true);
+                setDialogOpen(false);
+            }
+        } else if (dialogOpen || previewOpen) {
+            setDialogOpen(false);
+            setPreviewOpen(false);
+            setSelectedEvent(null);
+        }
+    }, [searchParams, events, dialogOpen, previewOpen, selectedEvent?._id, selectedEvent?.start]);
+
     const handleDateClick = (arg: any) => {
-        setSelectedEvent({ start: arg.dateStr, end: arg.dateStr });
-        setDialogOpen(true);
+        toggleCalendarParam('new', arg.dateStr);
     };
 
     const handleSelect = (info: any) => {
-        setSelectedEvent({
-            start: info.startStr,
-            end: info.endStr,
-            allDay: info.allDay,
-        });
-        setDialogOpen(true);
+        // FullCalendar selection: we'll just use the start date for the "new" param for simplicity
+        // as search params are easier with single values than complex ranges
+        toggleCalendarParam('new', info.startStr);
     };
 
     const handleEventClick = (info: any) => {
         const id = typeof info === 'string' ? info : (info.event ? info.event.id : info.id);
-
-        const event = events.find(e => e._id === id);
-        if (event) {
-            setSelectedEvent({
-                ...event,
-                id: event._id,
-                start: event.startDate,
-                end: event.endDate,
-                allDay: event.isAllDay,
-            });
-            setPreviewOpen(true);
-            setPopoverState({ anchorEl: null, date: null }); // Close popover if open
-        }
+        toggleCalendarParam('event', id);
+        setPopoverState({ anchorEl: null, date: null }); // Close popover if open
     };
 
     const handleEditFromPreview = (event: any) => {
-        setSelectedEvent(event);
-        setPreviewOpen(false);
-        setDialogOpen(true);
+        toggleCalendarParam('edit', event._id || event.id);
     };
 
     const handleMoreLinkClick = (args: any) => {
@@ -179,7 +225,8 @@ export function CalendarPage() {
                 await addEvent(eventInput, decryptEventData, mentions);
                 showSnackbar('Event created with PQC encryption', 'success');
             }
-            setDialogOpen(false);
+            toggleCalendarParam('edit', null);
+            toggleCalendarParam('new', null);
         } catch (err: any) {
             showSnackbar(err.message || 'Operation failed', 'error');
         }
@@ -189,8 +236,8 @@ export function CalendarPage() {
         try {
             await deleteEvent(id);
             showSnackbar('Event deleted successfully', 'success');
-            setDialogOpen(false);
-            setPreviewOpen(false);
+            toggleCalendarParam('event', null);
+            toggleCalendarParam('edit', null);
         } catch (err: any) {
             showSnackbar(err.message || 'Failed to delete event', 'error');
         }
@@ -549,16 +596,18 @@ export function CalendarPage() {
                     vertical: 'center',
                     horizontal: 'center',
                 }}
-                PaperProps={{
-                    sx: {
-                        borderRadius: '16px',
-                        bgcolor: theme.palette.background.paper,
-                        backgroundImage: 'none',
-                        boxShadow: theme.shadows[8],
-                        border: `1px solid ${theme.palette.divider}`,
-                        minWidth: 280,
-                        maxWidth: 320,
-                        overflow: 'hidden',
+                slotProps={{
+                    paper: {
+                        sx: {
+                            borderRadius: '16px',
+                            bgcolor: theme.palette.background.paper,
+                            backgroundImage: 'none',
+                            boxShadow: theme.shadows[8],
+                            border: `1px solid ${theme.palette.divider}`,
+                            minWidth: 280,
+                            maxWidth: 320,
+                            overflow: 'hidden',
+                        }
                     }
                 }}
             >
@@ -623,7 +672,10 @@ export function CalendarPage() {
 
             <EventDialog
                 open={dialogOpen}
-                onClose={() => setDialogOpen(false)}
+                onClose={() => {
+                    toggleCalendarParam('edit', null);
+                    toggleCalendarParam('new', null);
+                }}
                 onSubmit={handleDialogSubmit}
                 onDelete={handleDeleteEvent}
                 event={selectedEvent}
@@ -632,7 +684,7 @@ export function CalendarPage() {
 
             <EventPreviewDialog
                 open={previewOpen}
-                onClose={() => setPreviewOpen(false)}
+                onClose={() => toggleCalendarParam('event', null)}
                 onEdit={handleEditFromPreview}
                 onDelete={handleDeleteEvent}
                 event={selectedEvent}

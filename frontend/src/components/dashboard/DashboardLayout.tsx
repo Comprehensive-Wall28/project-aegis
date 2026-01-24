@@ -155,7 +155,8 @@ export function DashboardLayout() {
                 height: ['100vh', '100dvh'],
                 bgcolor: 'background.default',
                 display: 'flex',
-                overflow: 'hidden',
+                overflowX: 'hidden',
+                overflowY: 'hidden',
                 position: 'relative'
             }}
         >
@@ -213,7 +214,8 @@ export function DashboardLayout() {
                     }),
                     display: 'flex',
                     flexDirection: 'column',
-                    height: ['100vh', '100dvh'],
+                    minHeight: 0,
+                    height: { xs: '100vh', lg: '100dvh' },
                     position: 'relative',
                     zIndex: 1,
                     minWidth: 0
@@ -235,6 +237,7 @@ export function DashboardLayout() {
                         transition={{ duration: 0.3 }}
                         sx={{
                             height: '100%',
+                            minHeight: 0,
                             display: 'flex',
                             flexDirection: 'column',
                             borderRadius: '16px',

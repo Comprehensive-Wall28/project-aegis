@@ -253,6 +253,9 @@ export const createSocketSlice: StateCreator<SocialState, [], [], Pick<SocialSta
             console.log('[Store] Socket Reconnected - refreshing data');
 
             if (state.currentRoom) {
+                // Refresh room metadata and collections
+                get().refreshCurrentRoom();
+
                 const collectionId = state.currentCollectionId;
                 if (collectionId) {
                     setTimeout(() => {

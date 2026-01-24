@@ -75,7 +75,7 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
 
         const { stream, file } = await vaultService.getDownloadStream(
             req.user.id,
-            req.params.id
+            req.params.id as string
         );
 
         // Handle stream errors
@@ -105,7 +105,7 @@ export const getFile = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        const file = await vaultService.getFile(req.user.id, req.params.id);
+        const file = await vaultService.getFile(req.user.id, req.params.id as string);
         res.json(file);
     } catch (error) {
         handleError(error, res);
@@ -127,18 +127,19 @@ export const getUserFiles = async (req: AuthRequest, res: Response) => {
         // Check for pagination params
         const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
         const cursor = req.query.cursor as string | undefined;
+        const search = req.query.search as string | undefined;
 
         if (limit !== undefined) {
             const result = await vaultService.getUserFilesPaginated(
                 req.user.id,
                 normalizedFolderId,
-                { limit, cursor }
+                { limit, cursor, search }
             );
             return res.json(result);
         }
 
         // Non-paginated fallback
-        const files = await vaultService.getUserFiles(req.user.id, folderId);
+        const files = await vaultService.getUserFiles(req.user.id, folderId, search);
         res.json(files);
     } catch (error) {
         handleError(error, res);
@@ -154,7 +155,7 @@ export const deleteUserFile = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        await vaultService.deleteFile(req.user.id, req.params.id, req);
+        await vaultService.deleteFile(req.user.id, req.params.id as string, req);
         res.status(200).json({ message: 'File deleted successfully' });
     } catch (error) {
         handleError(error, res);

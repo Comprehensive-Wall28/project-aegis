@@ -18,7 +18,11 @@ import {
     getComments,
     postComment,
     deleteComment,
-    searchRoomLinks
+    searchRoomLinks,
+    getReaderContent,
+    getAnnotations,
+    createAnnotation,
+    deleteAnnotation
 } from '../controllers/socialController';
 import { proxyImage } from '../controllers/linkPreviewController';
 import { protect } from '../middleware/authMiddleware';
@@ -49,5 +53,11 @@ router.delete('/links/:linkId/view', protect, csrfProtection, unmarkLinkViewed);
 router.get('/links/:linkId/comments', protect, csrfProtection, getComments);
 router.post('/links/:linkId/comments', protect, csrfProtection, postComment);
 router.delete('/comments/:commentId', protect, csrfProtection, deleteComment);
+
+// Reader mode routes
+router.get('/links/:linkId/reader', protect, csrfProtection, getReaderContent);
+router.get('/links/:linkId/annotations', protect, csrfProtection, getAnnotations);
+router.post('/links/:linkId/annotations', protect, csrfProtection, createAnnotation);
+router.delete('/annotations/:annotationId', protect, csrfProtection, deleteAnnotation);
 
 export default router;

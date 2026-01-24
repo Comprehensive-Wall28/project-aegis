@@ -65,7 +65,7 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
 
         const task = await taskService.updateTask(
             req.user.id,
-            req.params.id,
+            req.params.id as string,
             req.body,
             req
         );
@@ -85,7 +85,7 @@ export const deleteTask = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        await taskService.deleteTask(req.user.id, req.params.id, req);
+        await taskService.deleteTask(req.user.id, req.params.id as string, req);
         res.status(200).json({ message: 'Task deleted successfully' });
     } catch (error) {
         handleError(error, res);

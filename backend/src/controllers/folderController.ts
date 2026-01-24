@@ -46,7 +46,7 @@ export const getFolder = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const folder = await folderService.getFolder(req.user.id, req.params.id);
+        const folder = await folderService.getFolder(req.user.id, req.params.id as string);
         res.status(200).json(folder);
     } catch (error) {
         handleError(error, res);
@@ -80,7 +80,7 @@ export const renameFolder = async (req: AuthRequest, res: Response) => {
 
         const folder = await folderService.updateFolder(
             req.user.id,
-            req.params.id,
+            req.params.id as string,
             req.body
         );
         res.status(200).json(folder);
@@ -98,7 +98,7 @@ export const deleteFolder = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        await folderService.deleteFolder(req.user.id, req.params.id);
+        await folderService.deleteFolder(req.user.id, req.params.id as string);
         res.status(200).json({ message: 'Folder deleted successfully' });
     } catch (error) {
         handleError(error, res);

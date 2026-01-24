@@ -62,7 +62,7 @@ export const getSharedFolderKey = async (req: AuthRequest, res: Response) => {
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        const result = await shareService.getSharedFolderKey(req.user.id, req.params.folderId);
+        const result = await shareService.getSharedFolderKey(req.user.id, req.params.folderId as string);
         res.json(result);
     } catch (error) {
         handleError(error, res);
@@ -77,7 +77,7 @@ export const getSharedFileKey = async (req: AuthRequest, res: Response) => {
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        const result = await shareService.getSharedFileKey(req.user.id, req.params.fileId);
+        const result = await shareService.getSharedFileKey(req.user.id, req.params.fileId as string);
         res.json(result);
     } catch (error) {
         handleError(error, res);
@@ -124,7 +124,7 @@ export const revokeLink = async (req: AuthRequest, res: Response) => {
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        await shareService.revokeLink(req.user.id, req.params.id);
+        await shareService.revokeLink(req.user.id, req.params.id as string);
         res.json({ message: 'Link revoked successfully' });
     } catch (error) {
         handleError(error, res);

@@ -1,6 +1,6 @@
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress, Tooltip } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon } from '@mui/icons-material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon, AutoStoriesOutlined as ReaderIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import type { LinkCardProps } from './types';
@@ -56,20 +56,30 @@ const renderHighlightedText = (text: string, query?: string) => {
     );
 };
 
-export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick, highlight }: LinkCardProps) => {
+export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewClick, showPreview, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick, highlight }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
+
+    // Handle ESC key to close preview
+    useEffect(() => {
+        if (!showPreview) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                onPreviewClick?.(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showPreview, onPreviewClick]);
 
     const username = typeof link.userId === 'object' ? link.userId.username : 'Unknown';
 
     const [isDragging, setIsDragging] = useState(false);
-    const [showPreview, setShowPreview] = useState(false);
+    // showPreview is now controlled by prop
 
     const previewImage = previewData.image ? getProxiedUrl(previewData.image) : '';
     const faviconImage = previewData.favicon ? getProxiedUrl(previewData.favicon) : '';
-
-    // Close preview
-    const closePreview = () => setShowPreview(false);
 
     return (
         <>
@@ -347,13 +357,27 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                                     size="small"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setShowPreview(true);
+                                        onPreviewClick?.(link);
                                     }}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
                                     aria-label="Show preview"
                                 >
                                     <OpenInFullIcon fontSize="small" />
                                 </IconButton>
+
+                                <Tooltip title="Reader Mode" placement="top">
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onReaderClick?.(link);
+                                        }}
+                                        sx={{ color: 'text.secondary', '&:hover': { color: 'success.main' } }}
+                                        aria-label="Open in Reader Mode"
+                                    >
+                                        <ReaderIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
 
                                 <IconButton
                                     size="small"
@@ -421,7 +445,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={closePreview}
+                            onClick={() => onPreviewClick?.(null)}
                             sx={{
                                 position: 'fixed',
                                 inset: 0,
@@ -501,7 +525,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onDelete, onDragStart, on
 
                                     {/* Close Button */}
                                     <IconButton
-                                        onClick={closePreview}
+                                        onClick={() => onPreviewClick?.(null)}
                                         sx={{
                                             position: 'absolute',
                                             top: 16,

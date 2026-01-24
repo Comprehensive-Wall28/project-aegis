@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { extractMentionedIds } from '@/utils/mentionUtils';
 import {
     Box,
@@ -30,6 +31,7 @@ import { useTaskEncryption } from '@/hooks/useTaskEncryption';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { TaskDialog, type TaskDialogData } from '@/components/tasks/TaskDialog';
 import { TaskPreviewDialog } from '@/components/tasks/TaskPreviewDialog';
+
 
 type SnackbarState = {
     open: boolean;
@@ -97,6 +99,7 @@ export function TasksPage() {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [deleteStatus, setDeleteStatus] = useState<'idle' | 'deleting' | 'success' | 'error'>('idle');
 
     const [snackbar, setSnackbar] = useState<SnackbarState>({
         open: false,
@@ -104,26 +107,72 @@ export function TasksPage() {
         severity: 'success',
     });
 
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const toggleTaskParam = useCallback((key: 'task' | 'edit' | 'new', value: string | null) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (value === null) {
+                next.delete(key);
+            } else {
+                // Ensure mutual exclusivity for task-related params to avoid UI clutter
+                if (key === 'task') { next.delete('edit'); next.delete('new'); }
+                if (key === 'edit') { next.delete('task'); next.delete('new'); }
+                if (key === 'new') { next.delete('task'); next.delete('edit'); }
+                next.set(key, value);
+            }
+            return next;
+        });
+    }, [setSearchParams]);
+
+    // Sync state FROM URL
+    useEffect(() => {
+        const urlTaskId = searchParams.get('task');
+        const urlEditId = searchParams.get('edit');
+        const urlNewStatus = searchParams.get('new') as any;
+
+        if (urlEditId) {
+            const task = tasks.find(t => t._id === urlEditId);
+            if (task && (selectedTask?._id !== urlEditId || !dialogOpen)) {
+                setSelectedTask(task);
+                setDialogOpen(true);
+                setPreviewOpen(false);
+            }
+        } else if (urlNewStatus) {
+            if (!dialogOpen || selectedTask?._id || selectedTask?.status !== urlNewStatus) {
+                setSelectedTask({ status: urlNewStatus, _tempId: Date.now() });
+                setDialogOpen(true);
+                setPreviewOpen(false);
+            }
+        } else if (urlTaskId) {
+            const task = tasks.find(t => t._id === urlTaskId);
+            if (task && (selectedTask?._id !== urlTaskId || !previewOpen)) {
+                setSelectedTask(task);
+                setPreviewOpen(true);
+                setDialogOpen(false);
+            }
+        } else if (dialogOpen || previewOpen) {
+            setDialogOpen(false);
+            setPreviewOpen(false);
+            setSelectedTask(null);
+        }
+    }, [searchParams, tasks, dialogOpen, previewOpen, selectedTask?._id, selectedTask?.status]);
+
     const showSnackbar = (message: string, severity: SnackbarState['severity']) => {
         setSnackbar({ open: true, message, severity });
     };
 
     const handleAddTask = useCallback((status: 'todo' | 'in_progress' | 'done' = 'todo') => {
-        // @ts-ignore - _tempId is local only for key generation
-        setSelectedTask({ status, _tempId: Date.now() });
-        setDialogOpen(true);
-    }, []);
+        toggleTaskParam('new', status);
+    }, [toggleTaskParam]);
 
     const handleTaskClick = useCallback((task: any) => {
-        setSelectedTask(task);
-        setPreviewOpen(true);
-    }, []);
+        toggleTaskParam('task', task._id);
+    }, [toggleTaskParam]);
 
     const handleEditFromPreview = useCallback((task: any) => {
-        setSelectedTask(task);
-        setPreviewOpen(false);
-        setDialogOpen(true);
-    }, []);
+        toggleTaskParam('edit', task._id);
+    }, [toggleTaskParam]);
 
     const handleDialogSubmit = useCallback(async (data: TaskDialogData) => {
         if (pqcEngineStatus !== 'operational') {
@@ -181,7 +230,8 @@ export function TasksPage() {
                 showSnackbar('Task created with PQC encryption', 'success');
             }
 
-            setDialogOpen(false);
+            toggleTaskParam('edit', null);
+            toggleTaskParam('new', null);
         } catch (error: any) {
             showSnackbar(error.message || 'Operation failed', 'error');
         } finally {
@@ -192,12 +242,25 @@ export function TasksPage() {
     const handleDeleteTask = useCallback(async (taskId: string) => {
         try {
             setIsSaving(true);
+            setDeleteStatus('deleting');
             await deleteTask(taskId);
-            showSnackbar('Task deleted successfully', 'success');
-            setDialogOpen(false);
-            setPreviewOpen(false);
+            setDeleteStatus('success');
+
+            // Revert status to idle after delay
+            setTimeout(() => {
+                setDeleteStatus('idle');
+            }, 2000);
+
+            toggleTaskParam('task', null);
+            toggleTaskParam('edit', null);
         } catch (error: any) {
+            setDeleteStatus('error');
             showSnackbar(error.message || 'Failed to delete task', 'error');
+
+            // Revert status to idle after delay
+            setTimeout(() => {
+                setDeleteStatus('idle');
+            }, 3000);
         } finally {
             setIsSaving(false);
         }
@@ -207,7 +270,6 @@ export function TasksPage() {
         try {
             // reorderTasks in taskStore handles optimistic update and backend sync
             await reorderTasks(updates);
-            showSnackbar('Board updated', 'success');
         } catch (error: any) {
             showSnackbar(error.message || 'Failed to sync reorder', 'error');
         }
@@ -317,13 +379,15 @@ export function TasksPage() {
                                 anchorEl={sortAnchorEl}
                                 open={Boolean(sortAnchorEl)}
                                 onClose={() => handleSortClose()}
-                                PaperProps={{
-                                    sx: {
-                                        mt: 1,
-                                        minWidth: 180,
-                                        borderRadius: '12px',
-                                        boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
-                                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                slotProps={{
+                                    paper: {
+                                        sx: {
+                                            mt: 1,
+                                            minWidth: 180,
+                                            borderRadius: '12px',
+                                            boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
+                                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                        }
                                     }
                                 }}
                             >
@@ -401,6 +465,7 @@ export function TasksPage() {
                         onDeleteTask={handleDeleteTask}
                         sortMode={sortMode}
                         isDragDisabled={!!searchTerm.trim()}
+                        deleteStatus={deleteStatus}
                     />
                 </Box>
             )}
@@ -409,7 +474,8 @@ export function TasksPage() {
             <TaskDialog
                 open={dialogOpen}
                 onClose={() => {
-                    setDialogOpen(false);
+                    toggleTaskParam('edit', null);
+                    toggleTaskParam('new', null);
                 }}
                 onSubmit={handleDialogSubmit}
                 onDelete={handleDeleteTask}
@@ -420,7 +486,7 @@ export function TasksPage() {
             {/* Task Preview Dialog */}
             <TaskPreviewDialog
                 open={previewOpen}
-                onClose={() => setPreviewOpen(false)}
+                onClose={() => toggleTaskParam('task', null)}
                 onEdit={handleEditFromPreview}
                 onDelete={handleDeleteTask}
                 task={selectedTask}

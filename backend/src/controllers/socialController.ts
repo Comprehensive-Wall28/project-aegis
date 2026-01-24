@@ -40,7 +40,7 @@ export const createInvite = async (req: AuthRequest, res: Response, next: NextFu
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        const inviteCode = await socialService.createInvite(req.user.id, req.params.roomId, req);
+        const inviteCode = await socialService.createInvite(req.user.id, req.params.roomId as string, req);
         res.status(200).json({ inviteCode });
     } catch (error) {
         handleError(error, res, next);
@@ -49,7 +49,7 @@ export const createInvite = async (req: AuthRequest, res: Response, next: NextFu
 
 export const getInviteInfo = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const info = await socialService.getInviteInfo(req.params.inviteCode);
+        const info = await socialService.getInviteInfo(req.params.inviteCode as string);
         res.status(200).json(info);
     } catch (error) {
         handleError(error, res, next);
@@ -74,7 +74,7 @@ export const getRoomContent = async (req: AuthRequest, res: Response, next: Next
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        const content = await socialService.getRoomContent(req.user.id, req.params.roomId);
+        const content = await socialService.getRoomContent(req.user.id, req.params.roomId as string);
         res.status(200).json(content);
     } catch (error) {
         handleError(error, res, next);
@@ -97,8 +97,8 @@ export const getCollectionLinks = async (req: AuthRequest, res: Response, next: 
 
         const result = await socialService.getCollectionLinks(
             req.user.id,
-            req.params.roomId,
-            req.params.collectionId,
+            req.params.roomId as string,
+            req.params.collectionId as string,
             limit,
             beforeCursor
         );
@@ -122,7 +122,7 @@ export const searchRoomLinks = async (req: AuthRequest, res: Response, next: Nex
 
         const result = await socialService.searchRoomLinks(
             req.user.id,
-            req.params.roomId,
+            req.params.roomId as string,
             query,
             limit
         );
@@ -139,7 +139,7 @@ export const postLink = async (req: AuthRequest, res: Response, next: NextFuncti
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        const linkPost = await socialService.postLink(req.user.id, req.params.roomId, req.body, req);
+        const linkPost = await socialService.postLink(req.user.id, req.params.roomId as string, req.body, req);
         res.status(201).json(linkPost);
     } catch (error) {
         handleError(error, res, next);
@@ -151,7 +151,7 @@ export const deleteLink = async (req: AuthRequest, res: Response, next: NextFunc
         if (!req.user) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        await socialService.deleteLink(req.user.id, req.params.linkId, req);
+        await socialService.deleteLink(req.user.id, req.params.linkId as string, req);
         res.status(200).json({ message: 'Link deleted successfully' });
     } catch (error) {
         handleError(error, res, next);
@@ -163,7 +163,7 @@ export const markLinkViewed = async (req: AuthRequest, res: Response, next: Next
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        await socialService.markLinkViewed(req.user.id, req.params.linkId);
+        await socialService.markLinkViewed(req.user.id, req.params.linkId as string);
         res.status(200).json({ message: 'Link marked as viewed' });
     } catch (error) {
         handleError(error, res, next);
@@ -175,7 +175,7 @@ export const unmarkLinkViewed = async (req: AuthRequest, res: Response, next: Ne
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        await socialService.unmarkLinkViewed(req.user.id, req.params.linkId);
+        await socialService.unmarkLinkViewed(req.user.id, req.params.linkId as string);
         res.status(200).json({ message: 'Link unmarked as viewed' });
     } catch (error) {
         handleError(error, res, next);
@@ -187,7 +187,7 @@ export const moveLink = async (req: AuthRequest, res: Response, next: NextFuncti
         if (!req.user) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        const linkPost = await socialService.moveLink(req.user.id, req.params.linkId, req.body.collectionId);
+        const linkPost = await socialService.moveLink(req.user.id, req.params.linkId as string, req.body.collectionId);
         res.status(200).json({ message: 'Link moved successfully', linkPost });
     } catch (error) {
         handleError(error, res, next);
@@ -201,7 +201,7 @@ export const createCollection = async (req: AuthRequest, res: Response, next: Ne
         if (!req.user) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        const collection = await socialService.createCollection(req.user.id, req.params.roomId, req.body);
+        const collection = await socialService.createCollection(req.user.id, req.params.roomId as string, req.body);
         res.status(201).json(collection);
     } catch (error) {
         handleError(error, res, next);
@@ -213,7 +213,7 @@ export const deleteCollection = async (req: AuthRequest, res: Response, next: Ne
         if (!req.user) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        await socialService.deleteCollection(req.user.id, req.params.collectionId, req);
+        await socialService.deleteCollection(req.user.id, req.params.collectionId as string, req);
         res.status(200).json({ message: 'Collection deleted successfully' });
     } catch (error) {
         handleError(error, res, next);
@@ -227,7 +227,11 @@ export const reorderCollections = async (req: AuthRequest, res: Response, next: 
         }
         const { roomId } = req.params;
         const { collectionIds } = req.body;
-        await socialService.reorderCollections(req.user.id, roomId, collectionIds);
+        // roomId is already extracted and typed as string in line 228
+        // However line 228 is: const { roomId } = req.params;
+        // In express 5, that's string | string[].
+        // Let's redefine it properly or cast it.
+        await socialService.reorderCollections(req.user.id, roomId as string, collectionIds);
         res.status(200).json({ message: 'Collections reordered successfully' });
     } catch (error) {
         handleError(error, res, next);
@@ -253,7 +257,7 @@ export const getComments = async (req: AuthRequest, res: Response, next: NextFun
 
         const result = await socialService.getComments(
             req.user.id,
-            req.params.linkId,
+            req.params.linkId as string,
             limit,
             beforeCursor
         );
@@ -270,7 +274,7 @@ export const postComment = async (req: AuthRequest, res: Response, next: NextFun
         }
         const comment = await socialService.postComment(
             req.user.id,
-            req.params.linkId,
+            req.params.linkId as string,
             req.body.encryptedContent
         );
         res.status(201).json(comment);
@@ -284,8 +288,65 @@ export const deleteComment = async (req: AuthRequest, res: Response, next: NextF
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        await socialService.deleteComment(req.user.id, req.params.commentId);
+        await socialService.deleteComment(req.user.id, req.params.commentId as string);
         res.status(200).json({ message: 'Comment deleted successfully' });
+    } catch (error) {
+        handleError(error, res, next);
+    }
+};
+
+// ============== Reader Mode Endpoints ==============
+
+export const getReaderContent = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+        const result = await socialService.getReaderContent(req.user.id, req.params.linkId as string);
+        res.status(200).json(result);
+    } catch (error) {
+        handleError(error, res, next);
+    }
+};
+
+export const getAnnotations = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+        const annotations = await socialService.getAnnotations(req.user.id, req.params.linkId as string);
+        res.status(200).json(annotations);
+    } catch (error) {
+        handleError(error, res, next);
+    }
+};
+
+export const createAnnotation = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+        const { paragraphId, highlightText, encryptedContent } = req.body;
+        const annotation = await socialService.createAnnotation(
+            req.user.id,
+            req.params.linkId as string,
+            paragraphId,
+            highlightText,
+            encryptedContent
+        );
+        res.status(201).json(annotation);
+    } catch (error) {
+        handleError(error, res, next);
+    }
+};
+
+export const deleteAnnotation = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
+        await socialService.deleteAnnotation(req.user.id, req.params.annotationId as string);
+        res.status(200).json({ message: 'Annotation deleted successfully' });
     } catch (error) {
         handleError(error, res, next);
     }

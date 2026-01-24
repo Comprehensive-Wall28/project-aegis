@@ -183,11 +183,13 @@ export const PDFPreviewOverlay = ({
             open={isOpen}
             onClose={onClose}
             fullScreen
-            PaperProps={{
-                sx: {
-                    bgcolor: 'transparent',
-                    backgroundImage: 'none',
-                    boxShadow: 'none',
+            slotProps={{
+                paper: {
+                    sx: {
+                        bgcolor: 'transparent',
+                        backgroundImage: 'none',
+                        boxShadow: 'none',
+                    }
                 }
             }}
             sx={{
