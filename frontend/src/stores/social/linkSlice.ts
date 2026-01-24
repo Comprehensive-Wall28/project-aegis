@@ -112,7 +112,10 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
         } catch (error) {
             console.error('Failed to fetch collection links:', error);
         } finally {
-            set({ isLoadingLinks: false });
+            const finalState = get();
+            if (finalState.currentCollectionId === collectionId) {
+                set({ isLoadingLinks: false });
+            }
         }
     },
 
