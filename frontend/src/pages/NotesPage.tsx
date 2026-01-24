@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
     Box,
     useTheme,
@@ -101,21 +102,71 @@ const NotesPage: React.FC = () => {
         setEditorContainer(node);
     }, []);
 
-    const handleSearchChange = (query: string) => {
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const handleSearchChange = useCallback((query: string) => {
         setSearchQuery(query);
-    };
+    }, [setSearchQuery]);
+
+    // Handlers
+    const updateUrlParams = useCallback((noteId: string | null, folderId?: string | null) => {
+        const params = new URLSearchParams(searchParams);
+        if (noteId) {
+            params.set('n', noteId);
+        } else {
+            params.delete('n');
+        }
+
+        if (folderId !== undefined) {
+            if (folderId) {
+                params.set('f', folderId);
+            } else {
+                params.delete('f');
+            }
+        }
+        setSearchParams(params);
+    }, [searchParams, setSearchParams]);
+
+    // Sync state FROM URL
+    useEffect(() => {
+        const urlNoteId = searchParams.get('n');
+        const urlFolderId = searchParams.get('f');
+
+        // Sync Folder
+        if (urlFolderId && urlFolderId !== selectedFolderId) {
+            setSelectedFolderId(urlFolderId);
+        } else if (!urlFolderId && selectedFolderId) {
+            setSelectedFolderId(null);
+        }
+
+        // Sync Note
+        if (urlNoteId) {
+            if (selectedNote?.metadata._id !== urlNoteId) {
+                // Find note in list to select
+                const noteToSelect = notes.find(n => n._id === urlNoteId);
+                if (noteToSelect) {
+                    handleSelectNote(noteToSelect);
+                    if (isMobile) setMobileEditorOpen(true);
+                }
+            }
+        } else if (selectedNote) {
+            // Close note if it was open but no 'n' in URL
+            setSelectedNote(null);
+            setIsZenMode(false);
+            setEditorContainer(null);
+            if (isMobile) setMobileEditorOpen(false);
+        }
+    }, [searchParams, notes, selectedFolderId, isMobile, handleSelectNote, setSelectedFolderId, setSelectedNote, selectedNote?.metadata._id]);
 
     // Handlers - Desktop: click opens NoteFullView
     const handleSelectNoteDesktop = useCallback(async (note: NoteMetadata) => {
-        await handleSelectNote(note);
-        // Note is now selected and will be shown in NoteFullView
-    }, [handleSelectNote]);
+        updateUrlParams(note._id);
+    }, [updateUrlParams]);
 
     // Mobile: opens drawer
     const handleSelectNoteMobile = useCallback(async (note: NoteMetadata) => {
-        await handleSelectNote(note);
-        setMobileEditorOpen(true);
-    }, [handleSelectNote]);
+        updateUrlParams(note._id);
+    }, [updateUrlParams]);
 
     // Create note - opens in full view on desktop, drawer on mobile
     const handleCreateNoteWrapper = useCallback(async () => {
@@ -130,10 +181,8 @@ const NotesPage: React.FC = () => {
 
     // Close NoteFullView (desktop)
     const handleCloseNote = useCallback(() => {
-        setSelectedNote(null);
-        setIsZenMode(false); // Reset Zen mode
-        setEditorContainer(null);
-    }, [setSelectedNote]);
+        updateUrlParams(null);
+    }, [updateUrlParams]);
 
     const openFolderDialog = (mode: 'create' | 'rename', folder?: NoteFolder) => {
         setFolderDialogMode(mode);
@@ -238,7 +287,7 @@ const NotesPage: React.FC = () => {
                         searchQuery={searchQuery}
                         onSearchChange={handleSearchChange}
                         onCreateNote={handleCreateNoteWrapper}
-                        onSelectFolder={setSelectedFolderId}
+                        onSelectFolder={(id) => updateUrlParams(null, id)}
                         onSelectNote={handleSelectNoteMobile}
                         onDeleteNote={handleDeleteNoteWrapper}
                         userTags={userTags}
@@ -258,7 +307,7 @@ const NotesPage: React.FC = () => {
                 <Drawer
                     anchor="right"
                     open={mobileEditorOpen}
-                    onClose={() => setMobileEditorOpen(false)}
+                    onClose={handleCloseNote}
                     PaperProps={{ sx: { width: '100%', display: 'flex', flexDirection: 'column' } }}
                 >
                     <NoteDetailView
@@ -266,7 +315,7 @@ const NotesPage: React.FC = () => {
                         isLoadingContent={isLoadingContent}
                         onCreateNote={handleCreateNoteWrapper}
                         isMobile={true}
-                        onMobileBack={() => setMobileEditorOpen(false)}
+                        onMobileBack={handleCloseNote}
                         editorInstance={editorElement}
                     />
                 </Drawer>
@@ -368,7 +417,7 @@ const NotesPage: React.FC = () => {
                         <FolderPanel
                             folders={folders}
                             selectedFolderId={selectedFolderId}
-                            onSelectFolder={setSelectedFolderId}
+                            onSelectFolder={(id) => updateUrlParams(null, id)}
                             onOpenFolderDialog={openFolderDialog}
                             onDeleteFolder={(id) => openDeleteConfirm('folder', id, folders.find(f => f._id === id)?.name || 'this folder')}
                             dragDrop={dragDrop}

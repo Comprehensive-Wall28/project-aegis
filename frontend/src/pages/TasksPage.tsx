@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { extractMentionedIds } from '@/utils/mentionUtils';
 import {
     Box,
@@ -106,26 +107,72 @@ export function TasksPage() {
         severity: 'success',
     });
 
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const toggleTaskParam = useCallback((key: 'task' | 'edit' | 'new', value: string | null) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (value === null) {
+                next.delete(key);
+            } else {
+                // Ensure mutual exclusivity for task-related params to avoid UI clutter
+                if (key === 'task') { next.delete('edit'); next.delete('new'); }
+                if (key === 'edit') { next.delete('task'); next.delete('new'); }
+                if (key === 'new') { next.delete('task'); next.delete('edit'); }
+                next.set(key, value);
+            }
+            return next;
+        });
+    }, [setSearchParams]);
+
+    // Sync state FROM URL
+    useEffect(() => {
+        const urlTaskId = searchParams.get('task');
+        const urlEditId = searchParams.get('edit');
+        const urlNewStatus = searchParams.get('new') as any;
+
+        if (urlEditId) {
+            const task = tasks.find(t => t._id === urlEditId);
+            if (task && (selectedTask?._id !== urlEditId || !dialogOpen)) {
+                setSelectedTask(task);
+                setDialogOpen(true);
+                setPreviewOpen(false);
+            }
+        } else if (urlNewStatus) {
+            if (!dialogOpen || selectedTask?._id || selectedTask?.status !== urlNewStatus) {
+                setSelectedTask({ status: urlNewStatus, _tempId: Date.now() });
+                setDialogOpen(true);
+                setPreviewOpen(false);
+            }
+        } else if (urlTaskId) {
+            const task = tasks.find(t => t._id === urlTaskId);
+            if (task && (selectedTask?._id !== urlTaskId || !previewOpen)) {
+                setSelectedTask(task);
+                setPreviewOpen(true);
+                setDialogOpen(false);
+            }
+        } else if (dialogOpen || previewOpen) {
+            setDialogOpen(false);
+            setPreviewOpen(false);
+            setSelectedTask(null);
+        }
+    }, [searchParams, tasks, dialogOpen, previewOpen, selectedTask?._id, selectedTask?.status]);
+
     const showSnackbar = (message: string, severity: SnackbarState['severity']) => {
         setSnackbar({ open: true, message, severity });
     };
 
     const handleAddTask = useCallback((status: 'todo' | 'in_progress' | 'done' = 'todo') => {
-        // @ts-ignore - _tempId is local only for key generation
-        setSelectedTask({ status, _tempId: Date.now() });
-        setDialogOpen(true);
-    }, []);
+        toggleTaskParam('new', status);
+    }, [toggleTaskParam]);
 
     const handleTaskClick = useCallback((task: any) => {
-        setSelectedTask(task);
-        setPreviewOpen(true);
-    }, []);
+        toggleTaskParam('task', task._id);
+    }, [toggleTaskParam]);
 
     const handleEditFromPreview = useCallback((task: any) => {
-        setSelectedTask(task);
-        setPreviewOpen(false);
-        setDialogOpen(true);
-    }, []);
+        toggleTaskParam('edit', task._id);
+    }, [toggleTaskParam]);
 
     const handleDialogSubmit = useCallback(async (data: TaskDialogData) => {
         if (pqcEngineStatus !== 'operational') {
@@ -183,7 +230,8 @@ export function TasksPage() {
                 showSnackbar('Task created with PQC encryption', 'success');
             }
 
-            setDialogOpen(false);
+            toggleTaskParam('edit', null);
+            toggleTaskParam('new', null);
         } catch (error: any) {
             showSnackbar(error.message || 'Operation failed', 'error');
         } finally {
@@ -203,8 +251,8 @@ export function TasksPage() {
                 setDeleteStatus('idle');
             }, 2000);
 
-            setDialogOpen(false);
-            setPreviewOpen(false);
+            toggleTaskParam('task', null);
+            toggleTaskParam('edit', null);
         } catch (error: any) {
             setDeleteStatus('error');
             showSnackbar(error.message || 'Failed to delete task', 'error');
@@ -425,7 +473,8 @@ export function TasksPage() {
             <TaskDialog
                 open={dialogOpen}
                 onClose={() => {
-                    setDialogOpen(false);
+                    toggleTaskParam('edit', null);
+                    toggleTaskParam('new', null);
                 }}
                 onSubmit={handleDialogSubmit}
                 onDelete={handleDeleteTask}
@@ -436,7 +485,7 @@ export function TasksPage() {
             {/* Task Preview Dialog */}
             <TaskPreviewDialog
                 open={previewOpen}
-                onClose={() => setPreviewOpen(false)}
+                onClose={() => toggleTaskParam('task', null)}
                 onEdit={handleEditFromPreview}
                 onDelete={handleDeleteTask}
                 task={selectedTask}
