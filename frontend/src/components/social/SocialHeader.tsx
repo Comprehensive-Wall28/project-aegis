@@ -240,19 +240,21 @@ export const SocialHeader = memo(({
                             open={Boolean(filterAnchorEl)}
                             onClose={handleFilterClose}
                             disableScrollLock
-                            PaperProps={{
-                                variant: 'solid',
-                                elevation: 8,
-                                sx: {
-                                    minWidth: 260,
-                                    mt: 1,
-                                    bgcolor: theme.palette.background.paper,
-                                    backgroundImage: 'none',
-                                    border: `1px solid ${theme.palette.divider}`,
-                                    borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                    '& .MuiList-root': {
-                                        pt: 0,
-                                    },
+                            slotProps={{
+                                paper: {
+                                    variant: 'solid',
+                                    elevation: 8,
+                                    sx: {
+                                        minWidth: 260,
+                                        mt: 1,
+                                        bgcolor: theme.palette.background.paper,
+                                        backgroundImage: 'none',
+                                        border: `1px solid ${theme.palette.divider}`,
+                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                        '& .MuiList-root': {
+                                            pt: 0,
+                                        },
+                                    }
                                 }
                             }}
                         >

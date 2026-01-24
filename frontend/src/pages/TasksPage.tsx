@@ -31,7 +31,7 @@ import { useTaskEncryption } from '@/hooks/useTaskEncryption';
 import { KanbanBoard } from '@/components/tasks/KanbanBoard';
 import { TaskDialog, type TaskDialogData } from '@/components/tasks/TaskDialog';
 import { TaskPreviewDialog } from '@/components/tasks/TaskPreviewDialog';
-import type { DeleteStatus } from '@/components/tasks/DeleteZone';
+
 
 type SnackbarState = {
     open: boolean;
@@ -99,7 +99,7 @@ export function TasksPage() {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
-    const [deleteStatus, setDeleteStatus] = useState<DeleteStatus>('idle');
+    const [deleteStatus, setDeleteStatus] = useState<'idle' | 'deleting' | 'success' | 'error'>('idle');
 
     const [snackbar, setSnackbar] = useState<SnackbarState>({
         open: false,
@@ -270,7 +270,6 @@ export function TasksPage() {
         try {
             // reorderTasks in taskStore handles optimistic update and backend sync
             await reorderTasks(updates);
-            showSnackbar('Board updated', 'success');
         } catch (error: any) {
             showSnackbar(error.message || 'Failed to sync reorder', 'error');
         }
@@ -380,13 +379,15 @@ export function TasksPage() {
                                 anchorEl={sortAnchorEl}
                                 open={Boolean(sortAnchorEl)}
                                 onClose={() => handleSortClose()}
-                                PaperProps={{
-                                    sx: {
-                                        mt: 1,
-                                        minWidth: 180,
-                                        borderRadius: '12px',
-                                        boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
-                                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                slotProps={{
+                                    paper: {
+                                        sx: {
+                                            mt: 1,
+                                            minWidth: 180,
+                                            borderRadius: '12px',
+                                            boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.3)}`,
+                                            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                        }
                                     }
                                 }}
                             >

@@ -596,16 +596,18 @@ export function CalendarPage() {
                     vertical: 'center',
                     horizontal: 'center',
                 }}
-                PaperProps={{
-                    sx: {
-                        borderRadius: '16px',
-                        bgcolor: theme.palette.background.paper,
-                        backgroundImage: 'none',
-                        boxShadow: theme.shadows[8],
-                        border: `1px solid ${theme.palette.divider}`,
-                        minWidth: 280,
-                        maxWidth: 320,
-                        overflow: 'hidden',
+                slotProps={{
+                    paper: {
+                        sx: {
+                            borderRadius: '16px',
+                            bgcolor: theme.palette.background.paper,
+                            backgroundImage: 'none',
+                            boxShadow: theme.shadows[8],
+                            border: `1px solid ${theme.palette.divider}`,
+                            minWidth: 280,
+                            maxWidth: 320,
+                            overflow: 'hidden',
+                        }
                     }
                 }}
             >

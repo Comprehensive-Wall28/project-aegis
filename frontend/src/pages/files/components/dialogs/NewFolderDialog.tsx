@@ -26,7 +26,7 @@ export function NewFolderDialog({ open, onClose, onCreate }: NewFolderDialogProp
             onClose={onClose}
             maxWidth="xs"
             fullWidth
-            PaperProps={{ variant: 'solid' as any, sx: { borderRadius: '24px' } }}
+            slotProps={{ paper: { variant: 'solid' as any, sx: { borderRadius: '24px' } } }}
         >
             <DialogTitle sx={{ fontWeight: 700 }}>Create New Folder</DialogTitle>
             <DialogContent>

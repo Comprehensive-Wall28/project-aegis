@@ -6,7 +6,7 @@ import {
     Button
 } from '@mui/material';
 import { Add, NoteAlt, ArrowBack } from '@mui/icons-material';
-import type { DecryptedNote } from '../../hooks/useNotesData';
+import type { DecryptedNote } from '../../hooks/useNotesCrud';
 
 interface NoteDetailViewProps {
     selectedNote: DecryptedNote | null;

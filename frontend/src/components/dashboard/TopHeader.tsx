@@ -195,16 +195,18 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                         anchorEl={anchorEl}
                         open={Boolean(anchorEl)}
                         onClose={handleCloseMenu}
-                        PaperProps={{
-                            sx: {
-                                mt: 2,
-                                width: 240,
-                                p: 1,
-                                borderRadius: '16px',
-                                bgcolor: theme.palette.background.paper,
-                                backgroundImage: 'none',
-                                boxShadow: theme.shadows[20],
-                                border: `1px solid ${alpha(theme.palette.divider, 0.25)}`,
+                        slotProps={{
+                            paper: {
+                                sx: {
+                                    mt: 2,
+                                    width: 240,
+                                    p: 1,
+                                    borderRadius: '16px',
+                                    bgcolor: theme.palette.background.paper,
+                                    backgroundImage: 'none',
+                                    boxShadow: theme.shadows[20],
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.25)}`,
+                                }
                             }
                         }}
                         transformOrigin={{ horizontal: 'right', vertical: 'top' }}

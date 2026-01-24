@@ -318,12 +318,14 @@ const NotesPage: React.FC = () => {
                         anchor="right"
                         open={mobileEditorOpen}
                         onClose={handleCloseNote}
-                        PaperProps={{
-                            sx: {
-                                width: '100%',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                boxShadow: 'none'
+                        slotProps={{
+                            paper: {
+                                sx: {
+                                    width: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    boxShadow: 'none'
+                                }
                             }
                         }}
                         transitionDuration={250}

@@ -869,11 +869,13 @@ export const ReaderModeOverlay = memo(({
                                         anchor="bottom"
                                         open={showPanel}
                                         onClose={() => setShowPanel(false)}
-                                        PaperProps={{
-                                            sx: {
-                                                height: '70vh',
-                                                borderTopLeftRadius: SOCIAL_RADIUS_XLARGE,
-                                                borderTopRightRadius: SOCIAL_RADIUS_XLARGE,
+                                        slotProps={{
+                                            paper: {
+                                                sx: {
+                                                    height: '70vh',
+                                                    borderTopLeftRadius: SOCIAL_RADIUS_XLARGE,
+                                                    borderTopRightRadius: SOCIAL_RADIUS_XLARGE,
+                                                }
                                             }
                                         }}
                                     >

@@ -25,12 +25,14 @@ export function ColorPickerDialog({ open, onClose, onColorSelect }: ColorPickerD
         <Dialog
             open={open}
             onClose={onClose}
-            PaperProps={{
-                sx: {
-                    p: 2,
-                    borderRadius: '20px',
-                    bgcolor: theme.palette.background.paper,
-                    minWidth: 200,
+            slotProps={{
+                paper: {
+                    sx: {
+                        p: 2,
+                        borderRadius: '20px',
+                        bgcolor: theme.palette.background.paper,
+                        minWidth: 200,
+                    }
                 }
             }}
         >

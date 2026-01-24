@@ -83,11 +83,13 @@ export function MoveToFolderDialog({
             onClose={onClose}
             maxWidth="sm"
             fullWidth
-            PaperProps={{
-                sx: {
-                    borderRadius: '24px',
-                    bgcolor: theme.palette.background.paper,
-                    border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+            slotProps={{
+                paper: {
+                    sx: {
+                        borderRadius: '24px',
+                        bgcolor: theme.palette.background.paper,
+                        border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                    }
                 }
             }}
         >

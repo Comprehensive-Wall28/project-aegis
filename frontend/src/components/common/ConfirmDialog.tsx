@@ -48,16 +48,16 @@ export function ConfirmDialog({
         <Dialog
             open={open}
             onClose={onCancel}
-            PaperProps={{
-                sx: {
-                    borderRadius: '16px',
-                    bgcolor: theme.palette.background.paper,
-                    backgroundImage: 'none',
-                    maxWidth: 400,
-                    width: '100%',
-                },
-            }}
             slotProps={{
+                paper: {
+                    sx: {
+                        borderRadius: '16px',
+                        bgcolor: theme.palette.background.paper,
+                        backgroundImage: 'none',
+                        maxWidth: 400,
+                        width: '100%',
+                    },
+                },
                 backdrop: {
                     sx: {
                         bgcolor: alpha(theme.palette.background.default, 0.9)

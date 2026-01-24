@@ -63,14 +63,16 @@ export const TaskPreviewDialog = memo(({ open, onClose, onEdit, onDelete, task }
             fullWidth
             maxWidth="md"
             fullScreen={isMobile}
-            PaperProps={{
-                sx: {
-                    borderRadius: isMobile ? 0 : '24px',
-                    backgroundImage: 'none',
-                    bgcolor: theme.palette.background.paper,
-                    boxShadow: theme.shadows[20],
-                    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                    maxHeight: isMobile ? '100%' : '85vh',
+            slotProps={{
+                paper: {
+                    sx: {
+                        borderRadius: isMobile ? 0 : '24px',
+                        backgroundImage: 'none',
+                        bgcolor: theme.palette.background.paper,
+                        boxShadow: theme.shadows[20],
+                        border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                        maxHeight: isMobile ? '100%' : '85vh',
+                    }
                 }
             }}
         >

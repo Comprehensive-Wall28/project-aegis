@@ -159,13 +159,15 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
             maxWidth="sm"
             fullScreen={isMobile}
             disableEnforceFocus={isPickerOpen}
-            PaperProps={{
-                variant: 'solid',
-                sx: {
-                    borderRadius: isMobile ? 0 : '24px',
-                    boxShadow: theme.shadows[20],
-                    backgroundImage: 'none',
-                    bgcolor: theme.palette.background.paper,
+            slotProps={{
+                paper: {
+                    variant: 'solid',
+                    sx: {
+                        borderRadius: isMobile ? 0 : '24px',
+                        boxShadow: theme.shadows[20],
+                        backgroundImage: 'none',
+                        bgcolor: theme.palette.background.paper,
+                    }
                 }
             }}
         >
