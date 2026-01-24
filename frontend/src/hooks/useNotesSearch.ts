@@ -29,32 +29,78 @@ export const useNotesSearch = (
         };
     }, []);
 
-    // Update worker data when notes or titles change
+    const prevNotesRef = useRef<NoteMetadata[]>([]);
+    const prevTitlesRef = useRef<Map<string, string>>(new Map());
+    const isInitialLoadRef = useRef(true);
+
+    // Update worker data when notes or titles change (Delta updates)
     useEffect(() => {
-        if (workerRef.current) {
+        if (!workerRef.current) return;
+
+        if (isInitialLoadRef.current && notes.length > 0) {
             workerRef.current.postMessage({
                 type: 'UPDATE_DATA',
                 payload: { notes, decryptedTitles }
             });
+            isInitialLoadRef.current = false;
+        } else {
+            // Check for deleted notes
+            const currentIds = new Set(notes.map(n => n._id));
+            prevNotesRef.current.forEach(prevNote => {
+                if (!currentIds.has(prevNote._id)) {
+                    workerRef.current?.postMessage({
+                        type: 'DELETE_NOTE',
+                        payload: { id: prevNote._id }
+                    });
+                }
+            });
 
-            // Trigger search/filter after data update
-            setIsFiltering(true);
-            workerRef.current.postMessage({
-                type: 'SEARCH',
-                payload: {
-                    query: searchQuery,
-                    folderId: selectedFolderId,
-                    tags: selectedTags
+            // Check for updated or new notes
+            notes.forEach(note => {
+                const prevNote = prevNotesRef.current.find(pn => pn._id === note._id);
+                const prevTitle = prevTitlesRef.current.get(note._id);
+                const currentTitle = decryptedTitles.get(note._id) || 'Untitled Note';
+
+                const hasChanged = !prevNote ||
+                    prevNote.updatedAt !== note.updatedAt ||
+                    prevNote.noteFolderId !== note.noteFolderId ||
+                    prevNote.tags.length !== note.tags.length ||
+                    !note.tags.every((t, i) => t === prevNote.tags[i]) ||
+                    prevTitle !== currentTitle;
+
+                if (hasChanged) {
+                    workerRef.current?.postMessage({
+                        type: 'UPDATE_NOTE',
+                        payload: { note, decryptedTitle: currentTitle }
+                    });
                 }
             });
         }
+
+        prevNotesRef.current = notes;
+        prevTitlesRef.current = new Map(decryptedTitles);
+
+        // Trigger search after delta updates
+        setIsFiltering(true);
+        workerRef.current.postMessage({
+            type: 'SEARCH',
+            payload: {
+                query: searchQuery,
+                folderId: selectedFolderId,
+                tags: selectedTags
+            }
+        });
     }, [notes, decryptedTitles]);
 
     // Trigger search/filter when query or filters change
     useEffect(() => {
-        if (workerRef.current) {
-            setIsFiltering(true);
-            workerRef.current.postMessage({
+        if (!workerRef.current) return;
+
+        // Set filtering state immediately to avoid showing empty list flicker
+        setIsFiltering(true);
+
+        const timer = setTimeout(() => {
+            workerRef.current?.postMessage({
                 type: 'SEARCH',
                 payload: {
                     query: searchQuery,
@@ -62,8 +108,10 @@ export const useNotesSearch = (
                     tags: selectedTags
                 }
             });
-        }
-    }, [searchQuery, selectedFolderId, selectedTags]);
+        }, 150); // Small debounce for typing, but UI state updated immediately
+
+        return () => clearTimeout(timer);
+    }, [searchQuery, selectedFolderId, selectedTags, notes, decryptedTitles]);
 
     const handleSearch = (query: string) => {
         setSearchQuery(query);

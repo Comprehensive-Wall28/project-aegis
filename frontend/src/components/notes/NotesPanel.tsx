@@ -11,7 +11,7 @@ import {
     ListItemText,
     alpha,
     useTheme,
-    CircularProgress
+    LinearProgress
 } from '@mui/material';
 import {
     Search,
@@ -37,9 +37,13 @@ interface NotesPanelProps {
     selectedTags: string[];
     onToggleTag: (tag: string) => void;
     isLoading: boolean;
+    isRefreshing?: boolean;
     decryptedTitles: Map<string, string>;
     dragDrop: ReturnType<typeof useFolderDragDrop>;
     onPreviewChange: (note: NoteMetadata | null) => void;
+    onLoadMore?: () => void;
+    hasMore?: boolean;
+    isFetchingMore?: boolean;
 }
 
 // Hover preview delay in ms
@@ -72,11 +76,12 @@ const NoteItem = memo(({
     index: number;
 }) => {
     const itemRef = useRef<HTMLDivElement>(null);
+    const isInitial = index < 12;
 
     return (
         <motion.div
             ref={itemRef}
-            initial={{ opacity: 0, y: 10 }}
+            initial={isInitial ? { opacity: 0, y: 10 } : false}
             animate={{
                 opacity: 1,
                 y: 0,
@@ -84,8 +89,8 @@ const NoteItem = memo(({
             }}
             transition={{
                 duration: 0.3,
-                delay: Math.min(index * 0.04, 0.4), // Cap delay for large pages
-                ease: [0.23, 1, 0.32, 1] // Premium ease-out
+                delay: isInitial ? Math.min(index * 0.04, 0.4) : 0,
+                ease: [0.23, 1, 0.32, 1]
             }}
         >
             <ListItemButton
@@ -190,9 +195,13 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
     selectedTags,
     onToggleTag,
     isLoading,
+    isRefreshing = false,
     decryptedTitles,
     dragDrop,
-    onPreviewChange
+    onPreviewChange,
+    onLoadMore,
+    hasMore = false,
+    isFetchingMore = false
 }) => {
     const theme = useTheme();
     const { handleNoteDragStart, handleNoteDragEnd, isDragging } = dragDrop;
@@ -205,7 +214,6 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
         if (isDragging) return;
 
         // Cancel any pending "enter" action (debounce)
-        // If we moved from A to B quickly, A might still be waiting to show. Cancel it.
         if (enterTimeoutRef.current) {
             clearTimeout(enterTimeoutRef.current);
             enterTimeoutRef.current = null;
@@ -220,7 +228,6 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
 
     const handleHoverEnd = useCallback(() => {
         // Cancel pending "enter" action
-        // If we left before the debounce time, don't show it at all.
         if (enterTimeoutRef.current) {
             clearTimeout(enterTimeoutRef.current);
             enterTimeoutRef.current = null;
@@ -333,27 +340,26 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
                 </Box>
             )}
 
-            {/* Notes List */}
+
+            {/* Notes List Area */}
             <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-                {/* Subtle loading bar for filtering/refreshing */}
-                {isLoading && notes.length > 0 && (
-                    <CircularProgress
-                        size={20}
+                {(isLoading || isRefreshing) && (
+                    <LinearProgress
                         sx={{
                             position: 'absolute',
-                            top: 12,
-                            right: 12,
+                            top: 0,
+                            left: 0,
+                            right: 0,
                             zIndex: 10,
-                            opacity: 0.6
+                            height: 2,
+                            backgroundColor: 'transparent',
+                            '& .MuiLinearProgress-bar': {
+                                borderRadius: 1
+                            }
                         }}
                     />
                 )}
-
-                {isLoading && notes.length === 0 ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                        <CircularProgress size={28} />
-                    </Box>
-                ) : notes.length === 0 ? (
+                {notes.length === 0 ? (
                     <Box sx={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -361,7 +367,10 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
                         alignItems: 'center',
                         height: '100%',
                         color: 'text.secondary',
-                        gap: 1
+                        gap: 1,
+                        position: 'relative',
+                        opacity: isLoading ? 0.5 : 1,
+                        transition: 'opacity 0.2s'
                     }}>
                         <Typography variant="body2">No notes found</Typography>
                         <Typography variant="caption" color="text.disabled">
@@ -380,11 +389,20 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
                         <Virtuoso
                             style={{ height: '100%' }}
                             data={notes}
-                            increaseViewportBy={200}
+                            increaseViewportBy={1200} // Significant overscan for desktop
+                            endReached={onLoadMore}
+                            components={{
+                                Footer: () => isFetchingMore ? (
+                                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+                                        <LinearProgress sx={{ width: '40%', height: 2, borderRadius: 1 }} />
+                                    </Box>
+                                ) : hasMore ? (
+                                    <Box sx={{ height: 40 }} />
+                                ) : null
+                            }}
                             itemContent={(index, note) => (
                                 <Box sx={{ p: 0 }}>
                                     <NoteItem
-                                        key={note._id}
                                         note={note}
                                         index={index}
                                         isSelected={selectedNoteId === note._id}

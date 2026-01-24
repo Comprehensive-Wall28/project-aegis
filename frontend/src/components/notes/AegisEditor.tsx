@@ -14,6 +14,8 @@ import {
     CircularProgress,
     useTheme,
     alpha,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import { ShortcutGuide } from './ShortcutGuide';
 import { EditorToolbar } from './EditorToolbar';
@@ -56,6 +58,8 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
     const [showSearch, setShowSearch] = useState(false);
     const [showReplace, setShowReplace] = useState(false);
     const [spellcheckEnabled, setSpellcheckEnabled] = useState(true);
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
     const titleRef = useRef(title);
 
     // Keep titleRef in sync with title state
@@ -113,6 +117,8 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                     // Manual Upload & Encryption Logic to get fileId
                     (async () => {
                         try {
+                            setIsUploadingImage(true);
+                            setUploadError(null);
                             const { user, vaultCtrKey, setCryptoStatus } = useSessionStore.getState();
                             const masterKey = user?.vaultKey;
 
@@ -178,7 +184,9 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                             }
                         } catch (err) {
                             console.error('Failed to upload note image:', err);
+                            setUploadError('Failed to upload image. Please try again.');
                         } finally {
+                            setIsUploadingImage(false);
                             useSessionStore.getState().setCryptoStatus('idle');
                         }
                     })();
@@ -458,6 +466,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                             onToggleReplace={() => setShowReplace(o => !o)}
                             spellcheckEnabled={spellcheckEnabled}
                             onToggleSpellcheck={() => setSpellcheckEnabled(s => !s)}
+                            isUploadingImage={isUploadingImage}
                         />
                     </Box>
                 )}
@@ -646,6 +655,18 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             />
 
             <ShortcutGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
+
+            {/* Upload Error Notification */}
+            <Snackbar
+                open={!!uploadError}
+                autoHideDuration={6000}
+                onClose={() => setUploadError(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={() => setUploadError(null)} severity="error" variant="filled" sx={{ width: '100%' }}>
+                    {uploadError}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 };

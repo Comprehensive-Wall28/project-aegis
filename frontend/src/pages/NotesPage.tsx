@@ -1,21 +1,18 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import {
     Box,
     useTheme,
     useMediaQuery,
     Drawer,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogContentText,
-    DialogActions,
     Button,
-    TextField,
-    Typography
+    Typography,
+    Snackbar,
+    Alert
 } from '@mui/material';
-import { AnimatePresence } from 'framer-motion';
+import { NoteAlt, Add } from '@mui/icons-material';
 
 import { useNotesData } from '../hooks/useNotesData';
 import { useFolderDragDrop } from '../hooks/useFolderDragDrop';
@@ -26,16 +23,18 @@ import { NoteFullView } from '../components/notes/NoteFullView';
 import { FolderPanel } from '../components/notes/FolderPanel';
 import { NotesPanel } from '../components/notes/NotesPanel';
 import { NotePreviewPanel } from '../components/notes/NotePreviewPanel';
-import type { NoteFolder, NoteMetadata } from '../services/noteService';
-import { NoteAlt, Add } from '@mui/icons-material';
+import { FolderDialog } from '../components/notes/FolderDialog';
+import { DeleteConfirmDialog } from '../components/notes/DeleteConfirmDialog';
 import AegisEditor from '../components/notes/AegisEditor';
+
+import type { NoteFolder, NoteMetadata } from '../services/noteService';
 import type { JSONContent } from '@tiptap/react';
 
 const NotesPage: React.FC = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    // Data Hook
+    // Data Hook (Orchestrator)
     const notesData = useNotesData();
     const {
         notes,
@@ -58,7 +57,10 @@ const NotesPage: React.FC = () => {
         userTags,
         selectedTags,
         setSelectedTags,
-        moveNote
+        moveNote,
+        loadMore,
+        hasMore,
+        isFetchingMore
     } = notesData;
 
     // Search Hook
@@ -69,15 +71,12 @@ const NotesPage: React.FC = () => {
         selectedTags
     );
 
-    // Drag & Drop Hook
-    const dragDrop = useFolderDragDrop({
-        notes,
-        moveNote,
-        decryptedTitles
-    });
-
     // UI State
     const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
+    const [foldersExpanded, setFoldersExpanded] = useState(true);
+    const [isZenMode, setIsZenMode] = useState(false);
+    const [editorContainer, setEditorContainer] = useState<HTMLElement | null>(null);
+    const [previewNote, setPreviewNote] = useState<NoteMetadata | null>(null);
 
     // Dialog States
     const [folderDialogOpen, setFolderDialogOpen] = useState(false);
@@ -90,14 +89,44 @@ const NotesPage: React.FC = () => {
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('');
 
-    // Preview Panel State
-    const [previewNote, setPreviewNote] = useState<NoteMetadata | null>(null);
+    const [errorSnackbarOpen, setErrorSnackbarOpen] = useState(false);
+    const [successSnackbarOpen, setSuccessSnackbarOpen] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
 
-    // Editor Portal State
-    const [editorContainer, setEditorContainer] = useState<HTMLElement | null>(null);
-    const [isZenMode, setIsZenMode] = useState(false);
+    // Sync error from hook to snackbar
+    useEffect(() => {
+        if (notesData.error) {
+            setErrorSnackbarOpen(true);
+        }
+    }, [notesData.error]);
 
-    // Callback to capture the container ref from child components
+    const handleCloseError = (_event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') return;
+        setErrorSnackbarOpen(false);
+    };
+
+    const handleCloseSuccess = (_event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') return;
+        setSuccessSnackbarOpen(false);
+    };
+
+    const handleMoveNoteConfirmation = useCallback(async (noteId: string, folderId: string | null) => {
+        try {
+            await moveNote(noteId, folderId);
+            const folderName = folderId ? (folders.find(f => f._id === folderId)?.name || 'folder') : 'All Notes';
+            const noteTitle = decryptedTitles.get(noteId) || 'Note';
+            setSuccessMessage(`Moved "${noteTitle}" to ${folderName}`);
+            setSuccessSnackbarOpen(true);
+        } catch (err) { }
+    }, [moveNote, folders, decryptedTitles]);
+
+    // Drag & Drop Hook
+    const dragDrop = useFolderDragDrop({
+        notes,
+        moveNote: handleMoveNoteConfirmation,
+        decryptedTitles
+    });
+
     const handleEditorContainerRef = useCallback((node: HTMLElement | null) => {
         setEditorContainer(node);
     }, []);
@@ -108,7 +137,6 @@ const NotesPage: React.FC = () => {
         setSearchQuery(query);
     }, [setSearchQuery]);
 
-    // Handlers
     const updateUrlParams = useCallback((noteId: string | null, folderId?: string | null) => {
         const params = new URLSearchParams(searchParams);
         if (noteId) {
@@ -132,11 +160,9 @@ const NotesPage: React.FC = () => {
         const urlNoteId = searchParams.get('n');
         const urlFolderId = searchParams.get('f');
 
-        // Sync Folder
-        if (urlFolderId && urlFolderId !== selectedFolderId) {
+        // Sync Folder Only if it actually changed to avoid cycles
+        if (urlFolderId !== selectedFolderId) {
             setSelectedFolderId(urlFolderId);
-        } else if (!urlFolderId && selectedFolderId) {
-            setSelectedFolderId(null);
         }
 
         // Sync Note
@@ -144,6 +170,7 @@ const NotesPage: React.FC = () => {
             if (selectedNote?.metadata._id !== urlNoteId) {
                 // Find note in list to select
                 const noteToSelect = notes.find(n => n._id === urlNoteId);
+                // Only select if not already loading content for this specific note
                 if (noteToSelect) {
                     handleSelectNote(noteToSelect);
                     if (isMobile) setMobileEditorOpen(true);
@@ -156,30 +183,24 @@ const NotesPage: React.FC = () => {
             setEditorContainer(null);
             if (isMobile) setMobileEditorOpen(false);
         }
-    }, [searchParams, notes, selectedFolderId, isMobile, handleSelectNote, setSelectedFolderId, setSelectedNote, selectedNote?.metadata._id]);
+    }, [searchParams, notes, isMobile, handleSelectNote, setSelectedFolderId, setSelectedNote]);
+    // Changed back to 'notes' now that hook references are stable
 
-    // Handlers - Desktop: click opens NoteFullView
     const handleSelectNoteDesktop = useCallback(async (note: NoteMetadata) => {
         updateUrlParams(note._id);
     }, [updateUrlParams]);
 
-    // Mobile: opens drawer
     const handleSelectNoteMobile = useCallback(async (note: NoteMetadata) => {
         updateUrlParams(note._id);
     }, [updateUrlParams]);
 
-    // Create note - opens in full view on desktop, drawer on mobile
     const handleCreateNoteWrapper = useCallback(async () => {
         try {
             await handleCreateNote();
             if (isMobile) setMobileEditorOpen(true);
-            // On desktop, selectedNote will trigger NoteFullView to open
-        } catch (err) {
-            // Error managed in hook
-        }
+        } catch (err) { }
     }, [handleCreateNote, isMobile]);
 
-    // Close NoteFullView (desktop)
     const handleCloseNote = useCallback(() => {
         updateUrlParams(null);
     }, [updateUrlParams]);
@@ -196,19 +217,15 @@ const NotesPage: React.FC = () => {
         setFolderDialogOpen(true);
     };
 
-    const handleFolderDialogConfirm = async () => {
-        if (!folderDialogValue.trim()) return;
-
+    const handleFolderConfirm = async (name: string) => {
         try {
             if (folderDialogMode === 'create') {
-                await createFolder(folderDialogValue);
+                await createFolder(name);
             } else if (editingFolderId) {
-                await updateFolder(editingFolderId, folderDialogValue);
+                await updateFolder(editingFolderId, name);
             }
             setFolderDialogOpen(false);
-        } catch (err) {
-            // Error managed in hook
-        }
+        } catch (err) { }
     };
 
     const openDeleteConfirm = (mode: 'note' | 'folder', id: string, title: string) => {
@@ -220,7 +237,6 @@ const NotesPage: React.FC = () => {
 
     const handleDeleteConfirm = async () => {
         if (!deleteConfirmId) return;
-
         try {
             if (deleteConfirmMode === 'folder') {
                 await deleteFolder(deleteConfirmId);
@@ -231,16 +247,12 @@ const NotesPage: React.FC = () => {
                 }
             }
             setDeleteConfirmOpen(false);
-        } catch (err) {
-            // Error managed in hook
-        }
+        } catch (err) { }
     };
 
     const handleToggleTag = (tag: string) => {
         setSelectedTags(prev =>
-            prev.includes(tag)
-                ? prev.filter(t => t !== tag)
-                : [...prev, tag]
+            prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
         );
     };
 
@@ -263,130 +275,74 @@ const NotesPage: React.FC = () => {
         />
     ) : null;
 
-    // Folder State
-    const [foldersExpanded, setFoldersExpanded] = useState(true);
-
-    // ============ MOBILE LAYOUT ============
-    if (isMobile) {
-        return (
-            <React.Fragment>
-                <Drawer
-                    open={!mobileEditorOpen}
-                    variant="permanent"
-                    sx={{
-                        width: '100%',
-                        '& .MuiDrawer-paper': { width: '100%', border: 'none' },
-                        display: mobileEditorOpen ? 'none' : 'block'
-                    }}
-                >
-                    <NoteSidebar
-                        notes={filteredNotes}
-                        folders={folders}
-                        selectedFolderId={selectedFolderId}
-                        selectedNoteId={selectedNote?.metadata._id || null}
-                        searchQuery={searchQuery}
-                        onSearchChange={handleSearchChange}
-                        onCreateNote={handleCreateNoteWrapper}
-                        onSelectFolder={(id) => updateUrlParams(null, id)}
-                        onSelectNote={handleSelectNoteMobile}
-                        onDeleteNote={handleDeleteNoteWrapper}
-                        userTags={userTags}
-                        selectedTags={selectedTags}
-                        onToggleTag={handleToggleTag}
-                        foldersExpanded={foldersExpanded}
-                        setFoldersExpanded={setFoldersExpanded}
-                        onOpenFolderDialog={openFolderDialog}
-                        onDeleteFolder={(id) => openDeleteConfirm('folder', id, folders.find(f => f._id === id)?.name || 'this folder')}
-                        isRefreshing={isRefreshing}
-                        isLoading={isLoading || isFiltering}
-                        decryptedTitles={decryptedTitles}
-                        dragDrop={dragDrop}
-                    />
-                </Drawer>
-
-                <Drawer
-                    anchor="right"
-                    open={mobileEditorOpen}
-                    onClose={handleCloseNote}
-                    PaperProps={{ sx: { width: '100%', display: 'flex', flexDirection: 'column' } }}
-                >
-                    <NoteDetailView
-                        selectedNote={selectedNote}
-                        isLoadingContent={isLoadingContent}
-                        onCreateNote={handleCreateNoteWrapper}
-                        isMobile={true}
-                        onMobileBack={handleCloseNote}
-                        editorInstance={editorElement}
-                    />
-                </Drawer>
-
-                {/* Folder Dialog */}
-                <Dialog open={folderDialogOpen} onClose={() => setFolderDialogOpen(false)}>
-                    <DialogTitle>{folderDialogMode === 'create' ? 'New Folder' : 'Rename Folder'}</DialogTitle>
-                    <DialogContent>
-                        <TextField
-                            autoFocus
-                            margin="dense"
-                            label="Folder Name"
-                            fullWidth
-                            variant="outlined"
-                            value={folderDialogValue}
-                            onChange={(e) => setFolderDialogValue(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleFolderDialogConfirm();
-                            }}
-                        />
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={() => setFolderDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleFolderDialogConfirm} variant="contained">
-                            {folderDialogMode === 'create' ? 'Create' : 'Save'}
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-
-                {/* Delete Confirmation Dialog */}
-                <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
-                    <DialogTitle>Delete {deleteConfirmMode === 'note' ? 'Note' : 'Folder'}?</DialogTitle>
-                    <DialogContent>
-                        <DialogContentText>
-                            Are you sure you want to delete "{deleteConfirmTitle}"?
-                            {deleteConfirmMode === 'folder' && ' All notes within this folder will strictly not be deleted.'}
-                            This action cannot be undone.
-                        </DialogContentText>
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
-                        <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-                            Delete
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-            </React.Fragment>
-        );
-    }
-
-    // ============ DESKTOP LAYOUT ============
     return (
         <React.Fragment>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%', p: 3 }}>
-                {/* Header */}
-                <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {isMobile ? (
+                <Box sx={{ height: '100%', position: 'relative' }}>
+                    <Box
+                        sx={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            // Keep sidebar in layout to avoid focus restoration issues
+                            // but hidden from view when editor is open
+                        }}
+                    >
+                        <NoteSidebar
+                            notes={filteredNotes}
+                            folders={folders}
+                            selectedFolderId={selectedFolderId}
+                            selectedNoteId={selectedNote?.metadata._id || null}
+                            searchQuery={searchQuery}
+                            onSearchChange={handleSearchChange}
+                            onCreateNote={handleCreateNoteWrapper}
+                            onSelectFolder={(id) => updateUrlParams(null, id)}
+                            onSelectNote={handleSelectNoteMobile}
+                            onDeleteNote={handleDeleteNoteWrapper}
+                            userTags={userTags}
+                            selectedTags={selectedTags}
+                            onToggleTag={handleToggleTag}
+                            foldersExpanded={foldersExpanded}
+                            setFoldersExpanded={setFoldersExpanded}
+                            onOpenFolderDialog={openFolderDialog}
+                            onDeleteFolder={(id) => openDeleteConfirm('folder', id, folders.find(f => f._id === id)?.name || 'this folder')}
+                            isRefreshing={isRefreshing}
+                            isLoading={isLoading || isFiltering}
+                            decryptedTitles={decryptedTitles}
+                            dragDrop={dragDrop}
+                        />
+                    </Box>
+
+                    <Drawer
+                        anchor="right"
+                        open={mobileEditorOpen}
+                        onClose={handleCloseNote}
+                        PaperProps={{
+                            sx: {
+                                width: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                boxShadow: 'none'
+                            }
+                        }}
+                        transitionDuration={250}
+                    >
+                        <NoteDetailView
+                            selectedNote={selectedNote}
+                            isLoadingContent={isLoadingContent}
+                            onCreateNote={handleCreateNoteWrapper}
+                            isMobile={true}
+                            onMobileBack={handleCloseNote}
+                            editorInstance={editorElement}
+                        />
+                    </Drawer>
+                </Box>
+            ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Box>
-                            <Typography
-                                variant="h4"
-                                sx={{
-                                    fontWeight: 700,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 1.5,
-                                }}
-                            >
+                            <Typography variant="h4" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                 <NoteAlt sx={{ fontSize: 32, color: 'primary.main' }} />
                                 Secure Notes
                             </Typography>
@@ -394,132 +350,123 @@ const NotesPage: React.FC = () => {
                                 PQC-encrypted note taking
                             </Typography>
                         </Box>
-                    </Box>
-                    <Button
-                        variant="contained"
-                        startIcon={<Add />}
-                        onClick={handleCreateNoteWrapper}
-                        sx={{
-                            borderRadius: '12px',
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            px: 3,
-                        }}
-                    >
-                        New Note
-                    </Button>
-                </Box>
-
-                {/* Two-Panel Layout */}
-                <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden', gap: 2 }}>
-                    {/* Left Panel - Folders */}
-                    <Box sx={{ width: 260, flexShrink: 0 }}>
-                        <FolderPanel
-                            folders={folders}
-                            selectedFolderId={selectedFolderId}
-                            onSelectFolder={(id) => updateUrlParams(null, id)}
-                            onOpenFolderDialog={openFolderDialog}
-                            onDeleteFolder={(id) => openDeleteConfirm('folder', id, folders.find(f => f._id === id)?.name || 'this folder')}
-                            dragDrop={dragDrop}
-                        />
+                        <Button
+                            variant="contained"
+                            startIcon={<Add />}
+                            onClick={handleCreateNoteWrapper}
+                            sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 600, px: 3 }}
+                        >
+                            New Note
+                        </Button>
                     </Box>
 
-                    {/* Middle Panel - Notes List */}
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <NotesPanel
-                            notes={filteredNotes}
-                            folders={folders}
-                            selectedFolderId={selectedFolderId}
-                            selectedNoteId={selectedNote?.metadata._id || null}
-                            searchQuery={searchQuery}
-                            onSearchChange={handleSearchChange}
-                            onSelectNote={handleSelectNoteDesktop}
-                            onDeleteNote={handleDeleteNoteWrapper}
-                            userTags={userTags}
-                            selectedTags={selectedTags}
-                            onToggleTag={handleToggleTag}
-                            isLoading={isLoading || isFiltering}
-                            decryptedTitles={decryptedTitles}
-                            dragDrop={dragDrop}
-                            onPreviewChange={setPreviewNote}
-                        />
-                    </Box>
-
-                    {/* Right Panel - Preview (Desktop Only) */}
-                    {!isMobile && (
-                        <Box sx={{ width: 280, flexShrink: 0 }}>
-                            <NotePreviewPanel
-                                previewNote={previewNote}
-                                decryptedTitles={decryptedTitles}
+                    <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden', gap: 2 }}>
+                        <Box sx={{ width: 260, flexShrink: 0 }}>
+                            <FolderPanel
+                                folders={folders}
+                                selectedFolderId={selectedFolderId}
+                                onSelectFolder={(id) => updateUrlParams(null, id)}
+                                onOpenFolderDialog={openFolderDialog}
+                                onDeleteFolder={(id) => openDeleteConfirm('folder', id, folders.find(f => f._id === id)?.name || 'this folder')}
+                                dragDrop={dragDrop}
                             />
                         </Box>
-                    )}
+
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <NotesPanel
+                                notes={filteredNotes}
+                                folders={folders}
+                                selectedFolderId={selectedFolderId}
+                                selectedNoteId={selectedNote?.metadata._id || null}
+                                searchQuery={searchQuery}
+                                onSearchChange={handleSearchChange}
+                                onSelectNote={handleSelectNoteDesktop}
+                                onDeleteNote={handleDeleteNoteWrapper}
+                                userTags={userTags}
+                                selectedTags={selectedTags}
+                                onToggleTag={handleToggleTag}
+                                isLoading={isLoading || isFiltering}
+                                isRefreshing={isRefreshing}
+                                decryptedTitles={decryptedTitles}
+                                dragDrop={dragDrop}
+                                onPreviewChange={setPreviewNote}
+                                onLoadMore={loadMore}
+                                hasMore={hasMore}
+                                isFetchingMore={isFetchingMore}
+                            />
+                        </Box>
+
+                        {!isMobile && (
+                            <Box sx={{ width: 280, flexShrink: 0 }}>
+                                <NotePreviewPanel
+                                    previewNote={previewNote}
+                                    decryptedTitles={decryptedTitles}
+                                />
+                            </Box>
+                        )}
+                    </Box>
                 </Box>
-            </Box>
+            )}
 
-            {/* Folder Dialog */}
-            <Dialog open={folderDialogOpen} onClose={() => setFolderDialogOpen(false)}>
-                <DialogTitle>{folderDialogMode === 'create' ? 'New Folder' : 'Rename Folder'}</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        label="Folder Name"
-                        fullWidth
-                        variant="outlined"
-                        value={folderDialogValue}
-                        onChange={(e) => setFolderDialogValue(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleFolderDialogConfirm();
-                        }}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setFolderDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleFolderDialogConfirm} variant="contained">
-                        {folderDialogMode === 'create' ? 'Create' : 'Save'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            {/* Desktop Full View Portals */}
+            {!isMobile && (
+                <AnimatePresence>
+                    {selectedNote && (
+                        <NoteFullView
+                            open={true}
+                            note={selectedNote}
+                            decryptedTitle={decryptedTitles.get(selectedNote.metadata._id) || 'Untitled Note'}
+                            onClose={handleCloseNote}
+                            containerRef={handleEditorContainerRef}
+                            isZenMode={isZenMode}
+                            onToggleZenMode={() => setIsZenMode(prev => !prev)}
+                        />
+                    )}
+                </AnimatePresence>
+            )}
 
-            {/* Delete Confirmation Dialog */}
-            <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
-                <DialogTitle>Delete {deleteConfirmMode === 'note' ? 'Note' : 'Folder'}?</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Are you sure you want to delete "{deleteConfirmTitle}"?
-                        {deleteConfirmMode === 'folder' && ' All notes within this folder will strictly not be deleted.'}
-                        This action cannot be undone.
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
-                    <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-                        Delete
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* NoteFullView - Opens when a note is selected */}
-            <AnimatePresence>
-                {selectedNote && (
-                    <NoteFullView
-                        open={true}
-                        note={selectedNote}
-                        decryptedTitle={decryptedTitles.get(selectedNote.metadata._id) || 'Untitled Note'}
-                        onClose={handleCloseNote}
-                        containerRef={handleEditorContainerRef}
-                        isZenMode={isZenMode}
-                        onToggleZenMode={() => setIsZenMode(prev => !prev)}
-                    />
-                )}
-            </AnimatePresence>
-
-            {/* Single Editor Instance using Portal */}
-            {selectedNote && editorContainer && createPortal(
+            {!isMobile && selectedNote && editorContainer && createPortal(
                 editorElement,
                 editorContainer
             )}
+
+            <FolderDialog
+                open={folderDialogOpen}
+                onClose={() => setFolderDialogOpen(false)}
+                mode={folderDialogMode}
+                initialValue={folderDialogValue}
+                onConfirm={handleFolderConfirm}
+            />
+
+            <DeleteConfirmDialog
+                open={deleteConfirmOpen}
+                onClose={() => setDeleteConfirmOpen(false)}
+                mode={deleteConfirmMode}
+                title={deleteConfirmTitle}
+                onConfirm={handleDeleteConfirm}
+            />
+
+            <Snackbar
+                open={errorSnackbarOpen}
+                autoHideDuration={6000}
+                onClose={handleCloseError}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={handleCloseError} severity="error" variant="filled" sx={{ width: '100%' }}>
+                    {notesData.error}
+                </Alert>
+            </Snackbar>
+
+            <Snackbar
+                open={successSnackbarOpen}
+                autoHideDuration={3000}
+                onClose={handleCloseSuccess}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={handleCloseSuccess} severity="success" variant="filled" sx={{ width: '100%' }}>
+                    {successMessage}
+                </Alert>
+            </Snackbar>
         </React.Fragment>
     );
 };

@@ -55,6 +55,7 @@ interface EditorToolbarProps {
     onToggleReplace?: () => void;
     spellcheckEnabled?: boolean;
     onToggleSpellcheck?: () => void;
+    isUploadingImage?: boolean;
 }
 
 // Regex icon component
@@ -103,6 +104,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     onToggleReplace,
     spellcheckEnabled = true,
     onToggleSpellcheck,
+    isUploadingImage = false,
 }) => {
     const theme = useTheme();
     const [tick, setTick] = useState(0);
@@ -421,7 +423,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                             boxShadow: (theme) => `0 0 8px ${alpha(theme.palette.warning.main, 0.6)}`,
                         }} />
                     )}
-
                     <Tooltip title="Search (Ctrl+F)">
                         <IconButton
                             size="small"
@@ -432,6 +433,26 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                         </IconButton>
                     </Tooltip>
                 </Box>
+
+                {/* Upload Status */}
+                {isUploadingImage && (
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        ml: 2,
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: '20px',
+                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                        border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                    }}>
+                        <CircularProgress size={14} thickness={6} />
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                            Uploading Image...
+                        </Typography>
+                    </Box>
+                )}
             </Box>
 
             {/* Search Bar */}
@@ -688,7 +709,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                         </Box>
                     </Collapse>
                 </Box>
-            )}
-        </Box>
+            )
+            }
+        </Box >
     );
 };

@@ -18,6 +18,8 @@ type FilterPayload = {
 
 type WorkerMessage =
     | { type: 'UPDATE_DATA'; payload: { notes: any[]; decryptedTitles: Map<string, string> } }
+    | { type: 'UPDATE_NOTE'; payload: { note: any; decryptedTitle: string } }
+    | { type: 'DELETE_NOTE'; payload: { id: string } }
     | { type: 'SEARCH'; payload: FilterPayload };
 
 let searchIndex: NoteSearchData[] = [];
@@ -50,6 +52,31 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
         }));
 
         // Initialize Fuse
+        fuse = new Fuse(searchIndex, FUSE_OPTIONS);
+
+    } else if (type === 'UPDATE_NOTE') {
+        const { note, decryptedTitle } = payload;
+        const index = searchIndex.findIndex(item => item._id === note._id);
+        const searchData: NoteSearchData = {
+            _id: note._id,
+            tags: note.tags || [],
+            decryptedTitle: decryptedTitle || 'Untitled Note',
+            folderId: note.noteFolderId || null,
+            createdAt: note.createdAt,
+            updatedAt: note.updatedAt
+        };
+
+        if (index > -1) {
+            searchIndex[index] = searchData;
+        } else {
+            searchIndex.push(searchData);
+        }
+
+        fuse = new Fuse(searchIndex, FUSE_OPTIONS);
+
+    } else if (type === 'DELETE_NOTE') {
+        const { id } = payload;
+        searchIndex = searchIndex.filter(item => item._id !== id);
         fuse = new Fuse(searchIndex, FUSE_OPTIONS);
 
     } else if (type === 'SEARCH') {

@@ -7,7 +7,6 @@ import {
     TextField,
     InputAdornment,
     Chip,
-    LinearProgress,
     alpha,
     useTheme,
 } from '@mui/material';
@@ -187,18 +186,6 @@ export const NoteSidebar: React.FC<NoteSidebarProps> = (props) => {
                 </Box>
             )}
 
-            {/* Refreshing Indicator */}
-            {isRefreshing && (
-                <LinearProgress
-                    sx={{
-                        height: 2,
-                        bgcolor: 'transparent',
-                        '& .MuiLinearProgress-bar': {
-                            bgcolor: alpha(theme.palette.primary.main, 0.4)
-                        }
-                    }}
-                />
-            )}
 
             {/* Notes List */}
             <NoteList
@@ -208,6 +195,7 @@ export const NoteSidebar: React.FC<NoteSidebarProps> = (props) => {
                 onSelectNote={onSelectNote}
                 onDeleteNote={onDeleteNote}
                 isLoading={isLoading}
+                isRefreshing={isRefreshing}
                 dragDrop={dragDrop}
             />
         </Box>

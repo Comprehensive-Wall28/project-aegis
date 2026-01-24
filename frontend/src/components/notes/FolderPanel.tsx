@@ -39,7 +39,7 @@ export const FolderPanel: React.FC<FolderPanelProps> = ({
     dragDrop
 }) => {
     const theme = useTheme();
-    const { dragOverFolderId, handleFolderDragOver, handleFolderDragLeave, handleNoteDrop } = dragDrop;
+    const { dragOverFolderId, droppedFolderId, handleFolderDragEnter, handleFolderDragOver, handleFolderDragLeave, handleNoteDrop } = dragDrop;
 
     return (
         <Box sx={{
@@ -83,6 +83,7 @@ export const FolderPanel: React.FC<FolderPanelProps> = ({
                 <ListItemButton
                     selected={selectedFolderId === null}
                     onClick={() => onSelectFolder(null)}
+                    onDragEnter={(e) => handleFolderDragEnter(e, null)}
                     onDragOver={(e) => handleFolderDragOver(e, null)}
                     onDragLeave={handleFolderDragLeave}
                     onDrop={(e) => handleNoteDrop(e, null)}
@@ -94,10 +95,12 @@ export const FolderPanel: React.FC<FolderPanelProps> = ({
                         transition: 'all 0.2s',
                         WebkitFontSmoothing: 'antialiased',
                         MozOsxFontSmoothing: 'grayscale',
-                        bgcolor: dragOverFolderId === 'root'
-                            ? alpha(theme.palette.primary.main, 0.2)
-                            : 'transparent',
-                        transform: dragOverFolderId === 'root' ? 'scale(1.02)' : 'scale(1)',
+                        bgcolor: droppedFolderId === 'root'
+                            ? alpha(theme.palette.success.main, 0.15)
+                            : dragOverFolderId === 'root'
+                                ? alpha(theme.palette.primary.main, 0.2)
+                                : 'transparent',
+                        transform: (dragOverFolderId === 'root' || droppedFolderId === 'root') ? 'scale(1.02)' : 'scale(1)',
                         '&.Mui-selected': {
                             bgcolor: alpha(theme.palette.primary.main, 0.12),
                             '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.16) }
@@ -148,6 +151,7 @@ export const FolderPanel: React.FC<FolderPanelProps> = ({
                             <ListItemButton
                                 selected={selectedFolderId === folder._id}
                                 onClick={() => onSelectFolder(folder._id)}
+                                onDragEnter={(e) => handleFolderDragEnter(e, folder._id)}
                                 onDragOver={(e) => handleFolderDragOver(e, folder._id)}
                                 onDragLeave={handleFolderDragLeave}
                                 onDrop={(e) => handleNoteDrop(e, folder._id)}
@@ -159,10 +163,12 @@ export const FolderPanel: React.FC<FolderPanelProps> = ({
                                     transition: 'all 0.2s',
                                     WebkitFontSmoothing: 'antialiased',
                                     MozOsxFontSmoothing: 'grayscale',
-                                    bgcolor: dragOverFolderId === folder._id
-                                        ? alpha(theme.palette.primary.main, 0.2)
-                                        : 'transparent',
-                                    transform: dragOverFolderId === folder._id ? 'scale(1.02)' : 'scale(1)',
+                                    bgcolor: droppedFolderId === folder._id
+                                        ? alpha(theme.palette.success.main, 0.15)
+                                        : dragOverFolderId === folder._id
+                                            ? alpha(theme.palette.primary.main, 0.2)
+                                            : 'transparent',
+                                    transform: (dragOverFolderId === folder._id || droppedFolderId === folder._id) ? 'scale(1.02)' : 'scale(1)',
                                     '&.Mui-selected': {
                                         bgcolor: alpha(theme.palette.primary.main, 0.12),
                                         '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.16) }

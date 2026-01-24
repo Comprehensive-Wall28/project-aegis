@@ -10,6 +10,7 @@ interface UseFolderDragDropProps {
 export const useFolderDragDrop = ({ notes, moveNote, decryptedTitles = new Map() }: UseFolderDragDropProps) => {
     const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
     const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+    const [droppedFolderId, setDroppedFolderId] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const dragImageRef = useRef<HTMLDivElement | null>(null);
 
@@ -50,6 +51,8 @@ export const useFolderDragDrop = ({ notes, moveNote, decryptedTitles = new Map()
     const handleNoteDragStart = useCallback((e: React.DragEvent, noteId: string) => {
         setDraggedNoteId(noteId);
         setIsDragging(true);
+        // Set data firmly
+        e.dataTransfer.setData('text/plain', noteId);
         e.dataTransfer.setData('noteId', noteId);
         e.dataTransfer.effectAllowed = 'move';
 
@@ -57,7 +60,8 @@ export const useFolderDragDrop = ({ notes, moveNote, decryptedTitles = new Map()
         if (dragImageRef.current) {
             const title = decryptedTitles.get(noteId) || 'Note';
             dragImageRef.current.textContent = `📄 ${title}`;
-            e.dataTransfer.setDragImage(dragImageRef.current, 20, 20);
+            // Offset a bit more to ensure it doesn't interfere with hit testing
+            e.dataTransfer.setDragImage(dragImageRef.current, 10, 10);
         }
 
         // Make original element semi-transparent
@@ -73,31 +77,59 @@ export const useFolderDragDrop = ({ notes, moveNote, decryptedTitles = new Map()
         target.style.opacity = '1';
     }, []);
 
-    const handleFolderDragOver = useCallback((e: React.DragEvent, folderId: string | null) => {
+    const handleFolderDragEnter = useCallback((e: React.DragEvent, folderId: string | null) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        if (draggedNoteId) {
-            setDragOverFolderId(folderId === null ? 'root' : folderId);
+        const targetId = folderId === null ? 'root' : folderId;
+        // Immediate state update on enter
+        if (dragOverFolderId !== targetId) {
+            setDragOverFolderId(targetId);
         }
-    }, [draggedNoteId]);
+    }, [dragOverFolderId]);
 
-    const handleFolderDragLeave = useCallback(() => {
-        setDragOverFolderId(null);
+    const handleFolderDragOver = useCallback((e: React.DragEvent, folderId: string | null) => {
+        e.preventDefault(); // CRITICAL: Must be prevented for drop to work
+        e.dataTransfer.dropEffect = 'move';
+
+        // Only update state if it changed to avoid excessive re-renders
+        const targetId = folderId === null ? 'root' : folderId;
+        if (dragOverFolderId !== targetId) {
+            setDragOverFolderId(targetId);
+        }
+    }, [dragOverFolderId]);
+
+    const handleFolderDragLeave = useCallback((e: React.DragEvent) => {
+        // Only reset if we are actually leaving the container, not just moving to a child
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+
+        if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+            setDragOverFolderId(null);
+        }
     }, []);
 
     const handleNoteDrop = useCallback(async (e: React.DragEvent, targetFolderId: string | null) => {
         e.preventDefault();
         setDragOverFolderId(null);
 
-        const noteId = e.dataTransfer.getData('noteId') || draggedNoteId;
+        // Try multiple sources for the ID
+        const noteId = e.dataTransfer.getData('noteId') ||
+            e.dataTransfer.getData('text/plain') ||
+            draggedNoteId;
+
         if (!noteId) return;
 
-        // Don't move if target is same as current folder (best effort check)
+        // Don't move if target is same as current folder
         const note = notes.find(n => n._id === noteId);
         if (note && note.noteFolderId === (targetFolderId || undefined)) return;
 
         try {
             await moveNote(noteId, targetFolderId);
+            // Show success highlight briefly
+            const folderKey = targetFolderId === null ? 'root' : targetFolderId;
+            setDroppedFolderId(folderKey);
+            setTimeout(() => setDroppedFolderId(null), 1500);
         } catch (err) {
             console.error('Failed to move note in drop handler:', err);
         } finally {
@@ -109,9 +141,11 @@ export const useFolderDragDrop = ({ notes, moveNote, decryptedTitles = new Map()
     return {
         draggedNoteId,
         dragOverFolderId,
+        droppedFolderId,
         isDragging,
         handleNoteDragStart,
         handleNoteDragEnd,
+        handleFolderDragEnter,
         handleFolderDragOver,
         handleFolderDragLeave,
         handleNoteDrop
