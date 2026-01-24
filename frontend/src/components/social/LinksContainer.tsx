@@ -20,7 +20,7 @@ import {
     Link as LinkIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-// import { LinkCardSkeleton } from './SocialSkeletons'; // Removed to reduce flicker
+import { LinkCardSkeleton } from './SocialSkeletons';
 import { LinkCard } from './LinkCard';
 import { SocialErrorBoundary } from './SocialErrorBoundary';
 import type { LinkPost } from '@/services/socialService';
@@ -184,14 +184,14 @@ export const LinksContainer = memo(({
                     </Box>
                 )}
 
-                <AnimatePresence mode="wait" initial={false}>
+                <AnimatePresence initial={false}>
                     {filteredLinks.length > 0 ? (
                         <Box
                             key="links-grid"
                             component={motion.div}
                             initial={{ opacity: 0, scale: 0.99 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.99, transition: { duration: 0.05 } }}
+                            exit={{ opacity: 0, scale: 0.99, transition: { duration: 0.1 } }}
                             transition={{
                                 duration: 0.15,
                                 ease: 'easeOut'
@@ -255,13 +255,31 @@ export const LinksContainer = memo(({
                                 </Box>
                             )}
                         </Box>
+                    ) : (isLoadingLinks || isLoadingContent) && !searchQuery ? (
+                        <Box
+                            key="loading-skeletons"
+                            component={motion.div}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                            transition={{ duration: 0.15 }}
+                            sx={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                gap: 2,
+                            }}
+                        >
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <LinkCardSkeleton key={`link-skel-${i}`} />
+                            ))}
+                        </Box>
                     ) : (
                         <Box
                             key="empty-state"
                             component={motion.div}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
+                            exit={{ opacity: 0, transition: { duration: 0.1 } }}
                             transition={{ duration: 0.15 }}
                             sx={{
                                 display: 'flex',
@@ -272,7 +290,7 @@ export const LinksContainer = memo(({
                                 gap: 2,
                             }}
                         >
-                            {!(isLoadingContent || isLoadingLinks || isSearchingLinks) && (
+                            {!(isLoadingContent || isLoadingLinks || isSearchingLinks) && filteredLinks.length === 0 && (
                                 <>
                                     <LinkIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
                                     <Typography color="text.secondary" variant="body1">

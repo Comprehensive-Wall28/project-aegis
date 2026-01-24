@@ -833,7 +833,7 @@ export function SocialPage() {
                                         ))}
 
                                         <CreateRoomCard
-                                            onClick={() => setShowCreateDialog(true)}
+                                            onClick={() => toggleOverlay('createRoom', true)}
                                             index={rooms.length}
                                         />
                                     </Box>
@@ -861,7 +861,7 @@ export function SocialPage() {
                                                         setDropTargetId={setDropTargetId}
                                                         handleDrop={handleDrop}
                                                         getUnviewedCountByCollection={getUnviewedCountByCollection}
-                                                        setShowCollectionDialog={setShowCollectionDialog}
+                                                        setShowCollectionDialog={() => toggleOverlay('createCol', true)}
                                                     />
                                                 </SocialErrorBoundary>
 
