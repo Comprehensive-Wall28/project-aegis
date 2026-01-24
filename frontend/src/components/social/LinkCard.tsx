@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
 import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress, Tooltip } from '@mui/material';
 import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon, AutoStoriesOutlined as ReaderIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,6 +59,19 @@ const renderHighlightedText = (text: string, query?: string) => {
 export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewClick, showPreview, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick, highlight }: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
+
+    // Handle ESC key to close preview
+    useEffect(() => {
+        if (!showPreview) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                onPreviewClick?.(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showPreview, onPreviewClick]);
 
     const username = typeof link.userId === 'object' ? link.userId.username : 'Unknown';
 
@@ -432,7 +445,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => onPreviewClick?.(link)}
+                            onClick={() => onPreviewClick?.(null)}
                             sx={{
                                 position: 'fixed',
                                 inset: 0,
@@ -512,7 +525,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
 
                                     {/* Close Button */}
                                     <IconButton
-                                        onClick={() => onPreviewClick?.(link)}
+                                        onClick={() => onPreviewClick?.(null)}
                                         sx={{
                                             position: 'absolute',
                                             top: 16,

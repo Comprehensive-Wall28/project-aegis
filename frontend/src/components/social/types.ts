@@ -95,7 +95,7 @@ export interface LinkCardProps {
     onDragStart?: (linkId: string) => void;
     onView?: (linkId: string) => void;
     onUnview?: (linkId: string) => void;
-    onPreviewClick?: (link: LinkPost) => void;
+    onPreviewClick?: (link: LinkPost | null) => void;
     showPreview?: boolean;
     isViewed?: boolean;
     commentCount?: number;

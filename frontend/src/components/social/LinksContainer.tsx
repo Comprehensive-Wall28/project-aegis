@@ -70,7 +70,7 @@ export const LinksContainer = memo(({
     const handleUnview = useCallback((id: string) => unmarkLinkViewed(id), [unmarkLinkViewed]);
     const handleCommentsClick = useCallback((link: LinkPost) => setCommentsLink(link), [setCommentsLink]);
     const handleReaderClick = useCallback((link: LinkPost) => setReaderLink(link), [setReaderLink]);
-    const handlePreviewClick = useCallback((link: LinkPost) => setPreviewLink(link), [setPreviewLink]);
+    const handlePreviewClick = useCallback((link: LinkPost | null) => setPreviewLink(link), [setPreviewLink]);
     const handleLoadAll = useCallback(() => loadAllLinks(), [loadAllLinks]);
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
     const handleClearSearch = useCallback((e: React.MouseEvent) => {
