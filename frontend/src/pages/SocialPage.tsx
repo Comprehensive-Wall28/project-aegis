@@ -209,6 +209,45 @@ export function SocialPage() {
         };
     }, [clearRoomContent]);
 
+    // URL Synchronization Helper
+    const toggleOverlay = useCallback((key: string, value: string | boolean | null) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (value === null || value === false) {
+                next.delete(key);
+            } else {
+                next.set(key, String(value));
+            }
+            return next;
+        });
+    }, [setSearchParams]);
+
+    const showSnackbar = useCallback((message: string, severity: SnackbarState['severity']) => {
+        setSnackbar({ open: true, message, severity });
+    }, []);
+
+    const handlePostLink = useCallback(async (url?: string) => {
+        const linkToPost = url || newLinkUrl;
+        if (!linkToPost.trim()) return;
+
+        try {
+            setIsPostingLink(true);
+            setPostLinkError(null);
+            await postLink(linkToPost.trim());
+            setNewLinkUrl('');
+            toggleOverlay('post', null);
+            showSnackbar('Link shared successfully', 'success');
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.message || 'Failed to post link';
+            setPostLinkError(message);
+            if (!isMobile) {
+                showSnackbar(message, 'error');
+            }
+        } finally {
+            setIsPostingLink(false);
+        }
+    }, [newLinkUrl, postLink, isMobile, showSnackbar, toggleOverlay]);
+
     // Hot Share Listener: Listen for AEGIS_SHARE_INTENT events from browser extension
     useEffect(() => {
         const handleShareIntent = (event: CustomEvent<{ url: string }>) => {
@@ -216,9 +255,8 @@ export function SocialPage() {
             if (!url) return;
 
             if (currentRoom) {
-                // Room is active, open the dialog immediately
-                setNewLinkUrl(url);
-                setShowPostLinkDialog(true);
+                // Room is active, auto submit
+                handlePostLink(url);
             } else {
                 // No room selected, save for later
                 setPendingShareUrl(url);
@@ -230,7 +268,7 @@ export function SocialPage() {
         return () => {
             window.removeEventListener('AEGIS_SHARE_INTENT', handleShareIntent as EventListener);
         };
-    }, [currentRoom]);
+    }, [currentRoom, handlePostLink, showSnackbar]);
 
     // Cold Share Logic: Check for share_url query parameter on load
     useEffect(() => {
@@ -241,9 +279,8 @@ export function SocialPage() {
             setSearchParams(searchParams, { replace: true });
 
             if (currentRoom) {
-                // Room is already active (e.g., via deep link), open dialog immediately
-                setNewLinkUrl(shareUrl);
-                setShowPostLinkDialog(true);
+                // Room is already active (e.g., via deep link), auto submit
+                handlePostLink(shareUrl);
             } else {
                 // Save for when user enters a room
                 setPendingShareUrl(shareUrl);
@@ -252,14 +289,13 @@ export function SocialPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Only run on mount
 
-    // Room Entry Logic: Open dialog when user enters a room with pending share URL
+    // Room Entry Logic: Auto submit when user enters a room with pending share URL
     useEffect(() => {
         if (currentRoom && pendingShareUrl) {
-            setNewLinkUrl(pendingShareUrl);
-            setShowPostLinkDialog(true);
+            handlePostLink(pendingShareUrl);
             setPendingShareUrl(null);
         }
-    }, [currentRoom, pendingShareUrl]);
+    }, [currentRoom, pendingShareUrl, handlePostLink]);
 
     // Fetch rooms on mount
     useEffect(() => {
@@ -289,18 +325,7 @@ export function SocialPage() {
         }
     }, [viewMode, roomId]);
 
-    // URL Synchronization Helper
-    const toggleOverlay = useCallback((key: string, value: string | boolean | null) => {
-        setSearchParams(prev => {
-            const next = new URLSearchParams(prev);
-            if (value === null || value === false) {
-                next.delete(key);
-            } else {
-                next.set(key, String(value));
-            }
-            return next;
-        });
-    }, [setSearchParams]);
+
 
     // Sync URL parameters with overlay states
     useEffect(() => {
@@ -402,9 +427,7 @@ export function SocialPage() {
         linksContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }, [currentCollectionId]);
 
-    const showSnackbar = useCallback((message: string, severity: SnackbarState['severity']) => {
-        setSnackbar({ open: true, message, severity });
-    }, []);
+
 
     // Exit room and return to rooms view
     const handleExitRoom = useCallback(() => {
@@ -451,27 +474,7 @@ export function SocialPage() {
         }
     };
 
-    const handlePostLink = useCallback(async (url?: string) => {
-        const linkToPost = url || newLinkUrl;
-        if (!linkToPost.trim()) return;
 
-        try {
-            setIsPostingLink(true);
-            setPostLinkError(null);
-            await postLink(linkToPost.trim());
-            setNewLinkUrl('');
-            toggleOverlay('post', null);
-            showSnackbar('Link shared successfully', 'success');
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.message || 'Failed to post link';
-            setPostLinkError(message);
-            if (!isMobile) {
-                showSnackbar(message, 'error');
-            }
-        } finally {
-            setIsPostingLink(false);
-        }
-    }, [newLinkUrl, postLink, isMobile, showSnackbar]);
 
     const handleCreateCollection = useCallback(async (name: string) => {
         if (!name.trim() || isCreatingCollection) return;
