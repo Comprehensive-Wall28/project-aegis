@@ -266,7 +266,7 @@ export const SocialHeader = memo(({
                                 <ListItemIcon sx={{ minWidth: 36 }}>
                                     <HistoryIcon fontSize="small" color={sortOrder === 'latest' ? 'primary' : 'inherit'} />
                                 </ListItemIcon>
-                                <ListItemText primary="Latest First" primaryTypographyProps={{ variant: 'body2', fontWeight: sortOrder === 'latest' ? 600 : 400 }} />
+                                <ListItemText primary="Latest First" slotProps={{ primary: { variant: 'body2', fontWeight: sortOrder === 'latest' ? 600 : 400 } }} />
                                 {sortOrder === 'latest' && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
 
@@ -274,7 +274,7 @@ export const SocialHeader = memo(({
                                 <ListItemIcon sx={{ minWidth: 36 }}>
                                     <TimeIcon fontSize="small" color={sortOrder === 'oldest' ? 'primary' : 'inherit'} />
                                 </ListItemIcon>
-                                <ListItemText primary="Oldest First" primaryTypographyProps={{ variant: 'body2', fontWeight: sortOrder === 'oldest' ? 600 : 400 }} />
+                                <ListItemText primary="Oldest First" slotProps={{ primary: { variant: 'body2', fontWeight: sortOrder === 'latest' ? 600 : 400 } }} />
                                 {sortOrder === 'oldest' && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
 
@@ -288,7 +288,7 @@ export const SocialHeader = memo(({
                                 <ListItemIcon sx={{ minWidth: 36 }}>
                                     <FilterListIcon fontSize="small" color={viewFilter === 'all' ? 'primary' : 'inherit'} />
                                 </ListItemIcon>
-                                <ListItemText primary="All Links" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'all' ? 600 : 400 }} />
+                                <ListItemText primary="All Links" slotProps={{ primary: { variant: 'body2', fontWeight: viewFilter === 'all' ? 600 : 400 } }} />
                                 {viewFilter === 'all' && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
 
@@ -296,7 +296,7 @@ export const SocialHeader = memo(({
                                 <ListItemIcon sx={{ minWidth: 36 }}>
                                     <VisibilityIcon fontSize="small" color={viewFilter === 'viewed' ? 'primary' : 'inherit'} />
                                 </ListItemIcon>
-                                <ListItemText primary="Viewed" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'viewed' ? 600 : 400 }} />
+                                <ListItemText primary="Viewed" slotProps={{ primary: { variant: 'body2', fontWeight: viewFilter === 'viewed' ? 600 : 400 } }} />
                                 {viewFilter === 'viewed' && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
 
@@ -304,7 +304,7 @@ export const SocialHeader = memo(({
                                 <ListItemIcon sx={{ minWidth: 36 }}>
                                     <VisibilityOffIcon fontSize="small" color={viewFilter === 'unviewed' ? 'primary' : 'inherit'} />
                                 </ListItemIcon>
-                                <ListItemText primary="Unviewed" primaryTypographyProps={{ variant: 'body2', fontWeight: viewFilter === 'unviewed' ? 600 : 400 }} />
+                                <ListItemText primary="Unviewed" slotProps={{ primary: { variant: 'body2', fontWeight: viewFilter === 'unviewed' ? 600 : 400 } }} />
                                 {viewFilter === 'unviewed' && <CheckIcon fontSize="small" color="primary" />}
                             </MenuItem>
 
@@ -348,7 +348,7 @@ export const SocialHeader = memo(({
                                     <ListItemIcon sx={{ minWidth: 36 }}>
                                         <GroupIcon fontSize="small" color={selectedUploader === null ? 'primary' : 'inherit'} />
                                     </ListItemIcon>
-                                    <ListItemText primary="All Uploaders" primaryTypographyProps={{ variant: 'body2', fontWeight: selectedUploader === null ? 600 : 400 }} />
+                                    <ListItemText primary="All Uploaders" slotProps={{ primary: { variant: 'body2', fontWeight: selectedUploader === null ? 600 : 400 } }} />
                                     {selectedUploader === null && <CheckIcon fontSize="small" color="primary" />}
                                 </MenuItem>
 
@@ -363,7 +363,7 @@ export const SocialHeader = memo(({
                                             <ListItemIcon sx={{ minWidth: 36 }}>
                                                 <PersonIcon fontSize="small" color={selectedUploader === uploader.id ? 'primary' : 'inherit'} />
                                             </ListItemIcon>
-                                            <ListItemText primary={uploader.username} primaryTypographyProps={{ variant: 'body2', fontWeight: selectedUploader === uploader.id ? 600 : 400 }} />
+                                            <ListItemText primary={uploader.username} slotProps={{ primary: { variant: 'body2', fontWeight: selectedUploader === uploader.id ? 600 : 400 } }} />
                                             {selectedUploader === uploader.id && <CheckIcon fontSize="small" color="primary" />}
                                         </MenuItem>
                                     ))}

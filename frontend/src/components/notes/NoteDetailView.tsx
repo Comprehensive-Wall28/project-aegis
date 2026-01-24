@@ -5,7 +5,7 @@ import {
     LinearProgress,
     Button
 } from '@mui/material';
-import { Add, NoteAlt, ArrowBack } from '@mui/icons-material';
+import { Add, NoteAlt, ArrowBack, UnfoldLess, UnfoldMore } from '@mui/icons-material';
 import type { DecryptedNote } from '../../hooks/useNotesCrud';
 
 interface NoteDetailViewProps {
@@ -17,6 +17,8 @@ interface NoteDetailViewProps {
     onToggleFullscreen?: () => void;
     containerRef?: (node: HTMLElement | null) => void;
     editorInstance?: React.ReactNode;
+    isZenMode: boolean;
+    onToggleZenMode: () => void;
 }
 
 export const NoteDetailView: React.FC<NoteDetailViewProps> = ({
@@ -26,8 +28,12 @@ export const NoteDetailView: React.FC<NoteDetailViewProps> = ({
     isMobile,
     onMobileBack,
     containerRef,
-    editorInstance
+    editorInstance,
+    isZenMode,
+    onToggleZenMode
 }) => {
+    // Local state removed, using props
+
     if (isLoadingContent) {
         return (
             <Box sx={{
@@ -86,11 +92,12 @@ export const NoteDetailView: React.FC<NoteDetailViewProps> = ({
             bgcolor: 'background.paper',
             position: 'relative'
         }}>
-            {isMobile && (
+            {isMobile && !isZenMode && (
                 <Box sx={{
                     p: 1,
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'space-between',
                     borderBottom: 1,
                     borderColor: 'divider'
                 }}>
@@ -100,8 +107,53 @@ export const NoteDetailView: React.FC<NoteDetailViewProps> = ({
                     >
                         Back
                     </Button>
+                    <Button
+                        startIcon={<UnfoldMore />}
+                        onClick={onToggleZenMode}
+                        color="inherit"
+                        size="small"
+                        sx={{ opacity: 0.7 }}
+                    >
+                        Zen Mode
+                    </Button>
                 </Box>
             )}
+
+            {isMobile && isZenMode && (
+                <>
+
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 16,
+                        right: 16,
+                        zIndex: 10
+                    }}>
+                        <Button
+                            onClick={onToggleZenMode}
+                            variant="contained"
+                            size="small"
+                            sx={{
+                                borderRadius: '50%',
+                                minWidth: '40px',
+                                width: '40px',
+                                height: '40px',
+                                p: 0,
+                                bgcolor: 'background.paper',
+                                color: 'text.primary',
+                                boxShadow: 2,
+                                opacity: 0.6,
+                                '&:hover': {
+                                    bgcolor: 'background.paper',
+                                    opacity: 1
+                                }
+                            }}
+                        >
+                            <UnfoldLess />
+                        </Button>
+                    </Box>
+                </>
+            )}
+
             <Box
                 key={selectedNote.metadata._id}
                 sx={{ flex: 1, height: '100%', overflow: 'hidden' }}

@@ -393,7 +393,7 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                                         </ListItemIcon>
                                         <ListItemText
                                             primary={folder.name}
-                                            primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+                                            slotProps={{ primary: { variant: 'body2', fontWeight: 600 } }}
                                         />
                                         <NextIcon sx={{ fontSize: 16, opacity: 0.3 }} />
                                     </ListItem>
@@ -418,7 +418,7 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                                             </ListItemIcon>
                                             <ListItemText
                                                 primary={file.originalFileName}
-                                                primaryTypographyProps={{ variant: 'body2' }}
+                                                slotProps={{ primary: { variant: 'body2' } }}
                                             />
                                         </ListItem>
                                     );
@@ -483,8 +483,10 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                                 <ListItemText
                                     primary={task.title}
                                     secondary={task.status.replace('_', ' ')}
-                                    primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
-                                    secondaryTypographyProps={{ variant: 'caption', sx: { textTransform: 'capitalize' } }}
+                                    slotProps={{
+                                        primary: { variant: 'body2', fontWeight: 600 },
+                                        secondary: { variant: 'caption', sx: { textTransform: 'capitalize' } }
+                                    }}
                                 />
                             </ListItem>
                         ))}
@@ -529,8 +531,10 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                                 <ListItemText
                                     primary={event.title}
                                     secondary={new Date(event.startDate).toLocaleDateString()}
-                                    primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
-                                    secondaryTypographyProps={{ variant: 'caption' }}
+                                    slotProps={{
+                                        primary: { variant: 'body2', fontWeight: 600 },
+                                        secondary: { variant: 'caption' }
+                                    }}
                                 />
                             </ListItem>
                         ))}

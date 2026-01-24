@@ -211,7 +211,7 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                                     </ListItemIcon>
                                     <ListItemText
                                         primary={currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}
-                                        primaryTypographyProps={{ fontSize: '14px', fontWeight: 500 }}
+                                        slotProps={{ primary: { fontSize: '14px', fontWeight: 500 } }}
                                     />
                                 </ListItemButton>
                             </ListItem>
@@ -247,9 +247,11 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
                             {!isCollapsed && (
                                 <ListItemText
                                     primary="Logout"
-                                    primaryTypographyProps={{
-                                        fontSize: '14px',
-                                        fontWeight: 500
+                                    slotProps={{
+                                        primary: {
+                                            fontSize: '14px',
+                                            fontWeight: 500
+                                        }
                                     }}
                                 />
                             )}

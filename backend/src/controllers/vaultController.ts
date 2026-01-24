@@ -75,7 +75,7 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
 
         const { stream, file } = await vaultService.getDownloadStream(
             req.user.id,
-            req.params.id
+            req.params.id as string
         );
 
         // Handle stream errors
@@ -105,7 +105,7 @@ export const getFile = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        const file = await vaultService.getFile(req.user.id, req.params.id);
+        const file = await vaultService.getFile(req.user.id, req.params.id as string);
         res.json(file);
     } catch (error) {
         handleError(error, res);
@@ -155,7 +155,7 @@ export const deleteUserFile = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        await vaultService.deleteFile(req.user.id, req.params.id, req);
+        await vaultService.deleteFile(req.user.id, req.params.id as string, req);
         res.status(200).json({ message: 'File deleted successfully' });
     } catch (error) {
         handleError(error, res);

@@ -58,7 +58,7 @@ export const getNote = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const note = await noteService.getNote(req.user.id, req.params.id);
+        const note = await noteService.getNote(req.user.id, req.params.id as string);
         res.status(200).json(note);
     } catch (error) {
         handleError(error, res);
@@ -75,7 +75,7 @@ export const getNoteContent = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const { content, note } = await noteService.getNoteContentBuffer(req.user.id, req.params.id);
+        const { content, note } = await noteService.getNoteContentBuffer(req.user.id, req.params.id as string);
 
         res.status(200).json({
             encapsulatedKey: note.encapsulatedKey,
@@ -98,7 +98,7 @@ export const getNoteContentStream = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const { stream, note } = await noteService.getNoteContentStream(req.user.id, req.params.id);
+        const { stream, note } = await noteService.getNoteContentStream(req.user.id, req.params.id as string);
 
         res.setHeader('Content-Type', 'application/octet-stream');
         res.setHeader('Content-Length', note.contentSize.toString());
@@ -138,7 +138,7 @@ export const updateNoteMetadata = async (req: AuthRequest, res: Response) => {
 
         const note = await noteService.updateNoteMetadata(
             req.user.id,
-            req.params.id,
+            req.params.id as string,
             req.body,
             req
         );
@@ -160,7 +160,7 @@ export const updateNoteContent = async (req: AuthRequest, res: Response) => {
 
         const note = await noteService.updateNoteContent(
             req.user.id,
-            req.params.id,
+            req.params.id as string,
             req.body,
             req
         );
@@ -180,7 +180,7 @@ export const deleteNote = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        await noteService.deleteNote(req.user.id, req.params.id, req);
+        await noteService.deleteNote(req.user.id, req.params.id as string, req);
         res.status(200).json({ message: 'Note deleted successfully' });
     } catch (error) {
         handleError(error, res);
@@ -212,7 +212,7 @@ export const getBacklinks = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const notes = await noteService.getBacklinks(req.user.id, req.params.entityId);
+        const notes = await noteService.getBacklinks(req.user.id, req.params.entityId as string);
         res.status(200).json(notes);
     } catch (error) {
         handleError(error, res);
@@ -264,7 +264,7 @@ export const updateFolder = async (req: AuthRequest, res: Response) => {
 
         const folder = await noteService.updateFolder(
             req.user.id,
-            req.params.id,
+            req.params.id as string,
             req.body,
             req
         );
@@ -284,7 +284,7 @@ export const deleteFolder = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        await noteService.deleteFolder(req.user.id, req.params.id, req);
+        await noteService.deleteFolder(req.user.id, req.params.id as string, req);
         res.status(200).json({ message: 'Folder deleted successfully' });
     } catch (error) {
         handleError(error, res);
@@ -358,7 +358,7 @@ export const downloadMedia = async (req: AuthRequest, res: Response) => {
 
         const { stream, media } = await mediaService.getDownloadStream(
             req.user.id,
-            req.params.id
+            req.params.id as string
         );
 
         // Handle stream errors
@@ -390,7 +390,7 @@ export const getMediaMetadata = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        const media = await mediaService.getMedia(req.user.id, req.params.id);
+        const media = await mediaService.getMedia(req.user.id, req.params.id as string);
         res.json(media);
     } catch (error) {
         handleError(error, res);

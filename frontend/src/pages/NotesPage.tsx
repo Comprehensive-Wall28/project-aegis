@@ -337,6 +337,8 @@ const NotesPage: React.FC = () => {
                             isMobile={true}
                             onMobileBack={handleCloseNote}
                             editorInstance={editorElement}
+                            isZenMode={isZenMode}
+                            onToggleZenMode={() => setIsZenMode(prev => !prev)}
                         />
                     </Drawer>
                 </Box>

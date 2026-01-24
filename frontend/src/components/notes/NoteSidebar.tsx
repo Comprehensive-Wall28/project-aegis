@@ -9,6 +9,7 @@ import {
     Chip,
     alpha,
     useTheme,
+    useMediaQuery,
 } from '@mui/material';
 import {
     Add,
@@ -48,6 +49,7 @@ interface NoteSidebarProps {
 
 export const NoteSidebar: React.FC<NoteSidebarProps> = (props) => {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const {
         notes,
         folders,
@@ -162,42 +164,51 @@ export const NoteSidebar: React.FC<NoteSidebarProps> = (props) => {
 
             <Box sx={{ borderTop: 1, borderColor: alpha(theme.palette.divider, 0.1), mt: 1 }} />
 
-            {/* Tag Filters */}
-            {userTags.length > 0 && (
-                <Box sx={{ px: 2, py: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                    {userTags.slice(0, 8).map(tag => (
-                        <Chip
-                            key={tag}
-                            label={tag}
-                            size="small"
-                            icon={<Tag fontSize="small" />}
-                            onClick={() => onToggleTag(tag)}
-                            color={selectedTags.includes(tag) ? 'primary' : 'default'}
-                            variant={selectedTags.includes(tag) ? 'filled' : 'outlined'}
-                            sx={{
-                                borderRadius: '8px',
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                    transform: 'translateY(-1px)',
-                                },
-                            }}
-                        />
-                    ))}
-                </Box>
-            )}
+            {/* Collapsible Content (Tags + Notes) */}
+            <Box
+                sx={{
+                    flex: 1,
+                    overflow: 'hidden',
+                    display: (isMobile && foldersExpanded) ? 'none' : 'flex',
+                    flexDirection: 'column'
+                }}
+            >
+                {/* Tag Filters */}
+                {userTags.length > 0 && (
+                    <Box sx={{ px: 2, py: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                        {userTags.slice(0, 8).map(tag => (
+                            <Chip
+                                key={tag}
+                                label={tag}
+                                size="small"
+                                icon={<Tag fontSize="small" />}
+                                onClick={() => onToggleTag(tag)}
+                                color={selectedTags.includes(tag) ? 'primary' : 'default'}
+                                variant={selectedTags.includes(tag) ? 'filled' : 'outlined'}
+                                sx={{
+                                    borderRadius: '8px',
+                                    transition: 'all 0.2s',
+                                    '&:hover': {
+                                        transform: 'translateY(-1px)',
+                                    },
+                                }}
+                            />
+                        ))}
+                    </Box>
+                )}
 
-
-            {/* Notes List */}
-            <NoteList
-                notes={notes}
-                selectedNoteId={selectedNoteId}
-                decryptedTitles={decryptedTitles}
-                onSelectNote={onSelectNote}
-                onDeleteNote={onDeleteNote}
-                isLoading={isLoading}
-                isRefreshing={isRefreshing}
-                dragDrop={dragDrop}
-            />
+                {/* Notes List */}
+                <NoteList
+                    notes={notes}
+                    selectedNoteId={selectedNoteId}
+                    decryptedTitles={decryptedTitles}
+                    onSelectNote={onSelectNote}
+                    onDeleteNote={onDeleteNote}
+                    isLoading={isLoading}
+                    isRefreshing={isRefreshing}
+                    dragDrop={dragDrop}
+                />
+            </Box>
         </Box>
     );
 }

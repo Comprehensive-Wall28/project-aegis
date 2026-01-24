@@ -8,6 +8,7 @@ import {
     IconButton,
     alpha,
     useTheme,
+    Collapse,
 } from '@mui/material';
 import {
     Folder,
@@ -73,7 +74,7 @@ export const FolderList: React.FC<FolderListProps> = ({
                 </IconButton>
             </Box>
 
-            {foldersExpanded && (
+            <Collapse in={foldersExpanded} timeout="auto" unmountOnExit>
                 <List disablePadding sx={{ display: 'flex', flexDirection: 'column' }}>
                     <ListItemButton
                         selected={selectedFolderId === null}
@@ -99,7 +100,7 @@ export const FolderList: React.FC<FolderListProps> = ({
                         }}
                     >
                         <FolderOpen sx={{ fontSize: 20, mr: 1.5, color: selectedFolderId === null ? 'primary.main' : 'text.secondary' }} />
-                        <ListItemText primary="All Notes" primaryTypographyProps={{ variant: 'body2', fontWeight: selectedFolderId === null ? 600 : 400 }} />
+                        <ListItemText primary="All Notes" slotProps={{ primary: { variant: 'body2', fontWeight: selectedFolderId === null ? 600 : 400 } }} />
                     </ListItemButton>
 
                     <Box sx={{ height: '35vh', maxHeight: '300px' }}>
@@ -133,10 +134,12 @@ export const FolderList: React.FC<FolderListProps> = ({
                                     <Folder sx={{ fontSize: 20, mr: 1.5, color: folder.color || (selectedFolderId === folder._id ? 'primary.main' : 'text.secondary') }} />
                                     <ListItemText
                                         primary={folder.name}
-                                        primaryTypographyProps={{
-                                            variant: 'body2',
-                                            fontWeight: selectedFolderId === folder._id ? 600 : 400,
-                                            noWrap: true
+                                        slotProps={{
+                                            primary: {
+                                                variant: 'body2',
+                                                fontWeight: selectedFolderId === folder._id ? 600 : 400,
+                                                noWrap: true
+                                            }
                                         }}
                                     />
                                     <Box sx={{ display: 'flex', opacity: 0, '.MuiListItemButton-root:hover &': { opacity: 0.5 } }}>
@@ -164,7 +167,7 @@ export const FolderList: React.FC<FolderListProps> = ({
                         />
                     </Box>
                 </List>
-            )}
+            </Collapse>
         </Box>
     );
 };

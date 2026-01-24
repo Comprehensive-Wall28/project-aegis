@@ -47,7 +47,7 @@ export const deleteCourse = async (req: AuthRequest, res: Response) => {
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        await gpaService.deleteCourse(req.user.id, req.params.id, req);
+        await gpaService.deleteCourse(req.user.id, req.params.id as string, req);
         res.status(200).json({ message: 'Course deleted successfully' });
     } catch (error) {
         handleError(error, res);
@@ -107,7 +107,7 @@ export const migrateCourse = async (req: AuthRequest, res: Response) => {
         if (!req.user) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
-        const course = await gpaService.migrateCourse(req.user.id, req.params.id, req.body);
+        const course = await gpaService.migrateCourse(req.user.id, req.params.id as string, req.body);
         res.status(200).json(course);
     } catch (error) {
         handleError(error, res);

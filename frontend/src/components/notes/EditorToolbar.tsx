@@ -542,7 +542,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                                         >
                                             <ListItemText
                                                 primary={term}
-                                                primaryTypographyProps={{ fontSize: '0.875rem' }}
+                                                slotProps={{
+                                                    primary: { fontSize: '0.875rem' }
+                                                }}
                                             />
                                         </ListItemButton>
                                     ))}

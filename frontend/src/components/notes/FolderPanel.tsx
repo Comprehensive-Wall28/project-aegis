@@ -115,9 +115,11 @@ export const FolderPanel: React.FC<FolderPanelProps> = ({
                     }} />
                     <ListItemText
                         primary="All Notes"
-                        primaryTypographyProps={{
-                            variant: 'body2',
-                            fontWeight: selectedFolderId === null ? 600 : 400
+                        slotProps={{
+                            primary: {
+                                variant: 'body2',
+                                fontWeight: selectedFolderId === null ? 600 : 400
+                            }
                         }}
                     />
                 </ListItemButton>
@@ -183,10 +185,12 @@ export const FolderPanel: React.FC<FolderPanelProps> = ({
                                 }} />
                                 <ListItemText
                                     primary={folder.name}
-                                    primaryTypographyProps={{
-                                        variant: 'body2',
-                                        fontWeight: selectedFolderId === folder._id ? 600 : 400,
-                                        noWrap: true
+                                    slotProps={{
+                                        primary: {
+                                            variant: 'body2',
+                                            fontWeight: selectedFolderId === folder._id ? 600 : 400,
+                                            noWrap: true
+                                        }
                                     }}
                                 />
                                 <Box sx={{
