@@ -13,12 +13,25 @@ export const THEME_PALETTES: Record<Theme, { background: string; paper: string; 
         primary: '#9333ea',
         text: '#faf5ff',
     },
-    catppuccin: {
-        background: '#1e1e2e',
-        paper: '#313244',
+    'catppuccin-mocha': {
+        background: '#11111b',
+        paper: '#181825',
         primary: '#89b4fa',
         text: '#cdd6f4',
     },
+    'catppuccin-macchiato': {
+        background: '#181926',
+        paper: '#1e2030',
+        primary: '#8aadf4',
+        text: '#cad3f5',
+    },
+    'catppuccin-frappe': {
+        background: '#232634',
+        paper: '#292c3c',
+        primary: '#8caaee',
+        text: '#c6d0f5',
+    },
+
     amoled: {
         background: '#000000',
         paper: '#000000',
