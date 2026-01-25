@@ -749,7 +749,7 @@ export function SocialPage() {
                             sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}
                         >
                             <SocialErrorBoundary componentName="Header">
-                                <Box sx={{ px: isMobile ? 1 : (viewMode === 'rooms' ? 1 : 0) }}>
+                                <Box sx={{ px: isMobile ? 1 : 0 }}>
                                     <SocialHeader
                                         viewMode={viewMode}
                                         isMobile={isMobile}

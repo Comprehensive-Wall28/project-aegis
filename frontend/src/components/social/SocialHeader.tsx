@@ -82,7 +82,6 @@ export const SocialHeader = memo(({
                 borderRadius: isMobile ? SOCIAL_RADIUS_SMALL : SOCIAL_RADIUS_XLARGE,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
                 flexShrink: 0,
                 minHeight: isMobile ? (SOCIAL_HEADER_HEIGHT - 8) : (SOCIAL_HEADER_HEIGHT + 32),
             }}
@@ -131,223 +130,228 @@ export const SocialHeader = memo(({
                             transition={{ duration: 0.15 }}
                             sx={{ display: 'flex', alignItems: 'center', gap: 2, gridArea: '1/1', width: 'max-content' }}
                         >
-                            <GroupIcon sx={{ color: 'primary.main' }} />
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                Social Rooms
-                            </Typography>
+                            <Box sx={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', ml: -0.5 }}>
+                                <GroupIcon sx={{ color: 'primary.main' }} />
+                            </Box>
+                            <Box sx={{ minWidth: 120 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    Social Rooms
+                                </Typography>
+                            </Box>
                         </Box>
                     )}
                 </AnimatePresence>
             </Box>
 
-            <AnimatePresence>
-                {viewMode === 'rooms' ? (
-                    <Box
-                        key="rooms-actions"
-                        component={motion.div}
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
-                    >
-                        {onCreateRoom && (
-                            isMobile ? (
-                                <IconButton
-                                    onClick={onCreateRoom}
-                                    sx={{
-                                        bgcolor: 'primary.main',
-                                        color: 'primary.contrastText',
-                                        '&:hover': {
-                                            bgcolor: 'primary.dark',
-                                        },
-                                        boxShadow: theme.shadows[2],
-                                        width: 32,
-                                        height: 32,
-                                    }}
-                                    aria-label="Create Room"
-                                >
-                                    <AddIcon sx={{ fontSize: 20 }} />
-                                </IconButton>
-                            ) : (
-                                <Button
-                                    variant="contained"
-                                    startIcon={<AddIcon />}
-                                    onClick={onCreateRoom}
-                                    sx={{
-                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                        textTransform: 'none',
-                                        fontWeight: 600,
-                                        boxShadow: theme.shadows[2],
-                                    }}
-                                >
-                                    Create Room
-                                </Button>
-                            )
-                        )}
-                    </Box>
-                ) : (viewMode === 'room-content' && (optimisticRoomId || currentRoom)) ? (
-                    <Box
-                        key="header-actions"
-                        component={motion.div}
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10, transition: { duration: 0.05 } }}
-                        transition={{ duration: 0.15 }}
-                        sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}
-                    >
-                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Box sx={{ flex: 1, display: 'grid', justifyItems: 'end', alignItems: 'center', minWidth: 0 }}>
+                <AnimatePresence>
+                    {viewMode === 'rooms' ? (
+                        <Box
+                            key="rooms-actions"
+                            component={motion.div}
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 10 }}
+                            sx={{ display: 'flex', alignItems: 'center', gap: 2, gridArea: '1/1' }}
+                        >
+                            {onCreateRoom && (
+                                isMobile ? (
+                                    <IconButton
+                                        onClick={onCreateRoom}
+                                        sx={{
+                                            bgcolor: 'primary.main',
+                                            color: 'primary.contrastText',
+                                            '&:hover': {
+                                                bgcolor: 'primary.dark',
+                                            },
+                                            boxShadow: theme.shadows[2],
+                                            width: 32,
+                                            height: 32,
+                                        }}
+                                        aria-label="Create Room"
+                                    >
+                                        <AddIcon sx={{ fontSize: 20 }} />
+                                    </IconButton>
+                                ) : (
+                                    <Button
+                                        variant="contained"
+                                        startIcon={<AddIcon />}
+                                        onClick={onCreateRoom}
+                                        sx={{
+                                            borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                            boxShadow: theme.shadows[2],
+                                        }}
+                                    >
+                                        Create Room
+                                    </Button>
+                                )
+                            )}
+                        </Box>
+                    ) : (viewMode === 'room-content' && (optimisticRoomId || currentRoom)) ? (
+                        <Box
+                            key="header-actions"
+                            component={motion.div}
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 10, transition: { duration: 0.05 } }}
+                            transition={{ duration: 0.15 }}
+                            sx={{ display: 'flex', alignItems: 'center', gap: 2, gridArea: '1/1' }}
+                        >
+                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                                {!isMobile && (
+                                    <Box sx={{ width: 250, display: 'flex', overflow: 'hidden' }}>
+                                        <TextField
+                                            placeholder="Search links..."
+                                            value={searchQuery}
+                                            onChange={handleSearchChange}
+                                            size="small"
+                                            fullWidth
+                                            disabled={!currentRoom}
+                                            slotProps={{
+                                                input: {
+                                                    startAdornment: (
+                                                        <InputAdornment position="start">
+                                                            <SearchIcon fontSize="small" color="action" />
+                                                        </InputAdornment>
+                                                    ),
+                                                    endAdornment: searchQuery ? (
+                                                        <InputAdornment position="end">
+                                                            <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
+                                                                <CloseIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </InputAdornment>
+                                                    ) : undefined,
+                                                }
+                                            }}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                                    bgcolor: theme.palette.background.default,
+                                                }
+                                            }}
+                                        />
+                                    </Box>
+                                )}
+
+                                <Tooltip title="Filter Links">
+                                    <span>
+                                        <IconButton
+                                            onClick={handleFilterClick}
+                                            disabled={!currentRoom}
+                                            sx={{
+                                                color: (selectedUploader || viewFilter !== 'all') ? 'primary.main' : 'text.secondary',
+                                                bgcolor: (selectedUploader || viewFilter !== 'all') ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                                '&:hover': {
+                                                    color: 'primary.main',
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                }
+                                            }}
+                                            aria-label="Filter links"
+                                        >
+                                            <FilterListIcon />
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
+
+
+
+                                <Tooltip title={isZenModeOpen ? "Exit Zen Mode (Ctrl+F)" : "Zen Mode (Ctrl+F)"}>
+                                    <span>
+                                        <IconButton
+                                            onClick={onToggleZenMode}
+                                            disabled={!currentRoom}
+                                            sx={{
+                                                color: isZenModeOpen ? 'primary.main' : 'text.secondary',
+                                                bgcolor: isZenModeOpen ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                                '&:hover': {
+                                                    color: 'primary.main',
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                }
+                                            }}
+                                            aria-label="Toggle Zen Mode"
+                                        >
+                                            <ZenModeIcon />
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
+                            </Box>
+
+                            <SocialFilterMenu
+                                anchorEl={filterAnchorEl}
+                                open={Boolean(filterAnchorEl)}
+                                onClose={handleFilterClose}
+                                sortOrder={sortOrder}
+                                onSortOrderChange={handleSortOrderChange}
+                                viewFilter={viewFilter}
+                                onViewFilterChange={handleViewFilterChange}
+                                selectedUploader={selectedUploader}
+                                onSelectUploader={handleSelectUploader}
+                                uniqueUploaders={uniqueUploaders}
+                            />
+
                             {!isMobile && (
-                                <Box sx={{ width: 250, display: 'flex', overflow: 'hidden' }}>
+                                <>
                                     <TextField
-                                        placeholder="Search links..."
-                                        value={searchQuery}
-                                        onChange={handleSearchChange}
+                                        placeholder="Paste a link to share..."
+                                        value={newLinkUrl}
+                                        onChange={handleNewLinkChange}
+                                        onKeyDown={handlePostKeyDown}
                                         size="small"
-                                        fullWidth
-                                        disabled={!currentRoom}
                                         slotProps={{
                                             input: {
                                                 startAdornment: (
                                                     <InputAdornment position="start">
-                                                        <SearchIcon fontSize="small" color="action" />
+                                                        <LinkIcon color="action" sx={{ fontSize: 18 }} />
                                                     </InputAdornment>
                                                 ),
-                                                endAdornment: searchQuery ? (
-                                                    <InputAdornment position="end">
-                                                        <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
-                                                            <CloseIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </InputAdornment>
-                                                ) : undefined,
                                             }
                                         }}
                                         sx={{
+                                            flex: 1,
+                                            maxWidth: 400,
                                             '& .MuiOutlinedInput-root': {
                                                 borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                                bgcolor: theme.palette.background.default,
-                                            }
+                                            },
                                         }}
                                     />
-                                </Box>
-                            )}
 
-                            <Tooltip title="Filter Links">
-                                <span>
-                                    <IconButton
-                                        onClick={handleFilterClick}
-                                        disabled={!currentRoom}
+                                    <Button
+                                        variant="contained"
+                                        onClick={() => handlePostLink()}
+                                        disabled={!newLinkUrl.trim() || isPostingLink}
                                         sx={{
-                                            color: (selectedUploader || viewFilter !== 'all') ? 'primary.main' : 'text.secondary',
-                                            bgcolor: (selectedUploader || viewFilter !== 'all') ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                                            '&:hover': {
-                                                color: 'primary.main',
-                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                            }
-                                        }}
-                                        aria-label="Filter links"
-                                    >
-                                        <FilterListIcon />
-                                    </IconButton>
-                                </span>
-                            </Tooltip>
-
-
-
-                            <Tooltip title={isZenModeOpen ? "Exit Zen Mode (Ctrl+F)" : "Zen Mode (Ctrl+F)"}>
-                                <span>
-                                    <IconButton
-                                        onClick={onToggleZenMode}
-                                        disabled={!currentRoom}
-                                        sx={{
-                                            color: isZenModeOpen ? 'primary.main' : 'text.secondary',
-                                            bgcolor: isZenModeOpen ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                                            '&:hover': {
-                                                color: 'primary.main',
-                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                            }
-                                        }}
-                                        aria-label="Toggle Zen Mode"
-                                    >
-                                        <ZenModeIcon />
-                                    </IconButton>
-                                </span>
-                            </Tooltip>
-                        </Box>
-
-                        <SocialFilterMenu
-                            anchorEl={filterAnchorEl}
-                            open={Boolean(filterAnchorEl)}
-                            onClose={handleFilterClose}
-                            sortOrder={sortOrder}
-                            onSortOrderChange={handleSortOrderChange}
-                            viewFilter={viewFilter}
-                            onViewFilterChange={handleViewFilterChange}
-                            selectedUploader={selectedUploader}
-                            onSelectUploader={handleSelectUploader}
-                            uniqueUploaders={uniqueUploaders}
-                        />
-
-                        {!isMobile && (
-                            <>
-                                <TextField
-                                    placeholder="Paste a link to share..."
-                                    value={newLinkUrl}
-                                    onChange={handleNewLinkChange}
-                                    onKeyDown={handlePostKeyDown}
-                                    size="small"
-                                    slotProps={{
-                                        input: {
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <LinkIcon color="action" sx={{ fontSize: 18 }} />
-                                                </InputAdornment>
-                                            ),
-                                        }
-                                    }}
-                                    sx={{
-                                        flex: 1,
-                                        maxWidth: 400,
-                                        '& .MuiOutlinedInput-root': {
                                             borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                        },
-                                    }}
-                                />
+                                            flexShrink: 0,
+                                            minWidth: 90,
+                                            height: 40,
+                                            boxShadow: theme.shadows[2],
+                                        }}
+                                        aria-label="Post link"
+                                    >
+                                        {isPostingLink ? <CircularProgress size={20} color="inherit" /> : 'Post'}
+                                    </Button>
 
-                                <Button
-                                    variant="contained"
-                                    onClick={() => handlePostLink()}
-                                    disabled={!newLinkUrl.trim() || isPostingLink}
-                                    sx={{
-                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                        flexShrink: 0,
-                                        minWidth: 90,
-                                        height: 40,
-                                        boxShadow: theme.shadows[2],
-                                    }}
-                                    aria-label="Post link"
-                                >
-                                    {isPostingLink ? <CircularProgress size={20} color="inherit" /> : 'Post'}
-                                </Button>
-
-                                <Button
-                                    variant="outlined"
-                                    startIcon={<CopyIcon />}
-                                    onClick={handleCopyInvite}
-                                    sx={{
-                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                        flexShrink: 0,
-                                        height: 40,
-                                        px: 2,
-                                    }}
-                                >
-                                    Invite
-                                </Button>
-                            </>
-                        )}
-                    </Box>
-                ) : null
-                }
-            </AnimatePresence >
+                                    <Button
+                                        variant="outlined"
+                                        startIcon={<CopyIcon />}
+                                        onClick={handleCopyInvite}
+                                        sx={{
+                                            borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                            flexShrink: 0,
+                                            height: 40,
+                                            px: 2,
+                                        }}
+                                    >
+                                        Invite
+                                    </Button>
+                                </>
+                            )}
+                        </Box>
+                    ) : null}
+                </AnimatePresence>
+            </Box>
         </Paper >
     );
 });
