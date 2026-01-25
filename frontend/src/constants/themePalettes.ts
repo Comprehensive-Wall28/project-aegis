@@ -53,7 +53,7 @@ export const THEME_PALETTES: Record<Theme, { background: string; paper: string; 
     'ocean-dark': {
         background: '#05070a',
         paper: '#080b12',
-        primary: '#7dd3fc',
+        primary: '#ffffff',
         text: '#f1f5f9',
     },
     tokyonight: {

@@ -223,8 +223,8 @@ export const getTheme = (mode: ThemeMode) => {
                 paper: '#080b12',   // Darker paper
             },
             primary: {
-                main: '#7dd3fc',    // Sky 300
-                contrastText: '#082f49',
+                main: '#ffffff',    // White
+                contrastText: '#000000',
             },
             secondary: {
                 main: '#0f172a',    // Slate 900
@@ -233,7 +233,7 @@ export const getTheme = (mode: ThemeMode) => {
                 primary: '#f1f5f9',
                 secondary: '#94a3b8',
             },
-            divider: 'rgba(56, 189, 248, 0.1)',
+            divider: 'rgba(255, 255, 255, 0.05)', // Very subtle
         },
         tokyonight: {
             background: {
