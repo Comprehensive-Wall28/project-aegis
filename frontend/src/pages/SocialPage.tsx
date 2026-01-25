@@ -787,7 +787,7 @@ export function SocialPage() {
                                     overflowX: 'hidden',
                                     overflowY: viewMode === 'rooms' ? 'auto' : 'hidden',
                                     pt: viewMode === 'rooms' ? 1 : 0,
-                                    px: viewMode === 'rooms' ? 1 : 0,
+                                    px: isMobile ? 1 : (viewMode === 'rooms' ? 1 : 0),
                                 }}
                             >
                                 {viewMode === 'rooms' ? (

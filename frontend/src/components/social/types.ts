@@ -89,6 +89,7 @@ export interface LinksContainerProps {
     loadAllLinks: () => void;
     onMoveLink?: (link: LinkPost) => void;
     hideCollectionSelector?: boolean;
+    noContainer?: boolean;
 }
 
 export interface LinkCardProps {

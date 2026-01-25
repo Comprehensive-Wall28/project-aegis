@@ -10,6 +10,7 @@ import {
     SOCIAL_LINK_PREVIEW_HEIGHT,
     SOCIAL_DIALOG_Z_INDEX,
     SOCIAL_RADIUS_XLARGE,
+    SOCIAL_RADIUS_MEDIUM,
     SOCIAL_RADIUS_SMALL
 } from './constants';
 import { formatRelativeTime, formatFullDateTime } from '@/utils/dateUtils';
@@ -160,7 +161,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                     elevation={0}
                     sx={{
                         overflow: 'hidden',
-                        borderRadius: SOCIAL_RADIUS_XLARGE,
+                        borderRadius: SOCIAL_RADIUS_MEDIUM,
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',

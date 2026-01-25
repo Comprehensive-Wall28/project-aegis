@@ -354,6 +354,7 @@ export const ZenModeOverlay = memo(({
                                     loadAllLinks={loadAllLinks}
                                     onMoveLink={handleOpenMoveDialog}
                                     hideCollectionSelector={true}
+                                    noContainer={true}
                                 />
                             </Box>
                         </Box>
