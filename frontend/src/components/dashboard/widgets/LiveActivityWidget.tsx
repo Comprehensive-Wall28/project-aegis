@@ -146,6 +146,9 @@ export function LiveActivityWidget() {
                 bgcolor: theme.palette.background.paper, // Force opaque
                 backgroundImage: 'none', // Ensure no gradient
                 backdropFilter: 'none', // Disable blur
+                height: '293px',
+                display: 'flex',
+                flexDirection: 'column',
             }}
         >
             {/* Header */}

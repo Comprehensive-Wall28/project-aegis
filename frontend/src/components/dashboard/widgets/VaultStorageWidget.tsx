@@ -1,6 +1,5 @@
 import {
     Storage as StorageIcon,
-    AutoGraph as AutoGraphIcon,
     OpenInNew as ExternalLinkIcon
 } from '@mui/icons-material';
 import {
@@ -14,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { usePreferenceStore } from '@/stores/preferenceStore';
 import { useSessionStore } from '@/stores/sessionStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { DashboardCard } from '@/components/common/DashboardCard';
 
 export function VaultStorageWidget() {
@@ -23,7 +22,6 @@ export function VaultStorageWidget() {
     const isSidebarCollapsed = usePreferenceStore((state) => state.isSidebarCollapsed);
     const {
         user,
-        cryptoStatus,
         fetchStorageStats
     } = useSessionStore();
 
@@ -32,7 +30,7 @@ export function VaultStorageWidget() {
         fetchStorageStats();
     }, [fetchStorageStats]);
 
-    const isBusy = cryptoStatus !== 'idle' && cryptoStatus !== 'done';
+
 
     // Storage Constants
     const FREE_TIER_LIMIT = 5 * 1024 * 1024 * 1024; // 5GB
@@ -63,6 +61,7 @@ export function VaultStorageWidget() {
                 position: 'relative',
                 transform: 'translateZ(0)',
                 willChange: 'transform, opacity',
+
                 '&::before': {
                     content: '""',
                     position: 'absolute',
@@ -87,7 +86,9 @@ export function VaultStorageWidget() {
                 flexDirection: { xs: 'column', md: 'row' },
                 alignItems: { xs: 'center', md: 'center' },
                 justifyContent: 'space-between',
-                gap: { xs: 3, md: 0, lg: isSidebarCollapsed ? 2 : 1, xl: 2 }
+                gap: { xs: 3, md: 0, lg: isSidebarCollapsed ? 2 : 1, xl: 2 },
+                position: 'relative',
+                zIndex: 1
             }}>
                 {/* Left Side: Info & Button */}
                 <Box sx={{
@@ -127,38 +128,7 @@ export function VaultStorageWidget() {
                     </Box>
 
                     {/* Subtle Syncing Indicator (Absolute positioned to prevent layout shift) */}
-                    <AnimatePresence>
-                        {isBusy && (
-                            <motion.div
-                                initial={{ opacity: 0, x: 5 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 5 }}
-                                style={{
-                                    position: 'absolute',
-                                    top: 16,
-                                    right: 16,
-                                    pointerEvents: 'none'
-                                }}
-                            >
-                                <Box sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 0.5,
-                                    px: 1,
-                                    py: 0.25,
-                                    borderRadius: '6px',
-                                    bgcolor: alpha('#c084fc', 0.1),
-                                    border: `1px solid ${alpha('#c084fc', 0.2)}`,
-                                    color: '#c084fc'
-                                }}>
-                                    <AutoGraphIcon sx={{ fontSize: 10, animation: 'spin-slow 2s linear infinite' }} />
-                                    <Typography sx={{ fontSize: '8px', fontWeight: 900, letterSpacing: '0.05em' }}>
-                                        SYNCING
-                                    </Typography>
-                                </Box>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+
 
                     <Button
                         variant="contained"
@@ -269,12 +239,7 @@ export function VaultStorageWidget() {
                 </Box>
             </Box>
 
-            <style>{`
-                @keyframes spin-slow {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
+
         </DashboardCard>
     );
 }
