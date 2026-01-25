@@ -9,7 +9,8 @@ import {
     Tooltip,
     alpha,
     useTheme,
-    LinearProgress
+    LinearProgress,
+    useMediaQuery
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -38,7 +39,8 @@ const NoteItem = memo(({
     onDragStart,
     onDragEnd,
     theme,
-    index
+    index,
+    isMobile
 }: {
     note: NoteMetadata;
     isSelected: boolean;
@@ -49,6 +51,7 @@ const NoteItem = memo(({
     onDragEnd: (e: React.DragEvent) => void;
     theme: any;
     index: number;
+    isMobile: boolean;
 }) => {
     const isInitial = index < 10;
 
@@ -129,8 +132,8 @@ const NoteItem = memo(({
                         size="small"
                         onClick={(e) => onDelete(note._id, e)}
                         sx={{
-                            opacity: 0,
-                            '.MuiListItemButton-root:hover &': { opacity: 0.5 },
+                            opacity: isMobile ? 1 : 0,
+                            '.MuiListItemButton-root:hover &': { opacity: isMobile ? 1 : 0.5 },
                             '&:hover': {
                                 opacity: 1 + ' !important',
                                 color: 'error.main',
@@ -149,7 +152,8 @@ const NoteItem = memo(({
         prev.decryptedTitle === next.decryptedTitle &&
         prev.note.updatedAt === next.note.updatedAt &&
         prev.note._id === next.note._id &&
-        prev.index === next.index
+        prev.index === next.index &&
+        prev.isMobile === next.isMobile
     );
 });
 
@@ -164,6 +168,7 @@ export const NoteList: React.FC<NoteListProps> = ({
     dragDrop
 }) => {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { handleNoteDragStart, handleNoteDragEnd } = dragDrop;
 
     return (
@@ -226,6 +231,7 @@ export const NoteList: React.FC<NoteListProps> = ({
                                 onDragStart={handleNoteDragStart}
                                 onDragEnd={handleNoteDragEnd}
                                 theme={theme}
+                                isMobile={isMobile}
                             />
                         </Box>
                     )}
