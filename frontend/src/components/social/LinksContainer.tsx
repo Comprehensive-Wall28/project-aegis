@@ -54,6 +54,7 @@ export const LinksContainer = memo(({
     onMoveLink,
     previewLinkId,
     setPreviewLink,
+    hideCollectionSelector,
 }: LinksContainerProps) => {
     const theme = useTheme();
     const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
@@ -125,29 +126,31 @@ export const LinksContainer = memo(({
                 </AnimatePresence>
                 {isMobile && (
                     <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<CollectionIcon />}
-                            onClick={() => setMobileDrawerOpen(true)}
-                            sx={{
-                                borderRadius: '12px',
-                                flexShrink: 0,
-                                whiteSpace: 'nowrap',
-                                borderColor: alpha(theme.palette.divider, 0.2),
-                                color: 'text.primary',
-                                bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                maxWidth: '45%',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                justifyContent: 'flex-start',
-                                '& .MuiButton-startIcon': { flexShrink: 0 },
-                            }}
-                        >
-                            <Typography variant="button" noWrap sx={{ textTransform: 'none' }}>
-                                {isDecrypting ? <Skeleton width={60} /> : (decryptedName || 'Collections')}
-                            </Typography>
-                        </Button>
+                        {!hideCollectionSelector && (
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<CollectionIcon />}
+                                onClick={() => setMobileDrawerOpen(true)}
+                                sx={{
+                                    borderRadius: '12px',
+                                    flexShrink: 0,
+                                    whiteSpace: 'nowrap',
+                                    borderColor: alpha(theme.palette.divider, 0.2),
+                                    color: 'text.primary',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                    maxWidth: '45%',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    justifyContent: 'flex-start',
+                                    '& .MuiButton-startIcon': { flexShrink: 0 },
+                                }}
+                            >
+                                <Typography variant="button" noWrap sx={{ textTransform: 'none' }}>
+                                    {isDecrypting ? <Skeleton width={60} /> : (decryptedName || 'Collections')}
+                                </Typography>
+                            </Button>
+                        )}
                         <TextField
                             placeholder="Search links..."
                             value={searchQuery}

@@ -27,6 +27,7 @@ import { SOCIAL_SNACKBAR_Z_INDEX } from '@/components/social/constants';
 import { useSessionStore } from '@/stores/sessionStore';
 import { CommentsOverlay } from '@/components/social/CommentsOverlay';
 import { ReaderModeOverlay } from '@/components/social/ReaderModeOverlay';
+import { ZenModeOverlay } from '@/components/social/ZenModeOverlay';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import socketService from '@/services/socketService';
 import type { LinkPost } from '@/services/socialService';
@@ -190,6 +191,9 @@ export function SocialPage() {
     const [previewLink, setPreviewLink] = useState<LinkPost | null>(null);
     const [showPreview, setShowPreview] = useState(false);
 
+    // Zen Mode overlay state
+    const [zenModeOpen, setZenModeOpen] = useState(false);
+
     // Socket room management cleanup: 
     // Leave the room when the roomId changes or we unmount.
     useEffect(() => {
@@ -269,6 +273,22 @@ export function SocialPage() {
         };
     }, [currentRoom, handlePostLink, showSnackbar]);
 
+    // Keyboard Shortcut Listener: Ctrl+F for Zen Mode
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Toggle Zen Mode on Ctrl+F or Cmd+F
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+                if (currentRoom) {
+                    e.preventDefault();
+                    toggleOverlay('zen', !zenModeOpen);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [currentRoom, zenModeOpen, toggleOverlay]);
+
     // Cold Share Logic: Check for share_url query parameter on load
     useEffect(() => {
         const shareUrl = searchParams.get('share_url');
@@ -335,6 +355,7 @@ export function SocialPage() {
         const post = searchParams.get('post') === 'true';
         const createRoom = searchParams.get('createRoom') === 'true';
         const createCol = searchParams.get('createCol') === 'true';
+        const zen = searchParams.get('zen') === 'true';
 
         // Use functional updates to avoid unnecessary triggers if already in sync
         if (commentsId) {
@@ -376,8 +397,9 @@ export function SocialPage() {
         if (post !== showPostLinkDialog) setShowPostLinkDialog(post);
         if (createRoom !== showCreateDialog) setShowCreateDialog(createRoom);
         if (createCol !== showCollectionDialog) setShowCollectionDialog(createCol);
+        if (zen !== zenModeOpen) setZenModeOpen(zen);
 
-    }, [searchParams, links, commentsLink?._id, readerLink?._id, showMoveDialog, linkToMove?._id, showPostLinkDialog, showCreateDialog, showCollectionDialog, showPreview, previewLink?._id]);
+    }, [searchParams, links, commentsLink?._id, readerLink?._id, showMoveDialog, linkToMove?._id, showPostLinkDialog, showCreateDialog, showCollectionDialog, showPreview, previewLink?._id, zenModeOpen]);
 
     // Reset room state when navigating back to the main social page
     useEffect(() => {
@@ -750,6 +772,8 @@ export function SocialPage() {
                                     isPostingLink={isPostingLink}
                                     sortOrder={sortOrder}
                                     handleSortOrderChange={setSortOrder}
+                                    isZenModeOpen={zenModeOpen}
+                                    onToggleZenMode={() => toggleOverlay('zen', !zenModeOpen)}
                                 />
                             </SocialErrorBoundary>
 
@@ -1057,6 +1081,42 @@ export function SocialPage() {
                         />
                     )
                 }
+
+                {/* Zen Mode Overlay */}
+                <ZenModeOverlay
+                    open={zenModeOpen}
+                    onClose={() => toggleOverlay('zen', null)}
+                    collections={collections}
+                    currentCollectionId={currentCollectionId}
+                    selectCollection={handleSelectCollection}
+                    linksContainerRef={linksContainerRef}
+                    isMobile={isMobile}
+                    effectiveIsLoadingContent={effectiveIsLoadingContent}
+                    isLoadingLinks={isLoadingLinks}
+                    isSearchingLinks={isSearchingLinks}
+                    filteredLinks={filteredLinks}
+                    handleDeleteLink={handleDeleteLink}
+                    setDraggedLinkId={setDraggedLinkId}
+                    markLinkViewed={markLinkViewed}
+                    unmarkLinkViewed={unmarkLinkViewed}
+                    toggleOverlay={toggleOverlay}
+                    previewLink={previewLink}
+                    viewedLinkIds={viewedLinkIds}
+                    commentCounts={commentCounts}
+                    currentUserId={currentUserId}
+                    hasMoreLinks={hasMoreLinks}
+                    loadAllLinks={loadAllLinks}
+                    handleOpenMoveDialog={handleOpenMoveDialog}
+                    sortOrder={sortOrder}
+                    onSortOrderChange={setSortOrder}
+                    viewFilter={viewFilter}
+                    onViewFilterChange={setViewFilter}
+                    selectedUploader={selectedUploader}
+                    onSelectUploader={setSelectedUploader}
+                    uniqueUploaders={uniqueUploaders}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                />
             </Box>
         </Box>
     );
