@@ -56,6 +56,7 @@ export const FolderList: React.FC<FolderListProps> = ({
                         alignItems: 'center',
                         cursor: 'pointer',
                         gap: 0.5,
+                        flex: 1,
                         '&:hover': { color: 'primary.main' }
                     }}
                     onClick={() => setFoldersExpanded(!foldersExpanded)}

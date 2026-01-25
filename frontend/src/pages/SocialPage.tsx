@@ -6,7 +6,6 @@ import {
     Typography,
     alpha,
     useTheme,
-    CircularProgress,
     LinearProgress,
     Snackbar,
     Alert,
@@ -28,6 +27,7 @@ import { SOCIAL_SNACKBAR_Z_INDEX } from '@/components/social/constants';
 import { useSessionStore } from '@/stores/sessionStore';
 import { CommentsOverlay } from '@/components/social/CommentsOverlay';
 import { ReaderModeOverlay } from '@/components/social/ReaderModeOverlay';
+import { ZenModeOverlay } from '@/components/social/ZenModeOverlay';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import socketService from '@/services/socketService';
 import type { LinkPost } from '@/services/socialService';
@@ -35,7 +35,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // Modular Components
 import { CreateRoomDialog, CreateCollectionDialog, PostLinkDialog, MoveLinkDialog } from '@/components/social/SocialDialogs';
-import { RoomCard, CreateRoomCard } from '@/components/social/RoomCards';
+import { RoomCard } from '@/components/social/RoomCards';
 import { SocialHeader } from '@/components/social/SocialHeader';
 import { SocialSidebar } from '@/components/social/SocialSidebar';
 import { LinksContainer } from '@/components/social/LinksContainer';
@@ -191,6 +191,9 @@ export function SocialPage() {
     const [previewLink, setPreviewLink] = useState<LinkPost | null>(null);
     const [showPreview, setShowPreview] = useState(false);
 
+    // Zen Mode overlay state
+    const [zenModeOpen, setZenModeOpen] = useState(false);
+
     // Socket room management cleanup: 
     // Leave the room when the roomId changes or we unmount.
     useEffect(() => {
@@ -270,6 +273,22 @@ export function SocialPage() {
         };
     }, [currentRoom, handlePostLink, showSnackbar]);
 
+    // Keyboard Shortcut Listener: Ctrl+F for Zen Mode
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Toggle Zen Mode on Ctrl+F or Cmd+F
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+                if (currentRoom) {
+                    e.preventDefault();
+                    toggleOverlay('zen', !zenModeOpen);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [currentRoom, zenModeOpen, toggleOverlay]);
+
     // Cold Share Logic: Check for share_url query parameter on load
     useEffect(() => {
         const shareUrl = searchParams.get('share_url');
@@ -336,6 +355,7 @@ export function SocialPage() {
         const post = searchParams.get('post') === 'true';
         const createRoom = searchParams.get('createRoom') === 'true';
         const createCol = searchParams.get('createCol') === 'true';
+        const zen = searchParams.get('zen') === 'true';
 
         // Use functional updates to avoid unnecessary triggers if already in sync
         if (commentsId) {
@@ -377,8 +397,9 @@ export function SocialPage() {
         if (post !== showPostLinkDialog) setShowPostLinkDialog(post);
         if (createRoom !== showCreateDialog) setShowCreateDialog(createRoom);
         if (createCol !== showCollectionDialog) setShowCollectionDialog(createCol);
+        if (zen !== zenModeOpen) setZenModeOpen(zen);
 
-    }, [searchParams, links, commentsLink?._id, readerLink?._id, showMoveDialog, linkToMove?._id, showPostLinkDialog, showCreateDialog, showCollectionDialog, showPreview, previewLink?._id]);
+    }, [searchParams, links, commentsLink?._id, readerLink?._id, showMoveDialog, linkToMove?._id, showPostLinkDialog, showCreateDialog, showCollectionDialog, showPreview, previewLink?._id, zenModeOpen]);
 
     // Reset room state when navigating back to the main social page
     useEffect(() => {
@@ -648,24 +669,10 @@ export function SocialPage() {
     };
 
 
-    // Loading state
-    if (pqcEngineStatus !== 'operational') {
-        return (
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minHeight: 400,
-                    gap: 2,
-                }}
-            >
-                <CircularProgress />
-                <Typography color="text.secondary">Initializing PQC Engine...</Typography>
-            </Box>
-        );
-    }
+    // Loading context for skeletons
+    const isInitializing = pqcEngineStatus !== 'operational';
+    const effectiveIsLoadingRooms = isLoadingRooms || isInitializing;
+    const effectiveIsLoadingContent = isLoadingContent || isInitializing;
 
     return (
         <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden', position: 'relative' }}>
@@ -742,30 +749,35 @@ export function SocialPage() {
                             sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}
                         >
                             <SocialErrorBoundary componentName="Header">
-                                <SocialHeader
-                                    viewMode={viewMode}
-                                    isMobile={isMobile}
-                                    optimisticRoomId={optimisticRoomId}
-                                    currentRoom={currentRoom}
-                                    handleExitRoom={handleExitRoom}
-                                    searchQuery={searchQuery}
-                                    setSearchQuery={setSearchQuery}
-                                    handleFilterClick={handleFilterClick}
-                                    selectedUploader={selectedUploader}
-                                    handleCopyInvite={handleCopyInvite}
-                                    filterAnchorEl={filterAnchorEl}
-                                    handleFilterClose={handleFilterClose}
-                                    handleSelectUploader={handleSelectUploader}
-                                    viewFilter={viewFilter}
-                                    handleViewFilterChange={setViewFilter}
-                                    uniqueUploaders={uniqueUploaders}
-                                    newLinkUrl={newLinkUrl}
-                                    setNewLinkUrl={setNewLinkUrl}
-                                    handlePostLink={handlePostLink}
-                                    isPostingLink={isPostingLink}
-                                    sortOrder={sortOrder}
-                                    handleSortOrderChange={setSortOrder}
-                                />
+                                <Box sx={{ px: isMobile ? 1 : (viewMode === 'rooms' ? 1 : 0) }}>
+                                    <SocialHeader
+                                        viewMode={viewMode}
+                                        isMobile={isMobile}
+                                        optimisticRoomId={optimisticRoomId}
+                                        currentRoom={currentRoom}
+                                        handleExitRoom={handleExitRoom}
+                                        searchQuery={searchQuery}
+                                        setSearchQuery={setSearchQuery}
+                                        handleFilterClick={handleFilterClick}
+                                        selectedUploader={selectedUploader}
+                                        handleCopyInvite={handleCopyInvite}
+                                        filterAnchorEl={filterAnchorEl}
+                                        handleFilterClose={handleFilterClose}
+                                        handleSelectUploader={handleSelectUploader}
+                                        viewFilter={viewFilter}
+                                        handleViewFilterChange={setViewFilter}
+                                        uniqueUploaders={uniqueUploaders}
+                                        newLinkUrl={newLinkUrl}
+                                        setNewLinkUrl={setNewLinkUrl}
+                                        handlePostLink={handlePostLink}
+                                        isPostingLink={isPostingLink}
+                                        sortOrder={sortOrder}
+                                        handleSortOrderChange={setSortOrder}
+                                        isZenModeOpen={zenModeOpen}
+                                        onToggleZenMode={() => toggleOverlay('zen', !zenModeOpen)}
+                                        onCreateRoom={() => toggleOverlay('createRoom', true)}
+                                    />
+                                </Box>
                             </SocialErrorBoundary>
 
                             {/* Main Content Area */}
@@ -774,8 +786,7 @@ export function SocialPage() {
                                     flex: 1,
                                     overflowX: 'hidden',
                                     overflowY: viewMode === 'rooms' ? 'auto' : 'hidden',
-                                    pr: viewMode === 'rooms' ? 1 : 0,
-                                    pt: viewMode === 'rooms' ? 1 : 0, // 8px padding
+                                    pt: viewMode === 'rooms' ? 1 : 0,
                                     px: viewMode === 'rooms' ? 1 : 0,
                                 }}
                             >
@@ -800,7 +811,7 @@ export function SocialPage() {
                                         }}
                                     >
                                         <AnimatePresence>
-                                            {isLoadingRooms && (
+                                            {effectiveIsLoadingRooms && (
                                                 <Box
                                                     component={motion.div}
                                                     initial={{ opacity: 0 }}
@@ -831,11 +842,6 @@ export function SocialPage() {
                                                 />
                                             </SocialErrorBoundary>
                                         ))}
-
-                                        <CreateRoomCard
-                                            onClick={() => setShowCreateDialog(true)}
-                                            index={rooms.length}
-                                        />
                                     </Box>
                                 ) : (
                                     <Box
@@ -856,12 +862,12 @@ export function SocialPage() {
                                                         handleCollectionContextMenu={handleCollectionContextMenu}
                                                         handleCollectionTouchStart={handleCollectionTouchStart}
                                                         handleCollectionTouchEnd={handleCollectionTouchEnd}
-                                                        isLoadingContent={isLoadingContent}
+                                                        isLoadingContent={effectiveIsLoadingContent}
                                                         dropTargetId={dropTargetId}
                                                         setDropTargetId={setDropTargetId}
                                                         handleDrop={handleDrop}
                                                         getUnviewedCountByCollection={getUnviewedCountByCollection}
-                                                        setShowCollectionDialog={setShowCollectionDialog}
+                                                        setShowCollectionDialog={() => toggleOverlay('createCol', true)}
                                                     />
                                                 </SocialErrorBoundary>
 
@@ -874,7 +880,7 @@ export function SocialPage() {
                                                         setMobileDrawerOpen={setMobileDrawerOpen}
                                                         searchQuery={searchQuery}
                                                         setSearchQuery={setSearchQuery}
-                                                        isLoadingContent={isLoadingContent}
+                                                        isLoadingContent={effectiveIsLoadingContent}
                                                         isLoadingLinks={isLoadingLinks}
                                                         isSearchingLinks={isSearchingLinks}
                                                         filteredLinks={filteredLinks}
@@ -1070,6 +1076,42 @@ export function SocialPage() {
                         />
                     )
                 }
+
+                {/* Zen Mode Overlay */}
+                <ZenModeOverlay
+                    open={zenModeOpen}
+                    onClose={() => toggleOverlay('zen', null)}
+                    collections={collections}
+                    currentCollectionId={currentCollectionId}
+                    selectCollection={handleSelectCollection}
+                    linksContainerRef={linksContainerRef}
+                    isMobile={isMobile}
+                    effectiveIsLoadingContent={effectiveIsLoadingContent}
+                    isLoadingLinks={isLoadingLinks}
+                    isSearchingLinks={isSearchingLinks}
+                    filteredLinks={filteredLinks}
+                    handleDeleteLink={handleDeleteLink}
+                    setDraggedLinkId={setDraggedLinkId}
+                    markLinkViewed={markLinkViewed}
+                    unmarkLinkViewed={unmarkLinkViewed}
+                    toggleOverlay={toggleOverlay}
+                    previewLink={previewLink}
+                    viewedLinkIds={viewedLinkIds}
+                    commentCounts={commentCounts}
+                    currentUserId={currentUserId}
+                    hasMoreLinks={hasMoreLinks}
+                    loadAllLinks={loadAllLinks}
+                    handleOpenMoveDialog={handleOpenMoveDialog}
+                    sortOrder={sortOrder}
+                    onSortOrderChange={setSortOrder}
+                    viewFilter={viewFilter}
+                    onViewFilterChange={setViewFilter}
+                    selectedUploader={selectedUploader}
+                    onSelectUploader={setSelectedUploader}
+                    uniqueUploaders={uniqueUploaders}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                />
             </Box>
         </Box>
     );

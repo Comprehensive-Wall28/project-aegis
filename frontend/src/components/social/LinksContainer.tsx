@@ -20,7 +20,7 @@ import {
     Link as LinkIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-// import { LinkCardSkeleton } from './SocialSkeletons'; // Removed to reduce flicker
+import { LinkCardSkeleton } from './SocialSkeletons';
 import { LinkCard } from './LinkCard';
 import { SocialErrorBoundary } from './SocialErrorBoundary';
 import type { LinkPost } from '@/services/socialService';
@@ -54,6 +54,7 @@ export const LinksContainer = memo(({
     onMoveLink,
     previewLinkId,
     setPreviewLink,
+    hideCollectionSelector,
 }: LinksContainerProps) => {
     const theme = useTheme();
     const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
@@ -125,29 +126,31 @@ export const LinksContainer = memo(({
                 </AnimatePresence>
                 {isMobile && (
                     <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<CollectionIcon />}
-                            onClick={() => setMobileDrawerOpen(true)}
-                            sx={{
-                                borderRadius: '12px',
-                                flexShrink: 0,
-                                whiteSpace: 'nowrap',
-                                borderColor: alpha(theme.palette.divider, 0.2),
-                                color: 'text.primary',
-                                bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                maxWidth: '45%',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                justifyContent: 'flex-start',
-                                '& .MuiButton-startIcon': { flexShrink: 0 },
-                            }}
-                        >
-                            <Typography variant="button" noWrap sx={{ textTransform: 'none' }}>
-                                {isDecrypting ? <Skeleton width={60} /> : (decryptedName || 'Collections')}
-                            </Typography>
-                        </Button>
+                        {!hideCollectionSelector && (
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<CollectionIcon />}
+                                onClick={() => setMobileDrawerOpen(true)}
+                                sx={{
+                                    borderRadius: '12px',
+                                    flexShrink: 0,
+                                    whiteSpace: 'nowrap',
+                                    borderColor: alpha(theme.palette.divider, 0.2),
+                                    color: 'text.primary',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.5),
+                                    maxWidth: '45%',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    justifyContent: 'flex-start',
+                                    '& .MuiButton-startIcon': { flexShrink: 0 },
+                                }}
+                            >
+                                <Typography variant="button" noWrap sx={{ textTransform: 'none' }}>
+                                    {isDecrypting ? <Skeleton width={60} /> : (decryptedName || 'Collections')}
+                                </Typography>
+                            </Button>
+                        )}
                         <TextField
                             placeholder="Search links..."
                             value={searchQuery}
@@ -184,14 +187,14 @@ export const LinksContainer = memo(({
                     </Box>
                 )}
 
-                <AnimatePresence mode="wait" initial={false}>
+                <AnimatePresence initial={false} mode="popLayout">
                     {filteredLinks.length > 0 ? (
                         <Box
                             key="links-grid"
                             component={motion.div}
-                            initial={{ opacity: 0, scale: 0.99 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.99, transition: { duration: 0.05 } }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, transition: { duration: 0.1 } }}
                             transition={{
                                 duration: 0.15,
                                 ease: 'easeOut'
@@ -255,13 +258,31 @@ export const LinksContainer = memo(({
                                 </Box>
                             )}
                         </Box>
+                    ) : (isLoadingLinks || isLoadingContent) && !searchQuery ? (
+                        <Box
+                            key="loading-skeletons"
+                            component={motion.div}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                            transition={{ duration: 0.15 }}
+                            sx={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                gap: 2,
+                            }}
+                        >
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <LinkCardSkeleton key={`link-skel-${i}`} />
+                            ))}
+                        </Box>
                     ) : (
                         <Box
                             key="empty-state"
                             component={motion.div}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
+                            exit={{ opacity: 0, transition: { duration: 0.1 } }}
                             transition={{ duration: 0.15 }}
                             sx={{
                                 display: 'flex',
@@ -272,7 +293,7 @@ export const LinksContainer = memo(({
                                 gap: 2,
                             }}
                         >
-                            {!(isLoadingContent || isLoadingLinks || isSearchingLinks) && (
+                            {!(isLoadingContent || isLoadingLinks || isSearchingLinks) && filteredLinks.length === 0 && (
                                 <>
                                     <LinkIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
                                     <Typography color="text.secondary" variant="body1">

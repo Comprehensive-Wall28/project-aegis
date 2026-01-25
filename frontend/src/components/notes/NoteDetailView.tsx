@@ -3,7 +3,9 @@ import {
     Box,
     Typography,
     LinearProgress,
-    Button
+    Button,
+    useTheme,
+    alpha
 } from '@mui/material';
 import { Add, NoteAlt, ArrowBack, UnfoldLess, UnfoldMore } from '@mui/icons-material';
 import type { DecryptedNote } from '../../hooks/useNotesCrud';
@@ -33,6 +35,8 @@ export const NoteDetailView: React.FC<NoteDetailViewProps> = ({
     onToggleZenMode
 }) => {
     // Local state removed, using props
+
+    const theme = useTheme();
 
     if (isLoadingContent) {
         return (
@@ -99,7 +103,7 @@ export const NoteDetailView: React.FC<NoteDetailViewProps> = ({
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     borderBottom: 1,
-                    borderColor: 'divider'
+                    borderColor: alpha(theme.palette.divider, 0.08)
                 }}>
                     <Button
                         startIcon={<ArrowBack />}

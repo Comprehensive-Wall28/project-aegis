@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { CloudUpload as UploadIcon, Lock as FileLockIcon, GppGood as ShieldCheckIcon } from '@mui/icons-material';
 import { Box, Typography, Paper, LinearProgress, alpha, useTheme } from '@mui/material';
-import { motion } from 'framer-motion';
 import { useVaultUpload } from '../../hooks/useVaultUpload';
 
 
@@ -101,10 +100,6 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx 
 
                 {/* Icons & Status */}
                 <Box
-                    component={motion.div}
-                    initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.4, ease: 'easeOut' }}
                     sx={{ position: 'relative' }}
                 >
                     {isCompleted && activeCount === 0 ? (
@@ -142,10 +137,6 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx 
 
                 {/* Text Feedback */}
                 <Box
-                    component={motion.div}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25, duration: 0.4, ease: 'easeOut' }}
                     sx={{ textAlign: 'center' }}
                 >
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>

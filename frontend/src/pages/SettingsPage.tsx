@@ -42,7 +42,7 @@ function TabPanel({ children, value, index }: TabPanelProps) {
         <Box
             role="tabpanel"
             hidden={value !== index}
-            sx={{ pt: 3 }}
+            sx={{ pt: { xs: 2, md: 1.5 } }}
         >
             {value === index && children}
         </Box>
@@ -135,64 +135,70 @@ export function SettingsPage() {
                 <Tabs
                     value={activeTab}
                     onChange={handleTabChange}
-                    variant={isMobile ? 'scrollable' : 'standard'}
-                    scrollButtons={isMobile ? 'auto' : false}
-                    allowScrollButtonsMobile
+                    variant="fullWidth"
                     sx={{
-                        mb: 1,
+                        mb: { xs: 1, md: 0.5 },
+                        bgcolor: alpha(theme.palette.common.white, 0.04),
+                        borderRadius: '16px',
+                        p: 0.5,
+                        width: '100%',
+                        mx: 'auto',
+                        minHeight: 48,
                         '& .MuiTabs-indicator': {
-                            height: 3,
-                            borderRadius: '3px 3px 0 0',
-                            bgcolor: theme.palette.primary.main,
+                            height: '100%',
+                            borderRadius: '12px',
+                            bgcolor: alpha(theme.palette.primary.main, 0.12),
+                            zIndex: 0,
+                        },
+                        '& .MuiTabs-flexContainer': {
+                            position: 'relative',
+                            zIndex: 1,
                         },
                         '& .MuiTab-root': {
                             textTransform: 'none',
                             fontWeight: 600,
-                            fontSize: { xs: '12px', sm: '14px' },
+                            fontSize: { xs: '11px', sm: '14px' },
                             color: 'text.secondary',
-                            minHeight: 48,
-                            px: { xs: 1.5, sm: 2 },
-                            minWidth: { xs: 'auto', sm: 90 },
+                            minHeight: isMobile ? 40 : 44,
+                            px: { xs: 1, sm: 3 },
+                            minWidth: { xs: '0', sm: 120 },
+                            transition: 'color 0.2s, background-color 0.2s',
+                            zIndex: 2,
+                            borderRadius: '12px',
                             '&.Mui-selected': {
                                 color: theme.palette.primary.main,
                             },
+                            '& .MuiTab-iconWrapper': {
+                                mb: isMobile ? 0.5 : 0,
+                                mr: isMobile ? 0 : 1,
+                                fontSize: isMobile ? 18 : 20,
+                            }
                         },
                     }}
                 >
                     <Tab
-                        icon={<PersonIcon sx={{ fontSize: 18 }} />}
-                        iconPosition="start"
-                        label={isMobile ? undefined : 'Account'}
-                        sx={{ gap: 1 }}
+                        icon={<PersonIcon />}
+                        iconPosition={isMobile ? "top" : "start"}
+                        label="Account"
                     />
                     <Tab
-                        icon={<SecurityIcon sx={{ fontSize: 18 }} />}
-                        iconPosition="start"
-                        label={isMobile ? undefined : 'Security'}
-                        sx={{ gap: 1 }}
+                        icon={<SecurityIcon />}
+                        iconPosition={isMobile ? "top" : "start"}
+                        label="Security"
                     />
                     <Tab
-                        icon={<PaletteIcon sx={{ fontSize: 18 }} />}
-                        iconPosition="start"
-                        label={isMobile ? undefined : 'Appearance'}
-                        sx={{ gap: 1 }}
+                        icon={<PaletteIcon />}
+                        iconPosition={isMobile ? "top" : "start"}
+                        label="Appearance"
                     />
                     <Tab
-                        icon={<HistoryIcon sx={{ fontSize: 18 }} />}
-                        iconPosition="start"
-                        label={isMobile ? undefined : 'Activity'}
-                        sx={{ gap: 1 }}
+                        icon={<HistoryIcon />}
+                        iconPosition={isMobile ? "top" : "start"}
+                        label="Activity"
                     />
                 </Tabs>
 
-                {/* Divider line */}
-                <Box
-                    sx={{
-                        height: 1,
-                        bgcolor: alpha(theme.palette.common.white, 0.08),
-                        mb: 2,
-                    }}
-                />
+
 
                 {/* Tab Panels */}
                 <TabPanel value={activeTab} index={0}>

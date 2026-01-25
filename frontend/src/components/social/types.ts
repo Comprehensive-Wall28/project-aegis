@@ -24,6 +24,9 @@ export interface SocialHeaderProps {
     isPostingLink: boolean;
     sortOrder: 'latest' | 'oldest';
     handleSortOrderChange: (order: 'latest' | 'oldest') => void;
+    isZenModeOpen?: boolean;
+    onToggleZenMode?: () => void;
+    onCreateRoom?: () => void;
 }
 
 export interface CollectionItemProps {
@@ -85,6 +88,7 @@ export interface LinksContainerProps {
     hasMoreLinks: boolean;
     loadAllLinks: () => void;
     onMoveLink?: (link: LinkPost) => void;
+    hideCollectionSelector?: boolean;
 }
 
 export interface LinkCardProps {

@@ -26,7 +26,8 @@ export const createCollectionSlice: StateCreator<SocialState, [], [], Pick<Socia
         set((prev) => ({
             currentCollectionId: collectionId,
             links: force && prev.currentCollectionId === collectionId ? prev.links : [],
-            hasMoreLinks: false
+            hasMoreLinks: false,
+            isLoadingLinks: true
         }));
 
         await get().fetchCollectionLinks(collectionId, false);

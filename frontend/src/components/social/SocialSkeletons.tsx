@@ -16,8 +16,8 @@ export const CollectionSkeleton = () => {
             p: 1.5,
             borderRadius: SOCIAL_RADIUS_XSMALL,
         }}>
-            <Skeleton variant="circular" width={18} height={18} animation={false} />
-            <Skeleton variant="text" width="70%" height={24} animation={false} />
+            <Skeleton variant="circular" width={18} height={18} animation="wave" />
+            <Skeleton variant="text" width="70%" height={24} animation="wave" />
         </Box>
     );
 };
@@ -43,16 +43,16 @@ export const LinkCardSkeleton = () => {
                     boxShadow: 'none',
                 }}
             >
-                <Skeleton variant="rectangular" height={SOCIAL_LINK_PREVIEW_HEIGHT} animation={false} />
+                <Skeleton variant="rectangular" height={SOCIAL_LINK_PREVIEW_HEIGHT} animation="wave" />
                 <Box sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <Skeleton variant="text" width="90%" height={28} sx={{ mb: 1 }} animation={false} />
-                    <Skeleton variant="text" width="60%" height={20} animation={false} />
+                    <Skeleton variant="text" width="90%" height={28} sx={{ mb: 1 }} animation="wave" />
+                    <Skeleton variant="text" width="60%" height={20} animation="wave" />
                     <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Skeleton variant="text" width="30%" height={16} animation={false} />
+                        <Skeleton variant="text" width="30%" height={16} animation="wave" />
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Skeleton variant="circular" width={24} height={24} animation={false} />
-                            <Skeleton variant="circular" width={24} height={24} animation={false} />
-                            <Skeleton variant="circular" width={24} height={24} animation={false} />
+                            <Skeleton variant="circular" width={24} height={24} animation="wave" />
+                            <Skeleton variant="circular" width={24} height={24} animation="wave" />
+                            <Skeleton variant="circular" width={24} height={24} animation="wave" />
                         </Box>
                     </Box>
                 </Box>

@@ -215,6 +215,8 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                             <Box
                                 component="img"
                                 src={previewImage}
+                                width="100%"
+                                height="100%"
                                 sx={{
                                     position: 'relative',
                                     maxWidth: '100%',
@@ -259,12 +261,14 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                             </Box>
                         )}
                         {!previewImage && (
-                            <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
                                 <LinkIcon sx={{ fontSize: 40, opacity: 0.1, color: 'primary.main' }} />
                                 {faviconImage && (
                                     <Box
                                         component="img"
                                         src={faviconImage}
+                                        width={32}
+                                        height={32}
                                         sx={{
                                             position: 'absolute',
                                             width: 32,
@@ -307,6 +311,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 mb: 1,
+                                minHeight: '2.6em', // Reserve space for 2 lines
                                 display: '-webkit-box',
                                 WebkitLineClamp: 2,
                                 WebkitBoxOrient: 'vertical',

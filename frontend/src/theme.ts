@@ -12,7 +12,7 @@ declare module '@mui/material/Paper' {
 const FONT_PRIMARY = 'Outfit, sans-serif';
 const FONT_SECONDARY = 'Inter, sans-serif';
 
-export type ThemeMode = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'grey' | 'ocean' | 'light' | 'tokyonight';
+export type ThemeMode = 'default' | 'purple' | 'catppuccin-mocha' | 'catppuccin-macchiato' | 'catppuccin-frappe' | 'amoled' | 'grey' | 'ocean' | 'light' | 'tokyonight';
 
 export const getTheme = (mode: ThemeMode) => {
 
@@ -36,17 +36,17 @@ export const getTheme = (mode: ThemeMode) => {
             },
             divider: 'rgba(148, 163, 184, 0.2)',
         },
-        catppuccin: {
+        'catppuccin-mocha': {
             background: {
-                default: '#11111b', // Crust (Darkest)
-                paper: '#181825',   // Mantle (Darker)
+                default: '#11111b', // Crust
+                paper: '#181825',   // Mantle
             },
             primary: {
                 main: '#89b4fa',    // Blue
                 contrastText: '#1e1e2e', // Base
             },
             secondary: {
-                main: '#cba6f7',    // Mauve (Changed from Green for better aesthetics)
+                main: '#cba6f7',    // Mauve
             },
             text: {
                 primary: '#cdd6f4', // Text
@@ -64,8 +64,69 @@ export const getTheme = (mode: ThemeMode) => {
             success: {
                 main: '#a6e3a1',    // Green
             },
-            divider: 'rgba(108, 112, 134, 0.25)', // Overlay 0 with alpha increased for better structural definition
+            divider: 'rgba(108, 112, 134, 0.25)', // Overlay 0
         },
+        'catppuccin-macchiato': {
+            background: {
+                default: '#181926', // Crust
+                paper: '#1e2030',   // Mantle
+            },
+            primary: {
+                main: '#8aadf4',    // Blue
+                contrastText: '#24273a', // Base
+            },
+            secondary: {
+                main: '#c6a0f6',    // Mauve
+            },
+            text: {
+                primary: '#cad3f5', // Text
+                secondary: '#a5adcb', // Subtext 0
+            },
+            error: {
+                main: '#ed8796',    // Red
+            },
+            warning: {
+                main: '#f5a97f',    // Peach
+            },
+            info: {
+                main: '#7dc4e4',    // Sapphire
+            },
+            success: {
+                main: '#a6da95',    // Green
+            },
+            divider: 'rgba(110, 115, 141, 0.25)', // Overlay 0
+        },
+        'catppuccin-frappe': {
+            background: {
+                default: '#232634', // Crust
+                paper: '#292c3c',   // Mantle
+            },
+            primary: {
+                main: '#8caaee',    // Blue
+                contrastText: '#303446', // Base
+            },
+            secondary: {
+                main: '#ca9ee6',    // Mauve
+            },
+            text: {
+                primary: '#c6d0f5', // Text
+                secondary: '#a5adce', // Subtext 0
+            },
+            error: {
+                main: '#e78284',    // Red
+            },
+            warning: {
+                main: '#ef9f76',    // Peach
+            },
+            info: {
+                main: '#85c1dc',    // Sapphire
+            },
+            success: {
+                main: '#a6d189',    // Green
+            },
+            divider: 'rgba(115, 121, 148, 0.25)', // Overlay 0
+        },
+
         purple: {
             background: {
                 default: '#07000d', // Deepest Purple/Black
@@ -188,7 +249,9 @@ export const getTheme = (mode: ThemeMode) => {
         },
     };
 
-    const selectedPalette = palettes[mode];
+    // Handle legacy theme name migration or fallback
+    const effectiveMode = (mode as string) === 'catppuccin' ? 'catppuccin-mocha' : mode;
+    const selectedPalette = palettes[effectiveMode] || palettes.default;
 
     return createTheme({
         palette: {

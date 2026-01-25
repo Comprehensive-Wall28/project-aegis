@@ -1,14 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type Theme = 'default' | 'purple' | 'catppuccin' | 'amoled' | 'grey' | 'ocean' | 'light' | 'tokyonight';
+export type Theme = 'default' | 'purple' | 'catppuccin-mocha' | 'catppuccin-macchiato' | 'catppuccin-frappe' | 'amoled' | 'grey' | 'ocean' | 'light' | 'tokyonight';
 
-export const THEME_ORDER: Theme[] = ['default', 'purple', 'catppuccin', 'amoled', 'grey', 'ocean', 'tokyonight', 'light'];
+export const THEME_ORDER: Theme[] = ['default', 'purple', 'catppuccin-mocha', 'catppuccin-macchiato', 'catppuccin-frappe', 'amoled', 'grey', 'ocean', 'tokyonight', 'light'];
 
 export const THEME_DISPLAY_NAMES: Record<Theme, string> = {
     default: 'Default',
     purple: 'Purple',
-    catppuccin: 'Catppuccin',
+    'catppuccin-mocha': 'Catppuccin Mocha',
+    'catppuccin-macchiato': 'Catppuccin Macchiato',
+    'catppuccin-frappe': 'Catppuccin Frappé',
     amoled: 'AMOLED',
     grey: 'Grey',
     ocean: 'Ocean',

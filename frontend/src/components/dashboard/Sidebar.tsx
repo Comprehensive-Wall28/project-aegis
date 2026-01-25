@@ -45,7 +45,7 @@ const navItems = [
     { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
     { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
     // { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
-    { name: 'Security', href: '/dashboard/security', icon: SettingsIcon },
+    { name: 'Settings', href: '/dashboard/security', icon: SettingsIcon },
 ];
 
 

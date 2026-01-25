@@ -28,8 +28,14 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
             <DialogTitle>Delete {mode === 'note' ? 'Note' : 'Folder'}?</DialogTitle>
             <DialogContent>
                 <DialogContentText>
-                    Are you sure you want to delete "{title}"?
-                    {mode === 'folder' && ' All notes within this folder will strictly not be deleted.'}
+                    Are you sure you want to delete <strong>"{title}"</strong>?
+                    <br /><br />
+                    {mode === 'folder' && (
+                        <>
+                            Notes within this folder will <strong>not</strong> be deleted (they will be moved to 'All Notes').
+                            <br /><br />
+                        </>
+                    )}
                     This action cannot be undone.
                 </DialogContentText>
             </DialogContent>

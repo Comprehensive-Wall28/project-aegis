@@ -47,7 +47,7 @@ export class SocialErrorBoundary extends Component<Props, State> {
                         justifyContent: 'center',
                         textAlign: 'center',
                         height: '100%',
-                        minHeight: 200,
+                        minHeight: 280, // Match SOCIAL_LINK_CARD_HEIGHT
                         bgcolor: (theme) => alpha(theme.palette.error.main, 0.05),
                         borderRadius: '20px',
                         border: (theme) => `1px dashed ${alpha(theme.palette.error.main, 0.3)}`,
