@@ -6,29 +6,21 @@ import {
     Box,
     Typography,
     Button,
-    Paper,
     alpha,
     useTheme
 } from '@mui/material';
 import { Link } from 'react-router-dom';
 import UploadZone from '@/components/vault/UploadZone';
 
+import { DashboardCard } from '@/components/common/DashboardCard';
+
 export function VaultQuickView() {
     const theme = useTheme();
 
     return (
-        <Paper
+        <DashboardCard
             sx={{
                 p: { xs: 2, sm: 3 },
-                height: '100%',
-                borderRadius: '16px',
-                bgcolor: theme.palette.background.paper,
-                border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'relative',
-                overflow: 'hidden',
-                boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
                 transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
             }}
         >
@@ -88,6 +80,6 @@ export function VaultQuickView() {
                     <UploadZone onUploadComplete={() => { }} sx={{ flex: 1 }} />
                 </Box>
             </Box>
-        </Paper>
+        </DashboardCard>
     );
 }

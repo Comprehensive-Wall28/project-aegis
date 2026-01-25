@@ -1,5 +1,6 @@
-import { useEffect, useMemo, memo, useRef } from 'react';
-import { Box, Paper, Typography, useTheme, Button, alpha } from '@mui/material';
+import { useMemo, memo } from 'react';
+import { Box, Typography, useTheme, Button, alpha } from '@mui/material';
+import { DashboardCard } from '@/components/common/DashboardCard';
 import { History as HistoryIcon, ArrowUpRight, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -82,20 +83,21 @@ const TaskItem = memo(({ task }: { task: DecryptedTask }) => {
     );
 });
 
+import { useQuery } from '@tanstack/react-query';
+import auditService from '@/services/auditService';
+
 export function LiveActivityWidget() {
     const theme = useTheme();
     const navigate = useNavigate();
-    const { recentActivity, fetchRecentActivity, isAuthenticated } = useSessionStore();
+    const { isAuthenticated } = useSessionStore();
     const { tasks } = useTaskStore();
-    const hasFetched = useRef(false);
 
-    // Fetch activity (only once)
-    useEffect(() => {
-        if (isAuthenticated && !hasFetched.current) {
-            hasFetched.current = true;
-            fetchRecentActivity();
-        }
-    }, [isAuthenticated, fetchRecentActivity]);
+    const { data: recentActivity = [] } = useQuery({
+        queryKey: ['recentActivity'],
+        queryFn: () => auditService.getRecentActivity(),
+        enabled: isAuthenticated,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+    });
 
     const upcomingTasks = useMemo(() => {
         if (!tasks || tasks.length === 0) return [];
@@ -118,23 +120,6 @@ export function LiveActivityWidget() {
         return { tasks: tasksToShow, activities: activitiesToShow };
     }, [upcomingTasks, recentActivity]);
 
-    const paperStyles = useMemo(() => ({
-        p: { xs: 2, sm: 2.5 },
-        height: '100%',
-        borderRadius: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        position: 'relative',
-        contain: 'content',
-        transition: 'none',
-        bgcolor: theme.palette.background.paper, // Force opaque
-        backgroundImage: 'none', // Ensure no gradient
-        backdropFilter: 'none', // Disable blur
-        border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-        boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
-    }), [theme]);
-
     const handleViewAll = () => {
         if (combinedItems.tasks.length > 0) {
             navigate('/dashboard/tasks');
@@ -144,10 +129,14 @@ export function LiveActivityWidget() {
     };
 
     return (
-        <Paper
-            variant="solid"
-            sx={paperStyles}
-            elevation={0}
+        <DashboardCard
+            sx={{
+                p: { xs: 2, sm: 2.5 },
+                transition: 'none',
+                bgcolor: theme.palette.background.paper, // Force opaque
+                backgroundImage: 'none', // Ensure no gradient
+                backdropFilter: 'none', // Disable blur
+            }}
         >
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, px: 0.5 }}>
@@ -207,7 +196,7 @@ export function LiveActivityWidget() {
                     </>
                 )}
             </Box>
-        </Paper>
+        </DashboardCard>
     );
 }
 

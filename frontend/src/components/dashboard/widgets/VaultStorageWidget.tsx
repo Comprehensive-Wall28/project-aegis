@@ -1,77 +1,66 @@
 import {
-    School as GraduationCapIcon
+    Storage as StorageIcon,
+    AutoGraph as AutoGraphIcon,
+    OpenInNew as ExternalLinkIcon
 } from '@mui/icons-material';
 import {
     Box,
     Typography,
     Button,
-    Paper,
     alpha,
     useTheme,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { usePreferenceStore } from '@/stores/preferenceStore';
-import { motion } from 'framer-motion';
-import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useSessionStore } from '@/stores/sessionStore';
+import { motion, AnimatePresence } from 'framer-motion';
+import { DashboardCard } from '@/components/common/DashboardCard';
 
-export function GPASnapshot() {
+export function VaultStorageWidget() {
     const theme = useTheme();
     const navigate = useNavigate();
-    const gpaSystem = usePreferenceStore((state) => state.gpaSystem);
     const isSidebarCollapsed = usePreferenceStore((state) => state.isSidebarCollapsed);
+    const {
+        user,
+        cryptoStatus,
+        fetchStorageStats
+    } = useSessionStore();
 
-    // Use the optimized dashboard stats hook
-    const { currentGPA, hasError } = useDashboardStats();
+    // Auto-fetch storage stats on mount
+    useEffect(() => {
+        fetchStorageStats();
+    }, [fetchStorageStats]);
 
-    // For German system: 1.0 is best, 4.0 is minimum pass.
-    // Progress gauge should show how close you are to 1.0 from 4.0.
-    const isGerman = gpaSystem === 'GERMAN';
-    const germanConfig = usePreferenceStore((state) => state.germanScaleConfig);
+    const isBusy = cryptoStatus !== 'idle' && cryptoStatus !== 'done';
 
-    // Better calculation for German system: 1.0 (nMax) is 100%, 4.0 (nMin) is 0%.
-    // If it's worse than nMin, it should show 0% (but the number reflects the reality).
-    const nMax = germanConfig?.nMax || 1.0;
-    const nMin = germanConfig?.nMin || 4.0;
+    // Storage Constants
+    const FREE_TIER_LIMIT = 5 * 1024 * 1024 * 1024; // 5GB
+    const totalUsedBytes = user?.totalStorageUsed || 0;
+    const usagePercent = Math.min(100, Math.round((totalUsedBytes / FREE_TIER_LIMIT) * 100));
 
-    const gpaPercentage = currentGPA !== null
-        ? (isGerman
-            ? Math.max(0, Math.min(100, ((nMin - currentGPA) / (nMin - nMax)) * 100))
-            : Math.max(0, Math.min(100, (currentGPA / 4.0) * 100)))
-        : 0;
-
-    // Define colors based on performance
-    const getStatusColor = () => {
-        if (currentGPA === null) return theme.palette.primary.main;
-        if (isGerman) {
-            if (currentGPA <= 1.5) return theme.palette.primary.main; // Excellent
-            if (currentGPA <= 2.5) return theme.palette.info.main;    // Good
-            if (currentGPA <= 3.5) return theme.palette.text.primary; // Satisfactory (Themed neutral)
-            return theme.palette.error.main;                         // Poor
-        } else {
-            if (currentGPA >= 3.7) return theme.palette.primary.main;
-            if (currentGPA >= 3.0) return theme.palette.info.main;
-            if (currentGPA >= 2.0) return theme.palette.text.primary; // Satisfactory (Themed neutral)
-            return theme.palette.error.main;
-        }
+    const formatBytes = (bytes: number) => {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
+    const usedFormatted = formatBytes(totalUsedBytes);
 
-    const statusColor = getStatusColor();
-
+    const statusColor = usagePercent > 90
+        ? theme.palette.error.main
+        : usagePercent > 70
+            ? theme.palette.warning.main
+            : theme.palette.primary.main;
 
     return (
-        <Paper
+        <DashboardCard
             sx={{
-                p: { xs: 2, sm: 3 },
-                height: '100%',
                 borderRadius: '24px',
-                bgcolor: theme.palette.background.paper,
-                border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'relative',
-                overflow: 'hidden',
                 boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`,
-                transition: 'border-color 0.4s ease, box-shadow 0.4s ease, transform 0.4s ease',
+                transition: 'all 0.4s ease',
+                position: 'relative',
                 transform: 'translateZ(0)',
                 willChange: 'transform, opacity',
                 '&::before': {
@@ -81,8 +70,9 @@ export function GPASnapshot() {
                     right: 0,
                     width: '120px',
                     height: '120px',
-                    background: `radial-gradient(circle at 100% 0%, ${alpha(statusColor, 0.15)} 0%, transparent 70%)`,
-                    pointerEvents: 'none'
+                    background: `radial-gradient(circle at 100% 0%, ${alpha(statusColor, 0.15)} 0% , transparent 70%)`,
+                    pointerEvents: 'none',
+                    display: { xs: 'none', md: 'block' }
                 },
                 '&:hover': {
                     border: `1px solid ${alpha(statusColor, 0.3)}`,
@@ -110,53 +100,92 @@ export function GPASnapshot() {
                     textAlign: { xs: 'center', md: 'left' }
                 }}>
                     <Box sx={{ mb: 3 }}>
-                        <Typography variant="subtitle2" sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: { xs: 'center', md: 'flex-start' },
-                            gap: 1.5,
-                            fontWeight: 800,
-                            color: 'text.primary',
-                            mb: 0.5,
-                            letterSpacing: '0.02em',
-                            fontSize: { lg: isSidebarCollapsed ? '0.875rem' : '0.75rem', xl: '0.875rem' }
-                        }}>
-                            <GraduationCapIcon sx={{ fontSize: { xs: 20, lg: isSidebarCollapsed ? 20 : 16, xl: 20 }, color: statusColor }} />
-                            GPA SNAPSHOT
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                            <Typography variant="subtitle2" sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1.5,
+                                fontWeight: 800,
+                                color: 'text.primary',
+                                letterSpacing: '0.02em',
+                                fontSize: { lg: isSidebarCollapsed ? '0.875rem' : '0.75rem', xl: '0.875rem' }
+                            }}>
+                                <StorageIcon sx={{ fontSize: { xs: 20, lg: isSidebarCollapsed ? 20 : 16, xl: 20 }, color: statusColor }} />
+                                VAULT STORAGE
+                            </Typography>
+                        </Box>
+
                         <Typography variant="caption" sx={{
                             color: 'text.secondary',
                             fontWeight: 600,
                             fontSize: { xs: '0.75rem', lg: isSidebarCollapsed ? '0.75rem' : '0.65rem', xl: '0.75rem' },
-                            opacity: 0.9
+                            opacity: 0.9,
+                            display: 'block'
                         }}>
-                            {hasError ? 'Sync failed. Retry required.' : 'Secure Academic Overview'}
+                            {usedFormatted} used of 5.0 GB
                         </Typography>
                     </Box>
 
+                    {/* Subtle Syncing Indicator (Absolute positioned to prevent layout shift) */}
+                    <AnimatePresence>
+                        {isBusy && (
+                            <motion.div
+                                initial={{ opacity: 0, x: 5 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 5 }}
+                                style={{
+                                    position: 'absolute',
+                                    top: 16,
+                                    right: 16,
+                                    pointerEvents: 'none'
+                                }}
+                            >
+                                <Box sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    px: 1,
+                                    py: 0.25,
+                                    borderRadius: '6px',
+                                    bgcolor: alpha('#c084fc', 0.1),
+                                    border: `1px solid ${alpha('#c084fc', 0.2)}`,
+                                    color: '#c084fc'
+                                }}>
+                                    <AutoGraphIcon sx={{ fontSize: 10, animation: 'spin-slow 2s linear infinite' }} />
+                                    <Typography sx={{ fontSize: '8px', fontWeight: 900, letterSpacing: '0.05em' }}>
+                                        SYNCING
+                                    </Typography>
+                                </Box>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     <Button
                         variant="contained"
-                        onClick={() => navigate('/dashboard/gpa')}
+                        onClick={() => navigate('/dashboard/files')}
                         disableElevation
+                        size="small"
+                        endIcon={<ExternalLinkIcon sx={{ fontSize: 14 }} />}
                         sx={{
-                            borderRadius: '14px',
+                            borderRadius: '12px',
                             textTransform: 'none',
                             fontWeight: 800,
                             fontSize: { xs: '0.8rem', lg: isSidebarCollapsed ? '0.8rem' : '0.7rem', xl: '0.8rem' },
-                            px: { xs: 3, lg: isSidebarCollapsed ? 3 : 1.5, xl: 3 },
-                            py: { xs: 1, lg: isSidebarCollapsed ? 1 : 0.5, xl: 1 },
-                            bgcolor: alpha(theme.palette.text.primary, 0.1),
+                            px: { xs: 3, lg: isSidebarCollapsed ? 2.5 : 1.5, xl: 3 },
+                            py: { xs: 0.8, lg: isSidebarCollapsed ? 0.8 : 0.5, xl: 0.8 },
+                            bgcolor: alpha(theme.palette.text.primary, 0.08),
                             color: theme.palette.text.primary,
-                            border: `1px solid ${alpha(theme.palette.text.primary, 0.2)}`,
+                            border: `1px solid ${alpha(theme.palette.text.primary, 0.15)}`,
+                            display: { xs: 'none', md: 'inline-flex' },
                             '&:hover': {
-                                bgcolor: alpha(theme.palette.text.primary, 0.15),
-                                border: `1px solid ${alpha(theme.palette.text.primary, 0.3)}`,
+                                bgcolor: alpha(theme.palette.text.primary, 0.12),
+                                border: `1px solid ${alpha(theme.palette.text.primary, 0.25)}`,
                                 transform: 'translateX(4px)',
                             },
                             transition: 'all 0.3s ease',
                         }}
                     >
-                        Detailed Analytics
+                        Manage Files
                     </Button>
                 </Box>
 
@@ -173,12 +202,12 @@ export function GPASnapshot() {
                 }}>
                     <svg width="100%" height="100%" viewBox="0 0 180 110">
                         <defs>
-                            <linearGradient id="snapshot-gauge-gradient" x1="0" y1="0" x2="1" y2="0">
+                            <linearGradient id="storage-gauge-gradient" x1="0" y1="0" x2="1" y2="0">
                                 <stop offset="0%" stopColor={statusColor} stopOpacity={0.7} />
                                 <stop offset="50%" stopColor={statusColor} stopOpacity={1} />
                                 <stop offset="100%" stopColor={statusColor} stopOpacity={0.7} />
                             </linearGradient>
-                            <filter id="gauge-glow">
+                            <filter id="storage-gauge-glow">
                                 <feGaussianBlur stdDeviation="3" result="coloredBlur" />
                                 <feMerge>
                                     <feMergeNode in="coloredBlur" />
@@ -190,7 +219,7 @@ export function GPASnapshot() {
                         <path
                             d="M 15 100 A 75 75 0 0 1 165 100"
                             fill="none"
-                            stroke={alpha(theme.palette.divider, 0.15)}
+                            stroke={alpha(theme.palette.divider, 0.12)}
                             strokeWidth="14"
                             strokeLinecap="round"
                         />
@@ -198,12 +227,12 @@ export function GPASnapshot() {
                         <motion.path
                             d="M 15 100 A 75 75 0 0 1 165 100"
                             fill="none"
-                            stroke="url(#snapshot-gauge-gradient)"
+                            stroke="url(#storage-gauge-gradient)"
                             strokeWidth="14"
                             strokeLinecap="round"
-                            filter="url(#gauge-glow)"
+                            filter="url(#storage-gauge-glow)"
                             initial={{ pathLength: 0 }}
-                            animate={{ pathLength: gpaPercentage / 100 }}
+                            animate={{ pathLength: usagePercent / 100 }}
                             transition={{ duration: 2, ease: [0.34, 1.56, 0.64, 1] }}
                         />
                     </svg>
@@ -219,26 +248,33 @@ export function GPASnapshot() {
                             fontWeight: 900,
                             lineHeight: 1,
                             letterSpacing: '-0.04em',
-                            fontSize: { xs: '2.4rem', lg: isSidebarCollapsed ? '2.4rem' : '2.0rem', xl: '2.4rem' },
+                            fontSize: { xs: '2.2rem', lg: isSidebarCollapsed ? '2.2rem' : '1.8rem', xl: '2.2rem' },
                             color: theme.palette.text.primary,
                             mb: 0.5,
                             textShadow: `0 0 20px ${alpha(statusColor, 0.4)}`
                         }}>
-                            {currentGPA !== null ? currentGPA.toFixed(2) : '—'}
+                            {usagePercent}%
                         </Typography>
                         <Typography variant="caption" sx={{
                             color: 'text.secondary',
                             fontWeight: 800,
                             opacity: 0.8,
-                            fontSize: '0.65rem',
+                            fontSize: '0.6rem',
                             letterSpacing: '0.1em',
                             textTransform: 'uppercase'
                         }}>
-                            {isGerman ? `Target ${nMax.toFixed(2)}` : 'Academic GPA'}
+                            CAPACITY
                         </Typography>
                     </Box>
                 </Box>
             </Box>
-        </Paper>
+
+            <style>{`
+                @keyframes spin-slow {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
+        </DashboardCard>
     );
 }
