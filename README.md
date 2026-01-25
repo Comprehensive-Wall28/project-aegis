@@ -61,16 +61,89 @@
 
 ### Defense-in-Depth
 
-| Layer | Protection |
-|-------|------------|
-| **Transport** | HTTPS with HSTS |
-| **Headers** | Helmet.js (XSS, CSP, Clickjacking, etc.) |
-| **Authentication** | Argon2 + JWT + WebAuthn |
-| **CSRF** | Double-submit cookie pattern |
-| **Rate Limiting** | Per-endpoint limits (stricter for auth routes) |
-| **Data at Rest** | AES-256-GCM + ML-KEM-768 hybrid encryption |
-| **Integrity** | SHA-256 record hashes + Merkle trees |
-| **Audit** | All auth attempts and file operations logged |
+The security model relies on a **Zero-Knowledge Architecture** where the server never possesses the keys to decrypt user data.
+
+#### 1. Authentication & Key Derivation
+Aegis uses a dual-purpose derivation strategy. The user's password is used to generate both an authentication hash (Argon2) and a completely separate cryptographic seed for client-side encryption.
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontFamily': 'Inter', 'edgeLabelBackground': '#1f2937' }}}%%
+flowchart LR
+    User([User]) -->|Password| KDF[Argon2 KDF]
+    
+    subgraph Client [Client-Side Browser]
+        KDF -->|Derived| AuthHash[Auth Hash]
+        KDF -->|Derived| Seed[64-byte Seed]
+        
+        Seed -->|Derive| PQC[PQC Keypair\nML-KEM-768]
+        Seed -->|Derive| MasterKey[Master Key\nAES-256-GCM]
+    end
+
+    subgraph Server [Backend Server]
+        AuthHash -.->|Verifies| DB[(User DB)]
+        PQC -.->|Public Key Stored| DB
+    end
+
+    AuthHash -->|TLS HTTPS| Server
+    
+    classDef secure fill:#1f2937,stroke:#10b981,stroke-width:2px;
+    class KDF,Seed,PQC,MasterKey secure
+```
+
+#### 2. Zero-Knowledge Encryption Flow
+All sensitive data (notes, tasks, files) is encrypted **locally** before network transmission. We use hybrid encryption: unique symmetric keys for each item, wrapped by the user's master key or folder key.
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontFamily': 'Inter', 'edgeLabelBackground': '#1f2937' }}}%%
+sequenceDiagram
+    participant User
+    participant Browser
+    participant Server
+    
+    User->>Browser: Enters Note/Task
+    
+    rect rgb(31, 41, 55)
+        Note right of Browser: 🔐 Encryption Phase
+        Browser->>Browser: Generate DEK (Data Encryption Key)
+        Browser->>Browser: Encrypt Data with DEK (AES-GCM)
+        Browser->>Browser: AES-Wrap DEK with Master/Folder Key
+    end
+    
+    Browser->>Server: Send (EncryptedData, WrappedKey)
+    Server-->>Browser: Store Metadata
+    
+    Note left of Server: Server sees ONLY ciphertext
+```
+
+#### 3. Post-Quantum Secure Sharing
+To share files securely without exposing private keys, we use **ML-KEM-768 (Kyber)**. This allows Alice to encapsulate a shared secret for Bob using his public key, which Bob can then decapsulate to retrieve the shared folder key.
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontFamily': 'Inter', 'edgeLabelBackground': '#1f2937' }}}%%
+flowchart TD
+    Alice([Alice]) 
+    Bob([Bob])
+    
+    subgraph KeyExchange [PQC Key Encapsulation]
+        direction TB
+        BobKey[Bob's Public Key] -->|Fetch| Alice
+        Alice -->|ML-KEM Encapsulate| SharedSecret[Shared Secret]
+        Alice -->|Ciphertext| Bob
+        
+        SharedSecret -->|Encrypt| FolderKey[Folder Key]
+    end
+    
+    subgraph Decryption [Decapsulation]
+        Bob -->|ML-KEM Decapsulate| SharedSecretBob[Shared Secret]
+        SharedSecretBob -->|Decrypt| FolderKeyBob[Folder Key]
+    end
+
+    FolderKey -->|Wrapped Blob| Database[(Server DB)]
+    Database -->|Transfers| Bob
+
+    classDef pqc fill:#3730a3,stroke:#818cf8,stroke-width:2px;
+    class KeyExchange,Decryption pqc
+```
 
 ### Key Security Principles
 - ✅ **Data Isolation** — Backend never receives unencrypted files or private keys
