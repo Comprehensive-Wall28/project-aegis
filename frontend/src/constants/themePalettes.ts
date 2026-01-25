@@ -50,6 +50,12 @@ export const THEME_PALETTES: Record<Theme, { background: string; paper: string; 
         primary: '#ffffff',
         text: '#f1f5f9',
     },
+    'ocean-dark': {
+        background: '#05070a',
+        paper: '#080b12',
+        primary: '#7dd3fc',
+        text: '#f1f5f9',
+    },
     tokyonight: {
         background: '#1a1b26',
         paper: '#24283b',

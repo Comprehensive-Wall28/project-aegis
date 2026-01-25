@@ -12,7 +12,7 @@ declare module '@mui/material/Paper' {
 const FONT_PRIMARY = 'Outfit, sans-serif';
 const FONT_SECONDARY = 'Inter, sans-serif';
 
-export type ThemeMode = 'default' | 'purple' | 'catppuccin-mocha' | 'catppuccin-macchiato' | 'catppuccin-frappe' | 'amoled' | 'grey' | 'ocean' | 'light' | 'tokyonight';
+export type ThemeMode = 'default' | 'purple' | 'catppuccin-mocha' | 'catppuccin-macchiato' | 'catppuccin-frappe' | 'amoled' | 'grey' | 'ocean' | 'ocean-dark' | 'light' | 'tokyonight';
 
 export const getTheme = (mode: ThemeMode) => {
 
@@ -216,6 +216,24 @@ export const getTheme = (mode: ThemeMode) => {
                 secondary: '#94a3b8',
             },
             divider: 'rgba(148, 163, 184, 0.2)',
+        },
+        'ocean-dark': {
+            background: {
+                default: '#05070a', // Even deeper blue
+                paper: '#080b12',   // Darker paper
+            },
+            primary: {
+                main: '#7dd3fc',    // Sky 300
+                contrastText: '#082f49',
+            },
+            secondary: {
+                main: '#0f172a',    // Slate 900
+            },
+            text: {
+                primary: '#f1f5f9',
+                secondary: '#94a3b8',
+            },
+            divider: 'rgba(56, 189, 248, 0.1)',
         },
         tokyonight: {
             background: {

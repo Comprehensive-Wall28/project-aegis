@@ -478,13 +478,59 @@
   --ring: 0 0% 100%;
 
   /* Aegis Custom Variables (Ocean) */
-  --color-background-aegis: #050505;
-  --color-card-aegis: #0d1017;
+  --color-background-aegis: #0a0c12;
+  --color-card-aegis: #0d111a;
   --color-text-primary: #f1f5f9;
   --color-text-secondary: #94a3b8;
   --color-accent-blue: #ffffff;
   --color-accent-lime: #94a3b8;
   --color-primary-fg-aegis: #000000;
+}
+
+[data-theme="ocean-dark"] {
+  /* Deep Ocean Theme (Even Darker Blue-Black) */
+  --background: 225 33% 3%;
+  /* #05070a */
+  --foreground: 210 40% 96%;
+  /* #f1f5f9 */
+
+  --card: 225 38% 5%;
+  /* #080b12 */
+  --card-foreground: 210 40% 96%;
+
+  --popover: 220 20% 4%;
+  --popover-foreground: 210 40% 96%;
+
+  --primary: 199 92% 74%;
+  /* #7dd3fc - Sky 300 */
+  --primary-foreground: 220 30% 6%;
+
+  --secondary: 222 47% 11%;
+  /* #0f172a - Slate 900 */
+  --secondary-foreground: 210 40% 96%;
+
+  --muted: 222 47% 11%;
+  --muted-foreground: 215 16% 65%;
+  /* #94a3b8 */
+
+  --accent: 199 92% 74%;
+  --accent-foreground: 220 30% 6%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 96%;
+
+  --border: 215 14% 10%;
+  --input: 215 14% 10%;
+  --ring: 199 92% 74%;
+
+  /* Aegis Custom Variables (Deep Ocean) */
+  --color-background-aegis: #05070a;
+  --color-card-aegis: #080b12;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-accent-blue: #7dd3fc;
+  --color-accent-lime: #94a3b8;
+  --color-primary-fg-aegis: #05070a;
 }
 
 [data-theme="tokyonight"] {

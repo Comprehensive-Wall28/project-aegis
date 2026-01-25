@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type Theme = 'default' | 'purple' | 'catppuccin-mocha' | 'catppuccin-macchiato' | 'catppuccin-frappe' | 'amoled' | 'grey' | 'ocean' | 'light' | 'tokyonight';
+export type Theme = 'default' | 'purple' | 'catppuccin-mocha' | 'catppuccin-macchiato' | 'catppuccin-frappe' | 'amoled' | 'grey' | 'ocean' | 'ocean-dark' | 'light' | 'tokyonight';
 
-export const THEME_ORDER: Theme[] = ['default', 'purple', 'catppuccin-mocha', 'catppuccin-macchiato', 'catppuccin-frappe', 'amoled', 'grey', 'ocean', 'tokyonight', 'light'];
+export const THEME_ORDER: Theme[] = ['default', 'purple', 'catppuccin-mocha', 'catppuccin-macchiato', 'catppuccin-frappe', 'amoled', 'grey', 'ocean', 'ocean-dark', 'tokyonight', 'light'];
 
 export const THEME_DISPLAY_NAMES: Record<Theme, string> = {
     default: 'Default',
@@ -14,6 +14,7 @@ export const THEME_DISPLAY_NAMES: Record<Theme, string> = {
     amoled: 'AMOLED',
     grey: 'Grey',
     ocean: 'Ocean',
+    'ocean-dark': 'Deep Ocean',
     tokyonight: 'Tokyo Night',
     light: 'Light',
 };
