@@ -14,6 +14,7 @@ import {
     useMediaQuery,
     Fab,
     Button,
+    Paper,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -23,7 +24,7 @@ import {
 } from '@mui/icons-material';
 // Internal store and components
 import { useSocialStore, encryptWithAES, decryptWithAES } from '@/stores/useSocialStore';
-import { SOCIAL_SNACKBAR_Z_INDEX } from '@/components/social/constants';
+import { SOCIAL_SNACKBAR_Z_INDEX, SOCIAL_RADIUS_XLARGE, SOCIAL_RADIUS_SMALL } from '@/components/social/constants';
 import { useSessionStore } from '@/stores/sessionStore';
 import { CommentsOverlay } from '@/components/social/CommentsOverlay';
 import { ReaderModeOverlay } from '@/components/social/ReaderModeOverlay';
@@ -39,6 +40,7 @@ import { SocialSidebar } from '@/components/social/SocialSidebar';
 import { LinksContainer } from '@/components/social/LinksContainer';
 import { SocialErrorBoundary } from '@/components/social/SocialErrorBoundary';
 import { SocialPageDialogs } from '@/components/social/SocialPageDialogs';
+import { RoomsEmptyState } from '@/components/social/RoomsEmptyState';
 import { useSocialUrlSync } from '@/hooks/useSocialUrlSync';
 import { useShareIntent } from '@/hooks/useShareIntent';
 
@@ -401,7 +403,7 @@ export function SocialPage() {
             setIsCreating(true);
             const room = await createRoom(name, description);
             toggleOverlay('createRoom', null);
-            showSnackbar('Room created with end-to-end encryption', 'success');
+            showSnackbar('Room created with E2E metadata encryption', 'success');
             // Navigate to new room
             handleSelectRoom(room._id);
         } catch (error: any) {
@@ -699,65 +701,99 @@ export function SocialPage() {
                             <Box
                                 sx={{
                                     flex: 1,
-                                    overflowX: 'hidden',
-                                    overflowY: viewMode === 'rooms' ? 'auto' : 'hidden',
-                                    pt: viewMode === 'rooms' ? 1 : 0,
-                                    px: isMobile ? 1 : (viewMode === 'rooms' ? 1 : 0),
+                                    overflow: 'hidden',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    px: isMobile ? 1 : 0,
+                                    height: '100%',
                                 }}
                             >
                                 {viewMode === 'rooms' ? (
-                                    <Box
-                                        key="rooms-grid"
-                                        component={motion.div}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ duration: 0.2 }}
+                                    <Paper
+                                        elevation={1}
                                         sx={{
-                                            display: 'grid',
-                                            gridTemplateColumns: {
-                                                xs: '1fr',
-                                                sm: 'repeat(2, 1fr)',
-                                                md: 'repeat(3, 1fr)',
-                                                lg: 'repeat(4, 1fr)',
-                                            },
-                                            gap: 2,
-                                            pb: isMobile ? 12 : 2,
-                                            position: 'relative'
+                                            flex: 1,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            borderRadius: isMobile ? SOCIAL_RADIUS_SMALL : SOCIAL_RADIUS_XLARGE,
+                                            bgcolor: 'background.paper',
+                                            overflow: 'hidden',
+                                            mb: 2,
                                         }}
                                     >
-                                        <AnimatePresence>
-                                            {effectiveIsLoadingRooms && (
-                                                <Box
-                                                    component={motion.div}
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    exit={{ opacity: 0 }}
-                                                    sx={{
-                                                        position: 'absolute',
-                                                        top: -8,
-                                                        left: 0,
-                                                        right: 0,
-                                                        height: 4,
-                                                        zIndex: 10,
-                                                        overflow: 'hidden',
-                                                        borderRadius: '4px'
-                                                    }}
-                                                >
-                                                    <LinearProgress />
-                                                </Box>
-                                            )}
-                                        </AnimatePresence>
+                                        <Box
+                                            key="rooms-grid-container"
+                                            sx={{
+                                                flex: 1,
+                                                overflowX: 'hidden',
+                                                overflowY: (rooms.length > 0 || effectiveIsLoadingRooms) ? 'auto' : 'hidden',
+                                                display: (rooms.length > 0 || effectiveIsLoadingRooms) ? 'block' : 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                p: isMobile ? 2 : 3,
+                                                pb: isMobile ? ((rooms.length > 0 || effectiveIsLoadingRooms) ? 12 : 2) : 3,
+                                                position: 'relative',
+                                                height: '100%'
+                                            }}
+                                        >
+                                            <Box
+                                                key="rooms-grid"
+                                                component={motion.div}
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                transition={{ duration: 0.2 }}
+                                                sx={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: {
+                                                        xs: '1fr',
+                                                        sm: 'repeat(2, 1fr)',
+                                                        md: 'repeat(3, 1fr)',
+                                                        lg: 'repeat(4, 1fr)',
+                                                    },
+                                                    gap: 2,
+                                                }}
+                                            >
+                                                <AnimatePresence>
+                                                    {effectiveIsLoadingRooms && (
+                                                        <Box
+                                                            component={motion.div}
+                                                            initial={{ opacity: 0 }}
+                                                            animate={{ opacity: 1 }}
+                                                            exit={{ opacity: 0 }}
+                                                            sx={{
+                                                                position: 'absolute',
+                                                                top: 0,
+                                                                left: 0,
+                                                                right: 0,
+                                                                height: 4,
+                                                                zIndex: 10,
+                                                                overflow: 'hidden',
+                                                                borderRadius: '0 0 4px 4px'
+                                                            }}
+                                                        >
+                                                            <LinearProgress />
+                                                        </Box>
+                                                    )}
+                                                </AnimatePresence>
 
-                                        {rooms.map((room, index) => (
-                                            <SocialErrorBoundary key={room._id} componentName="Room Card">
-                                                <RoomCard
-                                                    room={room}
-                                                    onSelect={() => handleSelectRoom(room._id)}
-                                                    index={index}
-                                                />
-                                            </SocialErrorBoundary>
-                                        ))}
-                                    </Box>
+                                                {rooms.map((room, index) => (
+                                                    <SocialErrorBoundary key={room._id} componentName="Room Card">
+                                                        <RoomCard
+                                                            room={room}
+                                                            onSelect={() => handleSelectRoom(room._id)}
+                                                            index={index}
+                                                        />
+                                                    </SocialErrorBoundary>
+                                                ))}
+
+                                                {!effectiveIsLoadingRooms && rooms.length === 0 && (
+                                                    <Box sx={{ gridColumn: '1 / -1' }}>
+                                                        <RoomsEmptyState />
+                                                    </Box>
+                                                )}
+                                            </Box>
+                                        </Box>
+                                    </Paper>
                                 ) : (
                                     <Box
                                         key="room-content"

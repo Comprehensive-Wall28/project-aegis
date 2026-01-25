@@ -4,6 +4,7 @@ import { Group as GroupIcon, Add as AddIcon, Lock as LockIcon } from '@mui/icons
 import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
 import { motion } from 'framer-motion';
 import type { RoomCardProps, CreateRoomCardProps } from './types';
+import { SOCIAL_RADIUS_LARGE } from './constants';
 
 // Motion-enabled Paper for animations
 const MotionPaper = motion.create(
@@ -58,7 +59,7 @@ export const RoomCard = memo(({
             whileTap={isDesktop ? { scale: 0.98 } : undefined}
             sx={{
                 p: 3,
-                borderRadius: '20px',
+                borderRadius: SOCIAL_RADIUS_LARGE,
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
@@ -151,7 +152,7 @@ export const CreateRoomCard = memo(({
             whileTap={isDesktop ? { scale: 0.98 } : undefined}
             sx={{
                 p: 3,
-                borderRadius: '20px',
+                borderRadius: SOCIAL_RADIUS_LARGE,
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',

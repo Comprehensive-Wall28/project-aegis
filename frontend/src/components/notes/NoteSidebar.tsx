@@ -162,8 +162,6 @@ export const NoteSidebar: React.FC<NoteSidebarProps> = (props) => {
                 dragDrop={dragDrop}
             />
 
-            <Box sx={{ borderTop: 1, borderColor: alpha(theme.palette.divider, 0.1), mt: 1 }} />
-
             {/* Collapsible Content (Tags + Notes) */}
             <Box
                 sx={{
@@ -173,6 +171,8 @@ export const NoteSidebar: React.FC<NoteSidebarProps> = (props) => {
                     flexDirection: 'column'
                 }}
             >
+                <Box sx={{ borderTop: 1, borderColor: alpha(theme.palette.divider, 0.1), mt: 1 }} />
+
                 {/* Tag Filters */}
                 {userTags.length > 0 && (
                     <Box sx={{ px: 2, py: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
