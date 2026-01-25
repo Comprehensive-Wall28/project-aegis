@@ -25,6 +25,7 @@ import {
     Divider,
     Tooltip
 } from '@mui/material';
+import { ThemeSelectorOverlay } from '@/components/common/ThemeSelectorOverlay';
 
 interface TopHeaderProps {
     onMobileMenuOpen: () => void;
@@ -33,8 +34,9 @@ interface TopHeaderProps {
 export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
     const navigate = useNavigate();
     const { user, clearSession } = useSessionStore();
-    const { theme: currentTheme, toggleTheme } = useThemeStore();
+    const { theme: currentTheme } = useThemeStore();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
     const theme = useTheme();
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -129,7 +131,7 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                 <Tooltip title={`Theme: ${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}`}>
                     <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
                         <IconButton
-                            onClick={toggleTheme}
+                            onClick={() => setIsThemeSelectorOpen(true)}
                             sx={{
                                 color: theme.palette.text.secondary,
                                 '&:hover': {
@@ -142,6 +144,11 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                         </IconButton>
                     </Box>
                 </Tooltip>
+
+                <ThemeSelectorOverlay
+                    open={isThemeSelectorOpen}
+                    onClose={() => setIsThemeSelectorOpen(false)}
+                />
 
                 {/* User Profile Dropdown - Desktop only */}
                 <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
