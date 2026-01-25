@@ -197,11 +197,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                     decrypted = [];
                 }
 
-                // Merge upcoming tasks into store (don't replace all tasks)
+                // Merge upcoming tasks into store (update existing or add new)
                 set(state => {
-                    const existingIds = new Set(state.tasks.map(t => t._id));
-                    const newTasks = decrypted.filter(t => !existingIds.has(t._id));
-                    return { tasks: [...state.tasks, ...newTasks] };
+                    const taskMap = new Map(state.tasks.map(t => [t._id, t]));
+                    decrypted.forEach(t => taskMap.set(t._id, t));
+                    return { tasks: Array.from(taskMap.values()) };
                 });
             }
         } catch (error) {

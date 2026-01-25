@@ -1,4 +1,4 @@
-import { useMemo, memo } from 'react';
+import { useMemo, memo, useEffect } from 'react';
 import { Box, Typography, useTheme, Button, alpha } from '@mui/material';
 import { DashboardCard } from '@/components/common/DashboardCard';
 import { History as HistoryIcon, ArrowUpRight, Calendar } from 'lucide-react';
@@ -85,19 +85,29 @@ const TaskItem = memo(({ task }: { task: DecryptedTask }) => {
 
 import { useQuery } from '@tanstack/react-query';
 import auditService from '@/services/auditService';
+import { useTaskEncryption } from '@/hooks/useTaskEncryption';
 
 export function LiveActivityWidget() {
     const theme = useTheme();
     const navigate = useNavigate();
-    const { isAuthenticated } = useSessionStore();
-    const { tasks } = useTaskStore();
+    const { isAuthenticated, pqcEngineStatus } = useSessionStore();
+    const { tasks, fetchUpcomingTasks } = useTaskStore();
+    const { decryptTasks } = useTaskEncryption();
 
     const { data: recentActivity = [] } = useQuery({
         queryKey: ['recentActivity'],
         queryFn: () => auditService.getRecentActivity(),
         enabled: isAuthenticated,
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 0, // Force fresh fetch on mount
     });
+
+    useEffect(() => {
+        if (isAuthenticated && pqcEngineStatus === 'operational') {
+            fetchUpcomingTasks(10, decryptTasks).catch(err => {
+                console.error('[LiveActivityWidget] Failed to fetch upcoming tasks:', err);
+            });
+        }
+    }, [isAuthenticated, pqcEngineStatus, fetchUpcomingTasks, decryptTasks]);
 
     const upcomingTasks = useMemo(() => {
         if (!tasks || tasks.length === 0) return [];
