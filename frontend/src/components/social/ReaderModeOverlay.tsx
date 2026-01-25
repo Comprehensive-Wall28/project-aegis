@@ -736,7 +736,7 @@ export const ReaderModeOverlay = memo(({
                             <Box
                                 sx={{
                                     p: 2,
-                                    borderBottom: `1px solid ${theme.palette.divider}`,
+                                    borderBottom: 'none',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 2,

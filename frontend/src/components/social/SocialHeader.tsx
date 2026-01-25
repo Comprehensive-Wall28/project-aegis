@@ -22,6 +22,7 @@ import {
     Close as CloseIcon,
     ArrowBack as ArrowBackIcon,
     FitScreen as ZenModeIcon,
+    Add as AddIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
@@ -59,6 +60,7 @@ export const SocialHeader = memo(({
     handleSortOrderChange,
     isZenModeOpen,
     onToggleZenMode,
+    onCreateRoom,
 }: SocialHeaderProps) => {
     const theme = useTheme();
     const { name: decryptedName, isDecrypting } = useDecryptedRoomMetadata(currentRoom);
@@ -76,13 +78,13 @@ export const SocialHeader = memo(({
         <Paper
             elevation={1}
             sx={{
-                p: 2,
+                p: isMobile ? 1.5 : 2,
                 borderRadius: isMobile ? SOCIAL_RADIUS_SMALL : SOCIAL_RADIUS_XLARGE,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexShrink: 0,
-                minHeight: SOCIAL_HEADER_HEIGHT + 32, // Accommodating padding
+                minHeight: isMobile ? (SOCIAL_HEADER_HEIGHT - 8) : (SOCIAL_HEADER_HEIGHT + 32),
             }}
         >
             <Box sx={{ display: 'grid', alignItems: 'center', justifyItems: 'start', gap: 2, flexShrink: 0 }}>
@@ -106,15 +108,17 @@ export const SocialHeader = memo(({
                                         ? <Skeleton width={120} />
                                         : (decryptedName || '...')}
                                 </Typography>
-                                <Box sx={{ height: 20 }}>
-                                    {showSkeleton ? (
-                                        <Skeleton width={80} height={20} />
-                                    ) : currentRoom && (
-                                        <Typography variant="caption" color="text.secondary">
-                                            {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
-                                        </Typography>
-                                    )}
-                                </Box>
+                                {!isMobile && (
+                                    <Box sx={{ height: 20 }}>
+                                        {showSkeleton ? (
+                                            <Skeleton width={80} height={20} />
+                                        ) : currentRoom && (
+                                            <Typography variant="caption" color="text.secondary">
+                                                {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                )}
                             </Box>
                         </Box>
                     ) : (
@@ -137,7 +141,51 @@ export const SocialHeader = memo(({
             </Box>
 
             <AnimatePresence>
-                {viewMode === 'room-content' && (optimisticRoomId || currentRoom) ? (
+                {viewMode === 'rooms' ? (
+                    <Box
+                        key="rooms-actions"
+                        component={motion.div}
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
+                    >
+                        {onCreateRoom && (
+                            isMobile ? (
+                                <IconButton
+                                    onClick={onCreateRoom}
+                                    sx={{
+                                        bgcolor: 'primary.main',
+                                        color: 'primary.contrastText',
+                                        '&:hover': {
+                                            bgcolor: 'primary.dark',
+                                        },
+                                        boxShadow: theme.shadows[2],
+                                        width: 32,
+                                        height: 32,
+                                    }}
+                                    aria-label="Create Room"
+                                >
+                                    <AddIcon sx={{ fontSize: 20 }} />
+                                </IconButton>
+                            ) : (
+                                <Button
+                                    variant="contained"
+                                    startIcon={<AddIcon />}
+                                    onClick={onCreateRoom}
+                                    sx={{
+                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                        textTransform: 'none',
+                                        fontWeight: 600,
+                                        boxShadow: theme.shadows[2],
+                                    }}
+                                >
+                                    Create Room
+                                </Button>
+                            )
+                        )}
+                    </Box>
+                ) : (viewMode === 'room-content' && (optimisticRoomId || currentRoom)) ? (
                     <Box
                         key="header-actions"
                         component={motion.div}

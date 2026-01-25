@@ -26,6 +26,7 @@ export interface SocialHeaderProps {
     handleSortOrderChange: (order: 'latest' | 'oldest') => void;
     isZenModeOpen?: boolean;
     onToggleZenMode?: () => void;
+    onCreateRoom?: () => void;
 }
 
 export interface CollectionItemProps {

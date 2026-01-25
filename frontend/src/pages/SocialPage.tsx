@@ -35,7 +35,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // Modular Components
 import { CreateRoomDialog, CreateCollectionDialog, PostLinkDialog, MoveLinkDialog } from '@/components/social/SocialDialogs';
-import { RoomCard, CreateRoomCard } from '@/components/social/RoomCards';
+import { RoomCard } from '@/components/social/RoomCards';
 import { SocialHeader } from '@/components/social/SocialHeader';
 import { SocialSidebar } from '@/components/social/SocialSidebar';
 import { LinksContainer } from '@/components/social/LinksContainer';
@@ -749,7 +749,7 @@ export function SocialPage() {
                             sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}
                         >
                             <SocialErrorBoundary componentName="Header">
-                                <Box sx={{ px: viewMode === 'rooms' ? 1 : 0 }}>
+                                <Box sx={{ px: isMobile ? 1 : (viewMode === 'rooms' ? 1 : 0) }}>
                                     <SocialHeader
                                         viewMode={viewMode}
                                         isMobile={isMobile}
@@ -775,6 +775,7 @@ export function SocialPage() {
                                         handleSortOrderChange={setSortOrder}
                                         isZenModeOpen={zenModeOpen}
                                         onToggleZenMode={() => toggleOverlay('zen', !zenModeOpen)}
+                                        onCreateRoom={() => toggleOverlay('createRoom', true)}
                                     />
                                 </Box>
                             </SocialErrorBoundary>
@@ -841,13 +842,6 @@ export function SocialPage() {
                                                 />
                                             </SocialErrorBoundary>
                                         ))}
-
-                                        {!isInitializing && (
-                                            <CreateRoomCard
-                                                onClick={() => toggleOverlay('createRoom', true)}
-                                                index={rooms.length}
-                                            />
-                                        )}
                                     </Box>
                                 ) : (
                                     <Box

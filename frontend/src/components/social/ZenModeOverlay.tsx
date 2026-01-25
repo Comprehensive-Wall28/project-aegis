@@ -188,13 +188,12 @@ export const ZenModeOverlay = memo(({
                             <Box
                                 sx={{
                                     p: 2,
-                                    borderBottom: `1px solid ${theme.palette.divider}`,
+                                    borderBottom: 'none',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: { xs: 1, md: 3 },
                                     flexShrink: 0,
-                                    background: alpha(theme.palette.background.paper, 0.5),
-                                    backdropFilter: 'blur(10px)',
+                                    background: 'transparent',
                                 }}
                             >
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
