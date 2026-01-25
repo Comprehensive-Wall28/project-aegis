@@ -221,21 +221,44 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                         }}
                     >
 
+                        {/* 1. Blurred Background Layer (Performance Aware) */}
+                        {previewImage && (
+                            <Box
+                                component="img"
+                                src={previewImage}
+                                sx={{
+                                    position: 'absolute',
+                                    inset: -20, // Negative margin to avoid white edges from blur
+                                    width: 'calc(100% + 40px)',
+                                    height: 'calc(100% + 40px)',
+                                    objectFit: 'cover',
+                                    filter: 'blur(20px) brightness(0.6)',
+                                    opacity: 0.8,
+                                    zIndex: 0,
+                                    transition: 'opacity 0.3s ease',
+                                    willChange: 'filter', // Optimization hint
+                                    pointerEvents: 'none',
+                                }}
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                }}
+                            />
+                        )}
+
                         {/* 2. Sharp Foreground Image (contained) */}
                         {previewImage && (
                             <Box
                                 component="img"
                                 src={previewImage}
-                                width="100%"
-                                height="100%"
                                 sx={{
                                     position: 'relative',
                                     maxWidth: '100%',
                                     maxHeight: '100%',
                                     objectFit: 'contain',
                                     zIndex: 1,
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)', // subtle pop
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)', // enhanced shadow for depth
                                     opacity: previewData.scrapeStatus === 'scraping' ? 0.3 : 1,
+                                    transition: 'transform 0.2s ease',
                                 }}
                                 onError={(e) => {
                                     // Fallback if proxy fails visually
@@ -510,16 +533,38 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                     }}
                                 >
                                     {previewImage ? (
-                                        <img
-                                            src={previewImage}
-                                            alt={previewData.title}
-                                            style={{
-                                                width: '100%',
-                                                height: 'auto',
-                                                maxHeight: 'inherit',
-                                                objectFit: 'contain',
-                                            }}
-                                        />
+                                        <>
+                                            {/* Blurred Background */}
+                                            <Box
+                                                component="img"
+                                                src={previewImage}
+                                                sx={{
+                                                    position: 'absolute',
+                                                    inset: -30,
+                                                    width: 'calc(100% + 60px)',
+                                                    height: 'calc(100% + 60px)',
+                                                    objectFit: 'cover',
+                                                    filter: 'blur(40px) brightness(0.5)',
+                                                    zIndex: 0,
+                                                    pointerEvents: 'none',
+                                                }}
+                                            />
+                                            {/* Sharp Foreground */}
+                                            <img
+                                                src={previewImage}
+                                                alt={previewData.title}
+                                                style={{
+                                                    width: 'auto',
+                                                    height: 'auto',
+                                                    maxWidth: '100%',
+                                                    maxHeight: 'inherit',
+                                                    objectFit: 'contain',
+                                                    position: 'relative',
+                                                    zIndex: 1,
+                                                    boxShadow: '0 12px 48px rgba(0,0,0,0.5)',
+                                                }}
+                                            />
+                                        </>
                                     ) : (
                                         <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <LinkIcon sx={{ fontSize: 80, opacity: 0.1, color: 'primary.main' }} />
