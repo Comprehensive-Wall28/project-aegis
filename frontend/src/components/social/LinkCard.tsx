@@ -97,48 +97,75 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                     ghost.style.position = 'absolute';
                     ghost.style.top = '-1000px';
                     ghost.style.left = '-1000px';
-                    ghost.style.width = '200px';
+                    ghost.style.width = '240px';
                     ghost.style.padding = '12px';
-                    ghost.style.background = theme.palette.background.paper;
-                    ghost.style.border = `1px solid ${theme.palette.primary.main}`;
-                    ghost.style.borderRadius = '12px';
-                    ghost.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
+                    ghost.style.background = isViewed ? '#1e293b' : '#0f172a'; // Solid opaque background (Slate 800/900)
+                    ghost.style.border = `1px solid ${theme.palette.divider}`; // Lighter border
+                    ghost.style.borderRadius = '8px'; // Slightly tighter radius
+                    ghost.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)'; // Sharp shadow, no blur cost
                     ghost.style.display = 'flex';
                     ghost.style.alignItems = 'center';
-                    ghost.style.gap = '10px';
-                    ghost.style.zIndex = SOCIAL_DIALOG_Z_INDEX.toString();
+                    ghost.style.gap = '12px';
+                    ghost.style.zIndex = '9999';
+                    // Removed backdrop-filter for performance
 
                     // Add favicon if available
                     if (faviconImage) {
                         const img = document.createElement('img');
                         img.src = faviconImage;
-                        img.style.width = '20px';
-                        img.style.height = '20px';
-                        img.style.borderRadius = '4px';
+                        img.style.width = '24px';
+                        img.style.height = '24px';
+                        img.style.borderRadius = '6px';
+                        img.style.objectFit = 'cover';
                         ghost.appendChild(img);
                     } else {
-                        const icon = document.createElement('span');
+                        const icon = document.createElement('div');
                         icon.innerHTML = '🔗';
-                        icon.style.fontSize = '16px';
+                        icon.style.fontSize = '20px';
                         ghost.appendChild(icon);
                     }
 
-                    // Add title
-                    const text = document.createElement('span');
-                    text.innerText = previewData.title || 'Untitled Link';
-                    text.style.fontSize = '13px';
-                    text.style.fontWeight = '600';
-                    text.style.color = theme.palette.text.primary;
-                    text.style.overflow = 'hidden';
-                    text.style.textOverflow = 'ellipsis';
-                    text.style.whiteSpace = 'nowrap';
-                    ghost.appendChild(text);
+                    // Add title container
+                    const content = document.createElement('div');
+                    content.style.display = 'flex';
+                    content.style.flexDirection = 'column';
+                    content.style.gap = '2px';
+                    content.style.flex = '1';
+                    content.style.minWidth = '0'; // For Text overflow
+
+                    const title = document.createElement('span');
+                    title.innerText = previewData.title || 'Untitled Link';
+                    title.style.fontSize = '14px';
+                    title.style.fontWeight = '600';
+                    title.style.color = '#f8fafc'; // White text
+                    title.style.overflow = 'hidden';
+                    title.style.textOverflow = 'ellipsis';
+                    title.style.whiteSpace = 'nowrap';
+                    title.style.display = 'block';
+                    content.appendChild(title);
+
+                    const urlText = document.createElement('span');
+                    try {
+                        const urlObj = new URL(url);
+                        urlText.innerText = urlObj.hostname;
+                    } catch {
+                        urlText.innerText = 'Link';
+                    }
+                    urlText.style.fontSize = '11px';
+                    urlText.style.color = '#94a3b8'; // Slate 400
+                    urlText.style.overflow = 'hidden';
+                    urlText.style.textOverflow = 'ellipsis';
+                    urlText.style.whiteSpace = 'nowrap';
+                    urlText.style.display = 'block';
+                    content.appendChild(urlText);
+
+                    ghost.appendChild(content);
 
                     document.body.appendChild(ghost);
 
                     // Set the custom ghost as the drag image
-                    // Center it under the cursor approximately
-                    e.dataTransfer.setDragImage(ghost, 100, 25);
+                    // Center it under the cursor nicely
+                    e.dataTransfer.setDragImage(ghost, 20, 25);
 
                     // Remove after the drag has started
                     setTimeout(() => {
@@ -193,23 +220,6 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                             overflow: 'hidden', // Ensure blur doesn't spill
                         }}
                     >
-                        {/* 1. Blurred Background layer (fills area) */}
-                        {previewImage && (
-                            <Box
-                                sx={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    backgroundImage: `url(${previewImage})`,
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center',
-                                    filter: 'blur(10px) brightness(0.7)',
-                                    transform: 'scale(1.1)', // Prevent blur edges
-                                }}
-                            />
-                        )}
 
                         {/* 2. Sharp Foreground Image (contained) */}
                         {previewImage && (

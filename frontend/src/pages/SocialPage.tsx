@@ -28,18 +28,19 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { CommentsOverlay } from '@/components/social/CommentsOverlay';
 import { ReaderModeOverlay } from '@/components/social/ReaderModeOverlay';
 import { ZenModeOverlay } from '@/components/social/ZenModeOverlay';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import socketService from '@/services/socketService';
 import type { LinkPost } from '@/services/socialService';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Modular Components
-import { CreateRoomDialog, CreateCollectionDialog, PostLinkDialog, MoveLinkDialog } from '@/components/social/SocialDialogs';
 import { RoomCard } from '@/components/social/RoomCards';
 import { SocialHeader } from '@/components/social/SocialHeader';
 import { SocialSidebar } from '@/components/social/SocialSidebar';
 import { LinksContainer } from '@/components/social/LinksContainer';
 import { SocialErrorBoundary } from '@/components/social/SocialErrorBoundary';
+import { SocialPageDialogs } from '@/components/social/SocialPageDialogs';
+import { useSocialUrlSync } from '@/hooks/useSocialUrlSync';
+import { useShareIntent } from '@/hooks/useShareIntent';
 
 export function SocialPage() {
     const theme = useTheme();
@@ -133,9 +134,6 @@ export function SocialPage() {
     const currentUserId = useSessionStore((state) => state.user?._id);
 
     // Local state
-    const [showCreateDialog, setShowCreateDialog] = useState(false);
-    const [showCollectionDialog, setShowCollectionDialog] = useState(false);
-    const [showPostLinkDialog, setShowPostLinkDialog] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
     const [isCreatingCollection, setIsCreatingCollection] = useState(false);
     const [newLinkUrl, setNewLinkUrl] = useState('');
@@ -146,8 +144,6 @@ export function SocialPage() {
     const [selectedUploader, setSelectedUploader] = useState<string | null>(null);
     const [viewFilter, setViewFilter] = useState<'all' | 'viewed' | 'unviewed'>('all');
     const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
-    const [showMoveDialog, setShowMoveDialog] = useState(false);
-    const [linkToMove, setLinkToMove] = useState<LinkPost | null>(null);
     const [isMovingLink, setIsMovingLink] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -181,18 +177,6 @@ export function SocialPage() {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [isDeletingCollection, setIsDeletingCollection] = useState(false);
 
-    // Comments overlay state
-    const [commentsLink, setCommentsLink] = useState<LinkPost | null>(null);
-
-    // Reader mode overlay state
-    const [readerLink, setReaderLink] = useState<LinkPost | null>(null);
-
-    // Preview (Maximize) overlay state
-    const [previewLink, setPreviewLink] = useState<LinkPost | null>(null);
-    const [showPreview, setShowPreview] = useState(false);
-
-    // Zen Mode overlay state
-    const [zenModeOpen, setZenModeOpen] = useState(false);
 
     // Socket room management cleanup: 
     // Leave the room when the roomId changes or we unmount.
@@ -212,18 +196,18 @@ export function SocialPage() {
         };
     }, [clearRoomContent]);
 
-    // URL Synchronization Helper
-    const toggleOverlay = useCallback((key: string, value: string | boolean | null) => {
-        setSearchParams(prev => {
-            const next = new URLSearchParams(prev);
-            if (value === null || value === false) {
-                next.delete(key);
-            } else {
-                next.set(key, String(value));
-            }
-            return next;
-        });
-    }, [setSearchParams]);
+    const {
+        showCreateDialog,
+        showCollectionDialog,
+        showPostLinkDialog,
+        showMoveDialog,
+        zenModeOpen,
+        linkToMove,
+        commentsLink,
+        readerLink,
+        previewLink,
+        toggleOverlay
+    } = useSocialUrlSync(links);
 
     const showSnackbar = useCallback((message: string, severity: SnackbarState['severity']) => {
         setSnackbar({ open: true, message, severity });
@@ -252,26 +236,12 @@ export function SocialPage() {
     }, [newLinkUrl, postLink, isMobile, showSnackbar, toggleOverlay]);
 
     // Hot Share Listener: Listen for AEGIS_SHARE_INTENT events from browser extension
-    useEffect(() => {
-        const handleShareIntent = (event: CustomEvent<{ url: string }>) => {
-            const { url } = event.detail;
-            if (!url) return;
-
-            if (currentRoom) {
-                // Room is active, auto submit
-                handlePostLink(url);
-            } else {
-                // No room selected, save for later
-                setPendingShareUrl(url);
-                showSnackbar('Select a room to share this link', 'info');
-            }
-        };
-
-        window.addEventListener('AEGIS_SHARE_INTENT', handleShareIntent as EventListener);
-        return () => {
-            window.removeEventListener('AEGIS_SHARE_INTENT', handleShareIntent as EventListener);
-        };
-    }, [currentRoom, handlePostLink, showSnackbar]);
+    useShareIntent({
+        currentRoom,
+        handlePostLink,
+        setPendingShareUrl,
+        showSnackbar
+    });
 
     // Keyboard Shortcut Listener: Ctrl+F for Zen Mode
     useEffect(() => {
@@ -346,60 +316,6 @@ export function SocialPage() {
 
 
 
-    // Sync URL parameters with overlay states
-    useEffect(() => {
-        const commentsId = searchParams.get('comments');
-        const readerId = searchParams.get('reader');
-        const moveId = searchParams.get('move');
-        const previewId = searchParams.get('preview');
-        const post = searchParams.get('post') === 'true';
-        const createRoom = searchParams.get('createRoom') === 'true';
-        const createCol = searchParams.get('createCol') === 'true';
-        const zen = searchParams.get('zen') === 'true';
-
-        // Use functional updates to avoid unnecessary triggers if already in sync
-        if (commentsId) {
-            const link = links.find(l => l._id === commentsId);
-            if (link && commentsLink?._id !== commentsId) setCommentsLink(link);
-        } else if (commentsLink) {
-            setCommentsLink(null);
-        }
-
-        if (readerId) {
-            const link = links.find(l => l._id === readerId);
-            if (link && readerLink?._id !== readerId) setReaderLink(link);
-        } else if (readerLink) {
-            setReaderLink(null);
-        }
-
-        if (moveId) {
-            const link = links.find(l => l._id === moveId);
-            if (link && (linkToMove?._id !== moveId || !showMoveDialog)) {
-                setLinkToMove(link);
-                setShowMoveDialog(true);
-            }
-        } else if (showMoveDialog) {
-            setShowMoveDialog(false);
-            setLinkToMove(null);
-        }
-
-        if (previewId) {
-            const link = links.find(l => l._id === previewId);
-            if (link && (previewLink?._id !== previewId || !showPreview)) {
-                setPreviewLink(link);
-                setShowPreview(true);
-            }
-        } else if (showPreview) {
-            setShowPreview(false);
-            setPreviewLink(null);
-        }
-
-        if (post !== showPostLinkDialog) setShowPostLinkDialog(post);
-        if (createRoom !== showCreateDialog) setShowCreateDialog(createRoom);
-        if (createCol !== showCollectionDialog) setShowCollectionDialog(createCol);
-        if (zen !== zenModeOpen) setZenModeOpen(zen);
-
-    }, [searchParams, links, commentsLink?._id, readerLink?._id, showMoveDialog, linkToMove?._id, showPostLinkDialog, showCreateDialog, showCollectionDialog, showPreview, previewLink?._id, zenModeOpen]);
 
     // Reset room state when navigating back to the main social page
     useEffect(() => {
@@ -480,7 +396,7 @@ export function SocialPage() {
         }
     }, [searchParams, roomId, collections, currentCollectionId, selectCollection]);
 
-    const handleCreateRoom = async (name: string, description: string) => {
+    const handleCreateRoom = useCallback(async (name: string, description: string) => {
         try {
             setIsCreating(true);
             const room = await createRoom(name, description);
@@ -493,7 +409,7 @@ export function SocialPage() {
         } finally {
             setIsCreating(false);
         }
-    };
+    }, [createRoom, toggleOverlay, showSnackbar, handleSelectRoom]);
 
 
 
@@ -536,14 +452,13 @@ export function SocialPage() {
         try {
             await moveLink(linkToMove._id, collectionId);
             toggleOverlay('move', null);
-            setLinkToMove(null);
             showSnackbar('Link moved successfully', 'success');
         } catch (error: any) {
             showSnackbar(error.message || 'Failed to move link', 'error');
         } finally {
             setIsMovingLink(false);
         }
-    }, [linkToMove, isMovingLink, moveLink, showSnackbar]);
+    }, [linkToMove, isMovingLink, moveLink, showSnackbar, toggleOverlay]);
 
     const handleOpenMoveDialog = useCallback((link: LinkPost) => {
         toggleOverlay('move', link._id);
@@ -579,7 +494,7 @@ export function SocialPage() {
         }
     }, []);
 
-    const handleDeleteCollection = async () => {
+    const handleDeleteCollection = useCallback(async () => {
         if (!collectionToDelete) return;
         setIsDeletingCollection(true);
 
@@ -592,9 +507,9 @@ export function SocialPage() {
         setIsDeletingCollection(false);
         setDeleteConfirmOpen(false);
         setCollectionToDelete(null);
-    };
+    }, [collectionToDelete, deleteCollection, showSnackbar]);
 
-    const handleDeleteLink = async (linkId: string) => {
+    const handleDeleteLink = useCallback(async (linkId: string) => {
         try {
             await deleteLink(linkId);
             showSnackbar('Link deleted successfully', 'success');
@@ -602,7 +517,7 @@ export function SocialPage() {
             const message = error.response?.data?.message || error.message || 'Failed to delete link';
             showSnackbar(message, 'error');
         }
-    };
+    }, [deleteLink, showSnackbar]);
 
     const handleCopyInvite = useCallback(async () => {
         if (!currentRoom) return;
@@ -910,44 +825,36 @@ export function SocialPage() {
                                 )}
 
                                 {/* Create Room Dialog */}
-                                <CreateRoomDialog
-                                    open={showCreateDialog}
-                                    onClose={() => toggleOverlay('createRoom', null)}
-                                    onSubmit={handleCreateRoom}
-                                    isLoading={isCreating}
-                                />
-
-                                {/* Create Collection Dialog */}
-                                <CreateCollectionDialog
-                                    open={showCollectionDialog}
-                                    onClose={() => toggleOverlay('createCol', null)}
-                                    onSubmit={handleCreateCollection}
-                                    isLoading={isCreatingCollection}
-                                />
-
-                                {/* Post Link Dialog */}
-                                <PostLinkDialog
-                                    open={showPostLinkDialog}
-                                    onClose={() => {
+                                <SocialPageDialogs
+                                    showCreateDialog={showCreateDialog}
+                                    showCollectionDialog={showCollectionDialog}
+                                    showPostLinkDialog={showPostLinkDialog}
+                                    showMoveDialog={showMoveDialog}
+                                    linkToMove={linkToMove}
+                                    onCloseCreateDialog={() => toggleOverlay('createRoom', null)}
+                                    onCloseCollectionDialog={() => toggleOverlay('createCol', null)}
+                                    onClosePostLinkDialog={() => {
                                         toggleOverlay('post', null);
                                         setPostLinkError(null);
                                     }}
-                                    onSubmit={handlePostLink}
-                                    isLoading={isPostingLink}
-                                    error={postLinkError}
-                                />
-
-                                {/* Move Link Dialog */}
-                                <MoveLinkDialog
-                                    open={showMoveDialog}
-                                    onClose={() => {
-                                        toggleOverlay('move', null);
-                                        setLinkToMove(null);
+                                    onCloseMoveDialog={() => toggleOverlay('move', null)}
+                                    onCreateRoom={handleCreateRoom}
+                                    onCreateCollection={handleCreateCollection}
+                                    onPostLink={handlePostLink}
+                                    onMoveLink={handleMoveLink}
+                                    deleteConfirmOpen={deleteConfirmOpen}
+                                    onCloseDeleteConfirm={() => {
+                                        setDeleteConfirmOpen(false);
+                                        setCollectionToDelete(null);
                                     }}
-                                    onSubmit={handleMoveLink}
+                                    onConfirmDeleteCollection={handleDeleteCollection}
+                                    isCreatingRoom={isCreating}
+                                    isCreatingCollection={isCreatingCollection}
+                                    isPostingLink={isPostingLink}
+                                    isMovingLink={isMovingLink}
+                                    isDeletingCollection={isDeletingCollection}
+                                    postLinkError={postLinkError}
                                     collections={collections}
-                                    currentCollectionId={linkToMove?.collectionId || null}
-                                    isLoading={isMovingLink}
                                 />
 
                                 {/* Mobile FAB */}
@@ -991,21 +898,6 @@ export function SocialPage() {
                                         Delete Collection
                                     </MenuItem>
                                 </Menu>
-
-                                {/* Delete Collection Confirmation Dialog */}
-                                <ConfirmDialog
-                                    open={deleteConfirmOpen}
-                                    title="Delete Collection"
-                                    message="Are you sure you want to delete this collection? All links in this collection will be permanently deleted."
-                                    confirmText="Delete"
-                                    onConfirm={handleDeleteCollection}
-                                    onCancel={() => {
-                                        setDeleteConfirmOpen(false);
-                                        setCollectionToDelete(null);
-                                    }}
-                                    isLoading={isDeletingCollection}
-                                    variant="danger"
-                                />
                             </Box>
                         </Box>
                     )}
