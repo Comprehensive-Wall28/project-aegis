@@ -19,7 +19,7 @@ export function VaultQuickView() {
     return (
         <Paper
             sx={{
-                p: { xs: 2.5, sm: 3 },
+                p: { xs: 2, sm: 3 },
                 height: '100%',
                 borderRadius: '16px',
                 bgcolor: theme.palette.background.paper,

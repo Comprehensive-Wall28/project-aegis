@@ -38,7 +38,7 @@ export function Dashboard() {
                 sx={{
                     maxWidth: 1600,
                     mx: 'auto',
-                    p: { xs: 1.5, sm: 2, md: 3 },
+                    p: { xs: 0.5, sm: 2, md: 3 },
                 }}
             >
                 <Grid container spacing={{ xs: 2, md: 3 }}>
@@ -58,7 +58,7 @@ export function Dashboard() {
                     <Grid size={{ xs: 12, lg: 4 }}>
                         <Grid container spacing={3} direction="column" sx={{ height: '100%' }}>
                             {/* GPA Snapshot */}
-                            <Grid size={12} sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <Grid size={12} sx={{ flex: 1, display: 'flex', flexDirection: 'column', order: { xs: 2, lg: 1 } }}>
                                 <motion.div
                                     variants={itemVariants}
                                     style={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}
@@ -70,7 +70,7 @@ export function Dashboard() {
                             </Grid>
 
                             {/* Live Activity Widget */}
-                            <Grid size={12} sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <Grid size={12} sx={{ flex: 1, display: 'flex', flexDirection: 'column', order: { xs: 1, lg: 2 } }}>
                                 <motion.div
                                     variants={itemVariants}
                                     style={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}

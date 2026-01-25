@@ -119,7 +119,7 @@ export function LiveActivityWidget() {
     }, [upcomingTasks, recentActivity]);
 
     const paperStyles = useMemo(() => ({
-        p: 2.5,
+        p: { xs: 2, sm: 2.5 },
         height: '100%',
         borderRadius: '16px',
         display: 'flex',
