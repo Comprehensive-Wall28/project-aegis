@@ -749,32 +749,34 @@ export function SocialPage() {
                             sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}
                         >
                             <SocialErrorBoundary componentName="Header">
-                                <SocialHeader
-                                    viewMode={viewMode}
-                                    isMobile={isMobile}
-                                    optimisticRoomId={optimisticRoomId}
-                                    currentRoom={currentRoom}
-                                    handleExitRoom={handleExitRoom}
-                                    searchQuery={searchQuery}
-                                    setSearchQuery={setSearchQuery}
-                                    handleFilterClick={handleFilterClick}
-                                    selectedUploader={selectedUploader}
-                                    handleCopyInvite={handleCopyInvite}
-                                    filterAnchorEl={filterAnchorEl}
-                                    handleFilterClose={handleFilterClose}
-                                    handleSelectUploader={handleSelectUploader}
-                                    viewFilter={viewFilter}
-                                    handleViewFilterChange={setViewFilter}
-                                    uniqueUploaders={uniqueUploaders}
-                                    newLinkUrl={newLinkUrl}
-                                    setNewLinkUrl={setNewLinkUrl}
-                                    handlePostLink={handlePostLink}
-                                    isPostingLink={isPostingLink}
-                                    sortOrder={sortOrder}
-                                    handleSortOrderChange={setSortOrder}
-                                    isZenModeOpen={zenModeOpen}
-                                    onToggleZenMode={() => toggleOverlay('zen', !zenModeOpen)}
-                                />
+                                <Box sx={{ px: viewMode === 'rooms' ? 1 : 0 }}>
+                                    <SocialHeader
+                                        viewMode={viewMode}
+                                        isMobile={isMobile}
+                                        optimisticRoomId={optimisticRoomId}
+                                        currentRoom={currentRoom}
+                                        handleExitRoom={handleExitRoom}
+                                        searchQuery={searchQuery}
+                                        setSearchQuery={setSearchQuery}
+                                        handleFilterClick={handleFilterClick}
+                                        selectedUploader={selectedUploader}
+                                        handleCopyInvite={handleCopyInvite}
+                                        filterAnchorEl={filterAnchorEl}
+                                        handleFilterClose={handleFilterClose}
+                                        handleSelectUploader={handleSelectUploader}
+                                        viewFilter={viewFilter}
+                                        handleViewFilterChange={setViewFilter}
+                                        uniqueUploaders={uniqueUploaders}
+                                        newLinkUrl={newLinkUrl}
+                                        setNewLinkUrl={setNewLinkUrl}
+                                        handlePostLink={handlePostLink}
+                                        isPostingLink={isPostingLink}
+                                        sortOrder={sortOrder}
+                                        handleSortOrderChange={setSortOrder}
+                                        isZenModeOpen={zenModeOpen}
+                                        onToggleZenMode={() => toggleOverlay('zen', !zenModeOpen)}
+                                    />
+                                </Box>
                             </SocialErrorBoundary>
 
                             {/* Main Content Area */}
@@ -783,8 +785,7 @@ export function SocialPage() {
                                     flex: 1,
                                     overflowX: 'hidden',
                                     overflowY: viewMode === 'rooms' ? 'auto' : 'hidden',
-                                    pr: viewMode === 'rooms' ? 1 : 0,
-                                    pt: viewMode === 'rooms' ? 1 : 0, // 8px padding
+                                    pt: viewMode === 'rooms' ? 1 : 0,
                                     px: viewMode === 'rooms' ? 1 : 0,
                                 }}
                             >
