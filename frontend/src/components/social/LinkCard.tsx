@@ -1,6 +1,6 @@
 import { useState, memo, useEffect } from 'react';
-import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress, Tooltip } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon, AutoStoriesOutlined as ReaderIcon } from '@mui/icons-material';
+import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress, Tooltip, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
+import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon, AutoStoriesOutlined as ReaderIcon, MoreVert as MoreIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import type { LinkCardProps } from './types';
@@ -77,7 +77,26 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
     const username = typeof link.userId === 'object' ? link.userId.username : 'Unknown';
 
     const [isDragging, setIsDragging] = useState(false);
-    // showPreview is now controlled by prop
+    const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+    const isMenuOpen = Boolean(menuAnchorEl);
+
+    const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+        event.stopPropagation();
+        setMenuAnchorEl(event.currentTarget);
+    };
+
+    const handleMenuClose = (event?: object) => {
+        if (event && (event as React.MouseEvent).stopPropagation) {
+            (event as React.MouseEvent).stopPropagation();
+        }
+        setMenuAnchorEl(null);
+    };
+
+    const handleMenuAction = (action: () => void) => (event: React.MouseEvent) => {
+        event.stopPropagation();
+        action();
+        handleMenuClose();
+    };
 
     const previewImage = previewData.image ? getProxiedUrl(previewData.image) : '';
     const faviconImage = previewData.favicon ? getProxiedUrl(previewData.favicon) : '';
@@ -420,55 +439,88 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
 
                                 <IconButton
                                     size="small"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onCommentsClick?.(link);
-                                    }}
+                                    onClick={handleMenuOpen}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-                                    aria-label={`Comments (${commentCount})`}
+                                    aria-label="More options"
                                 >
-                                    <Badge
-                                        badgeContent={commentCount}
-                                        color="primary"
-                                        max={99}
-                                        sx={{
-                                            '& .MuiBadge-badge': {
-                                                fontSize: '0.65rem',
-                                                minWidth: 16,
-                                                height: 16,
+                                    <MoreIcon fontSize="small" />
+                                </IconButton>
+
+                                <Menu
+                                    anchorEl={menuAnchorEl}
+                                    open={isMenuOpen}
+                                    onClose={handleMenuClose}
+                                    onClick={(e) => e.stopPropagation()}
+                                    anchorOrigin={{
+                                        vertical: 'bottom',
+                                        horizontal: 'right',
+                                    }}
+                                    transformOrigin={{
+                                        vertical: 'top',
+                                        horizontal: 'right',
+                                    }}
+                                    disableEnforceFocus
+                                    slotProps={{
+                                        root: {
+                                            sx: {
+                                                zIndex: SOCIAL_DIALOG_Z_INDEX + 1,
                                             }
-                                        }}
-                                    >
-                                        <CommentsIcon fontSize="small" />
-                                    </Badge>
-                                </IconButton>
-
-                                <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onMoveClick?.(link);
+                                        },
+                                        paper: {
+                                            sx: {
+                                                mt: 0.5,
+                                                boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                                minWidth: 150,
+                                                zIndex: SOCIAL_DIALOG_Z_INDEX + 1,
+                                            }
+                                        },
+                                        list: {
+                                            sx: {
+                                                zIndex: SOCIAL_DIALOG_Z_INDEX + 1,
+                                            }
+                                        }
                                     }}
-                                    sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-                                    aria-label="Move link"
-                                    title="Move to Collection"
                                 >
-                                    <MoveIcon fontSize="small" />
-                                </IconButton>
+                                    <MenuItem onClick={handleMenuAction(() => onCommentsClick?.(link))}>
+                                        <ListItemIcon>
+                                            <Badge
+                                                badgeContent={commentCount}
+                                                color="primary"
+                                                max={99}
+                                                sx={{
+                                                    '& .MuiBadge-badge': {
+                                                        fontSize: '0.65rem',
+                                                        minWidth: 16,
+                                                        height: 16,
+                                                    }
+                                                }}
+                                            >
+                                                <CommentsIcon fontSize="small" />
+                                            </Badge>
+                                        </ListItemIcon>
+                                        <ListItemText primary="Comments" />
+                                    </MenuItem>
 
-                                {canDelete && (
-                                    <IconButton
-                                        size="small"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onDelete?.(link._id);
-                                        }}
-                                        sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
-                                        aria-label="Delete link"
-                                    >
-                                        <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                )}
+                                    <MenuItem onClick={handleMenuAction(() => onMoveClick?.(link))}>
+                                        <ListItemIcon>
+                                            <MoveIcon fontSize="small" />
+                                        </ListItemIcon>
+                                        <ListItemText primary="Move to Collection" />
+                                    </MenuItem>
+
+                                    {canDelete && (
+                                        <MenuItem
+                                            onClick={handleMenuAction(() => onDelete?.(link._id))}
+                                            sx={{ color: theme.palette.error.main }}
+                                        >
+                                            <ListItemIcon>
+                                                <DeleteIcon fontSize="small" color="error" />
+                                            </ListItemIcon>
+                                            <ListItemText primary="Delete" />
+                                        </MenuItem>
+                                    )}
+                                </Menu>
                             </Box>
                         </Box>
                     </Box>

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Box, Typography, Paper, alpha, useTheme, Chip, IconButton } from '@mui/material';
+import { Box, Typography, Paper, alpha, useTheme, IconButton } from '@mui/material';
 import { Edit as EditIcon, AccessTime as DueDateIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 
@@ -52,7 +52,7 @@ export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
             onClick={onClick}
             sx={{
                 p: 2,
-                borderRadius: '16px',
+                borderRadius: '24px',
                 bgcolor: alpha(theme.palette.background.paper, isDragging ? 1.0 : 0.9),
                 border: `1px solid ${alpha(theme.palette.text.primary, 0.15)}`,
                 cursor: 'pointer',
@@ -67,32 +67,32 @@ export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
                     borderColor: alpha(theme.palette.primary.main, 0.2),
                     boxShadow: `0 8px 20px ${alpha(theme.palette.common.black, 0.2)}`,
                 },
-                '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 4,
-                    bgcolor: priorityColor,
-                    borderRadius: '4px 0 0 4px',
-                }
             }}
         >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                <Typography
-                    variant="subtitle1"
-                    sx={{
-                        fontWeight: 600,
-                        color: theme.palette.text.primary,
-                        flex: 1,
-                        pr: 1,
-                        textDecoration: task.status === 'done' ? 'line-through' : 'none',
-                        opacity: task.status === 'done' ? 0.7 : 1,
-                    }}
-                >
-                    {task.title}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1 }}>
+                    <Box
+                        sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: priorityColor,
+                            flexShrink: 0,
+                        }}
+                    />
+                    <Typography
+                        variant="subtitle1"
+                        sx={{
+                            fontWeight: 600,
+                            color: theme.palette.text.primary,
+                            flex: 1,
+                            textDecoration: task.status === 'done' ? 'line-through' : 'none',
+                            opacity: task.status === 'done' ? 0.7 : 1,
+                        }}
+                    >
+                        {task.title}
+                    </Typography>
+                </Box>
                 <IconButton
                     size="small"
                     onClick={(e) => {
@@ -123,36 +123,21 @@ export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
                 />
             )}
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                <Chip
-                    label={priorityConfig.label}
-                    size="small"
-                    sx={{
-                        height: 22,
-                        fontSize: '0.65rem',
-                        fontWeight: 600,
-                        bgcolor: alpha(priorityColor, 0.25),
-                        color: priorityColor,
-                        border: `1px solid ${alpha(priorityColor, 0.3)}`,
-                    }}
-                />
-
-                {dueDateInfo && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <DueDateIcon sx={{ fontSize: 14, color: dueDateInfo.color }} />
-                        <Typography
-                            variant="caption"
-                            sx={{
-                                color: dueDateInfo.color,
-                                fontWeight: 500,
-                                fontSize: '0.7rem',
-                            }}
-                        >
-                            {dueDateInfo.text}
-                        </Typography>
-                    </Box>
-                )}
-            </Box>
+            {dueDateInfo && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <DueDateIcon sx={{ fontSize: 14, color: dueDateInfo.color }} />
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            color: dueDateInfo.color,
+                            fontWeight: 500,
+                            fontSize: '0.7rem',
+                        }}
+                    >
+                        {dueDateInfo.text}
+                    </Typography>
+                </Box>
+            )}
         </Paper>
     );
 });

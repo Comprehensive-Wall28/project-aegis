@@ -85,7 +85,7 @@ export const SocialHeader = memo(({
                 minHeight: isMobile ? (SOCIAL_HEADER_HEIGHT - 8) : (SOCIAL_HEADER_HEIGHT + 32),
             }}
         >
-            <Box sx={{ display: 'grid', alignItems: 'center', justifyItems: 'start', gap: 2, flexShrink: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 1, minWidth: 0 }}>
                 <AnimatePresence>
                     {viewMode === 'room-content' ? (
                         <Box
@@ -95,12 +95,12 @@ export const SocialHeader = memo(({
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -5, transition: { duration: 0.05 } }}
                             transition={{ duration: 0.15 }}
-                            sx={{ display: 'flex', alignItems: 'center', gap: 2, gridArea: '1/1', width: 'max-content' }}
+                            sx={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 1, minWidth: 0 }}
                         >
                             <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: -0.5 }} aria-label="Exit room">
                                 <ArrowBackIcon />
                             </IconButton>
-                            <Box sx={{ minWidth: 120 }}>
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
                                 <Typography variant="h6" noWrap sx={{ fontWeight: 600 }}>
                                     {showSkeleton
                                         ? <Skeleton width={120} />
@@ -127,12 +127,12 @@ export const SocialHeader = memo(({
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -5, transition: { duration: 0.05 } }}
                             transition={{ duration: 0.15 }}
-                            sx={{ display: 'flex', alignItems: 'center', gap: 2, gridArea: '1/1', width: 'max-content' }}
+                            sx={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}
                         >
                             <Box sx={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', ml: -0.5 }}>
                                 <GroupIcon sx={{ color: 'primary.main' }} />
                             </Box>
-                            <Box sx={{ minWidth: 120 }}>
+                            <Box sx={{ flexShrink: 0 }}>
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                                     Social Rooms
                                 </Typography>

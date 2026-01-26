@@ -24,7 +24,7 @@ const TaskItem = memo(({ task }: { task: DecryptedTask }) => {
                 alignItems: 'center',
                 gap: 2,
                 p: 1.5,
-                borderRadius: '12px',
+                borderRadius: '24px',
                 bgcolor: alpha(theme.palette.background.paper, 0.3),
                 border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`, // Distinct border for tasks
                 transition: 'all 0.2s ease',

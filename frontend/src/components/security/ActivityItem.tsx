@@ -119,7 +119,7 @@ export function ActivityItem({ log, variant = 'compact', showIp = false }: Activ
                 alignItems: 'center',
                 gap: 2,
                 p: isCompact ? 1.5 : 2,
-                borderRadius: '12px',
+                borderRadius: '24px',
                 bgcolor: alpha(theme.palette.background.paper, 0.3),
                 border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
                 transition: 'all 0.2s ease',

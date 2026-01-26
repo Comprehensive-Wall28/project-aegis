@@ -223,7 +223,7 @@ export const LinksContainer = memo(({
                                 <Box
                                     sx={{
                                         display: 'grid',
-                                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
                                         gap: 2,
                                     }}
                                 >
@@ -288,7 +288,7 @@ export const LinksContainer = memo(({
                                 transition={{ duration: 0.15 }}
                                 sx={{
                                     display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
                                     gap: 2,
                                 }}
                             >
