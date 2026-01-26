@@ -86,15 +86,15 @@ export const SocialHeader = memo(({
             }}
         >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 1, minWidth: 0 }}>
-                <AnimatePresence>
+                <AnimatePresence mode="wait">
                     {viewMode === 'room-content' ? (
                         <Box
                             key="room-header-title-area"
                             component={motion.div}
-                            initial={{ opacity: 0, x: -5 }}
+                            initial={{ opacity: 0, x: -2 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -5, transition: { duration: 0.05 } }}
-                            transition={{ duration: 0.15 }}
+                            exit={{ opacity: 0, x: -2, transition: { duration: 0.1 } }}
+                            transition={{ duration: 0.2 }}
                             sx={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 1, minWidth: 0 }}
                         >
                             <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: -0.5 }} aria-label="Exit room">
@@ -123,10 +123,10 @@ export const SocialHeader = memo(({
                         <Box
                             key="social-rooms-title-area"
                             component={motion.div}
-                            initial={{ opacity: 0, x: -5 }}
+                            initial={{ opacity: 0, x: -2 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -5, transition: { duration: 0.05 } }}
-                            transition={{ duration: 0.15 }}
+                            exit={{ opacity: 0, x: -2, transition: { duration: 0.1 } }}
+                            transition={{ duration: 0.2 }}
                             sx={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}
                         >
                             <Box sx={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', ml: -0.5 }}>
@@ -143,14 +143,15 @@ export const SocialHeader = memo(({
             </Box>
 
             <Box sx={{ flex: 1, display: 'grid', justifyItems: 'end', alignItems: 'center', minWidth: 0 }}>
-                <AnimatePresence>
+                <AnimatePresence mode="wait">
                     {viewMode === 'rooms' ? (
                         <Box
                             key="rooms-actions"
                             component={motion.div}
-                            initial={{ opacity: 0, x: 10 }}
+                            initial={{ opacity: 0, x: 2 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 10 }}
+                            exit={{ opacity: 0, x: 2, transition: { duration: 0.1 } }}
+                            transition={{ duration: 0.2 }}
                             sx={{ display: 'flex', alignItems: 'center', gap: 2, gridArea: '1/1' }}
                         >
                             {onCreateRoom && (
@@ -192,10 +193,10 @@ export const SocialHeader = memo(({
                         <Box
                             key="header-actions"
                             component={motion.div}
-                            initial={{ opacity: 0, x: 10 }}
+                            initial={{ opacity: 0, x: 2 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 10, transition: { duration: 0.05 } }}
-                            transition={{ duration: 0.15 }}
+                            exit={{ opacity: 0, x: 2, transition: { duration: 0.1 } }}
+                            transition={{ duration: 0.2 }}
                             sx={{ display: 'flex', alignItems: 'center', gap: 2, gridArea: '1/1' }}
                         >
                             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
