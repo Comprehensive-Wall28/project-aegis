@@ -145,6 +145,39 @@ export function CalendarPage() {
         setPopoverState({ anchorEl: args.jsEvent.target, date: args.date });
     };
 
+    const handleSwipeLeft = useCallback(() => {
+        calendarRef.current?.getApi().next();
+    }, []);
+
+    const handleSwipeRight = useCallback(() => {
+        calendarRef.current?.getApi().prev();
+    }, []);
+
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        setTouchStart(e.touches[0].clientX);
+    }, []);
+
+    const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+        if (touchStart === null) return;
+
+        const touchEnd = e.changedTouches[0].clientX;
+        const swipeDistance = touchStart - touchEnd;
+        const SWIPE_THRESHOLD = 50;
+
+        if (Math.abs(swipeDistance) > SWIPE_THRESHOLD) {
+            // Swipe right (positive distance) -> previous, Swipe left (negative distance) -> next
+            if (swipeDistance > 0) {
+                handleSwipeLeft();
+            } else {
+                handleSwipeRight();
+            }
+        }
+
+        setTouchStart(null);
+    }, [touchStart, handleSwipeLeft, handleSwipeRight]);
+
     const handlePopoverClose = () => {
         setPopoverState({ anchorEl: null, date: null });
     };
@@ -329,7 +362,19 @@ export function CalendarPage() {
                 </Box>
             </Box>
 
-            <Paper
+            <Box
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flex: 1,
+                    minHeight: 0,
+                    overflow: 'hidden',
+                    touchAction: 'pan-y',
+                }}
+            >
+                <Paper
                 elevation={0}
                 sx={{
                     p: 0,
@@ -583,6 +628,7 @@ export function CalendarPage() {
                     moreLinkClick={handleMoreLinkClick}
                 />
             </Paper>
+            </Box>
 
             <Popover
                 open={Boolean(popoverState.anchorEl)}
@@ -673,8 +719,12 @@ export function CalendarPage() {
             <EventDialog
                 open={dialogOpen}
                 onClose={() => {
-                    toggleCalendarParam('edit', null);
-                    toggleCalendarParam('new', null);
+                    setSearchParams(prev => {
+                        const next = new URLSearchParams(prev);
+                        next.delete('edit');
+                        next.delete('new');
+                        return next;
+                    });
                 }}
                 onSubmit={handleDialogSubmit}
                 onDelete={handleDeleteEvent}
