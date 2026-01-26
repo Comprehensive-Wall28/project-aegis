@@ -240,7 +240,7 @@ export function DashboardLayout() {
                             minHeight: 0,
                             display: 'flex',
                             flexDirection: 'column',
-                            borderRadius: '16px',
+                            borderRadius: '24px',
                             overflow: 'hidden',
                             // Solid stage for professionalism and performance
                             bgcolor: theme.palette.background.paper,

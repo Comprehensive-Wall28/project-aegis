@@ -32,7 +32,6 @@ import {
     SOCIAL_HEADER_HEIGHT,
     SOCIAL_RADIUS_XLARGE,
     SOCIAL_RADIUS_MEDIUM,
-    SOCIAL_RADIUS_SMALL,
 } from './constants';
 
 export const SocialHeader = memo(({
@@ -79,7 +78,7 @@ export const SocialHeader = memo(({
             elevation={1}
             sx={{
                 p: isMobile ? 1.5 : 2,
-                borderRadius: isMobile ? SOCIAL_RADIUS_SMALL : SOCIAL_RADIUS_XLARGE,
+                borderRadius: SOCIAL_RADIUS_XLARGE,
                 display: 'flex',
                 alignItems: 'center',
                 flexShrink: 0,

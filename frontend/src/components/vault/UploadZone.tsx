@@ -63,6 +63,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx 
                 sx={{
                     position: 'relative',
                     p: { xs: 3, sm: 4, md: 6 },
+                    borderRadius: '24px',
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
@@ -154,7 +155,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx 
 
                 {/* Progress Bar (Visible during active states) */}
                 {isActive && (
-                    <Box sx={{ position: 'absolute', bottom: 0, left: 0, width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}>
+                    <Box sx={{ position: 'absolute', bottom: 0, left: 0, width: '100%', borderRadius: '0 0 24px 24px', overflow: 'hidden' }}>
                         <LinearProgress
                             variant="determinate"
                             value={globalState.progress}

@@ -366,7 +366,15 @@ export const getTheme = (mode: ThemeMode) => {
                 styleOverrides: {
                     root: {
                         backgroundImage: 'none',
-                        borderRadius: 12,
+                        borderRadius: 24,
+                    },
+                },
+            },
+            MuiDialog: {
+                styleOverrides: {
+                    paper: {
+                        borderRadius: 24,
+                        backgroundImage: 'none',
                     },
                 },
             },

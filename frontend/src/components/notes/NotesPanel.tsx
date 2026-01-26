@@ -244,7 +244,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
             flexDirection: 'column',
             height: '100%',
             bgcolor: 'background.paper',
-            borderRadius: '16px',
+            borderRadius: '24px',
             border: 1,
             borderColor: 'divider',
             overflow: 'hidden',

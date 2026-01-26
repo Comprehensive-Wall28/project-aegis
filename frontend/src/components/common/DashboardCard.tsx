@@ -19,7 +19,7 @@ export function DashboardCard({ children, sx, className, noPadding = false }: Da
             sx={{
                 p: noPadding ? 0 : { xs: 2, sm: 2.5 },
                 height: '100%',
-                borderRadius: '16px',
+                borderRadius: '24px',
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',

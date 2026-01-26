@@ -22,7 +22,6 @@ import {
 } from '@mui/icons-material';
 import {
     SOCIAL_RADIUS_LARGE,
-    SOCIAL_RADIUS_SMALL
 } from './constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LinkCardSkeleton } from './SocialSkeletons';
@@ -101,7 +100,7 @@ export const LinksContainer = memo(({
                     minWidth: 0,
                     display: 'flex',
                     flexDirection: 'column',
-                    borderRadius: isMobile ? SOCIAL_RADIUS_SMALL : SOCIAL_RADIUS_LARGE,
+                    borderRadius: SOCIAL_RADIUS_LARGE,
                     bgcolor: noContainer ? 'transparent' : 'background.paper',
                     overflow: 'hidden',
                     position: 'relative',

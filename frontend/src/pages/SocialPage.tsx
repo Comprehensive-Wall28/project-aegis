@@ -24,7 +24,7 @@ import {
 } from '@mui/icons-material';
 // Internal store and components
 import { useSocialStore, encryptWithAES, decryptWithAES } from '@/stores/useSocialStore';
-import { SOCIAL_SNACKBAR_Z_INDEX, SOCIAL_RADIUS_XLARGE, SOCIAL_RADIUS_SMALL } from '@/components/social/constants';
+import { SOCIAL_SNACKBAR_Z_INDEX, SOCIAL_RADIUS_XLARGE } from '@/components/social/constants';
 import { useSessionStore } from '@/stores/sessionStore';
 import { CommentsOverlay } from '@/components/social/CommentsOverlay';
 import { ReaderModeOverlay } from '@/components/social/ReaderModeOverlay';
@@ -715,7 +715,7 @@ export function SocialPage() {
                                             flex: 1,
                                             display: 'flex',
                                             flexDirection: 'column',
-                                            borderRadius: isMobile ? SOCIAL_RADIUS_SMALL : SOCIAL_RADIUS_XLARGE,
+                                            borderRadius: SOCIAL_RADIUS_XLARGE,
                                             bgcolor: 'background.paper',
                                             overflow: 'hidden',
                                             mb: 2,

@@ -55,7 +55,6 @@ export function VaultStorageWidget() {
     return (
         <DashboardCard
             sx={{
-                borderRadius: '24px',
                 boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`,
                 transition: 'all 0.4s ease',
                 position: 'relative',
