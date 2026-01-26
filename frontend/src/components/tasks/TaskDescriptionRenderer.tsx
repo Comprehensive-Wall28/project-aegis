@@ -7,9 +7,12 @@ import {
     LocationOn as LocationIcon,
     Schedule as TimeIcon,
 } from '@mui/icons-material';
-import { getFileIconInfo } from '@/pages/files/utils';
+import { getFileIconInfo, isPreviewable } from '@/pages/files/utils';
 import { useTaskStore } from '@/stores/useTaskStore';
 import { useCalendarStore } from '@/stores/useCalendarStore';
+import vaultService, { type FileMetadata } from '@/services/vaultService';
+import PDFPreviewOverlay from '@/components/vault/PDFPreviewOverlay';
+import ImagePreviewOverlay from '@/components/vault/ImagePreviewOverlay';
 import dayjs from 'dayjs';
 
 interface TaskDescriptionRendererProps {
@@ -131,6 +134,9 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
 export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDescriptionRendererProps) => {
     const theme = useTheme();
     const [hoverEntity, setHoverEntity] = useState<{ type: string, id: string, anchorEl: HTMLElement | null } | null>(null);
+    const [previewFile, setPreviewFile] = useState<FileMetadata | null>(null);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [_isFetchingMetadata, setIsFetchingMetadata] = useState(false);
     const hoverTimeout = useRef<any>(null);
 
     if (!text) return null;
@@ -150,6 +156,27 @@ export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDes
     const handleMouseLeave = () => {
         if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
         setHoverEntity(null);
+    };
+
+    const handleFileClick = async (e: React.MouseEvent, type: string, path: string, label: string) => {
+        if (type !== 'aegis-file' || !isPreviewable(label)) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const pathParts = path.split('/');
+        const fileId = pathParts[1] || pathParts[0];
+
+        try {
+            setIsFetchingMetadata(true);
+            const fileData = await vaultService.getFile(fileId);
+            setPreviewFile(fileData);
+            setIsPreviewOpen(true);
+        } catch (err) {
+            console.error('Failed to fetch file metadata for preview:', err);
+        } finally {
+            setIsFetchingMetadata(false);
+        }
     };
 
     while ((match = MENTION_REGEX.exec(text)) !== null) {
@@ -188,7 +215,7 @@ export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDes
                 key={match.index}
                 component={RouterLink}
                 to={targetPath}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => handleFileClick(e, type, path, label)}
                 onMouseEnter={(e) => handleMouseEnter(e, type, entityId)}
                 onMouseLeave={handleMouseLeave}
                 sx={{
@@ -244,6 +271,23 @@ export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDes
                     anchorEl={hoverEntity.anchorEl}
                     onClose={() => setHoverEntity(null)}
                 />
+            )}
+
+            {previewFile && isPreviewOpen && (
+                previewFile.originalFileName.toLowerCase().endsWith('.pdf') ? (
+                    <PDFPreviewOverlay
+                        isOpen={isPreviewOpen}
+                        onClose={() => setIsPreviewOpen(false)}
+                        file={previewFile}
+                    />
+                ) : (
+                    <ImagePreviewOverlay
+                        isOpen={isPreviewOpen}
+                        onClose={() => setIsPreviewOpen(false)}
+                        files={[previewFile]}
+                        initialFileId={previewFile._id}
+                    />
+                )
             )}
         </>
     );
