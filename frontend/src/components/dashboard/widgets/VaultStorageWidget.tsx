@@ -158,83 +158,89 @@ export function VaultStorageWidget() {
                     </Button>
                 </Box>
 
-                {/* Right Side: Gauge */}
+                {/* Right Side: Straight Progress Bar */}
                 <Box sx={{
-                    position: 'relative',
-                    width: { xs: 180, lg: isSidebarCollapsed ? 180 : 150, xl: 180 },
-                    height: { xs: 110, lg: isSidebarCollapsed ? 110 : 90, xl: 110 },
-                    flexShrink: 0,
+                    flex: 1.2,
                     display: 'flex',
+                    flexDirection: 'column',
                     justifyContent: 'center',
-                    alignItems: 'flex-end',
-                    mb: { xs: 1, md: 0 }
+                    gap: 1.5,
+                    width: '100%',
+                    maxWidth: { xs: '100%', md: '280px' },
+                    position: 'relative'
                 }}>
-                    <svg width="100%" height="100%" viewBox="0 0 180 110">
-                        <defs>
-                            <linearGradient id="storage-gauge-gradient" x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="0%" stopColor={statusColor} stopOpacity={0.7} />
-                                <stop offset="50%" stopColor={statusColor} stopOpacity={1} />
-                                <stop offset="100%" stopColor={statusColor} stopOpacity={0.7} />
-                            </linearGradient>
-                            <filter id="storage-gauge-glow">
-                                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                                <feMerge>
-                                    <feMergeNode in="coloredBlur" />
-                                    <feMergeNode in="SourceGraphic" />
-                                </feMerge>
-                            </filter>
-                        </defs>
-                        {/* Background Arc */}
-                        <path
-                            d="M 15 100 A 75 75 0 0 1 165 100"
-                            fill="none"
-                            stroke={alpha(theme.palette.divider, 0.12)}
-                            strokeWidth="14"
-                            strokeLinecap="round"
-                        />
-                        {/* Progress Arc */}
-                        <motion.path
-                            d="M 15 100 A 75 75 0 0 1 165 100"
-                            fill="none"
-                            stroke="url(#storage-gauge-gradient)"
-                            strokeWidth="14"
-                            strokeLinecap="round"
-                            filter="url(#storage-gauge-glow)"
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: usagePercent / 100 }}
-                            transition={{ duration: 2, ease: [0.34, 1.56, 0.64, 1] }}
-                        />
-                    </svg>
-                    <Box sx={{
-                        position: 'absolute',
-                        bottom: 1,
-                        textAlign: 'center',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center'
-                    }}>
-                        <Typography variant="h3" sx={{
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 0.5 }}>
+                        <Typography variant="h4" sx={{
                             fontWeight: 900,
+                            fontSize: { xs: '1.75rem', md: '2rem' },
                             lineHeight: 1,
-                            letterSpacing: '-0.04em',
-                            fontSize: { xs: '2.2rem', lg: isSidebarCollapsed ? '2.2rem' : '1.8rem', xl: '2.2rem' },
-                            color: theme.palette.text.primary,
-                            mb: 0.5,
-                            textShadow: `0 0 20px ${alpha(statusColor, 0.4)}`
+                            color: 'text.primary',
+                            textShadow: `0 0 20px ${alpha(statusColor, 0.3)}`
                         }}>
                             {usagePercent}%
                         </Typography>
                         <Typography variant="caption" sx={{
                             color: 'text.secondary',
                             fontWeight: 800,
-                            opacity: 0.8,
-                            fontSize: '0.6rem',
                             letterSpacing: '0.1em',
-                            textTransform: 'uppercase'
+                            fontSize: '0.65rem'
                         }}>
-                            CAPACITY
+                            USED CAPACITY
                         </Typography>
                     </Box>
+
+                    {/* Progress Bar Container */}
+                    <Box sx={{
+                        height: 12,
+                        width: '100%',
+                        bgcolor: alpha(theme.palette.divider, 0.08),
+                        borderRadius: '6px',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                    }}>
+                        {/* Animated Fill */}
+                        <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${usagePercent}%` }}
+                            transition={{ duration: 1.5, ease: [0.34, 1.56, 0.64, 1] }}
+                            style={{
+                                height: '100%',
+                                background: `linear-gradient(90deg, ${alpha(statusColor, 0.8)} 0%, ${statusColor} 100%)`,
+                                boxShadow: `0 0 15px ${alpha(statusColor, 0.5)}`,
+                                borderRadius: '6px'
+                            }}
+                        />
+                    </Box>
+
+                    {/* Desktop Manage Button (Moved inside right flex for better balance on desktop) */}
+                    <Button
+                        variant="contained"
+                        onClick={() => navigate('/dashboard/files')}
+                        disableElevation
+                        size="small"
+                        endIcon={<ExternalLinkIcon sx={{ fontSize: 14 }} />}
+                        sx={{
+                            mt: 2,
+                            borderRadius: '10px',
+                            textTransform: 'none',
+                            fontWeight: 800,
+                            fontSize: '0.75rem',
+                            py: 0.8,
+                            bgcolor: alpha(theme.palette.text.primary, 0.05),
+                            color: theme.palette.text.primary,
+                            border: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
+                            display: { xs: 'inline-flex', md: 'none' }, // Only show on mobile here
+                            width: 'fit-content',
+                            alignSelf: 'center',
+                            '&:hover': {
+                                bgcolor: alpha(theme.palette.text.primary, 0.1),
+                                border: `1px solid ${alpha(theme.palette.text.primary, 0.2)}`,
+                            }
+                        }}
+                    >
+                        Manage Files
+                    </Button>
                 </Box>
             </Box>
 
