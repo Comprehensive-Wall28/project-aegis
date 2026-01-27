@@ -15,6 +15,7 @@ import { useVaultDownload } from '@/hooks/useVaultDownload';
 import vaultService from '@/services/vaultService';
 import { backgroundCache } from '@/lib/backgroundCache';
 import { useGlobalData } from '@/hooks/useGlobalData';
+import { QuickOpen } from '@/components/navigation/QuickOpen';
 
 export function DashboardLayout() {
     // Global data hydration
@@ -271,6 +272,7 @@ export function DashboardLayout() {
 
             {/* Persistent Upload Manager */}
             <UploadManager />
+            <QuickOpen />
 
             <style>{`
                 @keyframes mesh {

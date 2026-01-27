@@ -1,6 +1,142 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* CMDK Quick Open Styles */
+.cmd-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 640px;
+  width: 100%;
+  z-index: 9999;
+  padding: 0 16px;
+}
+
+.cmd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 9998;
+}
+
+.cmd-wrapper {
+  background: var(--color-card-aegis);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 480px;
+  animation: cmd-enter 0.2s ease-out;
+}
+
+@keyframes cmd-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.cmd-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cmd-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+  color: var(--color-text-primary);
+  outline: none;
+  font-family: inherit;
+}
+
+.cmd-list {
+  padding: 8px;
+  overflow-y: auto;
+  min-height: 200px;
+  scroll-behavior: smooth;
+}
+
+.cmd-group-heading {
+  padding: 8px 12px 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(128, 128, 128, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cmd-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+  transition: all 0.1s ease;
+  user-select: none;
+}
+
+.cmd-item[data-selected="true"] {
+  background: var(--color-accent-blue);
+  color: var(--color-background-aegis);
+  font-weight: 500;
+}
+
+.cmd-kbd {
+  font-size: 0.7rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(128, 128, 128, 0.1);
+  color: rgba(128, 128, 128, 0.6);
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+}
+
+.cmd-kbd-small {
+  font-size: 0.6rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgba(128, 128, 128, 0.1);
+  margin: 0 4px;
+}
+
+.cmd-empty {
+  padding: 40px;
+  text-align: center;
+  color: rgba(128, 128, 128, 0.5);
+  font-size: 0.9rem;
+}
+
+.cmd-footer {
+  padding: 8px 20px;
+  border-top: 1px solid rgba(128, 128, 128, 0.05);
+  background: rgba(128, 128, 128, 0.02);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cmd-footer-text {
+  font-size: 0.75rem;
+  color: rgba(128, 128, 128, 0.5);
+  display: flex;
+  align-items: center;
+}
+
 @theme {
   /* Shadcn CSS Variables based Theme */
   --font-sans: "Inter", system-ui, sans-serif;
