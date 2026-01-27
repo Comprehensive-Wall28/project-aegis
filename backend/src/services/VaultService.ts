@@ -83,7 +83,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             }
 
             if (user.totalStorageUsed + data.fileSize > this.MAX_STORAGE) {
-                throw new ServiceError('Storage limit exceeded. Upgrade your plan or delete some files.', 403);
+                throw new ServiceError('Storage limit exceeded. Delete some files.', 403);
             }
 
             // Initiate Google Drive resumable upload session
