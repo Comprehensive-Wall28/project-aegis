@@ -40,7 +40,12 @@ export function Dashboard() {
                 sx={{
                     maxWidth: 1600,
                     mx: 'auto',
-                    p: { xs: 0.5, sm: 2, md: 3 },
+                    p: { xs: 1, sm: 2, md: 3 },
+                    flex: 1, // Take up remaining vertical space in parent
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center', // Center vertically within available space
+                    overflow: 'visible'
                 }}
             >
                 <Grid container spacing={{ xs: 2, md: 3 }}>
