@@ -35,16 +35,18 @@ export function Dashboard() {
             initial="hidden"
             animate="visible"
             variants={containerVariants}
+            style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}
         >
             <Box
                 sx={{
+                    width: '100%',
                     maxWidth: 1600,
                     mx: 'auto',
                     p: { xs: 1, sm: 2, md: 3 },
-                    flex: 1, // Take up remaining vertical space in parent
+                    flexGrow: 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'center', // Center vertically within available space
+                    justifyContent: 'center',
                     overflow: 'visible'
                 }}
             >
