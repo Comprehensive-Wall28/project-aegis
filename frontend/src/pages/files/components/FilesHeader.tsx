@@ -71,6 +71,7 @@ export function FilesHeader({
                                 size="small"
                                 startIcon={<MoveIcon />}
                                 onClick={handleMoveClick}
+                                aria-label={`Move ${selectedCount} selected items`}
                                 sx={{
                                     fontWeight: 700,
                                     borderRadius: '8px',
@@ -86,6 +87,7 @@ export function FilesHeader({
                                 size="small"
                                 startIcon={<TrashIcon />}
                                 onClick={handleMassDeleteClick}
+                                aria-label="Delete selected items"
                                 sx={{ fontWeight: 700, borderRadius: '8px', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                             >
                                 Delete
@@ -98,6 +100,7 @@ export function FilesHeader({
                     size="small"
                     startIcon={<CreateFolderIcon />}
                     onClick={handleNewFolderClick}
+                    aria-label="Create new folder"
                     sx={{
                         fontWeight: 700,
                         borderRadius: '8px',
@@ -116,6 +119,7 @@ export function FilesHeader({
                     size="small"
                     startIcon={<UploadIcon />}
                     onClick={handleToggleUploadClick}
+                    aria-label={showUpload ? 'Close upload panel' : 'Open upload panel'}
                     sx={{
                         fontWeight: 700,
                         borderRadius: '8px',

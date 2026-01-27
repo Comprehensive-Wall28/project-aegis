@@ -384,6 +384,13 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
         options: { limit: number; cursor?: string; search?: string }
     ): Promise<{ items: IFileMetadata[]; nextCursor: string | null }> {
         try {
+            if (folderId && folderId !== 'null') {
+                if (!mongoose.isValidObjectId(folderId)) {
+                    logger.warn(`Invalid folderId format in getUserFilesPaginated: ${folderId}`);
+                    throw new ServiceError('Invalid folder ID format', 400);
+                }
+            }
+
             // Root level files - user's own files
             return await this.repository.findByOwnerAndFolderPaginated(
                 userId,
@@ -394,8 +401,14 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                     search: options.search
                 }
             );
-        } catch (error) {
+        } catch (error: any) {
             if (error instanceof ServiceError) throw error;
+
+            if (error.name === 'CastError' || error.kind === 'ObjectId') {
+                logger.warn(`CastError in getUserFilesPaginated: ${error.message}`);
+                throw new ServiceError('Invalid ID format', 400);
+            }
+
             logger.error('Get files paginated error:', error);
             throw new ServiceError('Failed to get files', 500);
         }

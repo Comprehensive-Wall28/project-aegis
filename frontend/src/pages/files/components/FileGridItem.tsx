@@ -78,46 +78,7 @@ export const FileGridItem = memo(({
                 }}
                 onClick={(e) => onFileClick(file, e)}
                 onContextMenu={(e) => onContextMenu(e, { type: 'file', id: file._id })}
-                sx={{
-                    p: iconScaling.padding,
-                    position: 'relative',
-                    cursor: 'grab',
-                    width: '100%',
-                    height: '100%',
-                    overflow: 'hidden',
-                    '&:active': { cursor: 'grabbing' },
-                    borderRadius: '24px',
-                    border: isSelected
-                        ? `2px solid ${theme.palette.primary.main}`
-                        : `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-                    bgcolor: isSelected
-                        ? alpha(theme.palette.primary.main, 0.25)
-                        : alpha(theme.palette.background.paper, 0.85),
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s',
-                    '&:hover': {
-                        bgcolor: isSelected
-                            ? alpha(theme.palette.primary.main, 0.3)
-                            : alpha(theme.palette.background.paper, 1.0),
-                        borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.4),
-                    },
-                    ...(isHighlighted && {
-                        animation: 'highlight-pulse 2s infinite ease-in-out',
-                        boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.4)}`,
-                        borderColor: theme.palette.primary.main,
-                        borderWidth: 2,
-                        zIndex: 10,
-                        transform: 'scale(1.02)',
-                        '@keyframes highlight-pulse': {
-                            '0%': { boxShadow: `0 0 0 0px ${alpha(theme.palette.primary.main, 0.7)}` },
-                            '70%': { boxShadow: `0 0 0 15px ${alpha(theme.palette.primary.main, 0)}` },
-                            '100%': { boxShadow: `0 0 0 0px ${alpha(theme.palette.primary.main, 0)}` },
-                        },
-                    })
-                }}
+                sx={getPaperStyles(theme, isSelected, iconScaling, isHighlighted)}
             >
                 {isPreviewable(file.originalFileName) && (
                     <Box
@@ -179,6 +140,7 @@ export const FileGridItem = memo(({
                     <IconButton
                         size="small"
                         onClick={() => onToggleSelect(file._id)}
+                        aria-label={isSelected ? "Deselect item" : "Select item"}
                         sx={{
                             color: isSelected ? 'primary.main' : 'text.secondary',
                             p: 0.5,
@@ -192,6 +154,7 @@ export const FileGridItem = memo(({
                         size="small"
                         onClick={() => onDownload(file)}
                         disabled={isDownloading}
+                        aria-label="Download file"
                         sx={{
                             color: 'primary.main',
                             p: 0.5,
@@ -204,6 +167,7 @@ export const FileGridItem = memo(({
                         size="small"
                         onClick={() => onDelete(file._id)}
                         disabled={isDeleting}
+                        aria-label="Delete file"
                         sx={{
                             color: '#EF5350',
                             p: 0.5,
@@ -215,6 +179,7 @@ export const FileGridItem = memo(({
                     <IconButton
                         size="small"
                         onClick={() => onMove(file)}
+                        aria-label="Move file"
                         sx={{
                             color: 'warning.main',
                             p: 0.5,
@@ -227,6 +192,7 @@ export const FileGridItem = memo(({
                     <IconButton
                         size="small"
                         onClick={(e) => onContextMenu(e, { type: 'file', id: file._id })}
+                        aria-label="More options"
                         sx={{
                             color: 'text.secondary',
                             p: 0.5,
@@ -239,4 +205,45 @@ export const FileGridItem = memo(({
             </Paper>
         </Box>
     );
+});
+
+const getPaperStyles = (theme: any, isSelected: boolean, iconScaling: IconScalingConfig, isHighlighted?: boolean) => ({
+    p: iconScaling.padding,
+    position: 'relative',
+    cursor: 'grab',
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+    '&:active': { cursor: 'grabbing' },
+    borderRadius: '24px',
+    border: isSelected
+        ? `2px solid ${theme.palette.primary.main}`
+        : `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+    bgcolor: isSelected
+        ? alpha(theme.palette.primary.main, 0.25)
+        : alpha(theme.palette.background.paper, 0.85),
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s',
+    '&:hover': {
+        bgcolor: isSelected
+            ? alpha(theme.palette.primary.main, 0.3)
+            : alpha(theme.palette.background.paper, 1.0),
+        borderColor: isSelected ? theme.palette.primary.main : alpha(theme.palette.divider, 0.4),
+    },
+    ...(isHighlighted && {
+        animation: 'highlight-pulse 2s infinite ease-in-out',
+        boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.4)}`,
+        borderColor: theme.palette.primary.main,
+        borderWidth: 2,
+        zIndex: 10,
+        transform: 'scale(1.02)',
+        '@keyframes highlight-pulse': {
+            '0%': { boxShadow: `0 0 0 0px ${alpha(theme.palette.primary.main, 0.7)}` },
+            '70%': { boxShadow: `0 0 0 15px ${alpha(theme.palette.primary.main, 0)}` },
+            '100%': { boxShadow: `0 0 0 0px ${alpha(theme.palette.primary.main, 0)}` },
+        },
+    })
 });

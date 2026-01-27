@@ -1,6 +1,6 @@
 import type { TypographyVariant } from '@mui/material';
 
-export type ViewPreset = 'compact' | 'standard' | 'comfort' | 'detailed';
+export type ViewPreset = 'compact' | 'standard' | 'comfort' | 'detailed' | 'gallery';
 
 export interface GridSizeConfig {
     xs: number;

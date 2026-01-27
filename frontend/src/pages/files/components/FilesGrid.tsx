@@ -8,16 +8,19 @@ import type { Folder } from '@/services/folderService';
 import type { ViewPreset, IconScalingConfig, TypoScalingConfig, ContextMenuTarget } from '../types';
 import { FolderGridItem } from './FolderGridItem';
 import { FileGridItem } from './FileGridItem';
-import { useLazyLoad } from '../hooks/useLazyLoad';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 
 interface FilesGridProps {
     isLoading: boolean;
+    isLoadingMore?: boolean;
     files: FileMetadata[];
     folders: Folder[];
     viewPreset: ViewPreset;
     selectedIds: Set<string>;
     downloadingId: string | null;
     deletingIds: Set<string>;
+    hasMore?: boolean;
+    onLoadMore?: () => void;
 
     onNavigate: (folder: Folder) => void;
     onFileClick: (file: FileMetadata, e: React.MouseEvent) => void;
@@ -36,12 +39,15 @@ interface FilesGridProps {
 
 export function FilesGrid({
     isLoading,
+    isLoadingMore = false,
     files,
     folders,
     viewPreset,
     selectedIds,
     downloadingId,
     deletingIds,
+    hasMore = false,
+    onLoadMore = () => { },
     onNavigate,
     onFileClick,
     onContextMenu,
@@ -65,6 +71,7 @@ export function FilesGrid({
             case 'comfort': return { xs: 100, sm: 50, md: 33.33, lg: 25 };     // 1, 2, 3, 4 items
             case 'detailed': return { xs: 100, sm: 100, md: 50, lg: 33.33 };   // 1, 1, 2, 3 items
             case 'standard': return { xs: 100, sm: 33.33, md: 25, lg: 20 };    // 1, 3, 4, 5 items
+            case 'gallery': return { xs: 100, sm: 50, md: 33.33, lg: 25 };     // Added gallery support
             default: return { xs: 100, sm: 33.33, md: 25, lg: 20 };
         }
     }, [viewPreset]);
@@ -74,6 +81,7 @@ export function FilesGrid({
             case 'compact': return { size: 32, padding: 0.75, badge: 10 };
             case 'comfort': return { size: 64, padding: 1.75, badge: 16 };
             case 'detailed': return { size: 52, padding: 2.5, badge: 20 };
+            case 'gallery': return { size: 80, padding: 2, badge: 18 };
             default: return { size: 48, padding: 1.5, badge: 14 };
         }
     }, [viewPreset]);
@@ -83,6 +91,7 @@ export function FilesGrid({
             case 'compact': return { name: 'body2', size: 14, mb: 0.5 };
             case 'comfort': return { name: 'h6', size: 28, mb: 1.5 };
             case 'detailed': return { name: 'h5', size: 34, mb: 2 };
+            case 'gallery': return { name: 'body1', size: 16, mb: 1 };
             default: return { name: 'body1', size: 18, mb: 1 };
         }
     }, [viewPreset, isMobile]);
@@ -95,10 +104,10 @@ export function FilesGrid({
         ];
     }, [folders, files]);
 
-    // Lazy loading - load 24 items initially, then 24 more as user scrolls
-    const { visibleItems, hasMore, sentinelRef } = useLazyLoad(allData, {
-        batchSize: 24,
-        rootMargin: '400px', // Start loading before sentinel is visible
+    const { sentinelRef } = useInfiniteScroll({
+        hasMore,
+        isLoading: isLoadingMore,
+        onLoadMore
     });
 
     return (
@@ -149,7 +158,7 @@ export function FilesGrid({
                             width: '100%'
                         }}
                     >
-                        {visibleItems.map((item) => {
+                        {allData.map((item) => {
                             if (item.type === 'folder') {
                                 const folder = item.data as Folder;
                                 return (
@@ -209,7 +218,7 @@ export function FilesGrid({
                             }
                         })}
 
-                        {/* Lazy load sentinel - triggers loading more items when visible */}
+                        {/* Infinite scroll sentinel */}
                         {hasMore && (
                             <Box
                                 ref={sentinelRef}
@@ -224,7 +233,7 @@ export function FilesGrid({
                             >
                                 <CircularProgress size={20} thickness={4} />
                                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                    Loading more...
+                                    {isLoadingMore ? 'Loading more...' : 'Load more'}
                                 </Typography>
                             </Box>
                         )}

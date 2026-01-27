@@ -98,7 +98,7 @@ export const initiateUpload = async (
     const accessToken = await oauth2Client.getAccessToken();
 
     // Initiate resumable upload session (supportsAllDrives enables shared folder access)
-    const initResponse = await fetch(
+    const initResponse = await fetchWithRetry(
         'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true',
         {
             method: 'POST',
@@ -146,6 +146,41 @@ export const initiateUpload = async (
  * @param totalSize - Total expected file size
  * @returns Upload progress info
  */
+/**
+ * Helper to perform fetch with exponential backoff retry
+ */
+const fetchWithRetry = async (url: string, options: any, retries = 3, delay = 1000): Promise<Response> => {
+    try {
+        const response = await fetch(url, options);
+
+        // Retry on 5xx server errors or 429 too many requests
+        if ((response.status >= 500 || response.status === 429) && retries > 0) {
+            logger.warn(`Google Drive API request failed with ${response.status}. Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(url, options, retries - 1, delay * 2);
+        }
+
+        return response;
+    } catch (error) {
+        if (retries > 0) {
+            logger.warn(`Google Drive API network error: ${error}. Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(url, options, retries - 1, delay * 2);
+        }
+        throw error;
+    }
+};
+
+/**
+ * Append a chunk to an active upload session using resumable upload protocol.
+ * @param sessionId - The upload session ID
+ * @param chunk - The chunk data as Buffer or Readable stream
+ * @param chunkLength - Length of the chunk in bytes
+ * @param rangeStart - Start byte position
+ * @param rangeEnd - End byte position
+ * @param totalSize - Total expected file size
+ * @returns Upload progress info
+ */
 export const appendChunk = async (
     sessionId: string,
     chunk: Buffer | Readable,
@@ -164,7 +199,7 @@ export const appendChunk = async (
     session.receivedSize += chunkLength;
 
     // Perform PUT request with Content-Range header
-    const response = await fetch(session.sessionUrl, {
+    const response = await fetchWithRetry(session.sessionUrl, {
         method: 'PUT',
         headers: {
             'Content-Length': String(chunkLength),
@@ -213,7 +248,7 @@ export const finalizeUpload = async (sessionId: string): Promise<string> => {
     }
 
     // Query the session URL to get the file info
-    const response = await fetch(session.sessionUrl, {
+    const response = await fetchWithRetry(session.sessionUrl, {
         method: 'PUT',
         headers: {
             'Content-Length': '0',

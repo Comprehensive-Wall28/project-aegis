@@ -133,6 +133,7 @@ export const FolderGridItem = memo(({
                     <IconButton
                         size="small"
                         onClick={() => onShare(folder)}
+                        aria-label="Share folder"
                         sx={{
                             color: 'primary.main',
                             p: 0.5,
@@ -144,6 +145,7 @@ export const FolderGridItem = memo(({
                     <IconButton
                         size="small"
                         onClick={() => onDelete(folder._id)}
+                        aria-label="Delete folder"
                         sx={{
                             color: '#EF5350',
                             p: 0.5,
@@ -155,6 +157,7 @@ export const FolderGridItem = memo(({
                     <IconButton
                         size="small"
                         onClick={(e) => onContextMenu(e, { type: 'folder', id: folder._id })}
+                        aria-label="More options"
                         sx={{
                             color: 'text.secondary',
                             p: 0.5,
