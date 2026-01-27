@@ -1,11 +1,9 @@
 import {
-    Storage as StorageIcon,
-    OpenInNew as ExternalLinkIcon
+    Storage as StorageIcon
 } from '@mui/icons-material';
 import {
     Box,
     Typography,
-    Button,
     alpha,
     useTheme,
 } from '@mui/material';
@@ -30,8 +28,6 @@ export function VaultStorageWidget() {
         fetchStorageStats();
     }, [fetchStorageStats]);
 
-
-
     // Storage Constants
     const FREE_TIER_LIMIT = 5 * 1024 * 1024 * 1024; // 5GB
     const totalUsedBytes = user?.totalStorageUsed || 0;
@@ -52,14 +48,23 @@ export function VaultStorageWidget() {
             ? theme.palette.warning.main
             : theme.palette.primary.main;
 
+    const remainingBytes = Math.max(0, FREE_TIER_LIMIT - totalUsedBytes);
+    const remainingFormatted = formatBytes(remainingBytes);
+
     return (
         <DashboardCard
+            onClick={() => navigate('/dashboard/files')}
             sx={{
+                cursor: 'pointer',
                 boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`,
-                transition: 'all 0.4s ease',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative',
                 transform: 'translateZ(0)',
-                willChange: 'transform, opacity',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                py: { xs: 4, md: 5 }, // Increased vertical padding to restore height
+                px: { xs: 2.5, md: 3 },
 
                 '&::before': {
                     content: '""',
@@ -73,106 +78,73 @@ export function VaultStorageWidget() {
                     display: { xs: 'none', md: 'block' }
                 },
                 '&:hover': {
-                    border: `1px solid ${alpha(statusColor, 0.3)}`,
-                    boxShadow: `0 12px 48px -12px ${alpha(statusColor, 0.2)}`,
-                    transform: 'translateY(-2px)'
+                    border: `1px solid ${alpha(statusColor, 0.5)}`,
+                    boxShadow: `0 12px 48px -12px ${alpha(statusColor, 0.3)}`,
+                    transform: 'translateY(-4px)',
+                },
+                '&:active': {
+                    transform: 'translateY(-2px) scale(0.98)',
                 }
             }}
         >
             <Box sx={{
-                flex: 1,
                 display: 'flex',
+                gap: { xs: 5, md: 4, lg: isSidebarCollapsed ? 5 : 4 }, // Increased gap to fill vertical space
                 flexDirection: { xs: 'column', md: 'row' },
-                alignItems: { xs: 'center', md: 'center' },
+                alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: { xs: 3, md: 0, lg: isSidebarCollapsed ? 2 : 1, xl: 2 },
                 position: 'relative',
                 zIndex: 1
             }}>
-                {/* Left Side: Info & Button */}
+                {/* Left Side: Info */}
                 <Box sx={{
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: { xs: 'center', md: 'flex-start' },
-                    justifyContent: 'center',
-                    height: '100%',
-                    flex: 1,
-                    textAlign: { xs: 'center', md: 'left' }
+                    textAlign: { xs: 'center', md: 'left' },
+                    flex: { xs: 'none', md: 1 }
                 }}>
-                    <Box sx={{ mb: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                            <Typography variant="subtitle2" sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1.5,
-                                fontWeight: 800,
-                                color: 'text.primary',
-                                letterSpacing: '0.02em',
-                                fontSize: { lg: isSidebarCollapsed ? '0.875rem' : '0.75rem', xl: '0.875rem' }
-                            }}>
-                                <StorageIcon sx={{ fontSize: { xs: 20, lg: isSidebarCollapsed ? 20 : 16, xl: 20 }, color: statusColor }} />
-                                VAULT STORAGE
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="caption" sx={{
-                            color: 'text.secondary',
-                            fontWeight: 600,
-                            fontSize: { xs: '0.75rem', lg: isSidebarCollapsed ? '0.75rem' : '0.65rem', xl: '0.75rem' },
-                            opacity: 0.9,
-                            display: 'block'
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                        <StorageIcon sx={{ fontSize: { xs: 20, md: 18 }, color: statusColor }} />
+                        <Typography variant="subtitle2" sx={{
+                            fontWeight: 800,
+                            color: 'text.primary',
+                            letterSpacing: '0.05em',
+                            fontSize: { xs: '0.75rem', md: '0.7rem' },
+                            textTransform: 'uppercase'
                         }}>
-                            {usedFormatted} used of 5.0 GB
+                            Vault Storage
                         </Typography>
                     </Box>
-
-                    {/* Subtle Syncing Indicator (Absolute positioned to prevent layout shift) */}
-
-
-                    <Button
-                        variant="contained"
-                        onClick={() => navigate('/dashboard/files')}
-                        disableElevation
-                        size="small"
-                        endIcon={<ExternalLinkIcon sx={{ fontSize: 14 }} />}
-                        sx={{
-                            borderRadius: '12px',
-                            textTransform: 'none',
-                            fontWeight: 800,
-                            fontSize: { xs: '0.8rem', lg: isSidebarCollapsed ? '0.8rem' : '0.7rem', xl: '0.8rem' },
-                            px: { xs: 3, lg: isSidebarCollapsed ? 2.5 : 1.5, xl: 3 },
-                            py: { xs: 0.8, lg: isSidebarCollapsed ? 0.8 : 0.5, xl: 0.8 },
-                            bgcolor: alpha(theme.palette.text.primary, 0.08),
-                            color: theme.palette.text.primary,
-                            border: `1px solid ${alpha(theme.palette.text.primary, 0.15)}`,
-                            display: { xs: 'none', md: 'inline-flex' },
-                            '&:hover': {
-                                bgcolor: alpha(theme.palette.text.primary, 0.12),
-                                border: `1px solid ${alpha(theme.palette.text.primary, 0.25)}`,
-                                transform: 'translateX(4px)',
-                            },
-                            transition: 'all 0.3s ease',
-                        }}
-                    >
-                        Manage Files
-                    </Button>
+                    <Typography variant="body2" sx={{
+                        fontWeight: 700,
+                        color: 'text.primary',
+                        fontSize: { xs: '0.9rem', md: '0.85rem' },
+                        mb: 0.5
+                    }}>
+                        {usedFormatted}
+                    </Typography>
+                    <Typography variant="caption" sx={{
+                        color: 'text.secondary',
+                        fontWeight: 600,
+                        fontSize: '0.65rem',
+                        opacity: 0.8
+                    }}>
+                        {remainingFormatted} remaining
+                    </Typography>
                 </Box>
 
-                {/* Right Side: Straight Progress Bar */}
+                {/* Right Side: Progress */}
                 <Box sx={{
-                    flex: 1.2,
+                    width: { xs: '100%', md: isSidebarCollapsed ? 180 : 150, xl: 180 },
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'center',
-                    gap: 1.5,
-                    width: '100%',
-                    maxWidth: { xs: '100%', md: '280px' },
-                    position: 'relative'
+                    gap: 1
                 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 0.5 }}>
                         <Typography variant="h4" sx={{
                             fontWeight: 900,
-                            fontSize: { xs: '1.75rem', md: '2rem' },
+                            fontSize: { xs: '2rem', md: '1.75rem' },
                             lineHeight: 1,
                             color: 'text.primary',
                             textShadow: `0 0 20px ${alpha(statusColor, 0.3)}`
@@ -182,69 +154,54 @@ export function VaultStorageWidget() {
                         <Typography variant="caption" sx={{
                             color: 'text.secondary',
                             fontWeight: 800,
-                            letterSpacing: '0.1em',
-                            fontSize: '0.65rem'
+                            letterSpacing: '0.05em',
+                            fontSize: '0.6rem'
                         }}>
-                            USED CAPACITY
+                            CAPACITY
                         </Typography>
                     </Box>
 
-                    {/* Progress Bar Container */}
+                    {/* Compact Straight Progress Bar */}
                     <Box sx={{
-                        height: 12,
+                        height: 10,
                         width: '100%',
-                        bgcolor: alpha(theme.palette.divider, 0.08),
-                        borderRadius: '6px',
-                        position: 'relative',
+                        bgcolor: alpha(theme.palette.divider, 0.1),
+                        borderRadius: '5px',
                         overflow: 'hidden',
-                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                        border: `1px solid ${alpha(theme.palette.divider, 0.05)}`
                     }}>
-                        {/* Animated Fill */}
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${usagePercent}%` }}
                             transition={{ duration: 1.5, ease: [0.34, 1.56, 0.64, 1] }}
                             style={{
                                 height: '100%',
-                                background: `linear-gradient(90deg, ${alpha(statusColor, 0.8)} 0%, ${statusColor} 100%)`,
-                                boxShadow: `0 0 15px ${alpha(statusColor, 0.5)}`,
-                                borderRadius: '6px'
+                                background: `linear-gradient(90deg, ${alpha(statusColor, 0.7)} 0%, ${statusColor} 100%)`,
+                                borderRadius: '5px',
+                                position: 'relative'
                             }}
                         />
                     </Box>
 
-                    {/* Desktop Manage Button (Moved inside right flex for better balance on desktop) */}
-                    <Button
-                        variant="contained"
-                        onClick={() => navigate('/dashboard/files')}
-                        disableElevation
-                        size="small"
-                        endIcon={<ExternalLinkIcon sx={{ fontSize: 14 }} />}
-                        sx={{
-                            mt: 2,
-                            borderRadius: '10px',
-                            textTransform: 'none',
-                            fontWeight: 800,
-                            fontSize: '0.75rem',
-                            py: 0.8,
-                            bgcolor: alpha(theme.palette.text.primary, 0.05),
-                            color: theme.palette.text.primary,
-                            border: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
-                            display: { xs: 'inline-flex', md: 'none' }, // Only show on mobile here
-                            width: 'fit-content',
-                            alignSelf: 'center',
-                            '&:hover': {
-                                bgcolor: alpha(theme.palette.text.primary, 0.1),
-                                border: `1px solid ${alpha(theme.palette.text.primary, 0.2)}`,
-                            }
-                        }}
-                    >
-                        Manage Files
-                    </Button>
+                    <Typography variant="caption" sx={{
+                        color: statusColor,
+                        fontWeight: 800,
+                        fontSize: '0.6rem',
+                        textAlign: 'right',
+                        letterSpacing: '0.05em'
+                    }}>
+                        {usagePercent > 90 ? 'REFILL REQUIRED' : usagePercent > 70 ? 'NEAR LIMIT' : 'SYSTEM OPTIMAL'}
+                    </Typography>
                 </Box>
             </Box>
 
-
+            <style>{`
+                @keyframes pulse {
+                    0% { transform: scale(0.95); opacity: 0.8; }
+                    50% { transform: scale(1.1); opacity: 1; }
+                    100% { transform: scale(0.95); opacity: 0.8; }
+                }
+            `}</style>
         </DashboardCard>
     );
 }

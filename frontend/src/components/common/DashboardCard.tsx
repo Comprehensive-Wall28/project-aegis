@@ -1,14 +1,14 @@
-import { Paper, type SxProps, type Theme, useTheme, alpha } from '@mui/material';
+import { Paper, type SxProps, type Theme, useTheme, alpha, type PaperProps } from '@mui/material';
 import type { ReactNode } from 'react';
 
-interface DashboardCardProps {
+interface DashboardCardProps extends PaperProps {
     children: ReactNode;
     sx?: SxProps<Theme>;
     className?: string;
     noPadding?: boolean;
 }
 
-export function DashboardCard({ children, sx, className, noPadding = false }: DashboardCardProps) {
+export function DashboardCard({ children, sx, className, noPadding = false, ...props }: DashboardCardProps) {
     const theme = useTheme();
 
     return (
@@ -32,6 +32,7 @@ export function DashboardCard({ children, sx, className, noPadding = false }: Da
                 boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
                 ...sx
             }}
+            {...props}
         >
             {children}
         </Paper>
