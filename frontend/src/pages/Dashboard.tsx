@@ -42,7 +42,7 @@ export function Dashboard() {
                     width: '100%',
                     maxWidth: 1600,
                     mx: 'auto',
-                    p: { xs: 1, sm: 2, md: 3 },
+                    p: { xs: 2.5, sm: 3, md: 3 }, // Increased padding for mobile
                     flexGrow: 1,
                     display: 'flex',
                     flexDirection: 'column',

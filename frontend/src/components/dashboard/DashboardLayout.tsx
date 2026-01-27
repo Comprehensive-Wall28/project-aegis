@@ -228,7 +228,7 @@ export function DashboardLayout() {
                 </Box>
 
                 {/* Content Area ('The Stage') */}
-                <Box sx={{ flexGrow: 1, p: { xs: 1, sm: 2 }, pt: 0, overflow: 'hidden' }}>
+                <Box sx={{ flexGrow: 1, p: { xs: 1, sm: 2 }, overflow: 'hidden' }}>
                     <Paper
                         elevation={0}
                         component={motion.div}
