@@ -20,6 +20,8 @@ const TaskItem = memo(({ task }: { task: DecryptedTask }) => {
     const isOverdue = dayjs(task.dueDate).isBefore(dayjs());
     const isToday = dayjs(task.dueDate).isSame(dayjs(), 'day');
 
+    const daysUntil = dayjs(task.dueDate).startOf('day').diff(dayjs().startOf('day'), 'day');
+
     return (
         <Box
             sx={{
@@ -80,6 +82,8 @@ const TaskItem = memo(({ task }: { task: DecryptedTask }) => {
                     Due {dayjs(task.dueDate).format('MMM D, h:mm A')}
                     {isOverdue && ' (Overdue)'}
                     {isToday && ' (Today)'}
+                    {!isOverdue && !isToday && daysUntil === 1 && ' (Tomorrow)'}
+                    {!isOverdue && !isToday && daysUntil > 1 && ` (in ${daysUntil} days)`}
                 </Typography>
             </Box>
         </Box>
