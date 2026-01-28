@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { SocialService, ServiceError } from '../services';
-import logger from '../utils/logger';
+import { SocialService } from '../services';
+import { withAuth, catchAsync } from '../middleware/controllerWrapper';
 
 interface AuthRequest extends Request {
     user?: { id: string; username: string };
@@ -11,354 +11,180 @@ const socialService = new SocialService();
 
 // ============== Room Endpoints ==============
 
-export const createRoom = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const room = await socialService.createRoom(req.user.id, req.body, req);
-        res.status(201).json(room);
-    } catch (error) {
-        handleError(error, res, next);
+export const createRoom = withAuth(async (req: AuthRequest, res: Response) => {
+    const room = await socialService.createRoom(req.user!.id, req.body, req);
+    res.status(201).json(room);
+});
+
+export const getUserRooms = withAuth(async (req: AuthRequest, res: Response) => {
+    const rooms = await socialService.getUserRooms(req.user!.id);
+    res.status(200).json(rooms);
+});
+
+export const createInvite = withAuth(async (req: AuthRequest, res: Response) => {
+    const inviteCode = await socialService.createInvite(req.user!.id, req.params.roomId as string, req);
+    res.status(200).json({ inviteCode });
+});
+
+export const getInviteInfo = catchAsync(async (req: Request, res: Response) => {
+    const info = await socialService.getInviteInfo(req.params.inviteCode as string);
+    res.status(200).json(info);
+});
+
+export const joinRoom = withAuth(async (req: AuthRequest, res: Response) => {
+    const { inviteCode, encryptedRoomKey } = req.body;
+    const roomId = await socialService.joinRoom(req.user!.id, inviteCode, encryptedRoomKey, req);
+    res.status(200).json({ message: 'Successfully joined room', roomId });
+});
+
+export const getRoomContent = withAuth(async (req: AuthRequest, res: Response) => {
+    const content = await socialService.getRoomContent(req.user!.id, req.params.roomId as string);
+    res.status(200).json(content);
+});
+
+export const getCollectionLinks = withAuth(async (req: AuthRequest, res: Response) => {
+    const cursorCreatedAt = req.query.cursorCreatedAt as string;
+    const cursorId = req.query.cursorId as string;
+    const limit = parseInt(req.query.limit as string) || 12;
+
+    const beforeCursor = cursorCreatedAt && cursorId ? {
+        createdAt: cursorCreatedAt,
+        id: cursorId
+    } : undefined;
+
+    const result = await socialService.getCollectionLinks(
+        req.user!.id,
+        req.params.roomId as string,
+        req.params.collectionId as string,
+        limit,
+        beforeCursor
+    );
+    res.status(200).json(result);
+});
+
+export const searchRoomLinks = withAuth(async (req: AuthRequest, res: Response) => {
+    const query = req.query.q as string;
+    const limit = parseInt(req.query.limit as string) || 50;
+
+    if (!query) {
+        return res.status(200).json({ links: [], viewedLinkIds: [], commentCounts: {} });
     }
-};
 
-export const getUserRooms = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const rooms = await socialService.getUserRooms(req.user.id);
-        res.status(200).json(rooms);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
-
-export const createInvite = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const inviteCode = await socialService.createInvite(req.user.id, req.params.roomId as string, req);
-        res.status(200).json({ inviteCode });
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
-
-export const getInviteInfo = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const info = await socialService.getInviteInfo(req.params.inviteCode as string);
-        res.status(200).json(info);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
-
-export const joinRoom = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const { inviteCode, encryptedRoomKey } = req.body;
-        const roomId = await socialService.joinRoom(req.user.id, inviteCode, encryptedRoomKey, req);
-        res.status(200).json({ message: 'Successfully joined room', roomId });
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
-
-export const getRoomContent = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const content = await socialService.getRoomContent(req.user.id, req.params.roomId as string);
-        res.status(200).json(content);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
-
-export const getCollectionLinks = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const cursorCreatedAt = req.query.cursorCreatedAt as string;
-        const cursorId = req.query.cursorId as string;
-        const limit = parseInt(req.query.limit as string) || 12;
-
-        const beforeCursor = cursorCreatedAt && cursorId ? {
-            createdAt: cursorCreatedAt,
-            id: cursorId
-        } : undefined;
-
-        const result = await socialService.getCollectionLinks(
-            req.user.id,
-            req.params.roomId as string,
-            req.params.collectionId as string,
-            limit,
-            beforeCursor
-        );
-        res.status(200).json(result);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
-
-export const searchRoomLinks = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const query = req.query.q as string;
-        const limit = parseInt(req.query.limit as string) || 50;
-
-        if (!query) {
-            return res.status(200).json({ links: [], viewedLinkIds: [], commentCounts: {} });
-        }
-
-        const result = await socialService.searchRoomLinks(
-            req.user.id,
-            req.params.roomId as string,
-            query,
-            limit
-        );
-        res.status(200).json(result);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+    const result = await socialService.searchRoomLinks(
+        req.user!.id,
+        req.params.roomId as string,
+        query,
+        limit
+    );
+    res.status(200).json(result);
+});
 
 // ============== Link Endpoints ==============
 
-export const postLink = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const linkPost = await socialService.postLink(req.user.id, req.params.roomId as string, req.body, req);
-        res.status(201).json(linkPost);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const postLink = withAuth(async (req: AuthRequest, res: Response) => {
+    const linkPost = await socialService.postLink(req.user!.id, req.params.roomId as string, req.body, req);
+    res.status(201).json(linkPost);
+});
 
-export const deleteLink = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Unauthorized' });
-        }
-        await socialService.deleteLink(req.user.id, req.params.linkId as string, req);
-        res.status(200).json({ message: 'Link deleted successfully' });
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const deleteLink = withAuth(async (req: AuthRequest, res: Response) => {
+    await socialService.deleteLink(req.user!.id, req.params.linkId as string, req);
+    res.status(200).json({ message: 'Link deleted successfully' });
+});
 
-export const markLinkViewed = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        await socialService.markLinkViewed(req.user.id, req.params.linkId as string);
-        res.status(200).json({ message: 'Link marked as viewed' });
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const markLinkViewed = withAuth(async (req: AuthRequest, res: Response) => {
+    await socialService.markLinkViewed(req.user!.id, req.params.linkId as string);
+    res.status(200).json({ message: 'Link marked as viewed' });
+});
 
-export const unmarkLinkViewed = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        await socialService.unmarkLinkViewed(req.user.id, req.params.linkId as string);
-        res.status(200).json({ message: 'Link unmarked as viewed' });
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const unmarkLinkViewed = withAuth(async (req: AuthRequest, res: Response) => {
+    await socialService.unmarkLinkViewed(req.user!.id, req.params.linkId as string);
+    res.status(200).json({ message: 'Link unmarked as viewed' });
+});
 
-export const moveLink = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Unauthorized' });
-        }
-        const linkPost = await socialService.moveLink(req.user.id, req.params.linkId as string, req.body.collectionId);
-        res.status(200).json({ message: 'Link moved successfully', linkPost });
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const moveLink = withAuth(async (req: AuthRequest, res: Response) => {
+    const linkPost = await socialService.moveLink(req.user!.id, req.params.linkId as string, req.body.collectionId);
+    res.status(200).json({ message: 'Link moved successfully', linkPost });
+});
 
 // ============== Collection Endpoints ==============
 
-export const createCollection = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Unauthorized' });
-        }
-        const collection = await socialService.createCollection(req.user.id, req.params.roomId as string, req.body);
-        res.status(201).json(collection);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const createCollection = withAuth(async (req: AuthRequest, res: Response) => {
+    const collection = await socialService.createCollection(req.user!.id, req.params.roomId as string, req.body);
+    res.status(201).json(collection);
+});
 
-export const deleteCollection = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Unauthorized' });
-        }
-        await socialService.deleteCollection(req.user.id, req.params.collectionId as string, req);
-        res.status(200).json({ message: 'Collection deleted successfully' });
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const deleteCollection = withAuth(async (req: AuthRequest, res: Response) => {
+    await socialService.deleteCollection(req.user!.id, req.params.collectionId as string, req);
+    res.status(200).json({ message: 'Collection deleted successfully' });
+});
 
-export const reorderCollections = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Unauthorized' });
-        }
-        const { roomId } = req.params;
-        const { collectionIds } = req.body;
-        // roomId is already extracted and typed as string in line 228
-        // However line 228 is: const { roomId } = req.params;
-        // In express 5, that's string | string[].
-        // Let's redefine it properly or cast it.
-        await socialService.reorderCollections(req.user.id, roomId as string, collectionIds);
-        res.status(200).json({ message: 'Collections reordered successfully' });
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const reorderCollections = withAuth(async (req: AuthRequest, res: Response) => {
+    const { roomId } = req.params;
+    const { collectionIds } = req.body;
+    await socialService.reorderCollections(req.user!.id, roomId as string, collectionIds);
+    res.status(200).json({ message: 'Collections reordered successfully' });
+});
 
 // ============== Comment Endpoints ==============
 
-export const getComments = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
+export const getComments = withAuth(async (req: AuthRequest, res: Response) => {
+    const limit = parseInt(req.query.limit as string) || 20;
+    const cursorCreatedAt = req.query.cursorCreatedAt as string;
+    const cursorId = req.query.cursorId as string;
 
-        const limit = parseInt(req.query.limit as string) || 20;
-        const cursorCreatedAt = req.query.cursorCreatedAt as string;
-        const cursorId = req.query.cursorId as string;
+    const beforeCursor = cursorCreatedAt && cursorId ? {
+        createdAt: cursorCreatedAt,
+        id: cursorId
+    } : undefined;
 
-        const beforeCursor = cursorCreatedAt && cursorId ? {
-            createdAt: cursorCreatedAt,
-            id: cursorId
-        } : undefined;
+    const result = await socialService.getComments(
+        req.user!.id,
+        req.params.linkId as string,
+        limit,
+        beforeCursor
+    );
+    res.status(200).json(result);
+});
 
-        const result = await socialService.getComments(
-            req.user.id,
-            req.params.linkId as string,
-            limit,
-            beforeCursor
-        );
-        res.status(200).json(result);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const postComment = withAuth(async (req: AuthRequest, res: Response) => {
+    const comment = await socialService.postComment(
+        req.user!.id,
+        req.params.linkId as string,
+        req.body.encryptedContent
+    );
+    res.status(201).json(comment);
+});
 
-export const postComment = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const comment = await socialService.postComment(
-            req.user.id,
-            req.params.linkId as string,
-            req.body.encryptedContent
-        );
-        res.status(201).json(comment);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
-
-export const deleteComment = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        await socialService.deleteComment(req.user.id, req.params.commentId as string);
-        res.status(200).json({ message: 'Comment deleted successfully' });
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const deleteComment = withAuth(async (req: AuthRequest, res: Response) => {
+    await socialService.deleteComment(req.user!.id, req.params.commentId as string);
+    res.status(200).json({ message: 'Comment deleted successfully' });
+});
 
 // ============== Reader Mode Endpoints ==============
 
-export const getReaderContent = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const result = await socialService.getReaderContent(req.user.id, req.params.linkId as string);
-        res.status(200).json(result);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const getReaderContent = withAuth(async (req: AuthRequest, res: Response) => {
+    const result = await socialService.getReaderContent(req.user!.id, req.params.linkId as string);
+    res.status(200).json(result);
+});
 
-export const getAnnotations = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const annotations = await socialService.getAnnotations(req.user.id, req.params.linkId as string);
-        res.status(200).json(annotations);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const getAnnotations = withAuth(async (req: AuthRequest, res: Response) => {
+    const annotations = await socialService.getAnnotations(req.user!.id, req.params.linkId as string);
+    res.status(200).json(annotations);
+});
 
-export const createAnnotation = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        const { paragraphId, highlightText, encryptedContent } = req.body;
-        const annotation = await socialService.createAnnotation(
-            req.user.id,
-            req.params.linkId as string,
-            paragraphId,
-            highlightText,
-            encryptedContent
-        );
-        res.status(201).json(annotation);
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
+export const createAnnotation = withAuth(async (req: AuthRequest, res: Response) => {
+    const { paragraphId, highlightText, encryptedContent } = req.body;
+    const annotation = await socialService.createAnnotation(
+        req.user!.id,
+        req.params.linkId as string,
+        paragraphId,
+        highlightText,
+        encryptedContent
+    );
+    res.status(201).json(annotation);
+});
 
-export const deleteAnnotation = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Not authenticated' });
-        }
-        await socialService.deleteAnnotation(req.user.id, req.params.annotationId as string);
-        res.status(200).json({ message: 'Annotation deleted successfully' });
-    } catch (error) {
-        handleError(error, res, next);
-    }
-};
-
-// ============== Error Handler ==============
-
-function handleError(error: unknown, res: Response, next: NextFunction): void {
-    if (error instanceof ServiceError) {
-        res.status(error.statusCode).json({ message: error.message });
-        return;
-    }
-    logger.error('Controller error:', error);
-    next(error);
-}
+export const deleteAnnotation = withAuth(async (req: AuthRequest, res: Response) => {
+    await socialService.deleteAnnotation(req.user!.id, req.params.annotationId as string);
+    res.status(200).json({ message: 'Annotation deleted successfully' });
+});
