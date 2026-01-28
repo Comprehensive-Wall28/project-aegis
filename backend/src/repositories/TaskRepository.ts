@@ -138,7 +138,7 @@ export class TaskRepository extends BaseRepository<ITask> {
         return this.findMany({
             userId: { $eq: userId },
             status: { $ne: 'done' as any },
-            dueDate: { $gte: now }
+            dueDate: { $ne: null }
         } as unknown as SafeFilter<ITask>, {
             sort: { dueDate: 1 },
             limit: Math.min(limit, 50)

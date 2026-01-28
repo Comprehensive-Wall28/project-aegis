@@ -18,6 +18,7 @@ import socialRoutes from './routes/socialRoutes';
 import shareRoutes from './routes/shareRoutes';
 import publicRoutes from './routes/publicRoutes';
 import mentionRoutes from './routes/mentionRoutes';
+import activityRoutes from './routes/activityRoutes';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 import { config, validateConfig } from './config/env';
@@ -81,6 +82,7 @@ app.use('/api/social', socialRoutes);
 app.use('/api/share', shareRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/mentions', mentionRoutes);
+app.use('/api/activity', activityRoutes);
 
 app.use(errorHandler);
 

@@ -53,6 +53,10 @@ interface TaskState {
     ) => Promise<void>;
 }
 
+import { queryClient } from '../api/queryClient';
+
+// ... existing code ...
+
 export const useTaskStore = create<TaskState>((set, get) => ({
     tasks: [],
     isLoading: false,
@@ -100,6 +104,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             set(state => ({
                 tasks: [...state.tasks, decryptedTask]
             }));
+
+            // Invalidate dashboard activity to show new task instantly
+            queryClient.invalidateQueries({ queryKey: ['dashboardActivity'] });
+            queryClient.invalidateQueries({ queryKey: ['decryptedDashboardTasks'] });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to add task';
             set({ error: errorMessage });
@@ -115,6 +123,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             set(state => ({
                 tasks: state.tasks.map(t => t._id === id ? decryptedTask : t)
             }));
+
+            // Invalidate dashboard activity to reflect updates (e.g. status change)
+            queryClient.invalidateQueries({ queryKey: ['dashboardActivity'] });
+            queryClient.invalidateQueries({ queryKey: ['decryptedDashboardTasks'] });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to update task';
             set({ error: errorMessage });
@@ -129,6 +141,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             set(state => ({
                 tasks: state.tasks.filter(t => t._id !== id)
             }));
+
+            // Invalidate dashboard to remove deleted task
+            queryClient.invalidateQueries({ queryKey: ['dashboardActivity'] });
+            queryClient.invalidateQueries({ queryKey: ['decryptedDashboardTasks'] });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to delete task';
             set({ error: errorMessage });
@@ -157,6 +173,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
         try {
             await taskService.reorderTasks(updates);
+
+            // Invalidate dashboard to reflect new order
+            queryClient.invalidateQueries({ queryKey: ['dashboardActivity'] });
+            queryClient.invalidateQueries({ queryKey: ['decryptedDashboardTasks'] });
         } catch (error) {
             // Rollback on error
             const errorMessage = error instanceof Error ? error.message : 'Failed to reorder tasks';
