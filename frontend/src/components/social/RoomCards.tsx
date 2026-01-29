@@ -1,6 +1,6 @@
 import { memo, forwardRef } from 'react';
 import { Box, Paper, Typography, Avatar, IconButton, alpha, useTheme, Skeleton, useMediaQuery } from '@mui/material';
-import { Group as GroupIcon, Add as AddIcon, Lock as LockIcon } from '@mui/icons-material';
+import { Group as GroupIcon, Add as AddIcon, Lock as LockIcon, ExitToApp as LeaveIcon } from '@mui/icons-material';
 import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
 import { motion } from 'framer-motion';
 import type { RoomCardProps, CreateRoomCardProps } from './types';
@@ -34,6 +34,7 @@ const createCardVariants = (index: number) => ({
 export const RoomCard = memo(({
     room,
     onSelect,
+    onLeave,
     index = 0,
 }: RoomCardProps) => {
     const theme = useTheme();
@@ -116,6 +117,26 @@ export const RoomCard = memo(({
                         )}
                     </Typography>
                 </Box>
+                {onLeave && (
+                    <IconButton
+                        size="small"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onLeave(e);
+                        }}
+                        sx={{
+                            color: 'text.secondary',
+                            '&:hover': {
+                                color: 'error.main',
+                                bgcolor: alpha(theme.palette.error.main, 0.1),
+                            },
+                        }}
+                        aria-label="Leave room"
+                        title="Leave room"
+                    >
+                        <LeaveIcon fontSize="small" />
+                    </IconButton>
+                )}
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 'auto' }}>
                 <GroupIcon sx={{ fontSize: 16, color: 'text.secondary' }} />

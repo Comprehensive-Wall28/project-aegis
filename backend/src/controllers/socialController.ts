@@ -47,6 +47,11 @@ export const joinRoom = withAuth(async (req: AuthRequest, res: Response) => {
     res.status(200).json({ message: 'Successfully joined room', roomId });
 });
 
+export const leaveRoom = withAuth(async (req: AuthRequest, res: Response) => {
+    await roomService.leaveRoom(req.user!.id, req.params.roomId as string, req);
+    res.status(200).json({ message: 'Successfully left room' });
+});
+
 export const getRoomContent = withAuth(async (req: AuthRequest, res: Response) => {
     const collectionId = req.query.collectionId as string | undefined;
     const content = await roomService.getRoomContent(req.user!.id, req.params.roomId as string, collectionId);

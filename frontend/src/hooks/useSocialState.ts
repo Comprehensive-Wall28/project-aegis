@@ -52,6 +52,7 @@ export function useSocialState() {
             loadAllLinks: state.loadAllLinks,
             searchRoomLinks: state.searchRoomLinks,
             clearRoomContent: state.clearRoomContent,
+            leaveRoom: state.leaveRoom,
         }))
     );
 
@@ -89,6 +90,10 @@ export function useSocialState() {
     const [isDeletingCollection, setIsDeletingCollection] = useState(false);
     const [isRenamingCollection, setIsRenamingCollection] = useState(false);
     const [collectionToRename, setCollectionToRename] = useState<string | null>(null);
+
+    const [roomToLeave, setRoomToLeave] = useState<string | null>(null);
+    const [leaveRoomConfirmOpen, setLeaveRoomConfirmOpen] = useState(false);
+    const [isLeavingRoom, setIsLeavingRoom] = useState(false);
 
     const [shouldRenderContent, setShouldRenderContent] = useState(false);
 
@@ -141,6 +146,9 @@ export function useSocialState() {
         isDeletingCollection, setIsDeletingCollection,
         isRenamingCollection, setIsRenamingCollection,
         collectionToRename, setCollectionToRename,
+        roomToLeave, setRoomToLeave,
+        leaveRoomConfirmOpen, setLeaveRoomConfirmOpen,
+        isLeavingRoom, setIsLeavingRoom,
         shouldRenderContent, setShouldRenderContent,
 
         // Transition helpers

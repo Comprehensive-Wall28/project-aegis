@@ -147,14 +147,14 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
         } catch (error: unknown) {
             console.error('Failed to select room:', error);
             let message = 'Failed to access room';
-            
+
             if (error instanceof Error) {
                 message = error.message;
             } else if (typeof error === 'object' && error !== null && 'response' in error) {
                 const apiError = error as { response?: { data?: { message?: string } } };
                 message = apiError.response?.data?.message || 'Failed to access room';
             }
-            
+
             set({ error: message });
             return null;
         } finally {
@@ -264,6 +264,29 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
             throw error;
         } finally {
             setCryptoStatus('idle');
+        }
+    },
+
+    leaveRoom: async (roomId: string) => {
+        try {
+            await socialService.leaveRoom(roomId);
+            set((prev) => ({
+                rooms: prev.rooms.filter(r => r._id !== roomId),
+                currentRoom: prev.currentRoom?._id === roomId ? null : prev.currentRoom,
+                // cleanup keys and cache if needed
+                roomKeys: (() => {
+                    const newKeys = new Map(prev.roomKeys);
+                    newKeys.delete(roomId);
+                    return newKeys;
+                })()
+            }));
+
+            if (get().currentRoom === null) {
+                get().clearRoomContent();
+            }
+        } catch (error) {
+            console.error('Failed to leave room:', error);
+            throw error;
         }
     },
 

@@ -1,7 +1,8 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { CreateRoomDialog, CreateCollectionDialog, RenameCollectionDialog, PostLinkDialog, MoveLinkDialog } from './SocialDialogs';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useSocial } from '@/hooks/useSocial';
+import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
 
 export const SocialPageDialogs = memo(() => {
     const {
@@ -28,12 +29,24 @@ export const SocialPageDialogs = memo(() => {
         deleteConfirmOpen,
         setDeleteConfirmOpen,
         handleDeleteCollection,
-        isDeletingCollection
+        isDeletingCollection,
+        leaveRoomConfirmOpen,
+        setLeaveRoomConfirmOpen,
+        handleLeaveRoom,
+        isLeavingRoom,
+        roomToLeave,
+        rooms
     } = useSocial();
 
     const collectionBeingRenamed = collectionToRename
         ? collections.find(c => c._id === collectionToRename) || null
         : null;
+
+    const roomToBeLeft = useMemo(() =>
+        rooms.find(r => r._id === roomToLeave) || null,
+        [rooms, roomToLeave]);
+
+    const { name: decryptedRoomName } = useDecryptedRoomMetadata(roomToBeLeft);
 
     return (
         <>
@@ -84,6 +97,17 @@ export const SocialPageDialogs = memo(() => {
                 onConfirm={handleDeleteCollection}
                 onCancel={() => setDeleteConfirmOpen(false)}
                 isLoading={isDeletingCollection}
+                variant="danger"
+            />
+
+            <ConfirmDialog
+                open={leaveRoomConfirmOpen}
+                title="Leave Room"
+                message={`Are you sure you want to leave "${decryptedRoomName || 'this room'}"? You will no longer have access to its contents unless invited back.`}
+                confirmText="Leave Room"
+                onConfirm={handleLeaveRoom}
+                onCancel={() => setLeaveRoomConfirmOpen(false)}
+                isLoading={isLeavingRoom}
                 variant="danger"
             />
         </>

@@ -17,6 +17,7 @@ export interface RoomSlice {
     refreshCurrentRoom: () => Promise<void>;
     createRoom: (name: string, description: string, icon?: string) => Promise<Room>;
     joinRoom: (inviteCode: string, roomKey: CryptoKey) => Promise<void>;
+    leaveRoom: (roomId: string) => Promise<void>;
     createInvite: (roomId: string) => Promise<string>;
     setPendingInvite: (invite: RoomSlice['pendingInvite']) => void;
     clearError: () => void;

@@ -62,4 +62,15 @@ export class RoomRepository extends BaseRepository<IRoom> {
             }
         } as any);
     }
+
+    /**
+     * Remove member from room
+     */
+    async removeMember(roomId: string, userId: string): Promise<IRoom | null> {
+        return this.updateById(roomId, {
+            $pull: {
+                members: { userId }
+            }
+        } as any);
+    }
 }

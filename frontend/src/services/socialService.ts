@@ -200,6 +200,13 @@ const socialService = {
     },
 
     /**
+     * Leave a room
+     */
+    leaveRoom: async (roomId: string): Promise<void> => {
+        await apiClient.post(`social/rooms/${roomId}/leave`);
+    },
+
+    /**
      * Post a link to a room collection
      */
     postLink: async (

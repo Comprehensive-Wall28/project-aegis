@@ -285,4 +285,31 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
             throw new ServiceError('Failed to get room content', 500);
         }
     }
+
+    async leaveRoom(userId: string, roomId: string, req: Request): Promise<void> {
+        try {
+            const room = await this.repository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new ServiceError('Room not found or access denied', 404);
+            }
+
+            // check if user is the last owner
+            const ownerCount = room.members.filter(m => m.role === 'owner').length;
+            const userMember = room.members.find(m => m.userId.toString() === userId);
+
+            if (userMember?.role === 'owner' && ownerCount === 1) {
+                throw new ServiceError('Cannot leave room as the last owner. Delete the room instead.', 400);
+            }
+
+            await this.repository.removeMember(roomId, userId);
+
+            await this.logAction(userId, 'ROOM_LEAVE', 'SUCCESS', req, {
+                roomId
+            });
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Leave room error:', error);
+            throw new ServiceError('Failed to leave room', 500);
+        }
+    }
 }

@@ -136,6 +136,7 @@ export interface MoveLinkDialogProps {
 export interface RoomCardProps {
     room: Room;
     onSelect: () => void;
+    onLeave?: (e: React.MouseEvent) => void;
     index?: number;
 }
 

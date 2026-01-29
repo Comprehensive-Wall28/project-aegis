@@ -59,6 +59,12 @@ export function useSocialHandlers(state: SocialState) {
         draggedLinkId,
         renameCollection,
         setSearchQuery,
+        leaveRoom,
+        setLeaveRoomConfirmOpen,
+        setRoomToLeave,
+        setIsLeavingRoom,
+        roomToLeave,
+        isLeavingRoom,
         error
     } = state;
 
@@ -230,6 +236,28 @@ export function useSocialHandlers(state: SocialState) {
             showSnackbar(err.message || 'Failed to create invite', 'error');
         }
     }, [currentRoom, createInvite, showSnackbar]);
+
+    const handleLeaveRoom = useCallback(async () => {
+        if (!roomToLeave || isLeavingRoom) return;
+        setIsLeavingRoom(true);
+        try {
+            await leaveRoom(roomToLeave);
+            showSnackbar('Successfully left room', 'success');
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } }; message?: string };
+            const message = err.response?.data?.message || err.message || 'Failed to leave room';
+            showSnackbar(message, 'error');
+        } finally {
+            setIsLeavingRoom(false);
+            setLeaveRoomConfirmOpen(false);
+            setRoomToLeave(null);
+        }
+    }, [roomToLeave, isLeavingRoom, leaveRoom, showSnackbar, setIsLeavingRoom, setLeaveRoomConfirmOpen, setRoomToLeave]);
+
+    const handleOpenLeaveDialog = useCallback((roomId: string) => {
+        setRoomToLeave(roomId);
+        setLeaveRoomConfirmOpen(true);
+    }, [setRoomToLeave, setLeaveRoomConfirmOpen]);
 
     // Derived State
     const filteredLinks = useMemo(() => {
@@ -439,6 +467,8 @@ export function useSocialHandlers(state: SocialState) {
         handleRenameCollection,
         handleDeleteLink,
         handleCopyInvite,
+        handleLeaveRoom,
+        handleOpenLeaveDialog,
         handleOpenMoveDialog,
         handleCollectionContextMenu,
         handleCollectionTouchStart,
