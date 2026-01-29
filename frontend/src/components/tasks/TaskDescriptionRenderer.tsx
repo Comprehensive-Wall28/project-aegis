@@ -8,8 +8,8 @@ import {
     Schedule as TimeIcon,
 } from '@mui/icons-material';
 import { getFileIconInfo, isPreviewable } from '@/pages/files/utils';
-import { useTaskStore } from '@/stores/useTaskStore';
-import { useCalendarStore } from '@/stores/useCalendarStore';
+import { useTaskStore, type DecryptedTask } from '@/stores/useTaskStore';
+import { useCalendarStore, type DecryptedCalendarEvent } from '@/stores/useCalendarStore';
 import vaultService, { type FileMetadata } from '@/services/vaultService';
 import PDFPreviewOverlay from '@/components/vault/PDFPreviewOverlay';
 import ImagePreviewOverlay from '@/components/vault/ImagePreviewOverlay';
@@ -79,53 +79,59 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
 
                 <Divider sx={{ mb: 1.5, opacity: 0.5 }} />
 
-                {type === 'aegis-task' ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="caption" color="text.secondary">Status</Typography>
-                            <Chip
-                                label={data.status.replace('_', ' ')}
-                                size="small"
-                                sx={{
-                                    height: 20,
-                                    fontSize: '0.65rem',
-                                    fontWeight: 700,
-                                    textTransform: 'uppercase',
-                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                    color: theme.palette.primary.main
-                                }}
-                            />
-                        </Box>
-                        {data.dueDate && (
+                {type === 'aegis-task' ? (() => {
+                    const task = data as DecryptedTask;
+                    return (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="caption" color="text.secondary">Due Date</Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                                    {dayjs(data.dueDate).format('MMM D, YYYY')}
-                                </Typography>
+                                <Typography variant="caption" color="text.secondary">Status</Typography>
+                                <Chip
+                                    label={task.status.replace('_', ' ')}
+                                    size="small"
+                                    sx={{
+                                        height: 20,
+                                        fontSize: '0.65rem',
+                                        fontWeight: 700,
+                                        textTransform: 'uppercase',
+                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                        color: theme.palette.primary.main
+                                    }}
+                                />
                             </Box>
-                        )}
-                    </Box>
-                ) : (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                            <TimeIcon sx={{ fontSize: 14, mt: 0.3, color: 'text.secondary' }} />
-                            <Box>
-                                <Typography variant="caption" sx={{ display: 'block', fontWeight: 600 }}>
-                                    {dayjs(data.startDate).format('MMM D, h:mm A')}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                    Ends {dayjs(data.endDate).format('h:mm A')}
-                                </Typography>
-                            </Box>
+                            {task.dueDate && (
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography variant="caption" color="text.secondary">Due Date</Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                                        {dayjs(task.dueDate).format('MMM D, YYYY')}
+                                    </Typography>
+                                </Box>
+                            )}
                         </Box>
-                        {data.location && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <LocationIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                <Typography variant="caption" sx={{ fontWeight: 500 }}>{data.location}</Typography>
+                    );
+                })() : (() => {
+                    const event = data as DecryptedCalendarEvent;
+                    return (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                                <TimeIcon sx={{ fontSize: 14, mt: 0.3, color: 'text.secondary' }} />
+                                <Box>
+                                    <Typography variant="caption" sx={{ display: 'block', fontWeight: 600 }}>
+                                        {dayjs(event.startDate).format('MMM D, h:mm A')}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Ends {dayjs(event.endDate).format('h:mm A')}
+                                    </Typography>
+                                </Box>
                             </Box>
-                        )}
-                    </Box>
-                )}
+                            {event.location && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <LocationIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                                    <Typography variant="caption" sx={{ fontWeight: 500 }}>{event.location}</Typography>
+                                </Box>
+                            )}
+                        </Box>
+                    );
+                })()}
             </Box>
         </Popover>
     );

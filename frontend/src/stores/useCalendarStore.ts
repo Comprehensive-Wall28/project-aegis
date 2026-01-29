@@ -4,7 +4,7 @@ import type { CalendarEventInput } from '../services/calendarService';
 import type { EncryptedCalendarEvent, CalendarEventData } from '../hooks/useCalendarEncryption';
 
 // Decrypted calendar event combines encrypted metadata with decrypted content
-interface DecryptedCalendarEvent extends CalendarEventData {
+export interface DecryptedCalendarEvent extends CalendarEventData {
     _id: string;
     startDate: string;
     endDate: string;
@@ -38,7 +38,11 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 const decryptedEvents = await decryptFn(encryptedEvents);
                 set({ events: decryptedEvents, isLoading: false });
             } else {
-                set({ events: encryptedEvents, isLoading: false });
+                set({
+                    events: [],
+                    isLoading: false,
+                    error: 'Decryption function not provided'
+                });
             }
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to fetch events';
