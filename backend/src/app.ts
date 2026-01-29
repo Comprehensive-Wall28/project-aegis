@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser';
 import DatabaseManager from './config/DatabaseManager';
 import authRoutes from './routes/authRoutes';
 import vaultRoutes from './routes/vaultRoutes';
-import integrityRoutes from './routes/integrityRoutes';
+
 import gpaRoutes from './routes/gpaRoutes';
 import folderRoutes from './routes/folderRoutes';
 import auditRoutes from './routes/auditRoutes';
@@ -69,7 +69,7 @@ app.use('/api/auth', authLimiter); // Stricter limit for auth
 
 app.use('/api/auth', authRoutes);
 app.use('/api/vault', vaultRoutes);
-app.use('/api/integrity', integrityRoutes);
+
 app.use('/api/gpa', gpaRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api/audit-logs', auditRoutes);
