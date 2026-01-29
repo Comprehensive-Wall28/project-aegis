@@ -176,12 +176,14 @@ const NotesPage: React.FC = () => {
                 // Only select if not already loading content for this specific note
                 if (noteToSelect) {
                     handleSelectNote(noteToSelect);
-                    if (isMobile) {
-                        // Use setTimeout to defer state update
-                        const timer = setTimeout(() => setMobileEditorOpen(true), 0);
-                        return () => clearTimeout(timer);
-                    }
                 }
+            }
+
+            // Always ensure mobile editor is open if we have a note URL
+            if (isMobile) {
+                // Use setTimeout to defer state update
+                const timer = setTimeout(() => setMobileEditorOpen(true), 0);
+                return () => clearTimeout(timer);
             }
         } else if (selectedNote) {
             // Close note if it was open but no 'n' in URL
@@ -207,12 +209,14 @@ const NotesPage: React.FC = () => {
 
     const handleCreateNoteWrapper = useCallback(async () => {
         try {
-            await handleCreateNote();
-            if (isMobile) setMobileEditorOpen(true);
+            const newNote = await handleCreateNote();
+            if (newNote) {
+                updateUrlParams(newNote._id);
+            }
         } catch (err) {
             console.error('Failed to create note:', err);
         }
-    }, [handleCreateNote, isMobile]);
+    }, [handleCreateNote, updateUrlParams]);
 
     const handleCloseNote = useCallback(() => {
         updateUrlParams(null);
