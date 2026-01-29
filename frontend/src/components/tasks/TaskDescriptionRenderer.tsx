@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, type ElementType } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Link, Typography, alpha, Box, Popover, useTheme, Chip, Divider } from '@mui/material';
 import {
@@ -18,13 +18,13 @@ import dayjs from 'dayjs';
 interface TaskDescriptionRendererProps {
     text: string;
     variant?: 'body1' | 'body2' | 'caption';
-    sx?: any;
+    sx?: Record<string, unknown>;
 }
 
 // Entity types and their prefixes/regex groups
-const MENTION_REGEX = /\[([@#~])(.*?)\]\((aegis-\w+):\/\/([\w-\/]+)\)/g;
+const MENTION_REGEX = /\[([@#~])(.*?)\]\((aegis-\w+):\/\/([\w-/]+)\)/g;
 
-const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: string, anchorEl: HTMLElement | null, onClose: () => void }) => {
+const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string; id: string; anchorEl: HTMLElement | null; onClose: () => void }) => {
     const theme = useTheme();
     const { tasks } = useTaskStore();
     const { events } = useCalendarStore();
@@ -133,11 +133,10 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
 
 export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDescriptionRendererProps) => {
     const theme = useTheme();
-    const [hoverEntity, setHoverEntity] = useState<{ type: string, id: string, anchorEl: HTMLElement | null } | null>(null);
+    const [hoverEntity, setHoverEntity] = useState<{ type: string; id: string; anchorEl: HTMLElement | null } | null>(null);
     const [previewFile, setPreviewFile] = useState<FileMetadata | null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const [_isFetchingMetadata, setIsFetchingMetadata] = useState(false);
-    const hoverTimeout = useRef<any>(null);
+    const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     if (!text) return null;
 
@@ -168,14 +167,11 @@ export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDes
         const fileId = pathParts[1] || pathParts[0];
 
         try {
-            setIsFetchingMetadata(true);
             const fileData = await vaultService.getFile(fileId);
             setPreviewFile(fileData);
             setIsPreviewOpen(true);
         } catch (err) {
             console.error('Failed to fetch file metadata for preview:', err);
-        } finally {
-            setIsFetchingMetadata(false);
         }
     };
 
@@ -184,11 +180,11 @@ export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDes
             parts.push(text.substring(lastIndex, match.index));
         }
 
-        const [_fullMatch, prefix, label, type, path] = match;
+        const [, prefix, label, type, path] = match;
 
         let iconColor = theme.palette.primary.main;
         let targetPath = '';
-        let EntityIcon: any = TaskIcon;
+        let EntityIcon: ElementType = TaskIcon;
         let entityId = path;
 
         if (type === 'aegis-file') {

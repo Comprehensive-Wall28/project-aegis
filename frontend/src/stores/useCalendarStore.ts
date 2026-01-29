@@ -4,7 +4,7 @@ import type { CalendarEventInput } from '../services/calendarService';
 import type { EncryptedCalendarEvent, CalendarEventData } from '../hooks/useCalendarEncryption';
 
 // Decrypted calendar event combines encrypted metadata with decrypted content
-interface DecryptedCalendarEvent extends CalendarEventData {
+export interface DecryptedCalendarEvent extends CalendarEventData {
     _id: string;
     startDate: string;
     endDate: string;
