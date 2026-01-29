@@ -2,7 +2,6 @@
  * Crypto Utils - Deterministic PQC key derivation
  */
 
-// @ts-ignore - Module likely exists but types are missing in environment
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 
 /**
@@ -214,8 +213,8 @@ export async function unwrapKey(wrappedKeyHex: string, masterKey: CryptoKey, alg
  */
 export async function encapsulateFolderKey(recipientPublicKeyHex: string, folderKey: CryptoKey): Promise<string> {
     const pk = hexToBytes(recipientPublicKeyHex);
-    // @ts-ignore
-    const { cipherText, sharedSecret } = ml_kem768.encapsulate(pk);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { cipherText, sharedSecret } = (ml_kem768 as any).encapsulate(pk);
 
     // Import sharedSecret as an AES-GCM key
     const ssKey = await window.crypto.subtle.importKey(
@@ -259,8 +258,8 @@ export async function decapsulateFolderKey(wrappedBundleHex: string, privateKeyH
     const iv = bundle.slice(KEM_CT_LEN, KEM_CT_LEN + 12);
     const encryptedKey = bundle.slice(KEM_CT_LEN + 12);
 
-    // @ts-ignore
-    const sharedSecret = ml_kem768.decapsulate(ciphertext, sk);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sharedSecret = (ml_kem768 as any).decapsulate(ciphertext, sk);
 
     const ssKey = await window.crypto.subtle.importKey(
         'raw',
@@ -324,8 +323,8 @@ export async function encryptTaskData(data: TaskData, userPublicKey: string): Pr
     const aesKey = await generateFolderKey(); // Reusing generic AES-GCM 256 generation
     const pubKeyBytes = hexToBytes(userPublicKey);
 
-    // @ts-ignore
-    const { cipherText: encapsulatedKey, sharedSecret } = ml_kem768.encapsulate(pubKeyBytes);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { cipherText: encapsulatedKey, sharedSecret } = (ml_kem768 as any).encapsulate(pubKeyBytes);
 
     // Encrypt the AES key with the shared secret
     const wrappingKey = await window.crypto.subtle.importKey(
@@ -381,8 +380,8 @@ export async function decryptTaskData(encryptedTask: EncryptedTask, userPrivateK
 }> {
     const privKeyBytes = hexToBytes(userPrivateKey);
     const encapsulatedKeyBytes = hexToBytes(encryptedTask.encapsulatedKey);
-    // @ts-ignore
-    const sharedSecret = ml_kem768.decapsulate(encapsulatedKeyBytes, privKeyBytes);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sharedSecret = (ml_kem768 as any).decapsulate(encapsulatedKeyBytes, privKeyBytes);
 
     // Decrypt the AES key
     // encryptedSymmetricKey is assumed to be IV (12 bytes/24 hex) + Ciphertext
