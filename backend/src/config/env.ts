@@ -52,6 +52,9 @@ export const config = {
     googleClientSecret: getEnv('GOOGLE_CLIENT_SECRET', false, ''),
     googleRefreshToken: getEnv('GOOGLE_REFRESH_TOKEN', false, ''),
     googleDriveFolderId: getEnv('GOOGLE_DRIVE_FOLDER_ID', false, ''),
+
+    // CSRF
+    csrfSecret: getEnv('CSRF_SECRET', true),
 };
 
 /**
@@ -66,6 +69,7 @@ export const validateConfig = () => {
         if (!process.env.MONGO_URI) missing.push('MONGO_URI');
         if (!process.env.CLIENT_ORIGIN) missing.push('CLIENT_ORIGIN');
         if (!process.env.RP_ID) missing.push('RP_ID');
+        if (!process.env.CSRF_SECRET) missing.push('CSRF_SECRET');
     }
 
     if (missing.length > 0) {

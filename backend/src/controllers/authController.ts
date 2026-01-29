@@ -81,7 +81,7 @@ export const logoutUser = catchAsync(async (req: AuthRequest, res: Response) => 
 });
 
 export const getCsrfToken = (req: Request, res: Response) => {
-    res.json({ csrfToken: req.csrfToken() });
+    res.json({ csrfToken: res.locals.csrfToken });
 };
 
 // ============== WebAuthn Registration ==============

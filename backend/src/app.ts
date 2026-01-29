@@ -1,6 +1,5 @@
 import express from 'express';
 import './config/initDatabase'; // Initialize DB before other imports
-import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -24,9 +23,8 @@ import { errorHandler } from './middleware/errorHandler';
 import { config, validateConfig } from './config/env';
 
 // Validate config on startup
+// Validate config on startup
 validateConfig();
-
-dotenv.config();
 
 const app = express();
 
