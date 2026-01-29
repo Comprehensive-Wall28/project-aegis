@@ -55,7 +55,7 @@ interface SessionState {
     setCryptoStatus: (status: CryptoStatus) => void;
     initializeQuantumKeys: (seed?: Uint8Array) => void;
     checkAuth: () => Promise<void>;
-    updateUser: (updates: Partial<Pick<User, 'username' | 'email' | 'totalStorageUsed'>>) => void;
+    updateUser: (updates: Partial<Pick<User, 'username' | 'email' | 'totalStorageUsed' | 'preferences'>>) => void;
     setRecentActivity: (logs: AuditLog[]) => void;
     fetchRecentActivity: () => Promise<void>;
     fetchStorageStats: () => Promise<void>;
