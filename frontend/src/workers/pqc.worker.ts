@@ -1,5 +1,5 @@
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
-// @ts-ignore
+// @ts-expect-error Library lacks proper TypeScript definitions
 import argon2 from 'argon2-browser/dist/argon2-bundled.min.js';
 
 /**
@@ -52,7 +52,7 @@ self.onmessage = async (event: MessageEvent) => {
                 type: 'derive_pqc_seed_result',
                 seed: seedArray,
                 id
-            }, [seedArray.buffer] as any);
+            }, [seedArray.buffer] as Transferable[]);
         }
         else if (type === 'hash_argon2') {
             const { password, salt } = event.data;
@@ -106,7 +106,7 @@ self.onmessage = async (event: MessageEvent) => {
                 publicKey,
                 secretKey,
                 id
-            }, [publicKey.buffer, secretKey.buffer] as any);
+            }, [publicKey.buffer, secretKey.buffer] as Transferable[]);
         }
         else if (type === 'encapsulate') {
             const { publicKey } = event.data;
@@ -117,7 +117,7 @@ self.onmessage = async (event: MessageEvent) => {
                 cipherText,
                 sharedSecret,
                 id
-            }, [cipherText.buffer, sharedSecret.buffer] as any);
+            }, [cipherText.buffer, sharedSecret.buffer] as Transferable[]);
         } else if (type === 'decapsulate') {
             const { cipherText, privateKey } = event.data;
             const sharedSecret = ml_kem768.decapsulate(cipherText, privateKey);
@@ -126,7 +126,7 @@ self.onmessage = async (event: MessageEvent) => {
                 type: 'decapsulate_result',
                 sharedSecret,
                 id
-            }, [sharedSecret.buffer] as any);
+            }, [sharedSecret.buffer] as Transferable[]);
         } else if (type === 'batch_decrypt_courses') {
             const { courses, privateKey } = event.data;
             const decryptedCourses = [];
@@ -145,14 +145,14 @@ self.onmessage = async (event: MessageEvent) => {
 
                     const unwrappingKey = await self.crypto.subtle.importKey(
                         'raw',
-                        sharedSecret as any,
+                        new Uint8Array(sharedSecret).buffer,
                         { name: 'AES-GCM' },
                         false,
                         ['decrypt']
                     );
 
                     const rawKey = await self.crypto.subtle.decrypt(
-                        { name: 'AES-GCM', iv: keyIv } as any,
+                        { name: 'AES-GCM', iv: keyIv } as AesGcmParams,
                         unwrappingKey,
                         encryptedKey
                     );
@@ -171,9 +171,9 @@ self.onmessage = async (event: MessageEvent) => {
                     const ciphertext = hexToBytes(ciphertextHex);
 
                     const decryptedBuffer = await self.crypto.subtle.decrypt(
-                        { name: 'AES-GCM', iv } as any,
+                        { name: 'AES-GCM', iv } as AesGcmParams,
                         aesKey,
-                        ciphertext as any
+                        new Uint8Array(ciphertext).buffer
                     );
 
                     const courseJson = decoder.decode(decryptedBuffer);
@@ -225,14 +225,14 @@ self.onmessage = async (event: MessageEvent) => {
 
                     const unwrappingKey = await self.crypto.subtle.importKey(
                         'raw',
-                        sharedSecret as any,
+                        new Uint8Array(sharedSecret).buffer,
                         { name: 'AES-GCM' },
                         false,
                         ['decrypt']
                     );
 
                     const rawKey = await self.crypto.subtle.decrypt(
-                        { name: 'AES-GCM', iv: keyIv as any },
+                        { name: 'AES-GCM', iv: keyIv } as AesGcmParams,
                         unwrappingKey,
                         encryptedKey
                     );
@@ -251,9 +251,9 @@ self.onmessage = async (event: MessageEvent) => {
                     const ciphertext = hexToBytes(ciphertextHex);
 
                     const decryptedBuffer = await self.crypto.subtle.decrypt(
-                        { name: 'AES-GCM', iv: iv as any },
+                        { name: 'AES-GCM', iv } as AesGcmParams,
                         aesKey,
-                        ciphertext as any
+                        new Uint8Array(ciphertext).buffer
                     );
 
                     const taskJson = decoder.decode(decryptedBuffer);
