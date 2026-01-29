@@ -47,7 +47,7 @@ export interface LinkSlice {
     fetchCollectionLinks: (collectionId: string, isLoadMore?: boolean, silent?: boolean, limit?: number) => Promise<void>;
     loadMoreLinks: () => Promise<void>;
     loadAllLinks: () => Promise<void>;
-    searchRoomLinks: (query: string, limit?: number) => Promise<void>;
+    searchRoomLinks: (query: string, signal?: AbortSignal, limit?: number) => Promise<void>;
     postLink: (url: string) => Promise<LinkPost>;
     deleteLink: (linkId: string) => Promise<void>;
     moveLink: (linkId: string, collectionId: string) => Promise<void>;

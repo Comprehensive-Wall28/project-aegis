@@ -18,9 +18,7 @@ export interface SocialHeaderProps {
     viewFilter: 'all' | 'viewed' | 'unviewed';
     handleViewFilterChange: (filter: 'all' | 'viewed' | 'unviewed') => void;
     uniqueUploaders: { id: string, username: string }[];
-    newLinkUrl: string;
-    setNewLinkUrl: (url: string) => void;
-    handlePostLink: () => void;
+    handlePostLink: (url?: string) => void;
     isPostingLink: boolean;
     sortOrder: 'latest' | 'oldest';
     handleSortOrderChange: (order: 'latest' | 'oldest') => void;

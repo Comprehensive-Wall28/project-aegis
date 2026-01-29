@@ -93,7 +93,7 @@ export function useSocialState() {
     const [shouldRenderContent, setShouldRenderContent] = useState(false);
 
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const viewMode = (roomId || optimisticRoomId) ? 'room-content' : 'rooms';
+    const viewMode = (optimisticRoomId || (roomId && (store.isLoadingContent || store.currentRoom))) ? 'room-content' : 'rooms';
 
     const urlSync = useSocialUrlSync(store.links);
 

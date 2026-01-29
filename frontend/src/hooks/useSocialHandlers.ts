@@ -58,6 +58,7 @@ export function useSocialHandlers(state: SocialState) {
         collectionToRename,
         draggedLinkId,
         renameCollection,
+        setSearchQuery,
         error
     } = state;
 
@@ -74,6 +75,7 @@ export function useSocialHandlers(state: SocialState) {
             setPostLinkError(null);
             await postLink(linkToPost.trim());
             setNewLinkUrl('');
+            setSearchQuery(''); // Clear the Omni-Bar if it was used
             toggleOverlay('post', null);
             showSnackbar('Link shared successfully', 'success');
         } catch (error: unknown) {
@@ -323,16 +325,36 @@ export function useSocialHandlers(state: SocialState) {
 
     const prevSearchQueryRef = useRef(searchQuery);
     useEffect(() => {
-        if (searchQuery.trim().length >= 2) {
+        const trimmed = searchQuery.trim();
+        const isUrl = /^(https?:\/\/|www\.)\S+/i.test(trimmed);
+        const controller = new AbortController();
+
+        if (trimmed.length >= 2 && !isUrl) {
             const timer = setTimeout(() => {
-                searchRoomLinks(searchQuery.trim());
+                searchRoomLinks(trimmed, controller.signal);
             }, 400);
-            return () => clearTimeout(timer);
-        } else if (searchQuery.trim().length === 0 && prevSearchQueryRef.current.trim().length > 0 && currentCollectionId) {
-            // Revert back to collection view ONLY when clearing an active search
-            selectCollection(currentCollectionId, false);
+            return () => {
+                clearTimeout(timer);
+                controller.abort();
+            };
+        } else {
+            // Cancel any pending search
+            controller.abort();
+
+            // Revert to collection view if:
+            // 1. The query is now empty/short AND we were previously searching (length >= 2)
+            // 2. The query is exactly empty (ensures consistency on clear)
+            const wasSearching = prevSearchQueryRef.current.trim().length >= 2;
+            const isNowEmpty = trimmed.length === 0;
+            const isNowTooShort = trimmed.length < 2 || isUrl;
+
+            if ((isNowEmpty || (isNowTooShort && wasSearching)) && currentCollectionId) {
+                selectCollection(currentCollectionId, false);
+            }
         }
         prevSearchQueryRef.current = searchQuery;
+
+        return () => controller.abort();
     }, [searchQuery, searchRoomLinks, currentCollectionId, selectCollection]);
 
     // Share intent integration

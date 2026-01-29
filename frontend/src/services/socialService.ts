@@ -330,14 +330,16 @@ const socialService = {
     searchRoomLinks: async (
         roomId: string,
         query: string,
-        limit: number = 50
+        limit: number = 50,
+        signal?: AbortSignal
     ): Promise<{
         links: LinkPost[];
         viewedLinkIds: string[];
         commentCounts: Record<string, number>;
     }> => {
         const response = await apiClient.get(`/social/rooms/${roomId}/search`, {
-            params: { q: query, limit }
+            params: { q: query, limit },
+            signal
         });
         return response.data;
     },

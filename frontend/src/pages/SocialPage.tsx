@@ -35,8 +35,6 @@ function SocialPageContent() {
         viewFilter,
         setViewFilter,
         uniqueUploaders,
-        newLinkUrl,
-        setNewLinkUrl,
         handlePostLink,
         isPostingLink,
         sortOrder,
@@ -50,7 +48,7 @@ function SocialPageContent() {
         roomKeys,
         isLoadingLinks,
         isSearchingLinks,
-    } = useSocial() as unknown as {error?: string; viewMode?: string; isMobile?: boolean; optimisticRoomId?: string; currentRoom: Room | null; handleExitRoom: () => void; searchQuery?: string; setSearchQuery?: (q: string) => void; handleFilterClick?: (e: React.MouseEvent<HTMLElement>) => void; selectedUploader?: string | null; handleCopyInvite: () => void; filterAnchorEl?: HTMLElement | null; handleFilterClose?: () => void; handleSelectUploader?: (id: string | null) => void; viewFilter?: string; setViewFilter?: (f: string) => void; uniqueUploaders?: Array<{id: string; username: string}>; newLinkUrl?: string; setNewLinkUrl?: (url: string) => void; handlePostLink?: () => void; isPostingLink?: boolean; sortOrder?: string; setSortOrder?: (order: string) => void; zenModeOpen?: boolean; toggleOverlay?: (type: string, val?: unknown) => void; snackbar: {open: boolean; message: string; severity?: string}; setSnackbar?: (s: {open: boolean; message: string; severity?: string}) => void; commentsLink?: LinkPost; readerLink?: LinkPost; roomKeys?: Map<string, CryptoKey>; isLoadingLinks?: boolean; isSearchingLinks?: boolean};
+    } = useSocial() as unknown as { error?: string; viewMode?: string; isMobile?: boolean; optimisticRoomId?: string; currentRoom: Room | null; handleExitRoom: () => void; searchQuery?: string; setSearchQuery?: (q: string) => void; handleFilterClick?: (e: React.MouseEvent<HTMLElement>) => void; selectedUploader?: string | null; handleCopyInvite: () => void; filterAnchorEl?: HTMLElement | null; handleFilterClose?: () => void; handleSelectUploader?: (id: string | null) => void; viewFilter?: string; setViewFilter?: (f: string) => void; uniqueUploaders?: Array<{ id: string; username: string }>; newLinkUrl?: string; setNewLinkUrl?: (url: string) => void; handlePostLink?: (url?: string) => void; isPostingLink?: boolean; sortOrder?: string; setSortOrder?: (order: string) => void; zenModeOpen?: boolean; toggleOverlay?: (type: string, val?: unknown) => void; snackbar: { open: boolean; message: string; severity?: string }; setSnackbar?: (s: { open: boolean; message: string; severity?: string }) => void; commentsLink?: LinkPost; readerLink?: LinkPost; roomKeys?: Map<string, CryptoKey>; isLoadingLinks?: boolean; isSearchingLinks?: boolean };
 
     // const linksContainerRef = useRef<HTMLDivElement>(null); // Removed as it was only used for ZenMode props
 
@@ -136,28 +134,26 @@ function SocialPageContent() {
                                         isMobile={isMobile || false}
                                         optimisticRoomId={optimisticRoomId || null}
                                         currentRoom={currentRoom}
-                                        handleExitRoom={handleExitRoom || (() => {})}
+                                        handleExitRoom={handleExitRoom || (() => { })}
                                         searchQuery={searchQuery || ''}
-                                        setSearchQuery={setSearchQuery || (() => {})}
-                                        handleFilterClick={handleFilterClick || (() => {})}
+                                        setSearchQuery={setSearchQuery || (() => { })}
+                                        handleFilterClick={handleFilterClick || (() => { })}
                                         selectedUploader={selectedUploader || null}
-                                        handleCopyInvite={handleCopyInvite || (() => {})}
+                                        handleCopyInvite={handleCopyInvite || (() => { })}
                                         filterAnchorEl={filterAnchorEl || null}
-                                        handleFilterClose={handleFilterClose || (() => {})}
-                                        handleSelectUploader={handleSelectUploader || (() => {})}
+                                        handleFilterClose={handleFilterClose || (() => { })}
+                                        handleSelectUploader={handleSelectUploader || (() => { })}
                                         viewFilter={(viewFilter || 'all') as 'all' | 'viewed' | 'unviewed'}
-                                        handleViewFilterChange={setViewFilter || (() => {})}
+                                        handleViewFilterChange={setViewFilter || (() => { })}
                                         uniqueUploaders={(uniqueUploaders || []).map(u => ({ id: u.id, username: u.username || u.id }))}
-                                        newLinkUrl={newLinkUrl || ''}
-                                        setNewLinkUrl={setNewLinkUrl || (() => {})}
-                                        handlePostLink={handlePostLink || (() => {})}
+                                        handlePostLink={handlePostLink || (() => { })}
                                         isPostingLink={isPostingLink || false}
                                         sortOrder={(sortOrder || 'latest') as 'latest' | 'oldest'}
-                                        handleSortOrderChange={setSortOrder || (() => {})}
+                                        handleSortOrderChange={setSortOrder || (() => { })}
                                         isLoadingLinks={isLoadingLinks || false}
                                         isSearchingLinks={isSearchingLinks || false}
-                                        onToggleZenMode={() => (toggleOverlay || (() => {}))('zen', !zenModeOpen)}
-                                        onCreateRoom={() => (toggleOverlay || (() => {}))('createRoom', true)}
+                                        onToggleZenMode={() => (toggleOverlay || (() => { }))('zen', !zenModeOpen)}
+                                        onCreateRoom={() => (toggleOverlay || (() => { }))('createRoom', true)}
                                     />
                                 </Box>
                             </SocialErrorBoundary>
@@ -184,7 +180,7 @@ function SocialPageContent() {
             {commentsLink && (
                 <CommentsOverlay
                     open={true}
-                    onClose={() => (toggleOverlay || (() => {}))('comments', null)}
+                    onClose={() => (toggleOverlay || (() => { }))('comments', null)}
                     link={commentsLink as unknown as LinkPost}
                     encryptComment={(d: string) => roomKey ? encryptWithAES(roomKey, d) : Promise.resolve(d)}
                     decryptComment={(d: string) => roomKey ? decryptWithAES(roomKey, d) : Promise.resolve(d)}
@@ -193,7 +189,7 @@ function SocialPageContent() {
             {readerLink && (
                 <ReaderModeOverlay
                     open={true}
-                    onClose={() => (toggleOverlay || (() => {}))('reader', null)}
+                    onClose={() => (toggleOverlay || (() => { }))('reader', null)}
                     link={readerLink as unknown as LinkPost}
                     encryptAnnotation={(d: string) => roomKey ? encryptWithAES(roomKey, d) : Promise.resolve(d)}
                     decryptAnnotation={(d: string) => roomKey ? decryptWithAES(roomKey, d) : Promise.resolve(d)}
@@ -201,18 +197,18 @@ function SocialPageContent() {
             )}
             <ZenModeOverlay
                 open={zenModeOpen || false}
-                onClose={() => (toggleOverlay || (() => {}))('zen', null)}
+                onClose={() => (toggleOverlay || (() => { }))('zen', null)}
             />
 
             <Snackbar
                 open={snackbar?.open || false}
                 autoHideDuration={6000}
-                onClose={() => (setSnackbar || (() => {}))({ open: false, message: snackbar?.message || '', severity: snackbar?.severity || 'info' })}
+                onClose={() => (setSnackbar || (() => { }))({ open: false, message: snackbar?.message || '', severity: snackbar?.severity || 'info' })}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 sx={{ zIndex: SOCIAL_SNACKBAR_Z_INDEX }}
             >
                 <Alert
-                    onClose={() => (setSnackbar || (() => {}))({ open: false, message: snackbar?.message || '', severity: snackbar?.severity || 'info' })}
+                    onClose={() => (setSnackbar || (() => { }))({ open: false, message: snackbar?.message || '', severity: snackbar?.severity || 'info' })}
                     severity={(snackbar?.severity || 'info') as 'success' | 'error' | 'info' | 'warning'}
                     variant="filled"
                     sx={{ width: '100%', borderRadius: '12px', fontWeight: 600 }}
