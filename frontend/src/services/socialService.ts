@@ -15,7 +15,6 @@ export interface Room {
     members: RoomMember[];
     inviteCode?: string;
     encryptedRoomKey?: string; // User's encrypted copy of room key
-    memberCount?: number; // Number of members (from API)
 }
 
 export interface Collection {

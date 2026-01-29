@@ -114,23 +114,12 @@ export const SocialHeader = memo(({
                             <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: 1 }} aria-label="Exit room">
                                 <ArrowBackIcon />
                             </IconButton>
-                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center' }}>
                                 <Typography variant="h6" noWrap sx={{ fontWeight: 600 }}>
                                     {showSkeleton
                                         ? <Skeleton width={120} />
                                         : (decryptedName || '...')}
                                 </Typography>
-                                {!isMobile && (
-                                    <Box sx={{ height: 20 }}>
-                                        {showSkeleton ? (
-                                            <Skeleton width={80} height={20} />
-                                        ) : currentRoom && (
-                                            <Typography variant="caption" color="text.secondary">
-                                                {currentRoom.memberCount || 1} member{(currentRoom.memberCount || 1) > 1 ? 's' : ''}
-                                            </Typography>
-                                        )}
-                                    </Box>
-                                )}
                             </Box>
                         </Box>
                     ) : (

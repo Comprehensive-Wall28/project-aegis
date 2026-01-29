@@ -82,7 +82,7 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
 
     useEffect(() => {
         if (!open) return;
-        
+
         const updateState = () => {
             if (event) {
                 setTitle(event.title || '');
@@ -103,7 +103,7 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                 setColor(AEGIS_COLORS[0].value);
             }
         };
-        
+
         updateState();
     }, [event, open]);
 
@@ -196,7 +196,7 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
         >
             <DialogTitle component="div" sx={{ m: 0, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {event ? 'Edit Event' : 'New Encrypted Event'}
+                    {event?._id ? 'Edit Event' : 'New Encrypted Event'}
                 </Typography>
                 <IconButton onClick={onClose} size="small">
                     <CloseIcon />

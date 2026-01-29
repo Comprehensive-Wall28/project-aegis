@@ -24,7 +24,6 @@ export interface RoomWithKey {
     description: string;
     icon: string;
     encryptedRoomKey?: string;
-    memberCount: number;
 }
 
 export interface RoomContent {
@@ -99,8 +98,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
                     description: room.description,
                     icon: room.icon,
                     // encryptedRoomKey IS needed in list view to decrypt room names/descriptions
-                    encryptedRoomKey: member?.encryptedRoomKey,
-                    memberCount: room.members.length
+                    encryptedRoomKey: member?.encryptedRoomKey
                 };
             });
         } catch (error) {
@@ -276,8 +274,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
                     name: room.name,
                     description: room.description,
                     icon: room.icon,
-                    encryptedRoomKey: member?.encryptedRoomKey,
-                    memberCount: room.members.length
+                    encryptedRoomKey: member?.encryptedRoomKey
                 },
                 collections,
                 links: initialLinks,

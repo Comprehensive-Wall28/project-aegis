@@ -115,9 +115,6 @@ export const RoomCard = memo(({
                             displayName
                         )}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        {room.memberCount || 1} member{(room.memberCount || 1) > 1 ? 's' : ''}
-                    </Typography>
                 </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 'auto' }}>
