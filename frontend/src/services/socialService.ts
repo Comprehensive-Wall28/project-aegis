@@ -130,8 +130,13 @@ const socialService = {
     /**
      * Get room content including collections and links
      */
-    getRoomContent: async (roomId: string): Promise<RoomContent> => {
-        const response = await apiClient.get<RoomContent>(`/social/rooms/${roomId}`);
+    /**
+     * Get room content including collections and links
+     */
+    getRoomContent: async (roomId: string, collectionId?: string): Promise<RoomContent> => {
+        const response = await apiClient.get<RoomContent>(`/social/rooms/${roomId}`, {
+            params: { collectionId }
+        });
         return response.data;
     },
 

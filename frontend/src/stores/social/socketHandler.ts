@@ -253,18 +253,9 @@ export const createSocketSlice: StateCreator<SocialState, [], [], Pick<SocialSta
             console.log('[Store] Socket Reconnected - refreshing data');
 
             if (state.currentRoom) {
-                // Refresh room metadata and collections
+                // refreshCurrentRoom now fetches both collections AND links for current collection
+                // No need for separate fetchCollectionLinks call
                 get().refreshCurrentRoom();
-
-                const collectionId = state.currentCollectionId;
-                if (collectionId) {
-                    setTimeout(() => {
-                        const currentState = get();
-                        if (currentState.currentCollectionId === collectionId) {
-                            get().fetchCollectionLinks(collectionId, false, true);
-                        }
-                    }, 150);
-                }
             }
         });
 

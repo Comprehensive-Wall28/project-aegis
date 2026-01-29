@@ -98,6 +98,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
                     name: room.name,
                     description: room.description,
                     icon: room.icon,
+                    // encryptedRoomKey IS needed in list view to decrypt room names/descriptions
                     encryptedRoomKey: member?.encryptedRoomKey,
                     memberCount: room.members.length
                 };
@@ -193,7 +194,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
         }
     }
 
-    async getRoomContent(userId: string, roomId: string): Promise<RoomContent> {
+    async getRoomContent(userId: string, roomId: string, targetCollectionId?: string): Promise<RoomContent> {
         const startTime = Date.now();
         try {
             const room = await this.repository.findByIdAndMember(roomId, userId);
@@ -224,13 +225,21 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
             });
 
             const collectionIds = collections.map(c => c._id.toString());
-            const firstCollectionId = collections.length > 0 ? collections[0]._id.toString() : null;
+
+            // Determine which collection to fetch links for
+            // If targetCollectionId is provided and exists in room, use it
+            // Otherwise default to first collection
+            let fetchCollectionId = collections.length > 0 ? collections[0]._id.toString() : null;
+            if (targetCollectionId && collectionIds.includes(targetCollectionId)) {
+                fetchCollectionId = targetCollectionId;
+            }
+
             const limit = 12;
 
             const [collectionStats, initialLinksResult] = await Promise.all([
                 this.linkPostRepo.groupCountByCollections(collectionIds),
-                firstCollectionId
-                    ? this.linkPostRepo.findByCollectionCursor(firstCollectionId, limit)
+                fetchCollectionId
+                    ? this.linkPostRepo.findByCollectionCursor(fetchCollectionId, limit)
                     : Promise.resolve({ links: [], totalCount: 0 })
             ]);
 

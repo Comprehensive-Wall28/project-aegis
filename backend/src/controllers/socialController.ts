@@ -48,7 +48,8 @@ export const joinRoom = withAuth(async (req: AuthRequest, res: Response) => {
 });
 
 export const getRoomContent = withAuth(async (req: AuthRequest, res: Response) => {
-    const content = await roomService.getRoomContent(req.user!.id, req.params.roomId as string);
+    const collectionId = req.query.collectionId as string | undefined;
+    const content = await roomService.getRoomContent(req.user!.id, req.params.roomId as string, collectionId);
     res.status(200).json(content);
 });
 

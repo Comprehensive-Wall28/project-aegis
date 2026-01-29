@@ -29,7 +29,7 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
             const rooms = await socialService.getUserRooms();
             set({ rooms });
 
-            // Proactive Background Decryption
+            // Proactive Background Decryption for room names/descriptions
             const state = get();
             const roomsToDecrypt = rooms.filter(r => r.encryptedRoomKey && !state.roomKeys.has(r._id));
 
@@ -53,7 +53,7 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
                                 return { roomKeys: updatedKeys };
                             });
                         } catch (err) {
-                            console.error(`Failed to background decrypt:`, err);
+                            console.error(`Failed to background decrypt room ${room._id}:`, err);
                         }
                     }
                     setCryptoStatus('idle');
@@ -87,7 +87,8 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
 
         const { setCryptoStatus } = useSessionStore.getState();
         try {
-            const content: RoomContent = await socialService.getRoomContent(roomId);
+            // Pass initialCollectionId to avoid waterfall requests
+            const content: RoomContent = await socialService.getRoomContent(roomId, initialCollectionId);
             const sessionUser = useSessionStore.getState().user;
 
             if (content.room.encryptedRoomKey && sessionUser?.privateKey) {
@@ -140,10 +141,7 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
                 hasMoreLinks: (content.links?.length || 0) >= 12,
                 linksCache
             });
-
-            if (targetCollectionId && (!content.links || content.links.length === 0)) {
-                await get().fetchCollectionLinks(targetCollectionId, false);
-            }
+            // Waterfall fetch removed since getRoomContent now handles it
 
             return targetCollectionId;
         } catch (error: any) {
@@ -163,6 +161,8 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
         const { setCryptoStatus } = useSessionStore.getState();
 
         try {
+            // Don't pass collectionId - this is just for refreshing collections metadata
+            // Links are managed separately through selectCollection
             const content: RoomContent = await socialService.getRoomContent(state.currentRoom._id);
             const sessionUser = useSessionStore.getState().user;
 
