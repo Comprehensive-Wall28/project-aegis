@@ -300,6 +300,7 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
             }
         });
         page = await context.newPage();
+        await context.addInitScript("window.__name = (f) => f;");
 
         // Block unnecessary resources but allow some small images from same domain for stealth
         await page.route('**/*', (route: any) => {
@@ -335,7 +336,7 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
 
         if (response?.status() === 403) {
             // Double check if we're still on a challenge page after attempted bypass
-            const isStillBlocked = await page.evaluate(() => {
+            const isStillBlocked = await page.evaluate(function () {
                 const bodyText = document.body?.innerText || '';
                 return bodyText.includes('Access Denied') ||
                     bodyText.includes('Website Firewall');
@@ -348,9 +349,9 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
 
         // Optimization: Instead of transferring the whole HTML (which can be MBs),
         // we extract only the relevant meta tags and basic structure in-browser.
-        const pageData = await page.evaluate(() => {
+        const pageData = await page.evaluate(function () {
             const meta: Record<string, string> = {};
-            document.querySelectorAll('meta').forEach(el => {
+            document.querySelectorAll('meta').forEach(function (el) {
                 const name = el.getAttribute('name') || el.getAttribute('property') || el.getAttribute('itemprop');
                 const content = el.getAttribute('content');
                 if (name && content) meta[name.toLowerCase()] = content;
@@ -361,7 +362,7 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
 
             return {
                 html: `<head><title>${document.title}</title>` +
-                    Array.from(document.querySelectorAll('meta')).map(m => m.outerHTML).join('') +
+                    Array.from(document.querySelectorAll('meta')).map(function (m) { return m.outerHTML; }).join('') +
                     '</head>',
                 url: window.location.href,
                 favicon
@@ -455,7 +456,7 @@ export const smartScrape = async (targetUrl: string): Promise<ScrapeResult> => {
 async function handleWafChallenge(page: Page): Promise<boolean> {
     try {
         // Check for common WAF challenge indicators
-        const challengeInfo = await page.evaluate(() => {
+        const challengeInfo = await page.evaluate(function () {
             const bodyText = document.body?.innerText || '';
             const html = document.documentElement?.outerHTML || '';
 
@@ -548,7 +549,7 @@ async function handleWafChallenge(page: Page): Promise<boolean> {
                         }
 
                         // Wait for challenge content to disappear
-                        await page.waitForFunction(() => {
+                        await page.waitForFunction(function () {
                             const bodyText = document.body?.innerText || '';
                             return !bodyText.includes('Website Firewall') &&
                                 !bodyText.includes('Click to Proceed') &&
@@ -569,7 +570,7 @@ async function handleWafChallenge(page: Page): Promise<boolean> {
             logger.info('[WAF] Cloudflare challenge detected, waiting for auto-verification...');
             try {
                 // CF JS challenges auto-verify and redirect after a few seconds
-                await page.waitForFunction(() => {
+                await page.waitForFunction(function () {
                     const html = document.documentElement?.outerHTML || '';
                     return !html.includes('cf-browser-verification') &&
                         !html.includes('cf_chl_opt');
@@ -584,7 +585,7 @@ async function handleWafChallenge(page: Page): Promise<boolean> {
         await page.waitForTimeout(3000);
 
         // Check if we're past the challenge
-        const stillOnChallenge = await page.evaluate(() => {
+        const stillOnChallenge = await page.evaluate(function () {
             const bodyText = document.body?.innerText || '';
             return bodyText.includes('Website Firewall') ||
                 bodyText.includes('Checking your browser') ||
@@ -642,6 +643,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             }
         });
         page = await context.newPage();
+        await context.addInitScript("window.__name = (f) => f;");
 
         // Block unnecessary resources but keep images for reader mode (smartly)
         await page.route('**/*', (route: any) => {
@@ -687,7 +689,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
 
         if (response?.status() === 403) {
             // Double check if we're still on a challenge page after attempted bypass
-            const isStillBlocked = await page.evaluate(() => {
+            const isStillBlocked = await page.evaluate(function () {
                 const bodyText = document.body?.innerText || '';
                 return bodyText.includes('Access Denied') ||
                     bodyText.includes('Access blocked') ||
@@ -701,7 +703,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
 
         // 2. Smart Wait: Look for signs of "real content" rendered by JS
         try {
-            await page.waitForFunction(() => {
+            await page.waitForFunction(function () {
                 // Heuristic for content availability
                 const article = document.querySelector('article, .article, .post, .content, main');
                 const pCount = document.querySelectorAll('p').length;
@@ -720,7 +722,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
         }
         await page.addScriptTag({ content: readabilityScript });
 
-        const result = await page.evaluate(({ baseUrl }) => {
+        const result = await page.evaluate(function ({ baseUrl }) {
             // @ts-ignore
             if (typeof Readability === 'undefined') {
                 return { error: 'Readability script not found in browser context' };
@@ -733,14 +735,14 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
                 '.comments-area', 'aside', 'nav', '.widget', '.ads', '.ad-unit'
             ];
 
-            NOISE_SELECTORS.forEach(selector => {
-                document.querySelectorAll(selector).forEach(el => el.remove());
+            NOISE_SELECTORS.forEach(function (selector) {
+                document.querySelectorAll(selector).forEach(function (el) { el.remove(); });
             });
 
             // B. Link Density Filter for Article Blocks
-            const filterHighLinkDensity = () => {
+            function filterHighLinkDensity() {
                 const candidates = document.querySelectorAll('div, section, article');
-                candidates.forEach(el => {
+                candidates.forEach(function (el) {
                     const textLength = el.textContent?.trim().length || 0;
                     if (textLength < 100) return;
 
@@ -752,11 +754,11 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
                         el.remove();
                     }
                 });
-            };
+            }
             filterHighLinkDensity();
 
             // C. Helper for download links
-            const isDownloadLink = (href: string, text: string) => {
+            function isDownloadLink(href: string, text: string) {
                 const patterns = [
                     /\.(zip|7z|rar|iso|exe|dmg|pkg|apk|pdf)$/i,
                     /mega\.nz|mediafire\.com|terabox|drive\.google|pixeldrain|doodrive|gdrive|1drv\.ms|dropbox\.com/i,
@@ -766,8 +768,8 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
                     /download/i, /get\s+(?:it|now|here)/i, /mega/i, /gdrive/i, /google\s*drive/i, /pixel/i,
                     /mirrored/i, /zippyshare/i, /doodrive/i, /terabox/i
                 ];
-                return patterns.some(p => p.test(href)) || textPatterns.some(p => p.test(text));
-            };
+                return patterns.some(function (p) { return p.test(href); }) || textPatterns.some(function (p) { return p.test(text); });
+            }
 
             // D. Run Readability
             // @ts-ignore
@@ -783,7 +785,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
 
             // Add paragraph IDs for targeting
             const paragraphs = container.querySelectorAll('p');
-            paragraphs.forEach((p, idx) => {
+            paragraphs.forEach(function (p, idx) {
                 if (!p.id) {
                     const text = (p.textContent || '').slice(0, 30).replace(/\s+/g, '_');
                     p.id = `aegis-p-${idx}`;
@@ -794,7 +796,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             // Fix link targets and relative URLs, filtering out social links
             const SOCIAL_DOMAINS = ['facebook.com', 'twitter.com', 'x.com', 'pinterest.com', 'whatsapp.com', 'linkedin.com', 'reddit.com', 'instagram.com', 't.me', 'telegram.me', 'discord.com'];
             const links = container.querySelectorAll('a');
-            links.forEach(a => {
+            links.forEach(function (a) {
                 const href = a.getAttribute('href');
                 if (href) {
                     try {
@@ -802,7 +804,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
                         const hostname = new URL(absUrl).hostname.toLowerCase();
 
                         // Filter out social links
-                        if (SOCIAL_DOMAINS.some(domain => hostname.includes(domain))) {
+                        if (SOCIAL_DOMAINS.some(function (domain) { return hostname.includes(domain); })) {
                             a.remove();
                             return;
                         }
@@ -818,7 +820,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             });
 
             // D. Extract Download Links from the FULL page (not just article)
-            const getProvider = (href: string): string => {
+            function getProvider(href: string): string {
                 const h = href.toLowerCase();
                 if (h.includes('mega.nz')) return 'mega';
                 if (h.includes('mediafire.com')) return 'mediafire';
@@ -829,17 +831,19 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
                 if (h.includes('1drv.ms') || h.includes('onedrive')) return 'onedrive';
                 if (h.includes('zippyshare.com')) return 'zippyshare';
                 return 'direct';
-            };
+            }
 
             const allLinks = Array.from(document.querySelectorAll('a'));
             const downloadLinks = allLinks
-                .filter(a => isDownloadLink(a.href, a.textContent || ''))
-                .map(a => ({
-                    href: a.href,
-                    text: (a.textContent || '').trim().replace(/^[|\s\-_/]+/, '').toUpperCase(),
-                    provider: getProvider(a.href)
-                }))
-                .filter(l => l.text.length > 0 && l.text.length < 100)
+                .filter(function (a) { return isDownloadLink(a.href, a.textContent || ''); })
+                .map(function (a) {
+                    return {
+                        href: a.href,
+                        text: (a.textContent || '').trim().replace(/^[|\s\-_/]+/, '').toUpperCase(),
+                        provider: getProvider(a.href)
+                    };
+                })
+                .filter(function (l) { return l.text.length > 0 && l.text.length < 100; })
                 .slice(0, 25);
 
             // E. Search for password
