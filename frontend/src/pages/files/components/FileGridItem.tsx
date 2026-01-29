@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Box, Paper, Typography, Stack, IconButton, useTheme, alpha } from '@mui/material';
+import type { Theme } from '@mui/material';
 import {
     Delete as TrashIcon,
     Download as DownloadIcon,
@@ -115,7 +116,7 @@ export const FileGridItem = memo(({
                         px: 0.5,
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical' as any,
+                        WebkitBoxOrient: 'vertical' as const,
                         overflow: 'hidden',
                         lineHeight: 1.3,
                         wordBreak: 'break-word',
@@ -207,7 +208,7 @@ export const FileGridItem = memo(({
     );
 });
 
-const getPaperStyles = (theme: any, isSelected: boolean, iconScaling: IconScalingConfig, isHighlighted?: boolean) => ({
+const getPaperStyles = (theme: Theme, isSelected: boolean, iconScaling: IconScalingConfig, isHighlighted?: boolean) => ({
     p: iconScaling.padding,
     position: 'relative',
     cursor: 'grab',

@@ -1,4 +1,5 @@
 import { createContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { AxiosError } from 'axios';
 import apiClient from '@/services/api';
 import { BackendDown } from '@/components/BackendDown';
 import { isBackendUnavailableError } from './backendStatusUtils';

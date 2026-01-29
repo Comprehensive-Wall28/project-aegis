@@ -1,5 +1,5 @@
 import { Dialog, DialogTitle, DialogContent, TextField, DialogActions, Button } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { Folder } from '@/services/folderService';
 
 interface RenameFolderDialogProps {
@@ -10,13 +10,7 @@ interface RenameFolderDialogProps {
 }
 
 export function RenameFolderDialog({ open, folder, onClose, onRename }: RenameFolderDialogProps) {
-    const [name, setName] = useState('');
-
-    useEffect(() => {
-        if (open && folder) {
-            setName(folder.name);
-        }
-    }, [open, folder]);
+    const [name, setName] = useState(folder?.name || '');
 
     const handleSubmit = () => {
         if (!name.trim()) return;
@@ -29,7 +23,7 @@ export function RenameFolderDialog({ open, folder, onClose, onRename }: RenameFo
             onClose={onClose}
             maxWidth="xs"
             fullWidth
-            slotProps={{ paper: { variant: 'translucent' as any } }}
+            slotProps={{ paper: { variant: 'translucent' as const } }}
         >
             <DialogTitle sx={{ fontWeight: 700 }}>Rename Folder</DialogTitle>
             <DialogContent>

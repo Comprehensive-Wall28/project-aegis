@@ -33,7 +33,7 @@ interface UseFileActionsProps {
     setColorPickerFolderId: (id: string | null) => void;
     setPreviewInitialId: (id: string | null) => void;
     setPreviewOpen: (open: boolean) => void;
-    setPdfPreviewFile: (file: any | null) => void;
+    setPdfPreviewFile: (file: FileMetadata | null) => void;
     setPdfPreviewOpen: (open: boolean) => void;
     toggleSelect: (id: string) => void;
 
@@ -99,9 +99,10 @@ export function useFileActions({
             setNewFolderDialog(false);
             fetchData();
             setNotification({ open: true, message: 'Folder created successfully', type: 'success' });
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
             console.error('Failed to create folder:', err);
-            setNotification({ open: true, message: err.response?.data?.message || 'Failed to create secure folder', type: 'error' });
+            setNotification({ open: true, message: error.response?.data?.message || 'Failed to create secure folder', type: 'error' });
         }
     }, [currentFolderId, fetchData, setNewFolderDialog, setNotification]);
 
@@ -112,9 +113,10 @@ export function useFileActions({
             setRenameFolderDialog({ open: false, folder: null });
             fetchData();
             setNotification({ open: true, message: 'Folder renamed successfully', type: 'success' });
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
             console.error('Failed to rename folder:', err);
-            setNotification({ open: true, message: err.response?.data?.message || 'Failed to rename folder', type: 'error' });
+            setNotification({ open: true, message: error.response?.data?.message || 'Failed to rename folder', type: 'error' });
         }
     }, [renameFolderDialog.folder, fetchData, setRenameFolderDialog, setNotification]);
 
@@ -128,8 +130,9 @@ export function useFileActions({
         try {
             await folderService.deleteFolder(deleteConfirm.id);
             fetchData();
-        } catch (err: any) {
-            setNotification({ open: true, message: err.response?.data?.message || 'Failed to delete folder', type: 'error' });
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            setNotification({ open: true, message: error.response?.data?.message || 'Failed to delete folder', type: 'error' });
         } finally {
             setIsDeleting(false);
             setDeleteConfirm({ open: false, type: 'file' });
@@ -273,9 +276,10 @@ export function useFileActions({
             setMoveToFolderDialog(false);
             fetchData();
             setNotification({ open: true, message: `Moved ${updates.length} files successfully`, type: 'success' });
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { message?: string };
             console.error('Failed to move files:', err);
-            setNotification({ open: true, message: err.message || 'Failed to move files', type: 'error' });
+            setNotification({ open: true, message: error.message || 'Failed to move files', type: 'error' });
         }
     }, [filesToMove, clearSelection, fetchData, files, folders, setFilesToMove, setMoveToFolderDialog, setNotification]);
 
@@ -286,9 +290,10 @@ export function useFileActions({
             setFolders(prev => prev.map(f => f._id === colorPickerFolderId ? { ...f, color } : f));
             setColorPickerFolderId(null);
             setNotification({ open: true, message: 'Folder color updated', type: 'success' });
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
             console.error('Failed to update folder color:', err);
-            setNotification({ open: true, message: err.response?.data?.message || 'Failed to update folder color', type: 'error' });
+            setNotification({ open: true, message: error.response?.data?.message || 'Failed to update folder color', type: 'error' });
         }
     }, [colorPickerFolderId, setFolders, setColorPickerFolderId, setNotification]);
 
