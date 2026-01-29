@@ -235,7 +235,7 @@ export const SocialHeader = memo(({
                                                         '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) }
                                                     }}
                                                 >
-                                                    {isPostingLink ? <CircularProgress size={20} color="inherit" /> : <LinkIcon sx={{ fontSize: 22 }} />}
+                                                    {isPostingLink ? <CircularProgress size={20} color="inherit" /> : <AddIcon sx={{ fontSize: 22 }} />}
                                                 </IconButton>
                                             ) : searchQuery ? (
                                                 <IconButton key="clear-btn" size="small" onClick={handleClearSearch} sx={{ color: 'text.secondary' }}>

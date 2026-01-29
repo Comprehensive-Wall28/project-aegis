@@ -16,6 +16,7 @@ import {
     Tooltip,
     Menu,
     MenuItem,
+    Fade,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -499,6 +500,7 @@ export const SocialSidebar = memo(() => {
             <Menu
                 open={collectionContextMenu !== null}
                 onClose={handleCloseContextMenu}
+                TransitionComponent={Fade}
                 anchorReference="anchorPosition"
                 anchorPosition={
                     collectionContextMenu !== null

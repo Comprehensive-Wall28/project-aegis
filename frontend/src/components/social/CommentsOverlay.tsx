@@ -10,6 +10,7 @@ import {
     CircularProgress,
     useTheme,
     useMediaQuery,
+    alpha,
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -199,7 +200,7 @@ export const CommentsOverlay = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.85)',
+                            bgcolor: alpha(theme.palette.common.black, 0.7),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -209,9 +210,10 @@ export const CommentsOverlay = memo(({
                         <Paper
                             elevation={0}
                             component={motion.div}
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
+                            initial={isMobile ? { y: 40, opacity: 0 } : { scale: 0.95, opacity: 0 }}
+                            animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: 40, opacity: 0 } : { scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             onClick={(e) => e.stopPropagation()}
                             sx={{
                                 width: '100%',

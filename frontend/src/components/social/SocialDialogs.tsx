@@ -74,7 +74,7 @@ export const CreateRoomDialog = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.85)',
+                            bgcolor: alpha(theme.palette.common.black, 0.7),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -84,10 +84,10 @@ export const CreateRoomDialog = memo(({
                         <Paper
                             elevation={0}
                             component={motion.div}
-                            initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-                            exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                            transition={isMobile ? { type: 'spring', damping: 25, stiffness: 300 } : {}}
+                            initial={isMobile ? { y: 40, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                            animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: 40, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             onClick={(e) => e.stopPropagation()}
                             sx={{
                                 width: '100%',
@@ -187,7 +187,7 @@ export const CreateCollectionDialog = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.85)',
+                            bgcolor: alpha(theme.palette.common.black, 0.7),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -197,10 +197,10 @@ export const CreateCollectionDialog = memo(({
                         <Paper
                             elevation={0}
                             component={motion.div}
-                            initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-                            exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                            transition={isMobile ? { type: 'spring', damping: 25, stiffness: 300 } : {}}
+                            initial={isMobile ? { y: 40, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                            animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: 40, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             onClick={(e) => e.stopPropagation()}
                             sx={{
                                 width: '100%',
@@ -304,7 +304,7 @@ export const RenameCollectionDialog = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.85)',
+                            bgcolor: alpha(theme.palette.common.black, 0.7),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -314,10 +314,10 @@ export const RenameCollectionDialog = memo(({
                         <Paper
                             elevation={0}
                             component={motion.div}
-                            initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-                            exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                            transition={isMobile ? { type: 'spring', damping: 25, stiffness: 300 } : {}}
+                            initial={isMobile ? { y: 40, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                            animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: 40, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             onClick={(e) => e.stopPropagation()}
                             sx={{
                                 width: '100%',
@@ -404,7 +404,7 @@ export const PostLinkDialog = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.85)',
+                            bgcolor: alpha(theme.palette.common.black, 0.7),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -414,10 +414,10 @@ export const PostLinkDialog = memo(({
                         <Paper
                             elevation={0}
                             component={motion.div}
-                            initial={isMobile ? { y: '100%' } : { scale: 0.8, opacity: 0 }}
-                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-                            exit={isMobile ? { y: '100%' } : { scale: 0.8, opacity: 0 }}
-                            transition={isMobile ? { type: 'spring', damping: 30, stiffness: 350 } : {}}
+                            initial={isMobile ? { y: 40, opacity: 0 } : { scale: 0.8, opacity: 0 }}
+                            animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: 40, opacity: 0 } : { scale: 0.8, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             onClick={(e) => e.stopPropagation()}
                             sx={{
                                 width: '100%',
@@ -516,7 +516,7 @@ export const MoveLinkDialog = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.85)',
+                            bgcolor: alpha(theme.palette.common.black, 0.7),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -526,9 +526,10 @@ export const MoveLinkDialog = memo(({
                         <Paper
                             elevation={0}
                             component={motion.div}
-                            initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-                            exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            initial={isMobile ? { y: 40, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                            animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: 40, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             onClick={(e) => e.stopPropagation()}
                             sx={{
                                 width: '100%',
@@ -641,7 +642,7 @@ export const DeleteRoomDialog = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.85)',
+                            bgcolor: alpha(theme.palette.common.black, 0.7),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -651,9 +652,10 @@ export const DeleteRoomDialog = memo(({
                         <Paper
                             elevation={0}
                             component={motion.div}
-                            initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-                            exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            initial={isMobile ? { y: 40, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                            animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: 40, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             onClick={(e) => e.stopPropagation()}
                             sx={{
                                 width: '100%',

@@ -119,7 +119,7 @@ export const ZenModeOverlay = memo(({
                                 position: 'fixed',
                                 inset: 0,
                                 zIndex: SOCIAL_DIALOG_Z_INDEX - 1,
-                                bgcolor: 'rgba(0, 0, 0, 0.85)',
+                                bgcolor: alpha(theme.palette.common.black, 0.7),
                                 backdropFilter: 'blur(10px)',
                             }}
                         />
@@ -127,10 +127,10 @@ export const ZenModeOverlay = memo(({
                         {/* Fullscreen Content */}
                         <Box
                             component={motion.div}
-                            initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.98 }}
-                            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                            initial={isMobile ? { opacity: 0, y: 40 } : { opacity: 0, scale: 0.99 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={isMobile ? { opacity: 0, y: 40 } : { opacity: 0, scale: 0.99 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             sx={{
                                 position: 'fixed',
                                 inset: isMobile ? 0 : 20,

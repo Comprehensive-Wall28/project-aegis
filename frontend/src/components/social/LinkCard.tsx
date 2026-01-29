@@ -1,5 +1,5 @@
 import { useState, memo, useEffect } from 'react';
-import { Box, Paper, Typography, IconButton, Button, alpha, useTheme, Tooltip, Menu, MenuItem, ListItemIcon, ListItemText, CircularProgress, Badge } from '@mui/material';
+import { Box, Paper, Typography, IconButton, Button, alpha, useTheme, Tooltip, Menu, MenuItem, ListItemIcon, ListItemText, CircularProgress, Badge, useMediaQuery, Fade } from '@mui/material';
 import {
     OpenInFull as OpenInFullIcon,
     Link as LinkIcon,
@@ -81,6 +81,7 @@ export const LinkCard = memo(({
     menuZIndex
 }: LinkCardProps) => {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const { previewData, url } = link;
 
     const { isDragging, handleDragStart, handleDragEnd } = useLinkCardDrag({
@@ -359,6 +360,7 @@ export const LinkCard = memo(({
                                     anchorEl={menuAnchorEl}
                                     open={isMenuOpen}
                                     onClose={handleMenuClose}
+                                    TransitionComponent={Fade}
                                     onClick={(e) => e.stopPropagation()}
                                     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                                     transformOrigin={{ vertical: 'top', horizontal: 'right' }}
@@ -412,7 +414,7 @@ export const LinkCard = memo(({
                                 position: 'fixed',
                                 inset: 0,
                                 zIndex: SOCIAL_DIALOG_Z_INDEX,
-                                bgcolor: 'rgba(0,0,0,0.92)',
+                                bgcolor: alpha(theme.palette.common.black, 0.8),
                                 backdropFilter: 'blur(8px)',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -423,9 +425,10 @@ export const LinkCard = memo(({
                             <Paper
                                 elevation={24}
                                 component={motion.div}
-                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                initial={isMobile ? { y: 40, opacity: 0 } : { scale: 0.98, opacity: 0, y: 10 }}
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                exit={isMobile ? { y: 40, opacity: 0 } : { scale: 0.98, opacity: 0, y: 10 }}
+                                transition={{ duration: 0.2, ease: 'easeOut' }}
                                 onClick={(e) => e.stopPropagation()}
                                 sx={{
                                     width: '100%',

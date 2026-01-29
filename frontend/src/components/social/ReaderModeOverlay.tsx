@@ -701,7 +701,7 @@ export const ReaderModeOverlay = memo(({
                                 position: 'fixed',
                                 inset: 0,
                                 zIndex: SOCIAL_DIALOG_Z_INDEX - 1,
-                                bgcolor: 'rgba(0, 0, 0, 0.6)',
+                                bgcolor: alpha(theme.palette.common.black, 0.5),
                                 backdropFilter: 'blur(4px)',
                             }}
                         />
@@ -709,10 +709,10 @@ export const ReaderModeOverlay = memo(({
                         {/* Floating Panel */}
                         <Box
                             component={motion.div}
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            initial={isMobile ? { opacity: 0, y: 40 } : { opacity: 0, scale: 0.98, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            exit={isMobile ? { opacity: 0, y: 40 } : { opacity: 0, scale: 0.98, y: 10 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             sx={{
                                 position: 'fixed',
                                 // Equal gaps on all sides
