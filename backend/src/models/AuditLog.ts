@@ -56,7 +56,6 @@ export interface IAuditLog extends Document {
     status: AuditStatus;
     ipAddress: string;
     metadata: Record<string, any>;
-    recordHash: string;
     timestamp: Date;
 }
 
@@ -103,10 +102,6 @@ export const AuditLogSchema: Schema = new Schema({
     metadata: {
         type: Schema.Types.Mixed,
         default: {}
-    },
-    recordHash: {
-        type: String,
-        required: true
     },
     timestamp: {
         type: Date,

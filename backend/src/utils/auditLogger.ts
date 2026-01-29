@@ -32,27 +32,7 @@ export function getClientIp(req: Request): string {
     return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
-/**
- * Computes a SHA-256 hash for integrity verification of the audit log entry.
- * This allows verification that the log entry has not been tampered with.
- */
-function computeRecordHash(
-    userId: string,
-    action: AuditAction,
-    status: AuditStatus,
-    timestamp: Date,
-    metadata: Record<string, any>
-): string {
-    const data = JSON.stringify({
-        userId,
-        action,
-        status,
-        timestamp: timestamp.toISOString(),
-        metadata
-    });
 
-    return crypto.createHash('sha256').update(data).digest('hex');
-}
 
 /**
  * Creates an audit log entry for security-sensitive actions.
@@ -76,9 +56,6 @@ export async function logAuditEvent(
         const timestamp = new Date();
         const ipAddress = getClientIp(req);
 
-        // Compute integrity hash
-        const recordHash = computeRecordHash(userId, action, status, timestamp, metadata);
-
         // Create the audit log entry
         const AuditLog = getAuditLogModel();
         await AuditLog.create({
@@ -87,7 +64,6 @@ export async function logAuditEvent(
             status,
             ipAddress,
             metadata,
-            recordHash,
             timestamp
         });
 
@@ -115,15 +91,6 @@ export async function logFailedAuth(
         // Create a hash of the identifier for privacy (don't store raw email)
         const identifierHash = crypto.createHash('sha256').update(identifier).digest('hex').slice(0, 24);
 
-        // Compute integrity hash
-        const recordHash = crypto.createHash('sha256').update(JSON.stringify({
-            identifier: identifierHash,
-            action,
-            status: 'FAILURE',
-            timestamp: timestamp.toISOString(),
-            metadata
-        })).digest('hex');
-
         // Store failed attempt in AuditLog
         const AuditLog = getAuditLogModel();
         await AuditLog.create({
@@ -132,7 +99,6 @@ export async function logFailedAuth(
             status: 'FAILURE',
             ipAddress,
             metadata: { ...metadata, attemptedIdentifier: identifier.substring(0, 3) + '***' },
-            recordHash,
             timestamp
         });
 
