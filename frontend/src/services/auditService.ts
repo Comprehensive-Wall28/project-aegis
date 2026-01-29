@@ -49,7 +49,7 @@ export interface AuditLog {
     action: AuditAction;
     status: AuditStatus;
     ipAddress: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
     recordHash: string;
     timestamp: string;
 }

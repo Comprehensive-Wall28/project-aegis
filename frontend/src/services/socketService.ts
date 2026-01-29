@@ -9,7 +9,7 @@ class SocketService {
     private _reconnectAttempts: number = 0;
     private _currentRoomId: string | null = null;
 
-    private _listeners: Map<string, Set<(data: any) => void>> = new Map();
+    private _listeners: Map<string, Set<(data: unknown) => void>> = new Map();
 
     private constructor() {
         this.setupVisibilityListener();
@@ -140,7 +140,7 @@ class SocketService {
         this.socket?.emit('leave-room', roomId);
     }
 
-    public on(event: string, callback: (data: any) => void): void {
+    public on(event: string, callback: (data: unknown) => void): void {
         if (!this._listeners.has(event)) {
             this._listeners.set(event, new Set());
         }
@@ -150,7 +150,7 @@ class SocketService {
         this.socket?.on(event, callback);
     }
 
-    public off(event: string, callback: (data: any) => void): void {
+    public off(event: string, callback: (data: unknown) => void): void {
         this._listeners.get(event)?.delete(callback);
         this.socket?.off(event, callback);
     }
