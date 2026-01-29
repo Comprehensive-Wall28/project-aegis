@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AxiosError } from 'axios';
 import {
     Box,
     Button,
@@ -83,9 +84,15 @@ export const ShareEmailTab: React.FC<ShareEmailTabProps> = ({ item, type, onSucc
             setEmail('');
             if (onSuccess) onSuccess();
 
-        } catch (err: any) {
+        } catch (err: AxiosError<{ message: string }> | Error | unknown) {
             console.error('Sharing failed:', err);
-            setError(err.response?.data?.message || err.message || 'Failed to share');
+            if (err instanceof AxiosError) {
+                setError((err as AxiosError<{ message: string }>).response?.data?.message || err.message || 'Failed to share');
+            } else if (err instanceof Error) {
+                setError(err.message || 'Failed to share');
+            } else {
+                setError('Failed to share');
+            }
         } finally {
             setIsLoading(false);
         }

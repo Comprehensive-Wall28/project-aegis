@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import {
     Box,
     Button,
@@ -53,7 +54,7 @@ export const ShareLinkTab: React.FC<ShareLinkTabProps> = ({ item, type }) => {
 
                 if (file.encryptedSymmetricKey === 'GLOBAL') {
                     const params = useSessionStore.getState();
-                    // @ts-ignore
+                    // @ts-expect-error vaultCtrKey is not in the type but is available at runtime
                     resourceKey = params.vaultCtrKey; // Global mode
 
                     if (file.encryptedSymmetricKey === 'GLOBAL') {
@@ -99,9 +100,15 @@ export const ShareLinkTab: React.FC<ShareLinkTabProps> = ({ item, type }) => {
                 console.error('Failed to auto-copy:', err);
             }
 
-        } catch (err: any) {
+        } catch (err: AxiosError<{ message: string }> | Error | unknown) {
             console.error('Link generation failed:', err);
-            setError(err.message || 'Failed to generate link');
+            if (err instanceof AxiosError) {
+                setError((err as AxiosError<{ message: string }>).response?.data?.message || err.message || 'Failed to generate link');
+            } else if (err instanceof Error) {
+                setError(err.message || 'Failed to generate link');
+            } else {
+                setError('Failed to generate link');
+            }
         } finally {
             setIsLoading(false);
         }
