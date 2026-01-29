@@ -183,7 +183,7 @@ export const LinksContainer = memo(forwardRef<HTMLDivElement, LinksContainerProp
                     p: noContainer ? 0 : (isMobile ? 0.5 : 1),
                     display: 'grid',
                     gridTemplateColumns: {
-                        xs: '1fr',
+                        xs: 'minmax(0, 1fr)',
                         sm: 'repeat(auto-fill, minmax(280px, 1fr))',
                         lg: 'repeat(auto-fill, minmax(320px, 1fr))',
                     },
@@ -205,7 +205,7 @@ export const LinksContainer = memo(forwardRef<HTMLDivElement, LinksContainerProp
                             sx={{
                                 display: 'grid',
                                 gridTemplateColumns: {
-                                    xs: '1fr',
+                                    xs: 'minmax(0, 1fr)',
                                     sm: 'repeat(auto-fill, minmax(280px, 1fr))',
                                     lg: 'repeat(auto-fill, minmax(320px, 1fr))',
                                 },
