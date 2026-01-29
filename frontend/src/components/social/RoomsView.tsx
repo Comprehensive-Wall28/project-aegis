@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Paper, LinearProgress } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSocial } from './SocialPageContext';
+import { useSocial } from '@/hooks/useSocial';
 import { RoomCard } from './RoomCards';
 import { RoomsEmptyState } from './RoomsEmptyState';
 import { SocialErrorBoundary } from './SocialErrorBoundary';

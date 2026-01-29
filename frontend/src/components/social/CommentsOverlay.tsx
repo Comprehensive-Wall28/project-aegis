@@ -107,9 +107,10 @@ export const CommentsOverlay = memo(({
             } else {
                 setNextCursor(undefined);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to load comments:', error);
-            setError(error.message || 'Failed to load comments. Please try again.');
+            const message = error instanceof Error ? error.message : 'Failed to load comments. Please try again.';
+            setError(message);
         } finally {
             setIsLoading(false);
             setIsLoadingMore(false);

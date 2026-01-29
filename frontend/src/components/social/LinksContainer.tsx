@@ -23,7 +23,7 @@ import { SOCIAL_RADIUS_XLARGE, SOCIAL_RADIUS_MEDIUM } from './constants';
 import { LinkCard } from './LinkCard';
 import { SocialErrorBoundary } from './SocialErrorBoundary';
 import { LinkCardSkeleton } from './SocialSkeletons';
-import { useSocial } from './SocialPageContext';
+import { useSocial } from '@/hooks/useSocial';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
 import type { Collection } from '@/services/socialService';
 

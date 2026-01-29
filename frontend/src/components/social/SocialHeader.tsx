@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, useEffect, type ChangeEvent } from 'react';
+import { memo, useCallback, useState, useRef, useEffect, type ChangeEvent } from 'react';
 import {
     Box,
     Paper,
@@ -65,15 +65,21 @@ export const SocialHeader = memo(({
     const theme = useTheme();
     const { name: decryptedName, isDecrypting } = useDecryptedRoomMetadata(currentRoom);
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
+    // Auto-focus search input when expanded
     useEffect(() => {
-        if (searchQuery) {
-            setIsSearchExpanded(true);
+        if (isSearchExpanded && searchInputRef.current) {
+            searchInputRef.current.focus();
         }
-    }, [searchQuery]);
+    }, [isSearchExpanded]);
 
     const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
     const handleClearSearch = useCallback(() => setSearchQuery(''), [setSearchQuery]);
+    const handleSearchFocus = useCallback(() => setIsSearchExpanded(true), []);
+    const handleSearchBlur = useCallback(() => {
+        if (!searchQuery) setIsSearchExpanded(false);
+    }, [searchQuery]);
     const handleNewLinkChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setNewLinkUrl(e.target.value), [setNewLinkUrl]);
     const handlePostKeyDown = useCallback((e: React.KeyboardEvent) => e.key === 'Enter' && handlePostLink(), [handlePostLink]);
 
@@ -221,14 +227,14 @@ export const SocialHeader = memo(({
                                                     transition={{ duration: 0.2 }}
                                                 >
                                                     <TextField
+                                                        ref={searchInputRef}
                                                         placeholder="Search links..."
                                                         value={searchQuery}
                                                         onChange={handleSearchChange}
                                                         size="small"
                                                         autoFocus={!searchQuery}
-                                                        onBlur={() => {
-                                                            if (!searchQuery) setIsSearchExpanded(false);
-                                                        }}
+                                                        onFocus={handleSearchFocus}
+                                                        onBlur={handleSearchBlur}
                                                         disabled={!currentRoom}
                                                         slotProps={{
                                                             input: {
@@ -241,10 +247,7 @@ export const SocialHeader = memo(({
                                                                     <InputAdornment position="end">
                                                                         {isSearchingLinks && <CircularProgress size={16} sx={{ mr: 1, color: 'primary.main' }} />}
                                                                         {searchQuery && (
-                                                                            <IconButton size="small" onClick={() => {
-                                                                                handleClearSearch();
-                                                                                setIsSearchExpanded(false);
-                                                                            }} aria-label="Clear search">
+                                                                            <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
                                                                                 <CloseIcon fontSize="small" />
                                                                             </IconButton>
                                                                         )}

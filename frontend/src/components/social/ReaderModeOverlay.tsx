@@ -44,7 +44,7 @@ interface ReaderModeOverlayProps {
     currentUserId?: string;
 }
 
-const StaticReaderContent = memo(({ content, sx, onMouseUp }: { content: string; sx: any; onMouseUp: () => void }) => (
+const StaticReaderContent = memo(({ content, sx, onMouseUp }: { content: string; sx: React.CSSProperties; onMouseUp: () => void }) => (
     <Box
         onMouseUp={onMouseUp}
         sx={sx}
@@ -102,8 +102,9 @@ export const ReaderModeOverlay = memo(({
                 if (result.status !== 'success') {
                     setContentError(result.error || 'Unable to load article content');
                 }
-            } catch (error: any) {
-                setContentError(error.message || 'Failed to load reader content');
+            } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : 'Failed to load reader content';
+                setContentError(message);
             } finally {
                 setIsLoadingContent(false);
             }

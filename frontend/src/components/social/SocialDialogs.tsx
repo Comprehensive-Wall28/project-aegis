@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, memo } from 'react';
 import {
     Box,
     Paper,
@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import type { CreateRoomDialogProps, CreateCollectionDialogProps, PostLinkDialogProps, MoveLinkDialogProps } from './types';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
+import type { Collection } from '@/services/socialService';
 import { DialogPortal } from './DialogPortal';
 import {
     SOCIAL_DIALOG_Z_INDEX,
@@ -43,7 +44,13 @@ export const CreateRoomDialog = memo(({
     const handleSubmit = () => {
         if (name.trim()) {
             onSubmit(name.trim(), description.trim());
+            setName('');
         }
+    };
+
+    const handleOnClose = () => {
+        setName('');
+        onClose();
     };
 
     return (
@@ -55,7 +62,7 @@ export const CreateRoomDialog = memo(({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        onClick={onClose}
+                        onClick={handleOnClose}
                         sx={{
                             position: 'fixed',
                             inset: 0,
@@ -154,9 +161,10 @@ export const CreateCollectionDialog = memo(({
         }
     };
 
-    useEffect(() => {
-        if (!open) setName('');
-    }, [open]);
+    const handleOnClose = () => {
+        setName('');
+        onClose();
+    };
 
     return (
         <DialogPortal>
@@ -201,7 +209,7 @@ export const CreateCollectionDialog = memo(({
                         >
                             <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>New Collection</Typography>
-                                <IconButton onClick={onClose} aria-label="Close">
+                                <IconButton onClick={handleOnClose} aria-label="Close">
                                     <CloseIcon />
                                 </IconButton>
                             </Box>
@@ -219,7 +227,7 @@ export const CreateCollectionDialog = memo(({
                             </Box>
 
                             <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                                <Button onClick={onClose} disabled={isLoading}>Cancel</Button>
+                                <Button onClick={handleOnClose} disabled={isLoading}>Cancel</Button>
                                 <Button
                                     variant="contained"
                                     onClick={handleSubmit}
@@ -438,7 +446,7 @@ export const MoveLinkDialog = memo(({
 });
 
 // Helper component for MoveLinkDialog options
-const CollectionOption = ({ collection, isActive, onClick }: { collection: any, isActive: boolean, onClick: () => void }) => {
+const CollectionOption = ({ collection, isActive, onClick }: { collection: Collection, isActive: boolean, onClick: () => void }) => {
     const theme = useTheme();
     const { name: decryptedName, isDecrypting } = useDecryptedCollectionMetadata(collection);
 

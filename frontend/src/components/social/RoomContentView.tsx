@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Box } from '@mui/material';
-import { useSocial } from './SocialPageContext';
+import { useSocial } from '@/hooks/useSocial';
 import { SocialSidebar } from './SocialSidebar';
 import { LinksContainer } from './LinksContainer';
 import { SocialErrorBoundary } from './SocialErrorBoundary';

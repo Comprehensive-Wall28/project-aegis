@@ -1,7 +1,8 @@
 import { Box, alpha, useTheme, Typography, Button, Snackbar, Alert } from '@mui/material';
 import { Lock as LockIcon, Home as HomeIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SocialProvider, useSocial } from '@/components/social/SocialPageContext';
+import { SocialProvider } from '@/components/social/SocialPageContext';
+import { useSocial } from '@/hooks/useSocial';
 import { encryptWithAES, decryptWithAES } from '@/utils/socialCrypto';
 import type { Room, LinkPost } from '@/services/socialService';
 import { SocialHeader } from '@/components/social/SocialHeader';
@@ -155,8 +156,8 @@ function SocialPageContent() {
                                         handleSortOrderChange={setSortOrder || (() => {})}
                                         isLoadingLinks={isLoadingLinks || false}
                                         isSearchingLinks={isSearchingLinks || false}
-                                        onToggleZenMode={() => (toggleOverlay || (() => {}))('zen')}
-                                        onCreateRoom={() => (toggleOverlay || (() => {}))('createRoom')}
+                                        onToggleZenMode={() => (toggleOverlay || (() => {}))('zen', !zenModeOpen)}
+                                        onCreateRoom={() => (toggleOverlay || (() => {}))('createRoom', true)}
                                     />
                                 </Box>
                             </SocialErrorBoundary>
@@ -183,7 +184,7 @@ function SocialPageContent() {
             {commentsLink && (
                 <CommentsOverlay
                     open={true}
-                    onClose={() => (toggleOverlay || (() => {}))('comments')}
+                    onClose={() => (toggleOverlay || (() => {}))('comments', null)}
                     link={commentsLink as unknown as LinkPost}
                     encryptComment={(d: string) => roomKey ? encryptWithAES(roomKey, d) : Promise.resolve(d)}
                     decryptComment={(d: string) => roomKey ? decryptWithAES(roomKey, d) : Promise.resolve(d)}
@@ -192,7 +193,7 @@ function SocialPageContent() {
             {readerLink && (
                 <ReaderModeOverlay
                     open={true}
-                    onClose={() => (toggleOverlay || (() => {}))('reader')}
+                    onClose={() => (toggleOverlay || (() => {}))('reader', null)}
                     link={readerLink as unknown as LinkPost}
                     encryptAnnotation={(d: string) => roomKey ? encryptWithAES(roomKey, d) : Promise.resolve(d)}
                     decryptAnnotation={(d: string) => roomKey ? decryptWithAES(roomKey, d) : Promise.resolve(d)}
@@ -200,7 +201,7 @@ function SocialPageContent() {
             )}
             <ZenModeOverlay
                 open={zenModeOpen || false}
-                onClose={() => (toggleOverlay || (() => {}))('zen')}
+                onClose={() => (toggleOverlay || (() => {}))('zen', null)}
             />
 
             <Snackbar

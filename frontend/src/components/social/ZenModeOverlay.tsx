@@ -22,7 +22,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DialogPortal } from './DialogPortal';
 import { SOCIAL_DIALOG_Z_INDEX } from './constants';
-import { useSocial } from './SocialPageContext';
+import { useSocial } from '@/hooks/useSocial';
 import { SocialFilterMenu } from './SocialFilterMenu';
 import { LinksContainer } from './LinksContainer';
 import type { Collection } from '@/services/socialService';
