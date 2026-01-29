@@ -1,16 +1,27 @@
 import { create } from 'zustand';
 import calendarService from '../services/calendarService';
 import type { CalendarEventInput } from '../services/calendarService';
-import type { EncryptedCalendarEvent } from '../hooks/useCalendarEncryption';
+import type { EncryptedCalendarEvent, CalendarEventData } from '../hooks/useCalendarEncryption';
+
+// Decrypted calendar event combines encrypted metadata with decrypted content
+interface DecryptedCalendarEvent extends CalendarEventData {
+    _id: string;
+    startDate: string;
+    endDate: string;
+    isAllDay: boolean;
+    color: string;
+    createdAt: string;
+    updatedAt: string;
+}
 
 interface CalendarState {
-    events: any[]; // Decrypted events
+    events: DecryptedCalendarEvent[];
     isLoading: boolean;
     error: string | null;
 
-    fetchEvents: (start?: string, end?: string, decryptFn?: (events: EncryptedCalendarEvent[]) => Promise<any[]>) => Promise<void>;
-    addEvent: (event: CalendarEventInput, decryptFn: (event: EncryptedCalendarEvent) => Promise<any>, mentions?: string[]) => Promise<void>;
-    updateEvent: (id: string, updates: Partial<CalendarEventInput>, decryptFn: (event: EncryptedCalendarEvent) => Promise<any>, mentions?: string[]) => Promise<void>;
+    fetchEvents: (start?: string, end?: string, decryptFn?: (events: EncryptedCalendarEvent[]) => Promise<DecryptedCalendarEvent[]>) => Promise<void>;
+    addEvent: (event: CalendarEventInput, decryptFn: (event: EncryptedCalendarEvent) => Promise<DecryptedCalendarEvent>, mentions?: string[]) => Promise<void>;
+    updateEvent: (id: string, updates: Partial<CalendarEventInput>, decryptFn: (event: EncryptedCalendarEvent) => Promise<DecryptedCalendarEvent>, mentions?: string[]) => Promise<void>;
     deleteEvent: (id: string) => Promise<void>;
 }
 
@@ -29,8 +40,9 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             } else {
                 set({ events: encryptedEvents, isLoading: false });
             }
-        } catch (error: any) {
-            set({ error: error.message || 'Failed to fetch events', isLoading: false });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to fetch events';
+            set({ error: errorMessage, isLoading: false });
         }
     },
 
@@ -43,8 +55,9 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 events: [...state.events, decryptedEvent],
                 isLoading: false
             }));
-        } catch (error: any) {
-            set({ error: error.message || 'Failed to add event', isLoading: false });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to add event';
+            set({ error: errorMessage, isLoading: false });
         }
     },
 
@@ -57,8 +70,9 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 events: state.events.map(e => e._id === id ? decryptedEvent : e),
                 isLoading: false
             }));
-        } catch (error: any) {
-            set({ error: error.message || 'Failed to update event', isLoading: false });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to update event';
+            set({ error: errorMessage, isLoading: false });
         }
     },
 
@@ -70,8 +84,9 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 events: state.events.filter(e => e._id !== id),
                 isLoading: false
             }));
-        } catch (error: any) {
-            set({ error: error.message || 'Failed to delete event', isLoading: false });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete event';
+            set({ error: errorMessage, isLoading: false });
         }
     }
 }));

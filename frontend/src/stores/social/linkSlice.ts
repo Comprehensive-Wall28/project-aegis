@@ -162,8 +162,9 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
             if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
                 throw new Error('URL must start with http:// or https://');
             }
-        } catch (e: any) {
-            const msg = e.message === 'URL must start with http:// or https://' ? e.message : 'Invalid URL format';
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : 'Unknown error';
+            const msg = message === 'URL must start with http:// or https://' ? message : 'Invalid URL format';
             console.error('Validation error:', msg);
             throw new Error(msg);
         }

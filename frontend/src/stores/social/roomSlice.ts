@@ -117,7 +117,7 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
 
             // Use initialCollectionId if provided and exists in the fetched collections
             // Otherwise fall back to the first collection
-            let targetCollectionId = initialCollectionId && content.collections.some(c => c._id === initialCollectionId)
+            const targetCollectionId = initialCollectionId && content.collections.some(c => c._id === initialCollectionId)
                 ? initialCollectionId
                 : (content.collections[0]?._id || null);
 
@@ -144,9 +144,17 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
             // Waterfall fetch removed since getRoomContent now handles it
 
             return targetCollectionId;
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to select room:', error);
-            const message = error.response?.data?.message || error.message || 'Failed to access room';
+            let message = 'Failed to access room';
+            
+            if (error instanceof Error) {
+                message = error.message;
+            } else if (typeof error === 'object' && error !== null && 'response' in error) {
+                const apiError = error as { response?: { data?: { message?: string } } };
+                message = apiError.response?.data?.message || 'Failed to access room';
+            }
+            
             set({ error: message });
             return null;
         } finally {

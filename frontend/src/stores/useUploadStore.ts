@@ -253,13 +253,17 @@ export const useUploadStore = create<UploadState>((set, get) => ({
                     // Refresh storage stats
                     useSessionStore.getState().fetchStorageStats();
 
-                } catch (err: any) {
+                } catch (err: unknown) {
                     console.error(`Upload failed for ${item.file.name}:`, err);
-                    if (err.response?.data) {
-                        console.error('Server error details:', err.response.data);
+                    
+                    // Handle potential API error response
+                    const apiError = err as { response?: { data?: { message?: string } }; message?: string };
+                    if (apiError.response?.data) {
+                        console.error('Server error details:', apiError.response.data);
                     }
 
-                    const errorMessage = err.response?.data?.message || err.message || 'Upload failed';
+                    const errorMessage = apiError.response?.data?.message || 
+                                       (err instanceof Error ? err.message : 'Upload failed');
 
                     get().updateUploadItem(item.id, {
                         status: 'error',

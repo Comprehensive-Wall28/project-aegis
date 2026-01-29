@@ -217,7 +217,7 @@ export const createSocketSlice: StateCreator<SocialState, [], [], Pick<SocialSta
                 }
 
                 // Update caches
-                let newCache = { ...prev.linksCache };
+                const newCache = { ...prev.linksCache };
                 Object.keys(newCache).forEach(cId => {
                     const cache = newCache[cId];
                     if (cId === data.newCollectionId) {
