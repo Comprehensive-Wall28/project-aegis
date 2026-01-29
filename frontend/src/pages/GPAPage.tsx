@@ -65,13 +65,13 @@ export function GPAPage() {
     } = useGPAActions(showSnackbar);
 
     // Calculate GPA data client-side from decrypted courses
-    const calculateGPAData = useCallback((decryptedCourses: any[]) => {
+    const calculateGPAData = useCallback((decryptedCourses: Array<{ grade?: number; credits?: number; semester?: string }>) => {
         const cumulativeGPA = gpaSystem === 'GERMAN'
-            ? calculateGermanGPA(decryptedCourses)
-            : calculateNormalGPA(decryptedCourses);
+            ? calculateGermanGPA(decryptedCourses as Parameters<typeof calculateGermanGPA>[0])
+            : calculateNormalGPA(decryptedCourses as Parameters<typeof calculateNormalGPA>[0]);
 
-        const semesterGPAs = calculateSemesterGPAs(decryptedCourses, gpaSystem);
-        const cumulativeProgression = calculateCumulativeProgression(decryptedCourses, gpaSystem);
+        const semesterGPAs = calculateSemesterGPAs(decryptedCourses as Parameters<typeof calculateSemesterGPAs>[0], gpaSystem);
+        const cumulativeProgression = calculateCumulativeProgression(decryptedCourses as Parameters<typeof calculateCumulativeProgression>[0], gpaSystem);
 
         return {
             cumulativeGPA,

@@ -17,7 +17,7 @@ const Section = ({ children, delay = 0 }: { children: React.ReactNode, delay?: n
     </Box>
 );
 
-const FeatureCard = ({ icon: Icon, title, description }: { icon: any, title: string, description: string }) => {
+const FeatureCard = ({ icon: Icon, title, description }: { icon: React.ElementType, title: string, description: string }) => {
     const theme = useTheme();
     return (
         <Paper

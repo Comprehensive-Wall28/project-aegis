@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { extractMentionedIds } from '@/utils/mentionUtils';
+import type { DecryptedTask } from '@/stores/useTaskStore';
 import {
     Box,
     Typography,
@@ -57,7 +58,7 @@ export function TasksPage() {
 
     const [sortMode, setSortMode] = useState<'manual' | 'priority' | 'date'>(() => {
         const saved = localStorage.getItem('kanban_sort_mode');
-        return (saved as any) || 'manual';
+        return (saved === 'manual' || saved === 'priority' || saved === 'date') ? saved : 'manual';
     });
     const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -97,7 +98,7 @@ export function TasksPage() {
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
-    const [selectedTask, setSelectedTask] = useState<any>(null);
+    const [selectedTask, setSelectedTask] = useState<Partial<DecryptedTask & {_tempId?: number}> | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [deleteStatus, setDeleteStatus] = useState<'idle' | 'deleting' | 'success' | 'error'>('idle');
 
@@ -129,7 +130,7 @@ export function TasksPage() {
     useEffect(() => {
         const urlTaskId = searchParams.get('task');
         const urlEditId = searchParams.get('edit');
-        const urlNewStatus = searchParams.get('new') as any;
+        const urlNewStatus = searchParams.get('new') as 'todo' | 'in_progress' | 'done' | null;
 
         if (urlEditId) {
             const task = tasks.find(t => t._id === urlEditId);
@@ -166,12 +167,12 @@ export function TasksPage() {
         toggleTaskParam('new', status);
     }, [toggleTaskParam]);
 
-    const handleTaskClick = useCallback((task: any) => {
-        toggleTaskParam('task', task._id);
+    const handleTaskClick = useCallback((task: {_id?: string; id?: string}) => {
+        toggleTaskParam('task', task._id || task.id || '');
     }, [toggleTaskParam]);
 
-    const handleEditFromPreview = useCallback((task: any) => {
-        toggleTaskParam('edit', task._id);
+    const handleEditFromPreview = useCallback((task: {_id?: string; id?: string}) => {
+        toggleTaskParam('edit', task._id || task.id || '');
     }, [toggleTaskParam]);
 
     const handleDialogSubmit = useCallback(async (data: TaskDialogData) => {
@@ -232,8 +233,9 @@ export function TasksPage() {
 
             toggleTaskParam('edit', null);
             toggleTaskParam('new', null);
-        } catch (error: any) {
-            showSnackbar(error.message || 'Operation failed', 'error');
+        } catch (error: unknown) {
+            const message = (error instanceof Error) ? error.message : 'Operation failed';
+            showSnackbar(message, 'error');
         } finally {
             setIsSaving(false);
         }
@@ -253,9 +255,10 @@ export function TasksPage() {
 
             toggleTaskParam('task', null);
             toggleTaskParam('edit', null);
-        } catch (error: any) {
+        } catch (error: unknown) {
             setDeleteStatus('error');
-            showSnackbar(error.message || 'Failed to delete task', 'error');
+            const message = (error instanceof Error) ? error.message : 'Failed to delete task';
+            showSnackbar(message, 'error');
 
             // Revert status to idle after delay
             setTimeout(() => {
@@ -266,12 +269,13 @@ export function TasksPage() {
         }
     }, [deleteTask]);
 
-    const handleTaskMove = useCallback(async (updates: { id: string; status: any; order: number }[]) => {
+    const handleTaskMove = useCallback(async (updates: { id: string; status: 'todo' | 'in_progress' | 'done'; order: number }[]) => {
         try {
             // reorderTasks in taskStore handles optimistic update and backend sync
             await reorderTasks(updates);
-        } catch (error: any) {
-            showSnackbar(error.message || 'Failed to sync reorder', 'error');
+        } catch (error: unknown) {
+            const message = (error instanceof Error) ? error.message : 'Failed to sync reorder';
+            showSnackbar(message, 'error');
         }
     }, [reorderTasks]);
 
@@ -461,7 +465,7 @@ export function TasksPage() {
                         tasks={filteredTasks}
                         onTaskClick={handleTaskClick}
                         onAddTask={handleAddTask}
-                        onTaskMove={handleTaskMove}
+                        onTaskMove={(updates) => handleTaskMove(updates as { id: string; status: 'todo' | 'in_progress' | 'done'; order: number }[])}
                         onDeleteTask={handleDeleteTask}
                         sortMode={sortMode}
                         isDragDisabled={!!searchTerm.trim()}
@@ -479,7 +483,8 @@ export function TasksPage() {
                 }}
                 onSubmit={handleDialogSubmit}
                 onDelete={handleDeleteTask}
-                task={selectedTask}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                task={selectedTask as any}
                 isSaving={isSaving}
             />
 
@@ -489,7 +494,8 @@ export function TasksPage() {
                 onClose={() => toggleTaskParam('task', null)}
                 onEdit={handleEditFromPreview}
                 onDelete={handleDeleteTask}
-                task={selectedTask}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                task={selectedTask as any}
             />
 
             {/* Snackbar */}

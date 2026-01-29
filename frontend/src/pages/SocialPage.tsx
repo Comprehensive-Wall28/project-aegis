@@ -3,6 +3,7 @@ import { Lock as LockIcon, Home as HomeIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SocialProvider, useSocial } from '@/components/social/SocialPageContext';
 import { encryptWithAES, decryptWithAES } from '@/utils/socialCrypto';
+import type { Room, LinkPost } from '@/services/socialService';
 import { SocialHeader } from '@/components/social/SocialHeader';
 import { SocialPageDialogs } from '@/components/social/SocialPageDialogs';
 import { SocialErrorBoundary } from '@/components/social/SocialErrorBoundary';
@@ -48,11 +49,11 @@ function SocialPageContent() {
         roomKeys,
         isLoadingLinks,
         isSearchingLinks,
-    } = useSocial();
+    } = useSocial() as unknown as {error?: string; viewMode?: string; isMobile?: boolean; optimisticRoomId?: string; currentRoom: Room | null; handleExitRoom: () => void; searchQuery?: string; setSearchQuery?: (q: string) => void; handleFilterClick?: (e: React.MouseEvent<HTMLElement>) => void; selectedUploader?: string | null; handleCopyInvite: () => void; filterAnchorEl?: HTMLElement | null; handleFilterClose?: () => void; handleSelectUploader?: (id: string | null) => void; viewFilter?: string; setViewFilter?: (f: string) => void; uniqueUploaders?: Array<{id: string; username: string}>; newLinkUrl?: string; setNewLinkUrl?: (url: string) => void; handlePostLink?: () => void; isPostingLink?: boolean; sortOrder?: string; setSortOrder?: (order: string) => void; zenModeOpen?: boolean; toggleOverlay?: (type: string, val?: unknown) => void; snackbar: {open: boolean; message: string; severity?: string}; setSnackbar?: (s: {open: boolean; message: string; severity?: string}) => void; commentsLink?: LinkPost; readerLink?: LinkPost; roomKeys?: Map<string, CryptoKey>; isLoadingLinks?: boolean; isSearchingLinks?: boolean};
 
     // const linksContainerRef = useRef<HTMLDivElement>(null); // Removed as it was only used for ZenMode props
 
-    const roomKey = currentRoom ? roomKeys.get(currentRoom._id) : null;
+    const roomKey = currentRoom ? roomKeys?.get(currentRoom._id) : null;
 
     return (
         <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden', position: 'relative' }}>
@@ -130,32 +131,32 @@ function SocialPageContent() {
                             <SocialErrorBoundary componentName="Header">
                                 <Box sx={{ px: isMobile ? 1 : 0 }}>
                                     <SocialHeader
-                                        viewMode={viewMode as any}
-                                        isMobile={isMobile}
-                                        optimisticRoomId={optimisticRoomId}
+                                        viewMode={(viewMode || 'rooms') as 'room-content' | 'rooms'}
+                                        isMobile={isMobile || false}
+                                        optimisticRoomId={optimisticRoomId || null}
                                         currentRoom={currentRoom}
-                                        handleExitRoom={handleExitRoom}
-                                        searchQuery={searchQuery}
-                                        setSearchQuery={setSearchQuery}
-                                        handleFilterClick={handleFilterClick}
-                                        selectedUploader={selectedUploader}
-                                        handleCopyInvite={handleCopyInvite}
-                                        filterAnchorEl={filterAnchorEl}
-                                        handleFilterClose={handleFilterClose}
-                                        handleSelectUploader={handleSelectUploader}
-                                        viewFilter={viewFilter}
-                                        handleViewFilterChange={setViewFilter}
-                                        uniqueUploaders={uniqueUploaders}
-                                        newLinkUrl={newLinkUrl}
-                                        setNewLinkUrl={setNewLinkUrl}
-                                        handlePostLink={handlePostLink}
-                                        isPostingLink={isPostingLink}
-                                        sortOrder={sortOrder}
-                                        handleSortOrderChange={setSortOrder}
-                                        isLoadingLinks={isLoadingLinks}
-                                        isSearchingLinks={isSearchingLinks}
-                                        onToggleZenMode={() => toggleOverlay('zen', !zenModeOpen)}
-                                        onCreateRoom={() => toggleOverlay('createRoom', true)}
+                                        handleExitRoom={handleExitRoom || (() => {})}
+                                        searchQuery={searchQuery || ''}
+                                        setSearchQuery={setSearchQuery || (() => {})}
+                                        handleFilterClick={handleFilterClick || (() => {})}
+                                        selectedUploader={selectedUploader || null}
+                                        handleCopyInvite={handleCopyInvite || (() => {})}
+                                        filterAnchorEl={filterAnchorEl || null}
+                                        handleFilterClose={handleFilterClose || (() => {})}
+                                        handleSelectUploader={handleSelectUploader || (() => {})}
+                                        viewFilter={(viewFilter || 'all') as 'all' | 'viewed' | 'unviewed'}
+                                        handleViewFilterChange={setViewFilter || (() => {})}
+                                        uniqueUploaders={(uniqueUploaders || []).map(u => ({ id: u.id, username: u.username || u.id }))}
+                                        newLinkUrl={newLinkUrl || ''}
+                                        setNewLinkUrl={setNewLinkUrl || (() => {})}
+                                        handlePostLink={handlePostLink || (() => {})}
+                                        isPostingLink={isPostingLink || false}
+                                        sortOrder={(sortOrder || 'latest') as 'latest' | 'oldest'}
+                                        handleSortOrderChange={setSortOrder || (() => {})}
+                                        isLoadingLinks={isLoadingLinks || false}
+                                        isSearchingLinks={isSearchingLinks || false}
+                                        onToggleZenMode={() => (toggleOverlay || (() => {}))('zen')}
+                                        onCreateRoom={() => (toggleOverlay || (() => {}))('createRoom')}
                                     />
                                 </Box>
                             </SocialErrorBoundary>
@@ -179,35 +180,39 @@ function SocialPageContent() {
 
             <SocialPageDialogs />
 
-            <CommentsOverlay
-                open={!!commentsLink}
-                onClose={() => toggleOverlay('comments', null)}
-                link={commentsLink as any}
-                encryptComment={(d) => roomKey ? encryptWithAES(roomKey, d) : Promise.resolve(d)}
-                decryptComment={(d) => roomKey ? decryptWithAES(roomKey, d) : Promise.resolve(d)}
-            />
-            <ReaderModeOverlay
-                open={!!readerLink}
-                onClose={() => toggleOverlay('reader', null)}
-                link={readerLink as any}
-                encryptAnnotation={(d) => roomKey ? encryptWithAES(roomKey, d) : Promise.resolve(d)}
-                decryptAnnotation={(d) => roomKey ? decryptWithAES(roomKey, d) : Promise.resolve(d)}
-            />
+            {commentsLink && (
+                <CommentsOverlay
+                    open={true}
+                    onClose={() => (toggleOverlay || (() => {}))('comments')}
+                    link={commentsLink as unknown as LinkPost}
+                    encryptComment={(d: string) => roomKey ? encryptWithAES(roomKey, d) : Promise.resolve(d)}
+                    decryptComment={(d: string) => roomKey ? decryptWithAES(roomKey, d) : Promise.resolve(d)}
+                />
+            )}
+            {readerLink && (
+                <ReaderModeOverlay
+                    open={true}
+                    onClose={() => (toggleOverlay || (() => {}))('reader')}
+                    link={readerLink as unknown as LinkPost}
+                    encryptAnnotation={(d: string) => roomKey ? encryptWithAES(roomKey, d) : Promise.resolve(d)}
+                    decryptAnnotation={(d: string) => roomKey ? decryptWithAES(roomKey, d) : Promise.resolve(d)}
+                />
+            )}
             <ZenModeOverlay
-                open={zenModeOpen}
-                onClose={() => toggleOverlay('zen', false)}
+                open={zenModeOpen || false}
+                onClose={() => (toggleOverlay || (() => {}))('zen')}
             />
 
             <Snackbar
-                open={snackbar.open}
+                open={snackbar?.open || false}
                 autoHideDuration={6000}
-                onClose={() => setSnackbar((prev: any) => ({ ...prev, open: false }))}
+                onClose={() => (setSnackbar || (() => {}))({ open: false, message: snackbar?.message || '', severity: snackbar?.severity || 'info' })}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 sx={{ zIndex: SOCIAL_SNACKBAR_Z_INDEX }}
             >
                 <Alert
-                    onClose={() => setSnackbar((prev: any) => ({ ...prev, open: false }))}
-                    severity={snackbar.severity}
+                    onClose={() => (setSnackbar || (() => {}))({ open: false, message: snackbar?.message || '', severity: snackbar?.severity || 'info' })}
+                    severity={(snackbar?.severity || 'info') as 'success' | 'error' | 'info' | 'warning'}
                     variant="filled"
                     sx={{ width: '100%', borderRadius: '12px', fontWeight: 600 }}
                 >

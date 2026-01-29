@@ -73,9 +73,10 @@ export function InviteLanding() {
 
                 setRoomInfo({ name, description });
                 setIsLoading(false);
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error('Failed to load invite:', err);
-                setError(err.response?.data?.message || 'Invite not found or expired');
+                const message = (err instanceof Error) ? err.message : 'Invite not found or expired';
+                setError(message);
                 setIsLoading(false);
             }
         };
@@ -105,8 +106,9 @@ export function InviteLanding() {
             setIsJoining(true);
             await joinRoom(code, roomKey);
             navigate('/dashboard/social');
-        } catch (err: any) {
-            setError(err.response?.data?.message || err.message || 'Failed to join room');
+        } catch (err: unknown) {
+            const message = (err instanceof Error) ? err.message : 'Failed to join room';
+            setError(message);
             setIsJoining(false);
         }
     };
