@@ -70,6 +70,7 @@ export function useSocialState() {
     const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
     const [isMovingLink, setIsMovingLink] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchPending, setIsSearchPending] = useState(false);
     const [postLinkError, setPostLinkError] = useState<string | null>(null);
     const [snackbar, setSnackbar] = useState({
         open: false,
@@ -139,6 +140,7 @@ export function useSocialState() {
         sortOrder, setSortOrder,
         isMovingLink, setIsMovingLink,
         searchQuery, setSearchQuery,
+        isSearchPending, setIsSearchPending,
         postLinkError, setPostLinkError,
         snackbar, setSnackbar,
         optimisticRoomId, setOptimisticRoomId,
@@ -162,11 +164,11 @@ export function useSocialState() {
         isInitializing: pqcEngineStatus !== 'operational',
         effectiveIsLoadingRooms: store.isLoadingRooms || pqcEngineStatus !== 'operational',
         effectiveIsLoadingRoom: store.isLoadingContent || pqcEngineStatus !== 'operational' || !shouldRenderContent,
-        effectiveIsLoadingLinks: store.isLoadingLinks || store.isSearchingLinks,
+        effectiveIsLoadingLinks: store.isLoadingLinks || store.isSearchingLinks || isSearchPending,
         // Only show skeletons during initial room load (isLoadingContent), not during collection switching
         // isLoadingLinks alone should NOT trigger skeletons - let the current content animate out naturally
         hasLoadedContent: Object.keys(store.linksCache).length > 0,
-        effectiveIsLoadingContent: store.isLoadingContent || store.isSearchingLinks || pqcEngineStatus !== 'operational' || !shouldRenderContent,
+        effectiveIsLoadingContent: store.isLoadingContent || store.isSearchingLinks || isSearchPending || pqcEngineStatus !== 'operational' || !shouldRenderContent,
 
         // Url Sync
         ...urlSync

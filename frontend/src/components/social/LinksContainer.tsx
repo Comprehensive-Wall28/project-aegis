@@ -19,7 +19,7 @@ import {
     Close as CloseIcon,
 } from '@mui/icons-material';
 import { AnimatePresence, motion } from 'framer-motion';
-import { SOCIAL_RADIUS_XLARGE, SOCIAL_RADIUS_MEDIUM } from './constants';
+import { SOCIAL_RADIUS_XLARGE, SOCIAL_RADIUS_MEDIUM, SOCIAL_URL_REGEX } from './constants';
 import { LinkCard } from './LinkCard';
 import { SocialErrorBoundary } from './SocialErrorBoundary';
 import { LinkCardSkeleton } from './SocialSkeletons';
@@ -293,9 +293,11 @@ export const LinksContainer = memo(forwardRef<HTMLDivElement, LinksContainerProp
                             }}
                         >
                             <Typography variant="h6" color="text.secondary">
-                                {debouncedSearchQuery ? 'No links found matching your search' : 'This collection is empty'}
+                                {(debouncedSearchQuery && !SOCIAL_URL_REGEX.test(debouncedSearchQuery) && debouncedSearchQuery.trim().length >= 2)
+                                    ? 'No links found matching your search'
+                                    : 'This collection is empty'}
                             </Typography>
-                            {!debouncedSearchQuery && (
+                            {(!debouncedSearchQuery || SOCIAL_URL_REGEX.test(debouncedSearchQuery) || debouncedSearchQuery.trim().length < 2) && (
                                 <Button
                                     startIcon={<AddIcon />}
                                     variant="outlined"

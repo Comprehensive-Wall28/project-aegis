@@ -18,3 +18,6 @@ export const SOCIAL_RADIUS_LARGE = '24px';
 export const SOCIAL_RADIUS_MEDIUM = '24px';
 export const SOCIAL_RADIUS_SMALL = '12px';
 export const SOCIAL_RADIUS_XSMALL = '10px';
+
+// Regex
+export const SOCIAL_URL_REGEX = /^(https?:\/\/|www\.)\S+/i;

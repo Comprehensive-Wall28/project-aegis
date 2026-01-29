@@ -31,6 +31,7 @@ import { SocialFilterMenu } from './SocialFilterMenu';
 import {
     SOCIAL_RADIUS_XLARGE,
     SOCIAL_RADIUS_MEDIUM,
+    SOCIAL_URL_REGEX,
 } from './constants';
 
 export const SocialHeader = memo(({
@@ -70,7 +71,7 @@ export const SocialHeader = memo(({
         }
     }, [handlePostLink, searchQuery]);
 
-    const isUrl = /^(https?:\/\/|www\.)\S+/i.test(searchQuery);
+    const isUrl = SOCIAL_URL_REGEX.test(searchQuery);
 
     const showSkeleton = isDecrypting ||
         (viewMode === 'room-content' && !currentRoom) ||

@@ -4,6 +4,7 @@ import type { SocialState } from './useSocialState';
 import socketService from '@/services/socketService';
 import { useShareIntent } from './useShareIntent';
 import { decryptWithAES } from '@/utils/socialCrypto';
+import { SOCIAL_URL_REGEX } from '@/components/social/constants';
 
 export function useSocialHandlers(state: SocialState) {
     const navigate = useNavigate();
@@ -59,6 +60,7 @@ export function useSocialHandlers(state: SocialState) {
         draggedLinkId,
         renameCollection,
         setSearchQuery,
+        setIsSearchPending,
         leaveRoom,
         setLeaveRoomConfirmOpen,
         setRoomToLeave,
@@ -387,20 +389,25 @@ export function useSocialHandlers(state: SocialState) {
     const prevSearchQueryRef = useRef(searchQuery);
     useEffect(() => {
         const trimmed = searchQuery.trim();
-        const isUrl = /^(https?:\/\/|www\.)\S+/i.test(trimmed);
+        const isUrl = SOCIAL_URL_REGEX.test(trimmed);
         const controller = new AbortController();
 
         if (trimmed.length >= 2 && !isUrl) {
+            setIsSearchPending(true);
             const timer = setTimeout(() => {
-                searchRoomLinks(trimmed, controller.signal);
+                searchRoomLinks(trimmed, controller.signal).finally(() => {
+                    setIsSearchPending(false);
+                });
             }, 400);
             return () => {
                 clearTimeout(timer);
                 controller.abort();
+                setIsSearchPending(false);
             };
         } else {
             // Cancel any pending search
             controller.abort();
+            setIsSearchPending(false);
 
             // Revert to collection view if:
             // 1. The query is now empty/short AND we were previously searching (length >= 2)
@@ -415,8 +422,11 @@ export function useSocialHandlers(state: SocialState) {
         }
         prevSearchQueryRef.current = searchQuery;
 
-        return () => controller.abort();
-    }, [searchQuery, searchRoomLinks, currentCollectionId, selectCollection]);
+        return () => {
+            controller.abort();
+            setIsSearchPending(false);
+        };
+    }, [searchQuery, searchRoomLinks, currentCollectionId, selectCollection, setIsSearchPending]);
 
     // Share intent integration
     useShareIntent({
