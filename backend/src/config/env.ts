@@ -1,8 +1,8 @@
-import dotenv from 'dotenv';
+
 import logger from '../utils/logger';
 
 // Load environment variables
-dotenv.config();
+
 
 /**
  * Validates that all required environment variables are present in production.

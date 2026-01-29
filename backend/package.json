@@ -1,11 +1,11 @@
 {
   "name": "aegis-backend",
-  "version": "2.5.1",
-  "description": "project-aegis 3 tier architecture backend",
+  "version": "2.7.1",
+  "description": "project-aegis backend",
   "main": "index.js",
   "scripts": {
     "start": "node dist/server.js",
-    "dev": "nodemon src/server.ts",
+    "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -21,13 +21,11 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/uuid": "^11.0.0",
     "argon2": "^0.44.0",
     "axios": "^1.13.4",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "csrf-csrf": "^4.0.3",
-    "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "googleapis": "^170.1.0",
@@ -55,13 +53,11 @@
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "socket.io": "^4.8.3",
-    "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "uuid": "^13.0.0",
     "winston": "^3.19.0"
   },
   "devDependencies": {
     "@types/node": "^25.0.10",
-    "nodemon": "^3.1.11"
+    "tsx": "^4.21.0"
   }
 }
