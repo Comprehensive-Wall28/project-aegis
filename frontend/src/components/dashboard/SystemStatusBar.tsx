@@ -14,13 +14,22 @@ import {
 import { useSessionStore } from '@/stores/sessionStore';
 import { motion } from 'framer-motion';
 
+interface StatusConfig {
+    icon: React.ReactNode;
+    text: string;
+    color: string;
+    bgcolor: string;
+    dotColor: string;
+    glow?: boolean;
+}
+
 export function SystemStatusBar() {
     const pqcEngineStatus = useSessionStore(state => state.pqcEngineStatus);
     const cryptoStatus = useSessionStore(state => state.cryptoStatus);
 
     const theme = useTheme();
 
-    const getStatusConfig = () => {
+    const getStatusConfig = (): StatusConfig => {
         // Higher priority for cryptographic operations
         if (cryptoStatus !== 'idle') {
             const isDone = cryptoStatus === 'done';
@@ -184,7 +193,7 @@ export function SystemStatusBar() {
                         border: `1px solid ${alpha(status.color, 0.3)}`,
                         width: 140, // Fixed width
                         justifyContent: 'center',
-                        boxShadow: (status as any).glow ? `0 0 15px ${alpha(status.color, 0.15)}` : 'none',
+                        boxShadow: status.glow ? `0 0 15px ${alpha(status.color, 0.15)}` : 'none',
                         transition: theme.transitions.create(['background-color', 'color', 'border-color', 'box-shadow'], {
                             duration: theme.transitions.duration.shorter
                         })
