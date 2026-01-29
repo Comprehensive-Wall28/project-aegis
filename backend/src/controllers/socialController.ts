@@ -1,44 +1,54 @@
-import { Request, Response, NextFunction } from 'express';
-import { SocialService } from '../services';
+import { Request, Response } from 'express';
+import {
+    RoomService,
+    CollectionService,
+    LinkService,
+    CommentService,
+    ReaderService
+} from '../services/social';
 import { withAuth, catchAsync } from '../middleware/controllerWrapper';
 
 interface AuthRequest extends Request {
     user?: { id: string; username: string };
 }
 
-// Service instance
-const socialService = new SocialService();
+// Service instances
+const roomService = new RoomService();
+const collectionService = new CollectionService();
+const linkService = new LinkService();
+const commentService = new CommentService();
+const readerService = new ReaderService();
 
 // ============== Room Endpoints ==============
 
 export const createRoom = withAuth(async (req: AuthRequest, res: Response) => {
-    const room = await socialService.createRoom(req.user!.id, req.body, req);
+    const room = await roomService.createRoom(req.user!.id, req.body, req);
     res.status(201).json(room);
 });
 
 export const getUserRooms = withAuth(async (req: AuthRequest, res: Response) => {
-    const rooms = await socialService.getUserRooms(req.user!.id);
+    const rooms = await roomService.getUserRooms(req.user!.id);
     res.status(200).json(rooms);
 });
 
 export const createInvite = withAuth(async (req: AuthRequest, res: Response) => {
-    const inviteCode = await socialService.createInvite(req.user!.id, req.params.roomId as string, req);
+    const inviteCode = await roomService.createInvite(req.user!.id, req.params.roomId as string, req);
     res.status(200).json({ inviteCode });
 });
 
 export const getInviteInfo = catchAsync(async (req: Request, res: Response) => {
-    const info = await socialService.getInviteInfo(req.params.inviteCode as string);
+    const info = await roomService.getInviteInfo(req.params.inviteCode as string);
     res.status(200).json(info);
 });
 
 export const joinRoom = withAuth(async (req: AuthRequest, res: Response) => {
     const { inviteCode, encryptedRoomKey } = req.body;
-    const roomId = await socialService.joinRoom(req.user!.id, inviteCode, encryptedRoomKey, req);
+    const roomId = await roomService.joinRoom(req.user!.id, inviteCode, encryptedRoomKey, req);
     res.status(200).json({ message: 'Successfully joined room', roomId });
 });
 
 export const getRoomContent = withAuth(async (req: AuthRequest, res: Response) => {
-    const content = await socialService.getRoomContent(req.user!.id, req.params.roomId as string);
+    const content = await roomService.getRoomContent(req.user!.id, req.params.roomId as string);
     res.status(200).json(content);
 });
 
@@ -52,7 +62,7 @@ export const getCollectionLinks = withAuth(async (req: AuthRequest, res: Respons
         id: cursorId
     } : undefined;
 
-    const result = await socialService.getCollectionLinks(
+    const result = await linkService.getCollectionLinks(
         req.user!.id,
         req.params.roomId as string,
         req.params.collectionId as string,
@@ -70,7 +80,7 @@ export const searchRoomLinks = withAuth(async (req: AuthRequest, res: Response) 
         return res.status(200).json({ links: [], viewedLinkIds: [], commentCounts: {} });
     }
 
-    const result = await socialService.searchRoomLinks(
+    const result = await linkService.searchRoomLinks(
         req.user!.id,
         req.params.roomId as string,
         query,
@@ -82,46 +92,46 @@ export const searchRoomLinks = withAuth(async (req: AuthRequest, res: Response) 
 // ============== Link Endpoints ==============
 
 export const postLink = withAuth(async (req: AuthRequest, res: Response) => {
-    const linkPost = await socialService.postLink(req.user!.id, req.params.roomId as string, req.body, req);
+    const linkPost = await linkService.postLink(req.user!.id, req.params.roomId as string, req.body, req);
     res.status(201).json(linkPost);
 });
 
 export const deleteLink = withAuth(async (req: AuthRequest, res: Response) => {
-    await socialService.deleteLink(req.user!.id, req.params.linkId as string, req);
+    await linkService.deleteLink(req.user!.id, req.params.linkId as string, req);
     res.status(200).json({ message: 'Link deleted successfully' });
 });
 
 export const markLinkViewed = withAuth(async (req: AuthRequest, res: Response) => {
-    await socialService.markLinkViewed(req.user!.id, req.params.linkId as string);
+    await linkService.markLinkViewed(req.user!.id, req.params.linkId as string);
     res.status(200).json({ message: 'Link marked as viewed' });
 });
 
 export const unmarkLinkViewed = withAuth(async (req: AuthRequest, res: Response) => {
-    await socialService.unmarkLinkViewed(req.user!.id, req.params.linkId as string);
+    await linkService.unmarkLinkViewed(req.user!.id, req.params.linkId as string);
     res.status(200).json({ message: 'Link unmarked as viewed' });
 });
 
 export const moveLink = withAuth(async (req: AuthRequest, res: Response) => {
-    const linkPost = await socialService.moveLink(req.user!.id, req.params.linkId as string, req.body.collectionId);
+    const linkPost = await linkService.moveLink(req.user!.id, req.params.linkId as string, req.body.collectionId);
     res.status(200).json({ message: 'Link moved successfully', linkPost });
 });
 
 // ============== Collection Endpoints ==============
 
 export const createCollection = withAuth(async (req: AuthRequest, res: Response) => {
-    const collection = await socialService.createCollection(req.user!.id, req.params.roomId as string, req.body);
+    const collection = await collectionService.createCollection(req.user!.id, req.params.roomId as string, req.body, req);
     res.status(201).json(collection);
 });
 
 export const deleteCollection = withAuth(async (req: AuthRequest, res: Response) => {
-    await socialService.deleteCollection(req.user!.id, req.params.collectionId as string, req);
+    await collectionService.deleteCollection(req.user!.id, req.params.collectionId as string, req);
     res.status(200).json({ message: 'Collection deleted successfully' });
 });
 
 export const reorderCollections = withAuth(async (req: AuthRequest, res: Response) => {
     const { roomId } = req.params;
     const { collectionIds } = req.body;
-    await socialService.reorderCollections(req.user!.id, roomId as string, collectionIds);
+    await collectionService.reorderCollections(req.user!.id, roomId as string, collectionIds, req);
     res.status(200).json({ message: 'Collections reordered successfully' });
 });
 
@@ -137,7 +147,7 @@ export const getComments = withAuth(async (req: AuthRequest, res: Response) => {
         id: cursorId
     } : undefined;
 
-    const result = await socialService.getComments(
+    const result = await commentService.getComments(
         req.user!.id,
         req.params.linkId as string,
         limit,
@@ -147,44 +157,46 @@ export const getComments = withAuth(async (req: AuthRequest, res: Response) => {
 });
 
 export const postComment = withAuth(async (req: AuthRequest, res: Response) => {
-    const comment = await socialService.postComment(
+    const comment = await commentService.postComment(
         req.user!.id,
         req.params.linkId as string,
-        req.body.encryptedContent
+        req.body.encryptedContent,
+        req
     );
     res.status(201).json(comment);
 });
 
 export const deleteComment = withAuth(async (req: AuthRequest, res: Response) => {
-    await socialService.deleteComment(req.user!.id, req.params.commentId as string);
+    await commentService.deleteComment(req.user!.id, req.params.commentId as string, req);
     res.status(200).json({ message: 'Comment deleted successfully' });
 });
 
 // ============== Reader Mode Endpoints ==============
 
 export const getReaderContent = withAuth(async (req: AuthRequest, res: Response) => {
-    const result = await socialService.getReaderContent(req.user!.id, req.params.linkId as string);
+    const result = await readerService.getReaderContent(req.user!.id, req.params.linkId as string);
     res.status(200).json(result);
 });
 
 export const getAnnotations = withAuth(async (req: AuthRequest, res: Response) => {
-    const annotations = await socialService.getAnnotations(req.user!.id, req.params.linkId as string);
+    const annotations = await readerService.getAnnotations(req.user!.id, req.params.linkId as string);
     res.status(200).json(annotations);
 });
 
 export const createAnnotation = withAuth(async (req: AuthRequest, res: Response) => {
     const { paragraphId, highlightText, encryptedContent } = req.body;
-    const annotation = await socialService.createAnnotation(
+    const annotation = await readerService.createAnnotation(
         req.user!.id,
         req.params.linkId as string,
         paragraphId,
         highlightText,
-        encryptedContent
+        encryptedContent,
+        req
     );
     res.status(201).json(annotation);
 });
 
 export const deleteAnnotation = withAuth(async (req: AuthRequest, res: Response) => {
-    await socialService.deleteAnnotation(req.user!.id, req.params.annotationId as string);
+    await readerService.deleteAnnotation(req.user!.id, req.params.annotationId as string, req);
     res.status(200).json({ message: 'Annotation deleted successfully' });
 });

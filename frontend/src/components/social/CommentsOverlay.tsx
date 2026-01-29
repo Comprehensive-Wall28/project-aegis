@@ -58,7 +58,7 @@ export const CommentsOverlay = memo(({
 
     // Fetch and decrypt comments
     const loadComments = useCallback(async (isLoadMore = false) => {
-        if (!open) return;
+        if (!open || !link) return;
 
         if (isLoadMore) setIsLoadingMore(true);
         else setIsLoading(true);
@@ -114,7 +114,7 @@ export const CommentsOverlay = memo(({
             setIsLoading(false);
             setIsLoadingMore(false);
         }
-    }, [open, link._id, decryptComment, nextCursor]);
+    }, [open, link?._id, decryptComment, nextCursor]);
 
     useEffect(() => {
         setError(null);
@@ -127,7 +127,7 @@ export const CommentsOverlay = memo(({
         setIsPosting(true);
         try {
             const encryptedContent = await encryptComment(newComment.trim());
-            const comment = await socialService.postComment(link._id, encryptedContent);
+            const comment = await socialService.postComment(link?._id || '', encryptedContent);
 
             // Add to list with decrypted content
             setComments((prev) => [
@@ -181,6 +181,8 @@ export const CommentsOverlay = memo(({
             return date.toLocaleDateString();
         }
     };
+
+    if (!open || !link) return null;
 
     return (
         <DialogPortal>

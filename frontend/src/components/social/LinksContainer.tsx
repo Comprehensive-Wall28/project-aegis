@@ -1,334 +1,330 @@
-import { memo, useMemo, useCallback } from 'react';
+import { forwardRef, memo, useDeferredValue } from 'react';
 import {
     Box,
     Typography,
-    IconButton,
-    alpha,
-    useTheme,
-    Button,
-    TextField,
-    InputAdornment,
-    CircularProgress,
-    Skeleton,
-    useMediaQuery,
-    LinearProgress,
     Paper,
+    Button,
+    useTheme,
+    InputBase,
+    alpha,
+    LinearProgress,
+    CircularProgress,
+    IconButton,
+    Fab,
 } from '@mui/material';
 import {
-    Folder as CollectionIcon,
+    Add as AddIcon,
     Search as SearchIcon,
+    Menu as MenuIcon,
     Close as CloseIcon,
-    Link as LinkIcon,
 } from '@mui/icons-material';
-import {
-    SOCIAL_RADIUS_LARGE,
-} from './constants';
-import { motion, AnimatePresence } from 'framer-motion';
-import { LinkCardSkeleton } from './SocialSkeletons';
+import { AnimatePresence, motion } from 'framer-motion';
+import { SOCIAL_RADIUS_XLARGE, SOCIAL_RADIUS_MEDIUM } from './constants';
 import { LinkCard } from './LinkCard';
 import { SocialErrorBoundary } from './SocialErrorBoundary';
-import type { LinkPost } from '@/services/socialService';
+import { LinkCardSkeleton } from './SocialSkeletons';
+import { useSocial } from './SocialPageContext';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
+import type { Collection } from '@/services/socialService';
+
+const CollectionName = memo(({ collection }: { collection: Collection }) => {
+    const { name, isDecrypting } = useDecryptedCollectionMetadata(collection);
+    if (!collection) return null;
+    return isDecrypting ? '...' : (name || collection.name);
+});
 
 import type { LinksContainerProps } from './types';
 
-export const LinksContainer = memo(({
-    linksContainerRef,
-    isMobile,
-    currentCollectionId,
-    collections,
-    setMobileDrawerOpen,
-    searchQuery,
-    setSearchQuery,
-    isLoadingContent,
-    isLoadingLinks,
-    isSearchingLinks,
-    filteredLinks,
-    deleteLink,
-    setDraggedLinkId,
-    markLinkViewed,
-    unmarkLinkViewed,
-    setCommentsLink,
-    setReaderLink,
-    viewedLinkIds,
-    commentCounts,
-    currentUserId,
-    hasMoreLinks,
-    loadAllLinks,
-    onMoveLink,
-    previewLinkId,
-    setPreviewLink,
-    hideCollectionSelector,
-    noContainer = false,
-}: LinksContainerProps) => {
+export const LinksContainer = memo(forwardRef<HTMLDivElement, LinksContainerProps>(({ noContainer, menuZIndex }, ref) => {
     const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+    const {
+        isMobile,
+        collections,
+        currentCollectionId,
+        setMobileDrawerOpen,
+        searchQuery,
+        setSearchQuery,
+        effectiveIsLoadingContent,
+        filteredLinks,
+        handleDeleteLink,
+        setDraggedLinkId,
+        markLinkViewed,
+        unmarkLinkViewed,
+        toggleOverlay,
+        viewedLinkIds,
+        commentCounts,
+        currentUserId,
+        handleOpenMoveDialog,
+        previewLink,
+        effectiveIsLoadingLinks,
+        loadAllLinks,
+        hasMoreLinks,
+    } = useSocial();
 
-    const currentCollection = useMemo(() =>
-        collections.find(c => c._id === currentCollectionId) || null
-        , [collections, currentCollectionId]);
-
-    const { name: decryptedName, isDecrypting } = useDecryptedCollectionMetadata(currentCollection);
-
-    const handleDelete = useCallback((id: string) => deleteLink(id), [deleteLink]);
-    const handleDragStart = useCallback((id: string | null) => setDraggedLinkId(id), [setDraggedLinkId]);
-    const handleView = useCallback((id: string) => markLinkViewed(id), [markLinkViewed]);
-    const handleUnview = useCallback((id: string) => unmarkLinkViewed(id), [unmarkLinkViewed]);
-    const handleCommentsClick = useCallback((link: LinkPost) => setCommentsLink(link), [setCommentsLink]);
-    const handleReaderClick = useCallback((link: LinkPost) => setReaderLink(link), [setReaderLink]);
-    const handlePreviewClick = useCallback((link: LinkPost | null) => setPreviewLink(link), [setPreviewLink]);
-    const handleLoadAll = useCallback(() => loadAllLinks(), [loadAllLinks]);
-    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
-    const handleClearSearch = useCallback((e: React.MouseEvent) => {
-        e.stopPropagation();
-        setSearchQuery('');
-    }, [setSearchQuery]);
-    const handleMoveClick = useCallback((link: LinkPost) => onMoveLink?.(link), [onMoveLink]);
+    // Use React 18 useDeferredValue for deferred search display
+    const debouncedSearchQuery = useDeferredValue(searchQuery);
 
     return (
-        <motion.div
-            initial={isDesktop ? { opacity: 0 } : false}
-            animate={isDesktop ? { opacity: 1 } : undefined}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            style={{ flex: 1, minWidth: 0, height: '100%', display: 'flex', flexDirection: 'column' }}
+        <Paper
+            elevation={noContainer ? 0 : 1}
+            sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                borderRadius: noContainer ? 0 : SOCIAL_RADIUS_XLARGE,
+                bgcolor: noContainer ? 'transparent' : 'background.paper',
+                border: noContainer ? 'none' : `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                overflow: 'hidden',
+                position: 'relative',
+            }}
         >
+            <AnimatePresence>
+                {(effectiveIsLoadingLinks) && (
+                    <Box
+                        component={motion.div}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            zIndex: 10,
+                        }}
+                    >
+                        <LinearProgress
+                            sx={{
+                                height: 3,
+                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                '& .MuiLinearProgress-bar': {
+                                    borderRadius: 1,
+                                }
+                            }}
+                        />
+                    </Box>
+                )}
+            </AnimatePresence>
+            {isMobile && !noContainer && (
+                <Box sx={{
+                    p: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                    bgcolor: alpha(theme.palette.background.default, 0.5)
+                }}>
+                    <Button
+                        onClick={() => setMobileDrawerOpen(true)}
+                        variant="text"
+                        size="small"
+                        startIcon={<MenuIcon />}
+                        sx={{
+                            minWidth: 0,
+                            maxWidth: '45%',
+                            color: 'text.primary',
+                            px: 1,
+                            borderRadius: SOCIAL_RADIUS_MEDIUM,
+                            '& .MuiButton-startIcon': { mr: 0.5 },
+                            '& .MuiTypography-root': {
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontWeight: 600,
+                            }
+                        }}
+                    >
+                        <Typography variant="body2">
+                            {currentCollectionId && collections.find(c => c._id === currentCollectionId) ? (
+                                <CollectionName collection={collections.find(c => c._id === currentCollectionId)!} />
+                            ) : 'All Links'}
+                        </Typography>
+                    </Button>
+
+                    <Box sx={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        bgcolor: alpha(theme.palette.text.primary, 0.05),
+                        borderRadius: SOCIAL_RADIUS_MEDIUM,
+                        px: 1.5,
+                        py: 0.5,
+                        minWidth: 0,
+                    }}>
+                        <SearchIcon sx={{ color: 'text.secondary', fontSize: 18, mr: 1 }} />
+                        <InputBase
+                            placeholder="Search links..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            sx={{ flex: 1, fontSize: '0.875rem' }}
+                        />
+                        {searchQuery && (
+                            <IconButton
+                                size="small"
+                                onClick={() => setSearchQuery('')}
+                                sx={{ p: 0.5, color: 'text.secondary' }}
+                                aria-label="Clear search"
+                            >
+                                <CloseIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        )}
+
+                    </Box>
+                </Box>
+            )}
+
+
+            {/* Links Grid */}
             <Box
-                component={noContainer ? 'div' : Paper}
-                {...(!noContainer && { elevation: 1 })}
+                ref={ref}
                 sx={{
                     flex: 1,
-                    minWidth: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    borderRadius: SOCIAL_RADIUS_LARGE,
-                    bgcolor: noContainer ? 'transparent' : 'background.paper',
-                    overflow: 'hidden',
+                    overflowY: 'auto',
+                    p: noContainer ? 0 : (isMobile ? 0.5 : 1),
+                    display: 'grid',
+                    gridTemplateColumns: {
+                        xs: '1fr',
+                        sm: 'repeat(auto-fill, minmax(280px, 1fr))',
+                        lg: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    },
+                    gap: 1,
+                    alignContent: 'start',
+                    minHeight: 0,
                     position: 'relative',
-                    border: noContainer ? 'none' : undefined,
                 }}
             >
-                <Box
-                    ref={linksContainerRef}
-                    sx={{
-                        flex: 1,
-                        minWidth: 0,
-                        height: '100%',
-                        overflowX: 'hidden',
-                        overflowY: 'auto',
-                        pr: 1,
-                        pt: 1,
-                        px: 1,
-                        pb: isMobile ? 12 : 2,
-                        position: 'relative'
-                    }}>
-                    {/* Background Load Progress - Absolutely positioned to prevent layout shift */}
-                    <AnimatePresence>
-                        {(isSearchingLinks || isLoadingLinks || isLoadingContent) && (
-                            <Box
-                                component={motion.div}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                sx={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: 4,
-                                    zIndex: 10,
-                                    overflow: 'hidden',
-                                    borderRadius: '0 0 4px 4px'
-                                }}
-                            >
-                                <LinearProgress />
-                            </Box>
-                        )}
-                    </AnimatePresence>
-                    {isMobile && (
-                        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                            {!hideCollectionSelector && (
-                                <Button
-                                    variant="outlined"
-                                    size="small"
-                                    startIcon={<CollectionIcon />}
-                                    onClick={() => setMobileDrawerOpen(true)}
-                                    sx={{
-                                        borderRadius: '12px',
-                                        flexShrink: 0,
-                                        whiteSpace: 'nowrap',
-                                        borderColor: alpha(theme.palette.divider, 0.2),
-                                        color: 'text.primary',
-                                        bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                        maxWidth: '45%',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        justifyContent: 'flex-start',
-                                        '& .MuiButton-startIcon': { flexShrink: 0 },
-                                    }}
+                <AnimatePresence mode="wait">
+                    {effectiveIsLoadingContent ? (
+                        <Box
+                            key="links-loading-skeleton"
+                            component={motion.div}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            sx={{
+                                display: 'grid',
+                                gridTemplateColumns: {
+                                    xs: '1fr',
+                                    sm: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                    lg: 'repeat(auto-fill, minmax(320px, 1fr))',
+                                },
+                                gap: 'inherit',
+                                gridColumn: '1 / -1'
+                            }}
+                        >
+                            {Array.from({ length: 12 }).map((_, i) => (
+                                <LinkCardSkeleton key={`link-skeleton-${i}`} />
+                            ))}
+                        </Box>
+                    ) : filteredLinks.length > 0 ? (
+                        <Box
+                            key="links-grid-content"
+                            component={motion.div}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            sx={{
+                                display: 'grid',
+                                gridTemplateColumns: 'inherit',
+                                gap: 'inherit',
+                                gridColumn: '1 / -1',
+                                alignContent: 'start',
+                                position: 'relative',
+                            }}
+                        >
+                            {filteredLinks.map((link) => (
+                                <Box
+                                    key={link._id}
+                                    sx={{ height: '100%' }}
                                 >
-                                    <Typography variant="button" noWrap sx={{ textTransform: 'none' }}>
-                                        {isDecrypting ? <Skeleton width={60} /> : (decryptedName || 'Collections')}
-                                    </Typography>
+                                    <SocialErrorBoundary componentName="Link Card">
+                                        <LinkCard
+                                            link={link}
+                                            isViewed={viewedLinkIds.has(link._id)}
+                                            commentCount={commentCounts[link._id] || 0}
+                                            canDelete={currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)}
+                                            onView={markLinkViewed}
+                                            onUnview={unmarkLinkViewed}
+                                            onDelete={handleDeleteLink}
+                                            onDragStart={setDraggedLinkId}
+                                            onMoveClick={() => handleOpenMoveDialog(link)}
+                                            onCommentsClick={(l) => toggleOverlay('comments', l._id)}
+                                            onReaderClick={(l) => toggleOverlay('reader', l._id)}
+                                            onPreviewClick={(l) => toggleOverlay('preview', l?._id || null)}
+                                            showPreview={previewLink?._id === link._id}
+                                            menuZIndex={menuZIndex}
+                                        />
+                                    </SocialErrorBoundary>
+                                </Box>
+                            ))}
+                            {hasMoreLinks && (
+                                <Box sx={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', py: 2, width: '100%' }}>
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => loadAllLinks()}
+                                        disabled={effectiveIsLoadingLinks}
+                                        startIcon={effectiveIsLoadingLinks ? <CircularProgress size={20} color="inherit" /> : undefined}
+                                        sx={{ borderRadius: SOCIAL_RADIUS_MEDIUM }}
+                                    >
+                                        {effectiveIsLoadingLinks ? 'Loading...' : 'Load all links'}
+                                    </Button>
+                                </Box>
+                            )}
+                        </Box>
+                    ) : (
+                        <Box
+                            key="links-empty-state"
+                            component={motion.div}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            sx={{
+                                position: 'absolute',
+                                inset: 0,
+                                justifyContent: 'center',
+                                textAlign: 'center',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: 2,
+                            }}
+                        >
+                            <Typography variant="h6" color="text.secondary">
+                                {debouncedSearchQuery ? 'No links found matching your search' : 'This collection is empty'}
+                            </Typography>
+                            {!debouncedSearchQuery && (
+                                <Button
+                                    startIcon={<AddIcon />}
+                                    variant="outlined"
+                                    onClick={() => toggleOverlay('post', true)}
+                                    sx={{ borderRadius: SOCIAL_RADIUS_MEDIUM }}
+                                >
+                                    Share the first link
                                 </Button>
                             )}
-                            <TextField
-                                placeholder="Search links..."
-                                value={searchQuery}
-                                onChange={handleSearchChange}
-                                size="small"
-                                fullWidth
-                                slotProps={{
-                                    input: {
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <SearchIcon fontSize="small" color="action" />
-                                            </InputAdornment>
-                                        ),
-                                        endAdornment: searchQuery ? (
-                                            <InputAdornment position="end">
-                                                <IconButton size="small" onClick={handleClearSearch}>
-                                                    <CloseIcon fontSize="small" />
-                                                </IconButton>
-                                            </InputAdornment>
-                                        ) : undefined
-                                    }
-                                }}
-                                sx={{
-                                    flex: 1,
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: '12px',
-                                        bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                        '& fieldset': {
-                                            borderColor: alpha(theme.palette.divider, 0.2),
-                                        },
-                                    }
-                                }}
-                            />
                         </Box>
                     )}
-
-                    <AnimatePresence initial={false} mode="popLayout">
-                        {filteredLinks.length > 0 ? (
-                            <Box
-                                key="links-grid"
-                                component={motion.div}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0, transition: { duration: 0.1 } }}
-                                transition={{
-                                    duration: 0.15,
-                                    ease: 'easeOut'
-                                }}
-                            >
-                                <Box
-                                    sx={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
-                                        gap: 2,
-                                    }}
-                                >
-                                    {filteredLinks.map((link: LinkPost) => (
-                                        <SocialErrorBoundary key={link._id} componentName="Link Card">
-                                            <LinkCard
-                                                link={link}
-                                                onDelete={handleDelete}
-                                                onDragStart={handleDragStart}
-                                                onView={handleView}
-                                                onUnview={handleUnview}
-                                                onCommentsClick={handleCommentsClick}
-                                                onReaderClick={handleReaderClick}
-                                                onPreviewClick={handlePreviewClick}
-                                                showPreview={previewLinkId === link._id}
-                                                isViewed={viewedLinkIds.has(link._id)}
-                                                commentCount={commentCounts[link._id] || 0}
-                                                canDelete={
-                                                    currentUserId === (typeof link.userId === 'object' ? link.userId._id : link.userId)
-                                                }
-                                                onMoveClick={handleMoveClick}
-                                                highlight={searchQuery}
-                                            />
-                                        </SocialErrorBoundary>
-                                    ))}
-                                </Box>
-
-                                {hasMoreLinks && (
-                                    <Box
-                                        sx={{ mt: 3, mb: 2, display: 'flex', justifyContent: 'center', gap: 2 }}
-                                    >
-                                        <Button
-                                            variant="contained"
-                                            onClick={handleLoadAll}
-                                            disabled={isLoadingLinks}
-                                            sx={{
-                                                borderRadius: '12px',
-                                                px: 6,
-                                                py: 1,
-                                                minWidth: '200px', // Ensure enough width for text
-                                                height: '42px',    // Ensure fixed height
-                                                bgcolor: alpha(theme.palette.primary.main, 0.9),
-                                                '&:hover': {
-                                                    bgcolor: theme.palette.primary.main,
-                                                },
-                                                textTransform: 'none',
-                                                fontWeight: 600
-                                            }}
-                                        >
-                                            {isLoadingLinks ? <CircularProgress size={20} color="inherit" /> : 'Load All Links'}
-                                        </Button>
-                                    </Box>
-                                )}
-                            </Box>
-                        ) : (isLoadingLinks || isLoadingContent) && !searchQuery ? (
-                            <Box
-                                key="loading-skeletons"
-                                component={motion.div}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0, transition: { duration: 0.1 } }}
-                                transition={{ duration: 0.15 }}
-                                sx={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
-                                    gap: 2,
-                                }}
-                            >
-                                {Array.from({ length: 6 }).map((_, i) => (
-                                    <LinkCardSkeleton key={`link-skel-${i}`} />
-                                ))}
-                            </Box>
-                        ) : (
-                            <Box
-                                key="empty-state"
-                                component={motion.div}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0, transition: { duration: 0.1 } }}
-                                transition={{ duration: 0.15 }}
-                                sx={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    height: 300,
-                                    gap: 2,
-                                }}
-                            >
-                                {!(isLoadingContent || isLoadingLinks || isSearchingLinks) && filteredLinks.length === 0 && (
-                                    <>
-                                        <LinkIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
-                                        <Typography color="text.secondary" variant="body1">
-                                            {searchQuery.trim()
-                                                ? `No results found for "${searchQuery}"`
-                                                : "No links shared yet. Be the first!"
-                                            }
-                                        </Typography>
-                                    </>
-                                )}
-                            </Box>
-                        )}
-                    </AnimatePresence>
-                </Box>
+                </AnimatePresence>
             </Box>
-        </motion.div>
+            {isMobile && !noContainer && (
+                <Fab
+                    color="primary"
+                    aria-label="add"
+                    onClick={() => toggleOverlay('post', true)}
+                    sx={{
+                        position: 'fixed',
+                        bottom: 16,
+                        right: 16,
+                        zIndex: 100,
+                    }}
+                >
+                    <AddIcon />
+                </Fab>
+            )
+            }
+        </Paper >
     );
-});
+}));

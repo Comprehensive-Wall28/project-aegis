@@ -13,7 +13,7 @@ export interface RoomSlice {
     error: string | null;
 
     fetchRooms: () => Promise<void>;
-    selectRoom: (roomId: string) => Promise<void>;
+    selectRoom: (roomId: string, initialCollectionId?: string) => Promise<string | null>;
     refreshCurrentRoom: () => Promise<void>;
     createRoom: (name: string, description: string, icon?: string) => Promise<Room>;
     joinRoom: (inviteCode: string, roomKey: CryptoKey) => Promise<void>;

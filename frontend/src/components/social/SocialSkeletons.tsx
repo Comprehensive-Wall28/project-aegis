@@ -27,6 +27,7 @@ export const LinkCardSkeleton = () => {
     const theme = useTheme();
     return (
         <Box sx={{
+            width: '100%',
             height: SOCIAL_LINK_CARD_HEIGHT,
             padding: '3px',
             boxSizing: 'border-box'

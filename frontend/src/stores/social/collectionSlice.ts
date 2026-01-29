@@ -10,10 +10,21 @@ export const createCollectionSlice: StateCreator<SocialState, [], [], Pick<Socia
 
     selectCollection: async (collectionId: string, force?: boolean) => {
         const state = get();
-        if (!force && state.currentCollectionId === collectionId) return;
-
-        // Check cache (skip if forced)
+        // Check cache first (unless forced and we have no search query)
         const cached = !force ? state.linksCache[collectionId] : null;
+
+        if (state.currentCollectionId === collectionId) {
+            if (cached) {
+                // Always restore from cache when same collection is selected
+                // This handles the search -> clear case properly
+                set({
+                    links: cached.links,
+                    hasMoreLinks: cached.hasMore,
+                });
+            }
+            if (!force) return;
+        }
+
         if (cached) {
             set({
                 currentCollectionId: collectionId,
@@ -23,12 +34,13 @@ export const createCollectionSlice: StateCreator<SocialState, [], [], Pick<Socia
             return;
         }
 
-        set((prev) => ({
+        set({
             currentCollectionId: collectionId,
-            links: force && prev.currentCollectionId === collectionId ? prev.links : [],
+            // Preserve current links during transition to prevent skeleton flash
+            // The links will be replaced when fetchCollectionLinks completes
             hasMoreLinks: false,
             isLoadingLinks: true
-        }));
+        });
 
         await get().fetchCollectionLinks(collectionId, false);
     },

@@ -68,10 +68,10 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
         }
     },
 
-    selectRoom: async (roomId: string) => {
+    selectRoom: async (roomId: string, initialCollectionId?: string) => {
         const state = get();
         // Avoid parallel requests to the same room or if already loading
-        if (state.isLoadingContent && state.currentRoom?._id === roomId) return;
+        if (state.isLoadingContent && state.currentRoom?._id === roomId) return null;
 
         set({
             isLoadingContent: true,
@@ -114,7 +114,19 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
                 ? currentState.rooms.map(r => r._id === roomId ? content.room : r)
                 : [...currentState.rooms, content.room];
 
-            const firstCollectionId = content.collections[0]?._id || null;
+            // Use initialCollectionId if provided and exists in the fetched collections
+            // Otherwise fall back to the first collection
+            let targetCollectionId = initialCollectionId && content.collections.some(c => c._id === initialCollectionId)
+                ? initialCollectionId
+                : (content.collections[0]?._id || null);
+
+            const linksCache = { ...currentState.linksCache };
+            if (targetCollectionId && content.links) {
+                linksCache[targetCollectionId] = {
+                    links: content.links,
+                    hasMore: (content.links?.length || 0) >= 12
+                };
+            }
 
             set({
                 currentRoom: content.room,
@@ -124,17 +136,21 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
                 viewedLinkIds: new Set(content.viewedLinkIds || []),
                 commentCounts: content.commentCounts || {},
                 rooms: updatedRooms,
-                currentCollectionId: firstCollectionId,
+                currentCollectionId: targetCollectionId,
                 hasMoreLinks: (content.links?.length || 0) >= 12,
+                linksCache
             });
 
-            if (firstCollectionId && (!content.links || content.links.length === 0)) {
-                await get().fetchCollectionLinks(firstCollectionId, false);
+            if (targetCollectionId && (!content.links || content.links.length === 0)) {
+                await get().fetchCollectionLinks(targetCollectionId, false);
             }
+
+            return targetCollectionId;
         } catch (error: any) {
             console.error('Failed to select room:', error);
             const message = error.response?.data?.message || error.message || 'Failed to access room';
             set({ error: message });
+            return null;
         } finally {
             set({ isLoadingContent: false, isLoadingLinks: false });
             setCryptoStatus('idle');

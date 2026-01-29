@@ -1,6 +1,17 @@
 import { useState, memo, useEffect } from 'react';
-import { Box, Paper, Typography, IconButton, alpha, useTheme, Button, Badge, CircularProgress, Tooltip, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
-import { ChatBubbleOutline as CommentsIcon, DeleteOutline as DeleteIcon, OpenInFull as OpenInFullIcon, Close as CloseIcon, Link as LinkIcon, ShieldOutlined as ShieldIcon, CheckCircleOutline as MarkViewedIcon, DriveFileMoveOutlined as MoveIcon, AutoStoriesOutlined as ReaderIcon, MoreVert as MoreIcon } from '@mui/icons-material';
+import { Box, Paper, Typography, IconButton, Button, alpha, useTheme, Tooltip, Menu, MenuItem, ListItemIcon, ListItemText, CircularProgress, Badge } from '@mui/material';
+import {
+    OpenInFull as OpenInFullIcon,
+    Link as LinkIcon,
+    ShieldOutlined as ShieldIcon,
+    CheckCircleOutline as MarkViewedIcon,
+    DriveFileMoveOutlined as MoveIcon,
+    AutoStoriesOutlined as ReaderIcon,
+    MoreVert as MoreIcon,
+    ChatBubbleOutline as CommentsIcon,
+    DeleteOutline as DeleteIcon,
+    Close as CloseIcon,
+} from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import type { LinkCardProps } from './types';
@@ -13,12 +24,10 @@ import {
     SOCIAL_RADIUS_MEDIUM,
     SOCIAL_RADIUS_SMALL
 } from './constants';
-import { formatRelativeTime, formatFullDateTime } from '@/utils/dateUtils';
-
+import { useLinkCardDrag } from '@/hooks/useLinkCardDrag';
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
-// Helper to get proxied URL - defined outside to avoid re-creation
 const getProxiedUrl = (originalUrl: string) => {
     if (!originalUrl) return '';
     return `${API_URL}/api/social/proxy-image?url=${encodeURIComponent(originalUrl)}`;
@@ -26,10 +35,7 @@ const getProxiedUrl = (originalUrl: string) => {
 
 const renderHighlightedText = (text: string, query?: string) => {
     if (!query || !query.trim()) return text;
-
-    // Simple regex escape
     const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
     const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'));
     return (
         <>
@@ -57,11 +63,33 @@ const renderHighlightedText = (text: string, query?: string) => {
     );
 };
 
-export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewClick, showPreview, onDelete, onDragStart, onView, onUnview, isViewed = true, commentCount = 0, canDelete, onMoveClick, highlight }: LinkCardProps) => {
+export const LinkCard = memo(({
+    link,
+    onCommentsClick,
+    onReaderClick,
+    onPreviewClick,
+    showPreview,
+    onDelete,
+    onDragStart,
+    onView,
+    onUnview,
+    isViewed = true,
+    commentCount = 0,
+    canDelete,
+    onMoveClick,
+    highlight,
+    menuZIndex
+}: LinkCardProps) => {
     const theme = useTheme();
     const { previewData, url } = link;
 
-    // Handle ESC key to close preview
+    const { isDragging, handleDragStart, handleDragEnd } = useLinkCardDrag({
+        linkId: link._id,
+        isViewed,
+        previewData,
+        url
+    });
+
     useEffect(() => {
         if (!showPreview) return;
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -74,9 +102,6 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [showPreview, onPreviewClick]);
 
-    const username = typeof link.userId === 'object' ? link.userId.username : 'Unknown';
-
-    const [isDragging, setIsDragging] = useState(false);
     const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
     const isMenuOpen = Boolean(menuAnchorEl);
 
@@ -100,107 +125,25 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
 
     const previewImage = previewData.image ? getProxiedUrl(previewData.image) : '';
     const faviconImage = previewData.favicon ? getProxiedUrl(previewData.favicon) : '';
+    const username = typeof link.userId === 'object' ? link.userId.username : 'Unknown';
 
     return (
         <>
             <div
                 draggable
-                onDragStart={(e: React.DragEvent) => {
-                    setIsDragging(true);
+                onDragStart={(e) => {
+                    handleDragStart(e);
                     onDragStart?.(link._id);
-                    e.dataTransfer.setData('text/plain', link._id);
-                    e.dataTransfer.effectAllowed = 'move';
-
-                    // Create a lightweight ghost element for the drag image
-                    const ghost = document.createElement('div');
-                    ghost.style.position = 'absolute';
-                    ghost.style.top = '-1000px';
-                    ghost.style.left = '-1000px';
-                    ghost.style.width = '240px';
-                    ghost.style.padding = '12px';
-                    ghost.style.background = isViewed ? '#1e293b' : '#0f172a'; // Solid opaque background (Slate 800/900)
-                    ghost.style.border = `1px solid ${theme.palette.divider}`; // Lighter border
-                    ghost.style.borderRadius = '8px'; // Slightly tighter radius
-                    ghost.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)'; // Sharp shadow, no blur cost
-                    ghost.style.display = 'flex';
-                    ghost.style.alignItems = 'center';
-                    ghost.style.gap = '12px';
-                    ghost.style.zIndex = '9999';
-                    // Removed backdrop-filter for performance
-
-                    // Add favicon if available
-                    if (faviconImage) {
-                        const img = document.createElement('img');
-                        img.src = faviconImage;
-                        img.style.width = '24px';
-                        img.style.height = '24px';
-                        img.style.borderRadius = '6px';
-                        img.style.objectFit = 'cover';
-                        ghost.appendChild(img);
-                    } else {
-                        const icon = document.createElement('div');
-                        icon.innerHTML = '🔗';
-                        icon.style.fontSize = '20px';
-                        ghost.appendChild(icon);
-                    }
-
-                    // Add title container
-                    const content = document.createElement('div');
-                    content.style.display = 'flex';
-                    content.style.flexDirection = 'column';
-                    content.style.gap = '2px';
-                    content.style.flex = '1';
-                    content.style.minWidth = '0'; // For Text overflow
-
-                    const title = document.createElement('span');
-                    title.innerText = previewData.title || 'Untitled Link';
-                    title.style.fontSize = '14px';
-                    title.style.fontWeight = '600';
-                    title.style.color = '#f8fafc'; // White text
-                    title.style.overflow = 'hidden';
-                    title.style.textOverflow = 'ellipsis';
-                    title.style.whiteSpace = 'nowrap';
-                    title.style.display = 'block';
-                    content.appendChild(title);
-
-                    const urlText = document.createElement('span');
-                    try {
-                        const urlObj = new URL(url);
-                        urlText.innerText = urlObj.hostname;
-                    } catch {
-                        urlText.innerText = 'Link';
-                    }
-                    urlText.style.fontSize = '11px';
-                    urlText.style.color = '#94a3b8'; // Slate 400
-                    urlText.style.overflow = 'hidden';
-                    urlText.style.textOverflow = 'ellipsis';
-                    urlText.style.whiteSpace = 'nowrap';
-                    urlText.style.display = 'block';
-                    content.appendChild(urlText);
-
-                    ghost.appendChild(content);
-
-                    document.body.appendChild(ghost);
-
-                    // Set the custom ghost as the drag image
-                    // Center it under the cursor nicely
-                    e.dataTransfer.setDragImage(ghost, 20, 25);
-
-                    // Remove after the drag has started
-                    setTimeout(() => {
-                        document.body.removeChild(ghost);
-                    }, 0);
                 }}
-                onDragEnd={() => setIsDragging(false)}
+                onDragEnd={handleDragEnd}
                 style={{
                     height: SOCIAL_LINK_CARD_HEIGHT,
                     cursor: 'grab',
                     opacity: isDragging ? 0.5 : 1,
                     transition: 'opacity 0.2s ease',
                     position: 'relative',
-                    willChange: 'transform, opacity',
-                    padding: '3px', // Increased safe margin
-                    boxSizing: 'border-box', // Crucial to prevent overflow
+                    padding: '3px',
+                    boxSizing: 'border-box',
                 }}
             >
                 <Paper
@@ -213,8 +156,8 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                         flexDirection: 'column',
                         transition: 'border-color 0.2s ease, background-color 0.2s ease',
                         border: isViewed
-                            ? `1px solid ${alpha('#0ea5e9', 0.3)}` // Thin, clean blue border
-                            : `1px solid ${alpha(theme.palette.divider, 0.15)}`, // Minimal clean border
+                            ? `1px solid ${alpha('#0ea5e9', 0.3)}`
+                            : `1px solid ${alpha(theme.palette.divider, 0.15)}`,
                         boxShadow: 'none',
                         '&:hover': {
                             borderColor: isViewed ? alpha('#0ea5e9', 0.5) : alpha(theme.palette.primary.main, 0.25),
@@ -231,40 +174,33 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                             width: '100%',
                             height: SOCIAL_LINK_PREVIEW_HEIGHT,
                             flexShrink: 0,
-                            bgcolor: alpha(theme.palette.primary.main, 0.08), // Default background if no image
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             position: 'relative',
-                            overflow: 'hidden', // Ensure blur doesn't spill
+                            overflow: 'hidden',
                         }}
                     >
-
-                        {/* 1. Blurred Background Layer (Performance Aware) */}
                         {previewImage && (
                             <Box
                                 component="img"
                                 src={previewImage}
                                 sx={{
                                     position: 'absolute',
-                                    inset: -20, // Negative margin to avoid white edges from blur
+                                    inset: -20,
                                     width: 'calc(100% + 40px)',
                                     height: 'calc(100% + 40px)',
                                     objectFit: 'cover',
                                     filter: 'blur(20px) brightness(0.6)',
                                     opacity: 0.8,
                                     zIndex: 0,
-                                    transition: 'opacity 0.3s ease',
-                                    willChange: 'filter', // Optimization hint
                                     pointerEvents: 'none',
                                 }}
-                                onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                }}
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             />
                         )}
 
-                        {/* 2. Sharp Foreground Image (contained) */}
                         {previewImage && (
                             <Box
                                 component="img"
@@ -275,16 +211,13 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                     maxHeight: '100%',
                                     objectFit: 'contain',
                                     zIndex: 1,
-                                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)', // enhanced shadow for depth
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                                     opacity: previewData.scrapeStatus === 'scraping' ? 0.3 : 1,
-                                    transition: 'transform 0.2s ease',
                                 }}
-                                onError={(e) => {
-                                    // Fallback if proxy fails visually
-                                    e.currentTarget.style.display = 'none';
-                                }}
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             />
                         )}
+
                         {previewData.scrapeStatus === 'scraping' && (
                             <Box
                                 sx={{
@@ -300,19 +233,12 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                 }}
                             >
                                 <CircularProgress size={24} thickness={5} />
-                                <Typography
-                                    variant="caption"
-                                    sx={{
-                                        fontWeight: 600,
-                                        letterSpacing: '0.05em',
-                                        color: 'text.primary',
-                                        textTransform: 'uppercase',
-                                    }}
-                                >
+                                <Typography variant="caption" sx={{ fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                                     Scraping metadata...
                                 </Typography>
                             </Box>
                         )}
+
                         {!previewImage && (
                             <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
                                 <LinkIcon sx={{ fontSize: 40, opacity: 0.1, color: 'primary.main' }} />
@@ -320,8 +246,6 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                     <Box
                                         component="img"
                                         src={faviconImage}
-                                        width={32}
-                                        height={32}
                                         sx={{
                                             position: 'absolute',
                                             width: 32,
@@ -335,7 +259,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                     <Box
                                         sx={{
                                             position: 'absolute',
-                                            bottom: -40,
+                                            bottom: 10,
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: 0.5,
@@ -364,7 +288,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                 fontWeight: 600,
                                 lineHeight: 1.3,
                                 mb: 1,
-                                minHeight: '2.6em', // Reserve space for 2 lines
+                                minHeight: '2.6em',
                                 display: '-webkit-box',
                                 WebkitLineClamp: 2,
                                 WebkitBoxOrient: 'vertical',
@@ -374,14 +298,7 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                             {renderHighlightedText(previewData.title || url, highlight)}
                         </Typography>
 
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                mt: 'auto',
-                            }}
-                        >
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 'auto' }}>
                             <Typography variant="caption" color="text.secondary">
                                 {username}
                             </Typography>
@@ -391,26 +308,17 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                     size="small"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        if (isViewed) {
-                                            onUnview?.(link._id);
-                                        } else {
-                                            onView?.(link._id);
-                                        }
+                                        isViewed ? onUnview?.(link._id) : onView?.(link._id);
                                     }}
                                     sx={{
-                                        color: isViewed ? '#0ea5e9' : '#ffffff',
-                                        opacity: isViewed ? 1 : 0.6,
-                                        '&:hover': {
-                                            color: isViewed ? alpha('#0ea5e9', 0.8) : '#ffffff',
-                                            opacity: 1,
-                                            bgcolor: isViewed ? alpha('#0ea5e9', 0.1) : alpha('#ffffff', 0.1)
-                                        }
+                                        color: isViewed ? '#0ea5e9' : 'text.disabled',
+                                        '&:hover': { bgcolor: alpha(isViewed ? '#0ea5e9' : theme.palette.primary.main, 0.1) }
                                     }}
                                     title={isViewed ? "Mark as Unread" : "Mark as Viewed"}
-                                    aria-label={isViewed ? "Mark as unread" : "Mark as viewed"}
                                 >
                                     <MarkViewedIcon fontSize="small" />
                                 </IconButton>
+
                                 <IconButton
                                     size="small"
                                     onClick={(e) => {
@@ -418,7 +326,6 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                         onPreviewClick?.(link);
                                     }}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-                                    aria-label="Show preview"
                                 >
                                     <OpenInFullIcon fontSize="small" />
                                 </IconButton>
@@ -431,7 +338,6 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                             onReaderClick?.(link);
                                         }}
                                         sx={{ color: 'text.secondary', '&:hover': { color: 'success.main' } }}
-                                        aria-label="Open in Reader Mode"
                                     >
                                         <ReaderIcon fontSize="small" />
                                     </IconButton>
@@ -441,7 +347,6 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                     size="small"
                                     onClick={handleMenuOpen}
                                     sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-                                    aria-label="More options"
                                 >
                                     <MoreIcon fontSize="small" />
                                 </IconButton>
@@ -451,51 +356,14 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                     open={isMenuOpen}
                                     onClose={handleMenuClose}
                                     onClick={(e) => e.stopPropagation()}
-                                    anchorOrigin={{
-                                        vertical: 'bottom',
-                                        horizontal: 'right',
-                                    }}
-                                    transformOrigin={{
-                                        vertical: 'top',
-                                        horizontal: 'right',
-                                    }}
+                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                                     disableEnforceFocus
-                                    slotProps={{
-                                        root: {
-                                            sx: {
-                                                zIndex: SOCIAL_DIALOG_Z_INDEX + 1,
-                                            }
-                                        },
-                                        paper: {
-                                            sx: {
-                                                mt: 0.5,
-                                                boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                                                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                                                minWidth: 150,
-                                                zIndex: SOCIAL_DIALOG_Z_INDEX + 1,
-                                            }
-                                        },
-                                        list: {
-                                            sx: {
-                                                zIndex: SOCIAL_DIALOG_Z_INDEX + 1,
-                                            }
-                                        }
-                                    }}
+                                    sx={{ zIndex: menuZIndex }}
                                 >
                                     <MenuItem onClick={handleMenuAction(() => onCommentsClick?.(link))}>
                                         <ListItemIcon>
-                                            <Badge
-                                                badgeContent={commentCount}
-                                                color="primary"
-                                                max={99}
-                                                sx={{
-                                                    '& .MuiBadge-badge': {
-                                                        fontSize: '0.65rem',
-                                                        minWidth: 16,
-                                                        height: 16,
-                                                    }
-                                                }}
-                                            >
+                                            <Badge badgeContent={commentCount} color="primary">
                                                 <CommentsIcon fontSize="small" />
                                             </Badge>
                                         </ListItemIcon>
@@ -527,7 +395,6 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                 </Paper>
             </div>
 
-            {/* Full Screen Preview Overlay - Rendered via Portal */}
             <DialogPortal>
                 <AnimatePresence>
                     {showPreview && (
@@ -541,193 +408,165 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
                                 position: 'fixed',
                                 inset: 0,
                                 zIndex: SOCIAL_DIALOG_Z_INDEX,
-                                bgcolor: 'rgba(0,0,0,0.85)',
+                                bgcolor: 'rgba(0,0,0,0.92)',
+                                backdropFilter: 'blur(8px)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                p: 4,
+                                p: { xs: 2, md: 4 },
                             }}
                         >
                             <Paper
-                                elevation={0}
+                                elevation={24}
                                 component={motion.div}
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
                                 onClick={(e) => e.stopPropagation()}
                                 sx={{
                                     width: '100%',
-                                    maxWidth: 800,
-                                    height: { xs: '100dvh', sm: 'auto' },
-                                    maxHeight: { xs: '100dvh', sm: '90vh' },
+                                    maxWidth: 1100,
+                                    maxHeight: '90vh',
                                     overflow: 'hidden',
-                                    borderRadius: { xs: 0, sm: SOCIAL_RADIUS_XLARGE },
+                                    borderRadius: SOCIAL_RADIUS_XLARGE,
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    bgcolor: theme.palette.background.paper,
-                                    boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+                                    bgcolor: 'background.paper',
+                                    position: 'relative',
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                                 }}
                             >
-                                {/* Large Image Header - Now Dynamic */}
-                                <Box
+                                <IconButton
+                                    onClick={() => onPreviewClick?.(null)}
                                     sx={{
-                                        width: '100%',
-                                        height: 'auto',
-                                        maxHeight: { xs: '35vh', sm: 'min(50vh, 500px)' },
-                                        minHeight: { xs: 150, sm: 200 },
-                                        flexShrink: 1,
-                                        bgcolor: '#000',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        position: 'relative',
-                                        overflow: 'hidden',
+                                        position: 'absolute',
+                                        top: 12,
+                                        right: 12,
+                                        zIndex: 30,
+                                        bgcolor: alpha(theme.palette.background.paper, 0.8),
+                                        backdropFilter: 'blur(4px)',
+                                        '&:hover': { bgcolor: theme.palette.background.paper },
                                     }}
                                 >
-                                    {previewImage ? (
-                                        <>
-                                            {/* Blurred Background */}
+                                    <CloseIcon />
+                                </IconButton>
+
+                                <Box sx={{
+                                    display: 'flex',
+                                    flexDirection: { xs: 'column', md: 'row' },
+                                    height: '100%',
+                                    width: '100%',
+                                    overflow: 'hidden'
+                                }}>
+                                    {previewImage && (
+                                        <Box sx={{
+                                            width: { xs: '100%', md: '60%' },
+                                            flex: { md: 1 }, // Fill height on desktop
+                                            minHeight: { xs: 'auto', md: 0 },
+                                            bgcolor: '#050505', // Deep dark ground
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            position: 'relative',
+                                            overflow: 'hidden',
+                                            borderRight: { md: `1px solid ${alpha(theme.palette.divider, 0.1)}` },
+                                        }}>
+                                            {/* Immersive Blurred Background */}
                                             <Box
                                                 component="img"
                                                 src={previewImage}
                                                 sx={{
                                                     position: 'absolute',
-                                                    inset: -30,
-                                                    width: 'calc(100% + 60px)',
-                                                    height: 'calc(100% + 60px)',
+                                                    inset: -40, // More coverage
+                                                    width: 'calc(100% + 80px)',
+                                                    height: 'calc(100% + 80px)',
                                                     objectFit: 'cover',
-                                                    filter: 'blur(40px) brightness(0.5)',
+                                                    filter: 'blur(40px) brightness(0.4)',
+                                                    opacity: 1, // Full opacity for the ambiance
                                                     zIndex: 0,
-                                                    pointerEvents: 'none',
+                                                    transform: 'scale(1.2)', // Ensure no edges show
                                                 }}
                                             />
-                                            {/* Sharp Foreground */}
-                                            <img
+                                            <Box
+                                                component="img"
                                                 src={previewImage}
-                                                alt={previewData.title}
-                                                style={{
-                                                    width: 'auto',
-                                                    height: 'auto',
-                                                    maxWidth: '100%',
-                                                    maxHeight: 'inherit',
-                                                    objectFit: 'contain',
+                                                sx={{
                                                     position: 'relative',
+                                                    maxWidth: '100%',
+                                                    maxHeight: { xs: '45vh', md: '100%' }, // Slightly more height on mobile
+                                                    objectFit: 'contain',
+                                                    display: 'block',
                                                     zIndex: 1,
-                                                    boxShadow: '0 12px 48px rgba(0,0,0,0.5)',
+                                                    boxShadow: '0 0 80px rgba(0,0,0,0.8)',
+                                                    // Ensure centering within parent flex
+                                                    margin: 'auto'
                                                 }}
                                             />
-                                        </>
-                                    ) : (
-                                        <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <LinkIcon sx={{ fontSize: 80, opacity: 0.1, color: 'primary.main' }} />
-                                            {faviconImage && (
-                                                <Box
-                                                    component="img"
-                                                    src={faviconImage}
-                                                    sx={{
-                                                        position: 'absolute',
-                                                        width: 64,
-                                                        height: 64,
-                                                        borderRadius: '12px',
-                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                                                    }}
-                                                />
-                                            )}
                                         </Box>
                                     )}
 
-                                    {/* Close Button */}
-                                    <IconButton
-                                        onClick={() => onPreviewClick?.(null)}
-                                        sx={{
-                                            position: 'absolute',
-                                            top: 16,
-                                            right: 16,
-                                            bgcolor: 'rgba(0,0,0,0.5)',
-                                            color: '#fff',
-                                            '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
-                                            zIndex: 2,
-                                        }}
-                                        aria-label="Close preview"
-                                    >
-                                        <CloseIcon />
-                                    </IconButton>
-                                </Box>
-
-                                {/* Details Content */}
-                                <Box
-                                    sx={{
-                                        p: { xs: 2.5, sm: 4 },
-                                        overflowY: 'auto',
+                                    <Box sx={{
                                         flex: 1,
-                                        minHeight: 0,
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        '&::-webkit-scrollbar': {
-                                            width: '6px',
-                                        },
+                                        overflowY: 'auto',
+                                        p: { xs: 3, md: 5 },
+                                        bgcolor: 'background.paper',
+                                        minHeight: 0,
+                                        // Custom scrollbar
+                                        '&::-webkit-scrollbar': { width: '8px' },
+                                        '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
                                         '&::-webkit-scrollbar-thumb': {
-                                            backgroundColor: alpha(theme.palette.text.secondary, 0.2),
-                                            borderRadius: '3px',
+                                            bgcolor: alpha(theme.palette.text.primary, 0.1),
+                                            borderRadius: '4px',
+                                            '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.2) }
                                         },
-                                        '&::-webkit-scrollbar-thumb:hover': {
-                                            backgroundColor: alpha(theme.palette.text.secondary, 0.3),
-                                        },
-                                    }}
-                                >
-                                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-                                        {previewData.title || 'Untitled Link'}
-                                    </Typography>
-
-                                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3, whiteSpace: 'pre-wrap', flexGrow: 1 }}>
-                                        {renderHighlightedText(previewData.description || 'No description available for this link.', highlight)}
-                                    </Typography>
-
-                                    <Box sx={{
-                                        display: 'flex',
-                                        alignItems: { xs: 'flex-start', sm: 'center' },
-                                        gap: 2,
-                                        mt: 'auto',
-                                        flexDirection: { xs: 'column', sm: 'row' }
                                     }}>
-                                        <Button
-                                            variant="contained"
-                                            size="large"
-                                            startIcon={previewData.scrapeStatus === 'scraping' ? <CircularProgress size={16} color="inherit" /> : <LinkIcon />}
-                                            onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
-                                            disabled={previewData.scrapeStatus === 'scraping'}
-                                            sx={{ width: { xs: '100%', sm: 'auto' } }}
-                                        >
-                                            {previewData.scrapeStatus === 'scraping' ? 'Scraping...' : 'Visit Website'}
-                                        </Button>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                                            {faviconImage && (
+                                                <Box component="img" src={faviconImage} sx={{ width: 24, height: 24, borderRadius: '4px' }} />
+                                            )}
+                                            <Typography variant="overline" color="primary" sx={{ fontWeight: 700, letterSpacing: '0.1em' }}>
+                                                {new URL(url).hostname}
+                                            </Typography>
+                                        </Box>
 
-                                        <Box sx={{
-                                            ml: { sm: 'auto' },
-                                            display: 'flex',
-                                            alignItems: { xs: 'flex-start', sm: 'flex-end' },
-                                            gap: { xs: 2, sm: 3 },
-                                            width: { xs: '100%', sm: 'auto' },
-                                            justifyContent: { xs: 'space-between', sm: 'flex-end' }
+                                        <Typography variant="h4" sx={{
+                                            fontWeight: 800,
+                                            mb: 2,
+                                            lineHeight: 1.2,
+                                            fontSize: { xs: '1.5rem', md: '2.25rem' }
                                         }}>
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', sm: 'flex-end' } }}>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    Shared by
-                                                </Typography>
-                                                <Typography variant="subtitle2">
-                                                    {username}
-                                                </Typography>
-                                            </Box>
+                                            {previewData.title || url}
+                                        </Typography>
 
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', sm: 'flex-end' } }}>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    Shared
-                                                </Typography>
-                                                <Tooltip title={formatFullDateTime(link.createdAt)}>
-                                                    <Typography variant="subtitle2" sx={{ cursor: 'help' }}>
-                                                        {formatRelativeTime(link.createdAt)}
-                                                    </Typography>
-                                                </Tooltip>
-                                            </Box>
+                                        {previewData.description && (
+                                            <Typography variant="body1" color="text.secondary" sx={{ mb: 4, lineHeight: 1.6, fontSize: '1.1rem' }}>
+                                                {previewData.description}
+                                            </Typography>
+                                        )}
+
+                                        <Box sx={{ mt: 'auto', pt: 2, display: 'flex', justifyContent: { xs: 'stretch', md: 'flex-start' } }}>
+                                            <Button
+                                                variant="contained"
+                                                size="large"
+                                                onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                                                sx={{
+                                                    borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                                    px: 6,
+                                                    py: 1.8,
+                                                    fontWeight: 700,
+                                                    boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.3)}`,
+                                                    '&:hover': {
+                                                        boxShadow: `0 12px 32px ${alpha(theme.palette.primary.main, 0.4)}`,
+                                                        transform: 'translateY(-2px)'
+                                                    },
+                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    width: { xs: '100%', md: 'auto' }
+                                                }}
+                                            >
+                                                Visit Website
+                                            </Button>
                                         </Box>
                                     </Box>
                                 </Box>
@@ -739,5 +578,3 @@ export const LinkCard = memo(({ link, onCommentsClick, onReaderClick, onPreviewC
         </>
     );
 });
-
-

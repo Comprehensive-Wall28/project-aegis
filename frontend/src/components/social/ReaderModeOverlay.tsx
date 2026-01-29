@@ -96,7 +96,7 @@ export const ReaderModeOverlay = memo(({
             setIsLoadingContent(true);
             setContentError(null);
             try {
-                const result = await socialService.getReaderContent(link._id);
+                const result = await socialService.getReaderContent(link?._id || '');
                 setReaderContent(result);
 
                 if (result.status !== 'success') {
@@ -110,7 +110,7 @@ export const ReaderModeOverlay = memo(({
         };
 
         loadContent();
-    }, [open, link._id]);
+    }, [open, link?._id]);
 
     // Close on Escape key
     useEffect(() => {
@@ -213,7 +213,7 @@ export const ReaderModeOverlay = memo(({
         const loadAnnotations = async () => {
             setIsLoadingAnnotations(true);
             try {
-                const rawAnnotations = await socialService.getAnnotations(link._id);
+                const rawAnnotations = await socialService.getAnnotations(link?._id || '');
 
                 // Decrypt annotations
                 const decrypted: DecryptedAnnotation[] = await Promise.all(
@@ -237,7 +237,7 @@ export const ReaderModeOverlay = memo(({
         };
 
         loadAnnotations();
-    }, [open, link._id, readerContent, decryptAnnotation]);
+    }, [open, link?._id, readerContent, decryptAnnotation]);
 
     // Handle text selection for annotation
     const handleMouseUp = useCallback(() => {
@@ -270,7 +270,7 @@ export const ReaderModeOverlay = memo(({
         try {
             const encryptedContent = await encryptAnnotation(newAnnotation.trim());
             const annotation = await socialService.createAnnotation(
-                link._id,
+                link?._id || '',
                 selectedParagraphId,
                 selectedText,
                 encryptedContent
@@ -681,6 +681,8 @@ export const ReaderModeOverlay = memo(({
             </Box>
         </Box>
     );
+
+    if (!open || !link) return null;
 
     return (
         <DialogPortal>

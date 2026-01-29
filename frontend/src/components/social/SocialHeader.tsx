@@ -1,4 +1,4 @@
-import { memo, useCallback, type ChangeEvent } from 'react';
+import { memo, useCallback, useState, useEffect, type ChangeEvent } from 'react';
 import {
     Box,
     Paper,
@@ -57,12 +57,20 @@ export const SocialHeader = memo(({
     isPostingLink,
     sortOrder,
     handleSortOrderChange,
+    isSearchingLinks,
     isZenModeOpen,
     onToggleZenMode,
     onCreateRoom,
 }: SocialHeaderProps) => {
     const theme = useTheme();
     const { name: decryptedName, isDecrypting } = useDecryptedRoomMetadata(currentRoom);
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+    useEffect(() => {
+        if (searchQuery) {
+            setIsSearchExpanded(true);
+        }
+    }, [searchQuery]);
 
     const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), [setSearchQuery]);
     const handleClearSearch = useCallback(() => setSearchQuery(''), [setSearchQuery]);
@@ -97,7 +105,7 @@ export const SocialHeader = memo(({
                             transition={{ duration: 0.2 }}
                             sx={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 1, minWidth: 0 }}
                         >
-                            <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: -0.5 }} aria-label="Exit room">
+                            <IconButton onClick={handleExitRoom} edge="start" sx={{ mr: 1 }} aria-label="Exit room">
                                 <ArrowBackIcon />
                             </IconButton>
                             <Box sx={{ minWidth: 0, flex: 1 }}>
@@ -201,37 +209,76 @@ export const SocialHeader = memo(({
                         >
                             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                                 {!isMobile && (
-                                    <Box sx={{ width: 250, display: 'flex', overflow: 'hidden' }}>
-                                        <TextField
-                                            placeholder="Search links..."
-                                            value={searchQuery}
-                                            onChange={handleSearchChange}
-                                            size="small"
-                                            fullWidth
-                                            disabled={!currentRoom}
-                                            slotProps={{
-                                                input: {
-                                                    startAdornment: (
-                                                        <InputAdornment position="start">
-                                                            <SearchIcon fontSize="small" color="action" />
-                                                        </InputAdornment>
-                                                    ),
-                                                    endAdornment: searchQuery ? (
-                                                        <InputAdornment position="end">
-                                                            <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
-                                                                <CloseIcon fontSize="small" />
-                                                            </IconButton>
-                                                        </InputAdornment>
-                                                    ) : undefined,
-                                                }
-                                            }}
-                                            sx={{
-                                                '& .MuiOutlinedInput-root': {
-                                                    borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                                    bgcolor: theme.palette.background.default,
-                                                }
-                                            }}
-                                        />
+                                    <Box sx={{ display: 'flex', alignItems: 'center', transition: 'all 0.3s' }}>
+                                        <AnimatePresence mode="wait">
+                                            {isSearchExpanded || searchQuery ? (
+                                                <Box
+                                                    key="search-input"
+                                                    component={motion.div}
+                                                    initial={{ width: 0, opacity: 0 }}
+                                                    animate={{ width: 280, opacity: 1 }}
+                                                    exit={{ width: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.2 }}
+                                                >
+                                                    <TextField
+                                                        placeholder="Search links..."
+                                                        value={searchQuery}
+                                                        onChange={handleSearchChange}
+                                                        size="small"
+                                                        autoFocus={!searchQuery}
+                                                        onBlur={() => {
+                                                            if (!searchQuery) setIsSearchExpanded(false);
+                                                        }}
+                                                        disabled={!currentRoom}
+                                                        slotProps={{
+                                                            input: {
+                                                                startAdornment: (
+                                                                    <InputAdornment position="start">
+                                                                        <SearchIcon fontSize="small" color="action" />
+                                                                    </InputAdornment>
+                                                                ),
+                                                                endAdornment: (searchQuery || isSearchingLinks) ? (
+                                                                    <InputAdornment position="end">
+                                                                        {isSearchingLinks && <CircularProgress size={16} sx={{ mr: 1, color: 'primary.main' }} />}
+                                                                        {searchQuery && (
+                                                                            <IconButton size="small" onClick={() => {
+                                                                                handleClearSearch();
+                                                                                setIsSearchExpanded(false);
+                                                                            }} aria-label="Clear search">
+                                                                                <CloseIcon fontSize="small" />
+                                                                            </IconButton>
+                                                                        )}
+                                                                    </InputAdornment>
+                                                                ) : undefined,
+                                                            }
+                                                        }}
+                                                        sx={{
+                                                            width: '100%',
+                                                            '& .MuiOutlinedInput-root': {
+                                                                borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                                            }
+                                                        }}
+                                                    />
+                                                </Box>
+                                            ) : (
+                                                <IconButton
+                                                    key="search-button"
+                                                    onClick={() => setIsSearchExpanded(true)}
+                                                    sx={{
+                                                        color: 'text.secondary',
+                                                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                                        bgcolor: 'transparent', // Match header standard
+                                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                                        '&:hover': {
+                                                            bgcolor: alpha(theme.palette.text.primary, 0.05),
+                                                            color: 'primary.main'
+                                                        }
+                                                    }}
+                                                >
+                                                    <SearchIcon />
+                                                </IconButton>
+                                            )}
+                                        </AnimatePresence>
                                     </Box>
                                 )}
 
@@ -242,7 +289,9 @@ export const SocialHeader = memo(({
                                             disabled={!currentRoom}
                                             sx={{
                                                 color: (selectedUploader || viewFilter !== 'all') ? 'primary.main' : 'text.secondary',
-                                                bgcolor: (selectedUploader || viewFilter !== 'all') ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                                bgcolor: (selectedUploader || viewFilter !== 'all') ? alpha(theme.palette.primary.main, 0.1) : 'transparent', // Consistent transparent bg
+                                                border: (selectedUploader || viewFilter !== 'all') ? 'none' : `1px solid ${alpha(theme.palette.divider, 0.1)}`, // Add border to match others when inactive
+                                                borderRadius: SOCIAL_RADIUS_MEDIUM, // Consistent radius
                                                 '&:hover': {
                                                     color: 'primary.main',
                                                     bgcolor: alpha(theme.palette.primary.main, 0.1),
@@ -265,6 +314,8 @@ export const SocialHeader = memo(({
                                             sx={{
                                                 color: isZenModeOpen ? 'primary.main' : 'text.secondary',
                                                 bgcolor: isZenModeOpen ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
+                                                border: isZenModeOpen ? 'none' : `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                                borderRadius: SOCIAL_RADIUS_MEDIUM,
                                                 '&:hover': {
                                                     color: 'primary.main',
                                                     bgcolor: alpha(theme.palette.primary.main, 0.1),
@@ -310,6 +361,7 @@ export const SocialHeader = memo(({
                                         }}
                                         sx={{
                                             flex: 1,
+                                            minWidth: 200, // Prevent squishing
                                             maxWidth: 400,
                                             '& .MuiOutlinedInput-root': {
                                                 borderRadius: SOCIAL_RADIUS_MEDIUM,
