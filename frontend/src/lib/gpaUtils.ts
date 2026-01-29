@@ -1,4 +1,4 @@
-import CryptoJS from 'crypto-js';
+
 
 export interface CourseData {
     name: string;
@@ -53,12 +53,19 @@ export const calculateGermanGPA = (
 /**
  * Generate a SHA256 hash for a course record.
  */
-export const generateCourseHash = (
+
+/**
+ * Generate a SHA256 hash for a course record.
+ */
+export const generateCourseHash = async (
     course: CourseData,
     userId: string
-): string => {
+): Promise<string> => {
     const data = `${userId}:${course.semester}:${course.name}:${course.grade}:${course.credits}`;
-    return CryptoJS.SHA256(data).toString();
+    const encoder = new TextEncoder();
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', encoder.encode(data));
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
 /**

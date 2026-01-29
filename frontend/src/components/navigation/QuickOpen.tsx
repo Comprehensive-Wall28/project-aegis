@@ -18,7 +18,7 @@ import {
 import noteService, { type NoteMetadata } from "@/services/noteService";
 import vaultService, { type FileMetadata } from "@/services/vaultService";
 import Fuse from "fuse.js";
-import { debounce } from "lodash";
+import { debounce } from "@/lib/utils";
 
 // Page Routes
 const PAGES = [
