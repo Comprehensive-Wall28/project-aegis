@@ -50,7 +50,6 @@ export interface AuditLog {
     status: AuditStatus;
     ipAddress: string;
     metadata: Record<string, unknown>;
-    recordHash: string;
     timestamp: string;
 }
 
