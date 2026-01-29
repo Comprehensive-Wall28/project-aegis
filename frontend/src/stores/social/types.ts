@@ -30,6 +30,7 @@ export interface CollectionSlice {
     selectCollection: (collectionId: string, force?: boolean) => Promise<void>;
     createCollection: (name: string) => Promise<Collection>;
     deleteCollection: (collectionId: string) => Promise<void>;
+    renameCollection: (collectionId: string, name: string) => Promise<void>;
     reorderCollections: (collectionIds: string[]) => Promise<void>;
 }
 

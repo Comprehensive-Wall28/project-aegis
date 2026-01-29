@@ -10,7 +10,7 @@ import { ILinkPost, IPreviewData } from '../../models/LinkPost';
 import { verifyLinkAccess } from './accessHelpers';
 import logger from '../../utils/logger';
 import SocketManager from '../../utils/SocketManager';
-import { advancedScrape, smartScrape } from '../../utils/scraper';
+import { smartScrape } from '../../utils/scraper';
 import { URL } from 'url';
 
 export interface PostLinkDTO {

@@ -91,6 +91,33 @@ export const createCollectionSlice: StateCreator<SocialState, [], [], Pick<Socia
             currentCollectionId: newCollectionId,
         });
     },
+    renameCollection: async (collectionId: string, name: string) => {
+        const state = get();
+        const { setCryptoStatus } = useSessionStore.getState();
+        if (!state.currentRoom) throw new Error('No room selected');
+
+        const roomKey = state.roomKeys.get(state.currentRoom._id);
+        if (!roomKey) throw new Error('Room key not available');
+
+        setCryptoStatus('encrypting');
+        try {
+            const encryptedName = await encryptWithAES(roomKey, name);
+            setCryptoStatus('idle');
+
+            const updatedCollection = await socialService.updateCollection(collectionId, encryptedName);
+
+            set({
+                collections: state.collections.map(c =>
+                    c._id === collectionId ? updatedCollection : c
+                )
+            });
+        } catch (error) {
+            console.error('Failed to rename collection:', error);
+            throw error;
+        } finally {
+            setCryptoStatus('idle');
+        }
+    },
 
     reorderCollections: async (collectionIds: string[]) => {
         const state = get();

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { CreateRoomDialog, CreateCollectionDialog, PostLinkDialog, MoveLinkDialog } from './SocialDialogs';
+import { CreateRoomDialog, CreateCollectionDialog, RenameCollectionDialog, PostLinkDialog, MoveLinkDialog } from './SocialDialogs';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useSocial } from '@/hooks/useSocial';
 
@@ -12,6 +12,10 @@ export const SocialPageDialogs = memo(() => {
         showCollectionDialog,
         handleCreateCollection,
         isCreatingCollection,
+        isRenamingCollection,
+        collectionToRename,
+        setCollectionToRename,
+        handleRenameCollection,
         showPostLinkDialog,
         handlePostLink,
         isPostingLink,
@@ -27,6 +31,10 @@ export const SocialPageDialogs = memo(() => {
         isDeletingCollection
     } = useSocial();
 
+    const collectionBeingRenamed = collectionToRename
+        ? collections.find(c => c._id === collectionToRename) || null
+        : null;
+
     return (
         <>
             <CreateRoomDialog
@@ -41,6 +49,14 @@ export const SocialPageDialogs = memo(() => {
                 onClose={() => toggleOverlay('createCol', false)}
                 onSubmit={handleCreateCollection}
                 isLoading={isCreatingCollection}
+            />
+
+            <RenameCollectionDialog
+                open={!!collectionToRename}
+                collection={collectionBeingRenamed}
+                onClose={() => setCollectionToRename(null)}
+                onSubmit={handleRenameCollection}
+                isLoading={isRenamingCollection}
             />
 
             <PostLinkDialog

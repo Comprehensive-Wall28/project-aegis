@@ -42,6 +42,8 @@ export function useSocialState() {
             deleteLink: state.deleteLink,
             createCollection: state.createCollection,
             deleteCollection: state.deleteCollection,
+            renameCollection: state.renameCollection,
+            reorderCollections: state.reorderCollections,
             moveLink: state.moveLink,
             createInvite: state.createInvite,
             markLinkViewed: state.markLinkViewed,
@@ -85,6 +87,8 @@ export function useSocialState() {
     const [collectionToDelete, setCollectionToDelete] = useState<string | null>(null);
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [isDeletingCollection, setIsDeletingCollection] = useState(false);
+    const [isRenamingCollection, setIsRenamingCollection] = useState(false);
+    const [collectionToRename, setCollectionToRename] = useState<string | null>(null);
 
     const [shouldRenderContent, setShouldRenderContent] = useState(false);
 
@@ -135,6 +139,8 @@ export function useSocialState() {
         collectionToDelete, setCollectionToDelete,
         deleteConfirmOpen, setDeleteConfirmOpen,
         isDeletingCollection, setIsDeletingCollection,
+        isRenamingCollection, setIsRenamingCollection,
+        collectionToRename, setCollectionToRename,
         shouldRenderContent, setShouldRenderContent,
 
         // Transition helpers

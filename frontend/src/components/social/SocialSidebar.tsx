@@ -14,14 +14,39 @@ import {
     Skeleton,
     Drawer,
     Tooltip,
+    Menu,
+    MenuItem,
 } from '@mui/material';
 import {
     Add as AddIcon,
     FolderOpenOutlined as CollectionIcon,
     NavigateBefore as CollapseIcon,
     NavigateNext as ExpandIcon,
+    Edit as EditIcon,
+    Delete as DeleteIcon,
+    DragHandle as DragHandleIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+    type DragStartEvent,
+    DragOverlay,
+    defaultDropAnimationSideEffects,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { SOCIAL_RADIUS_XLARGE, SOCIAL_RADIUS_MEDIUM } from './constants';
 import { useSocial } from '@/hooks/useSocial';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
@@ -59,6 +84,22 @@ const CollectionItem = memo(({
     const theme = useTheme();
     const { name: decryptedName, isDecrypting } = useDecryptedCollectionMetadata(collection);
 
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: collection._id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 2 : 1,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
     return (
         <Tooltip
             title={isCollapsed ? (isDecrypting ? 'Decrypting...' : (decryptedName || collection.name)) : ''}
@@ -80,9 +121,13 @@ const CollectionItem = memo(({
                     e.preventDefault();
                     onDrop(collection._id);
                 }}
-                sx={{ mb: 0.5 }}
+                ref={setNodeRef}
+                style={style}
+                sx={{ mb: 0.5, position: 'relative' }}
             >
                 <ListItemButton
+                    {...attributes}
+                    {...listeners}
                     onClick={() => onSelect(collection._id)}
                     onContextMenu={(e) => onContextMenu(e, collection._id)}
                     onTouchStart={() => onTouchStart(collection._id)}
@@ -139,6 +184,17 @@ const CollectionItem = memo(({
                             </Box>
                         )}
                     </AnimatePresence>
+                    {!isCollapsed && (
+                        <DragHandleIcon
+                            sx={{
+                                ml: 'auto',
+                                opacity: 0.3,
+                                fontSize: '1rem',
+                                color: isSelected ? 'primary.main' : 'text.secondary',
+                                '&:hover': { opacity: 0.6 }
+                            }}
+                        />
+                    )}
                     {isCollapsed && unviewedCount > 0 && (
                         <Box
                             sx={{
@@ -177,9 +233,46 @@ export const SocialSidebar = memo(() => {
         handleDrop,
         getUnviewedCountByCollection,
         toggleOverlay,
+        collectionContextMenu,
+        setCollectionContextMenu,
+        setCollectionToRename,
+        setCollectionToDelete,
+        setDeleteConfirmOpen,
+        reorderCollections,
     } = useSocial();
 
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(event.active.id as string);
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveId(null);
+
+        if (over && active.id !== over.id) {
+            const oldIndex = collections.findIndex((c) => c._id === active.id);
+            const newIndex = collections.findIndex((c) => c._id === over.id);
+
+            const newOrder = arrayMove(collections, oldIndex, newIndex);
+            reorderCollections(newOrder.map((c) => c._id));
+        }
+    };
+
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [activeId, setActiveId] = useState<string | null>(null);
+
+    const activeCollection = collections.find(c => c._id === activeId);
 
     const sidebarContent = (
         <Box
@@ -246,30 +339,71 @@ export const SocialSidebar = memo(() => {
                                 </Box>
                             ))
                         ) : (
-                            collections.map((collection) => (
-                                <CollectionItem
-                                    key={collection._id}
-                                    collection={collection}
-                                    isSelected={currentCollectionId === collection._id}
-                                    isTarget={dropTargetId === collection._id}
-                                    unviewedCount={getUnviewedCountByCollection(collection._id)}
-                                    isCollapsed={isCollapsed}
-                                    onSelect={(id) => {
-                                        handleSelectCollection(id);
-                                        if (isMobile) setMobileDrawerOpen(false);
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}
+                                onDragCancel={() => setActiveId(null)}
+                            >
+                                <SortableContext
+                                    items={collections.map(c => c._id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    {collections.map((collection) => (
+                                        <CollectionItem
+                                            key={collection._id}
+                                            collection={collection}
+                                            isSelected={currentCollectionId === collection._id}
+                                            isTarget={dropTargetId === collection._id}
+                                            unviewedCount={getUnviewedCountByCollection(collection._id)}
+                                            isCollapsed={isCollapsed}
+                                            onSelect={(id) => {
+                                                handleSelectCollection(id);
+                                                if (isMobile) setMobileDrawerOpen(false);
+                                            }}
+                                            onContextMenu={handleCollectionContextMenu}
+                                            onTouchStart={handleCollectionTouchStart}
+                                            onTouchEnd={handleCollectionTouchEnd}
+                                            onDrop={handleDrop}
+                                            onDragOver={(id) => {
+                                                if (dropTargetId !== id) {
+                                                    setDropTargetId(id);
+                                                }
+                                            }}
+                                            onDragLeave={() => setDropTargetId(null)}
+                                        />
+                                    ))}
+                                </SortableContext>
+                                <DragOverlay
+                                    dropAnimation={{
+                                        sideEffects: defaultDropAnimationSideEffects({
+                                            styles: {
+                                                active: {
+                                                    opacity: '0.5',
+                                                },
+                                            },
+                                        }),
                                     }}
-                                    onContextMenu={handleCollectionContextMenu}
-                                    onTouchStart={handleCollectionTouchStart}
-                                    onTouchEnd={handleCollectionTouchEnd}
-                                    onDrop={handleDrop}
-                                    onDragOver={(id) => {
-                                        if (dropTargetId !== id) {
-                                            setDropTargetId(id);
-                                        }
-                                    }}
-                                    onDragLeave={() => setDropTargetId(null)}
-                                />
-                            ))
+                                >
+                                    {activeCollection ? (
+                                        <CollectionItem
+                                            collection={activeCollection}
+                                            isSelected={currentCollectionId === activeCollection._id}
+                                            isTarget={false}
+                                            unviewedCount={getUnviewedCountByCollection(activeCollection._id)}
+                                            isCollapsed={isCollapsed}
+                                            onSelect={() => { }}
+                                            onContextMenu={() => { }}
+                                            onTouchStart={() => { }}
+                                            onTouchEnd={() => { }}
+                                            onDrop={() => { }}
+                                            onDragOver={() => { }}
+                                            onDragLeave={() => { }}
+                                        />
+                                    ) : null}
+                                </DragOverlay>
+                            </DndContext>
                         )}
                     </AnimatePresence>
                 </List>
@@ -313,35 +447,92 @@ export const SocialSidebar = memo(() => {
         </Box>
     );
 
-    if (isMobile) {
-        return (
-            <Drawer
-                anchor="left"
-                open={mobileDrawerOpen}
-                onClose={() => setMobileDrawerOpen(false)}
-                PaperProps={{
-                    sx: {
-                        width: 240,
-                        bgcolor: 'background.paper',
-                    },
-                }}
-            >
-                {sidebarContent}
-            </Drawer>
-        );
-    }
+    const handleCloseContextMenu = () => {
+        setCollectionContextMenu(null);
+    };
+
+    const handleRenameClick = () => {
+        if (collectionContextMenu) {
+            setCollectionToRename(collectionContextMenu.collectionId);
+        }
+        handleCloseContextMenu();
+    };
+
+    const handleDeleteClick = () => {
+        if (collectionContextMenu) {
+            setCollectionToDelete(collectionContextMenu.collectionId);
+            setDeleteConfirmOpen(true);
+        }
+        handleCloseContextMenu();
+    };
 
     return (
-        <Paper
-            elevation={0}
-            sx={{
-                borderRadius: SOCIAL_RADIUS_XLARGE,
-                overflow: 'hidden',
-                height: '100%',
-                bgcolor: 'background.paper',
-            }}
-        >
-            {sidebarContent}
-        </Paper>
+        <>
+            {isMobile ? (
+                <Drawer
+                    anchor="left"
+                    open={mobileDrawerOpen}
+                    onClose={() => setMobileDrawerOpen(false)}
+                    PaperProps={{
+                        sx: {
+                            width: 240,
+                            bgcolor: 'background.paper',
+                        },
+                    }}
+                >
+                    {sidebarContent}
+                </Drawer>
+            ) : (
+                <Paper
+                    elevation={0}
+                    sx={{
+                        borderRadius: SOCIAL_RADIUS_XLARGE,
+                        overflow: 'hidden',
+                        height: '100%',
+                        bgcolor: 'background.paper',
+                    }}
+                >
+                    {sidebarContent}
+                </Paper>
+            )}
+
+            <Menu
+                open={collectionContextMenu !== null}
+                onClose={handleCloseContextMenu}
+                anchorReference="anchorPosition"
+                anchorPosition={
+                    collectionContextMenu !== null
+                        ? { top: collectionContextMenu.mouseY, left: collectionContextMenu.mouseX }
+                        : undefined
+                }
+                PaperProps={{
+                    sx: {
+                        borderRadius: SOCIAL_RADIUS_MEDIUM,
+                        minWidth: 160,
+                        boxShadow: theme.shadows[10],
+                        border: `1px solid ${theme.palette.divider}`,
+                    }
+                }}
+            >
+                <MenuItem onClick={handleRenameClick} sx={{ gap: 1.5, py: 1.5 }}>
+                    <EditIcon fontSize="small" color="action" />
+                    <Typography variant="body2" fontWeight={500}>Rename</Typography>
+                </MenuItem>
+                <MenuItem
+                    onClick={handleDeleteClick}
+                    sx={{
+                        gap: 1.5,
+                        py: 1.5,
+                        color: 'error.main',
+                        '&:hover': {
+                            bgcolor: alpha(theme.palette.error.main, 0.08),
+                        }
+                    }}
+                >
+                    <DeleteIcon fontSize="small" color="error" />
+                    <Typography variant="body2" fontWeight={500}>Delete</Typography>
+                </MenuItem>
+            </Menu>
+        </>
     );
 });

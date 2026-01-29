@@ -110,6 +110,14 @@ export interface CreateCollectionDialogProps {
     isLoading: boolean;
 }
 
+export interface RenameCollectionDialogProps {
+    open: boolean;
+    collection: Collection | null;
+    onClose: () => void;
+    onSubmit: (name: string) => void;
+    isLoading: boolean;
+}
+
 export interface PostLinkDialogProps {
     open: boolean;
     onClose: () => void;

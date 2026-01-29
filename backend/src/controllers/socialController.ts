@@ -129,6 +129,12 @@ export const deleteCollection = withAuth(async (req: AuthRequest, res: Response)
     res.status(200).json({ message: 'Collection deleted successfully' });
 });
 
+export const updateCollection = withAuth(async (req: AuthRequest, res: Response) => {
+    const { name } = req.body;
+    const collection = await collectionService.updateCollection(req.user!.id, req.params.collectionId as string, name, req);
+    res.status(200).json(collection);
+});
+
 export const reorderCollections = withAuth(async (req: AuthRequest, res: Response) => {
     const { roomId } = req.params;
     const { collectionIds } = req.body;

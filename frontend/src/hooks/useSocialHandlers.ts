@@ -47,13 +47,17 @@ export function useSocialHandlers(state: SocialState) {
         setDeleteConfirmOpen,
         setIsDeletingCollection,
         setCollectionToDelete,
+        setIsRenamingCollection,
+        setCollectionToRename,
         newLinkUrl,
         isCreatingCollection,
         isMovingLink,
         linkToMove,
         zenModeOpen,
         collectionToDelete,
+        collectionToRename,
         draggedLinkId,
+        renameCollection,
         error
     } = state;
 
@@ -184,6 +188,22 @@ export function useSocialHandlers(state: SocialState) {
         setDeleteConfirmOpen(false);
         setCollectionToDelete(null);
     }, [collectionToDelete, deleteCollection, showSnackbar, setIsDeletingCollection, setDeleteConfirmOpen, setCollectionToDelete]);
+
+    const handleRenameCollection = useCallback(async (name: string) => {
+        if (!collectionToRename || !name.trim()) return;
+        setIsRenamingCollection(true);
+
+        try {
+            await renameCollection(collectionToRename, name.trim());
+            showSnackbar('Collection renamed', 'success');
+            setCollectionToRename(null);
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            showSnackbar(err.message || 'Failed to rename collection', 'error');
+        } finally {
+            setIsRenamingCollection(false);
+        }
+    }, [collectionToRename, renameCollection, showSnackbar, setIsRenamingCollection, setCollectionToRename]);
 
     const handleDeleteLink = useCallback(async (linkId: string) => {
         try {
@@ -394,6 +414,7 @@ export function useSocialHandlers(state: SocialState) {
         handleDrop,
         handleMoveLink,
         handleDeleteCollection,
+        handleRenameCollection,
         handleDeleteLink,
         handleCopyInvite,
         handleOpenMoveDialog,

@@ -139,4 +139,52 @@ export class CollectionService extends BaseService<ICollection, CollectionReposi
             throw new ServiceError('Failed to reorder collections', 500);
         }
     }
+
+    async updateCollection(userId: string, collectionId: string, name: string, req: Request): Promise<ICollection> {
+        try {
+            if (!name) {
+                throw new ServiceError('Collection name is required', 400);
+            }
+
+            const collection = await this.repository.findById(collectionId);
+            if (!collection) {
+                throw new ServiceError('Collection not found', 404);
+            }
+
+            const room = await this.roomRepo.findById(collection.roomId.toString());
+            if (!room) {
+                throw new ServiceError('Room not found', 404);
+            }
+
+            const member = room.members.find(m => m.userId.toString() === userId);
+            if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+                throw new ServiceError('Only room owner or admin can update collections', 403);
+            }
+
+            const updatedCollection = await this.repository.updateById(collectionId, {
+                $set: { name }
+            } as any);
+
+            if (!updatedCollection) {
+                throw new ServiceError('Failed to update collection', 500);
+            }
+
+            // Broadcast collection update
+            SocketManager.broadcastToRoom(room._id.toString(), 'COLLECTION_UPDATED', {
+                collection: updatedCollection
+            });
+
+            await this.logAction(userId, 'COLLECTION_UPDATE', 'SUCCESS', req, {
+                collectionId,
+                roomId: room._id.toString(),
+                name
+            });
+
+            return updatedCollection;
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Update collection error:', error);
+            throw new ServiceError('Failed to update collection', 500);
+        }
+    }
 }
