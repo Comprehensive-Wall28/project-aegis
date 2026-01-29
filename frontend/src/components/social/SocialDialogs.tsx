@@ -19,8 +19,15 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import type { CreateRoomDialogProps, CreateCollectionDialogProps, RenameCollectionDialogProps, PostLinkDialogProps, MoveLinkDialogProps } from './types';
-import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
+import type {
+    CreateRoomDialogProps,
+    CreateCollectionDialogProps,
+    RenameCollectionDialogProps,
+    PostLinkDialogProps,
+    MoveLinkDialogProps,
+    DeleteRoomDialogProps
+} from './types';
+import { useDecryptedCollectionMetadata, useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
 import type { Collection } from '@/services/socialService';
 import { DialogPortal } from './DialogPortal';
 import {
@@ -599,3 +606,119 @@ const CollectionOption = ({ collection, isActive, onClick }: { collection: Colle
         </Button>
     );
 };
+
+// Delete Room Dialog - Requires typing name to confirm
+export const DeleteRoomDialog = memo(({
+    open,
+    room,
+    onClose,
+    onConfirm,
+    isLoading
+}: DeleteRoomDialogProps) => {
+    const { name: decryptedName } = useDecryptedRoomMetadata(room);
+    const [confirmName, setConfirmName] = useState('');
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    const handleOnClose = () => {
+        setConfirmName('');
+        onClose();
+    };
+
+    const isConfirmed = confirmName.trim() === decryptedName;
+
+    return (
+        <DialogPortal>
+            <AnimatePresence>
+                {open && (
+                    <Box
+                        component={motion.div}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={handleOnClose}
+                        sx={{
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: SOCIAL_DIALOG_Z_INDEX,
+                            bgcolor: 'rgba(0,0,0,0.85)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: isMobile ? 0 : 4,
+                        }}
+                    >
+                        <Paper
+                            elevation={0}
+                            component={motion.div}
+                            initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                                width: '100%',
+                                maxWidth: isMobile ? '100%' : 450,
+                                height: isMobile ? '100%' : 'auto',
+                                maxHeight: isMobile ? '100%' : '90vh',
+                                borderRadius: isMobile ? 0 : SOCIAL_RADIUS_XLARGE,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                bgcolor: theme.palette.background.paper,
+                                border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                            }}
+                        >
+                            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600, color: 'error.main' }}>Delete Room</Typography>
+                                <IconButton onClick={handleOnClose} aria-label="Close">
+                                    <CloseIcon />
+                                </IconButton>
+                            </Box>
+
+                            <Box sx={{ p: 3, flex: 1 }}>
+                                <Alert severity="error" sx={{ mb: 3, borderRadius: SOCIAL_RADIUS_SMALL }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                        WARNING: This action is permanent!
+                                    </Typography>
+                                    <Typography variant="body2">
+                                        All collections, links, comments, and annotations in this room will be deleted forever.
+                                    </Typography>
+                                </Alert>
+
+                                <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>
+                                    Please type the room name <strong>{decryptedName}</strong> to confirm:
+                                </Typography>
+
+                                <TextField
+                                    fullWidth
+                                    placeholder={decryptedName || 'Decrypted room name'}
+                                    value={confirmName}
+                                    onChange={(e) => setConfirmName(e.target.value)}
+                                    autoFocus
+                                    autoComplete="off"
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: SOCIAL_RADIUS_SMALL,
+                                        }
+                                    }}
+                                />
+                            </Box>
+
+                            <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                                <Button onClick={handleOnClose} disabled={isLoading}>Cancel</Button>
+                                <Button
+                                    variant="contained"
+                                    color="error"
+                                    onClick={onConfirm}
+                                    disabled={!isConfirmed || isLoading}
+                                    sx={{ borderRadius: SOCIAL_RADIUS_SMALL, px: 4 }}
+                                >
+                                    {isLoading ? <CircularProgress size={20} /> : 'Delete Permanently'}
+                                </Button>
+                            </Box>
+                        </Paper>
+                    </Box>
+                )}
+            </AnimatePresence>
+        </DialogPortal>
+    );
+});

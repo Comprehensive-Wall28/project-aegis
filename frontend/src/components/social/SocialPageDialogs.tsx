@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { CreateRoomDialog, CreateCollectionDialog, RenameCollectionDialog, PostLinkDialog, MoveLinkDialog } from './SocialDialogs';
+import { CreateRoomDialog, CreateCollectionDialog, RenameCollectionDialog, PostLinkDialog, MoveLinkDialog, DeleteRoomDialog } from './SocialDialogs';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useSocial } from '@/hooks/useSocial';
 import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
@@ -35,6 +35,11 @@ export const SocialPageDialogs = memo(() => {
         handleLeaveRoom,
         isLeavingRoom,
         roomToLeave,
+        deleteRoomConfirmOpen,
+        setDeleteRoomConfirmOpen,
+        handleDeleteRoom,
+        isDeletingRoom,
+        roomToDelete,
         rooms
     } = useSocial();
 
@@ -45,6 +50,10 @@ export const SocialPageDialogs = memo(() => {
     const roomToBeLeft = useMemo(() =>
         rooms.find(r => r._id === roomToLeave) || null,
         [rooms, roomToLeave]);
+
+    const roomToBeDeleted = useMemo(() =>
+        rooms.find(r => r._id === roomToDelete) || null,
+        [rooms, roomToDelete]);
 
     const { name: decryptedRoomName } = useDecryptedRoomMetadata(roomToBeLeft);
 
@@ -109,6 +118,14 @@ export const SocialPageDialogs = memo(() => {
                 onCancel={() => setLeaveRoomConfirmOpen(false)}
                 isLoading={isLeavingRoom}
                 variant="danger"
+            />
+
+            <DeleteRoomDialog
+                open={deleteRoomConfirmOpen}
+                room={roomToBeDeleted}
+                onClose={() => setDeleteRoomConfirmOpen(false)}
+                onConfirm={handleDeleteRoom}
+                isLoading={isDeletingRoom}
             />
         </>
     );

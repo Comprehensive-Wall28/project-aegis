@@ -53,6 +53,7 @@ export function useSocialState() {
             searchRoomLinks: state.searchRoomLinks,
             clearRoomContent: state.clearRoomContent,
             leaveRoom: state.leaveRoom,
+            deleteRoom: state.deleteRoom,
         }))
     );
 
@@ -94,6 +95,9 @@ export function useSocialState() {
     const [roomToLeave, setRoomToLeave] = useState<string | null>(null);
     const [leaveRoomConfirmOpen, setLeaveRoomConfirmOpen] = useState(false);
     const [isLeavingRoom, setIsLeavingRoom] = useState(false);
+    const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
+    const [deleteRoomConfirmOpen, setDeleteRoomConfirmOpen] = useState(false);
+    const [isDeletingRoom, setIsDeletingRoom] = useState(false);
 
     const [shouldRenderContent, setShouldRenderContent] = useState(false);
 
@@ -149,6 +153,9 @@ export function useSocialState() {
         roomToLeave, setRoomToLeave,
         leaveRoomConfirmOpen, setLeaveRoomConfirmOpen,
         isLeavingRoom, setIsLeavingRoom,
+        roomToDelete, setRoomToDelete,
+        deleteRoomConfirmOpen, setDeleteRoomConfirmOpen,
+        isDeletingRoom, setIsDeletingRoom,
         shouldRenderContent, setShouldRenderContent,
 
         // Transition helpers

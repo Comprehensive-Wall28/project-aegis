@@ -65,6 +65,12 @@ export function useSocialHandlers(state: SocialState) {
         setIsLeavingRoom,
         roomToLeave,
         isLeavingRoom,
+        deleteRoom,
+        setDeleteRoomConfirmOpen,
+        setRoomToDelete,
+        setIsDeletingRoom,
+        roomToDelete,
+        isDeletingRoom,
         error
     } = state;
 
@@ -258,6 +264,33 @@ export function useSocialHandlers(state: SocialState) {
         setRoomToLeave(roomId);
         setLeaveRoomConfirmOpen(true);
     }, [setRoomToLeave, setLeaveRoomConfirmOpen]);
+
+    const handleDeleteRoom = useCallback(async () => {
+        if (!roomToDelete || isDeletingRoom) return;
+        setIsDeletingRoom(true);
+        try {
+            const idToDelete = roomToDelete;
+            await deleteRoom(idToDelete);
+            showSnackbar('Room deleted successfully', 'success');
+            // If we are currently in the room that was deleted, we should exit
+            if (roomId === idToDelete) {
+                handleExitRoom();
+            }
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } }; message?: string };
+            const message = err.response?.data?.message || err.message || 'Failed to delete room';
+            showSnackbar(message, 'error');
+        } finally {
+            setIsDeletingRoom(false);
+            setDeleteRoomConfirmOpen(false);
+            setRoomToDelete(null);
+        }
+    }, [roomToDelete, isDeletingRoom, deleteRoom, showSnackbar, roomId, handleExitRoom, setIsDeletingRoom, setDeleteRoomConfirmOpen, setRoomToDelete]);
+
+    const handleOpenDeleteRoomDialog = useCallback((roomId: string) => {
+        setRoomToDelete(roomId);
+        setDeleteRoomConfirmOpen(true);
+    }, [setRoomToDelete, setDeleteRoomConfirmOpen]);
 
     // Derived State
     const filteredLinks = useMemo(() => {
@@ -469,6 +502,8 @@ export function useSocialHandlers(state: SocialState) {
         handleCopyInvite,
         handleLeaveRoom,
         handleOpenLeaveDialog,
+        handleDeleteRoom,
+        handleOpenDeleteRoomDialog,
         handleOpenMoveDialog,
         handleCollectionContextMenu,
         handleCollectionTouchStart,

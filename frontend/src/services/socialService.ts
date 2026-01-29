@@ -14,6 +14,7 @@ export interface Room {
     icon: string; // Encrypted
     members: RoomMember[];
     inviteCode?: string;
+    role?: 'owner' | 'admin' | 'member';
     encryptedRoomKey?: string; // User's encrypted copy of room key
 }
 
@@ -204,6 +205,13 @@ const socialService = {
      */
     leaveRoom: async (roomId: string): Promise<void> => {
         await apiClient.post(`social/rooms/${roomId}/leave`);
+    },
+
+    /**
+     * Delete a room (owner only)
+     */
+    deleteRoom: async (roomId: string): Promise<void> => {
+        await apiClient.delete(`social/rooms/${roomId}`);
     },
 
     /**

@@ -13,7 +13,8 @@ export const RoomsView: React.FC = () => {
         effectiveIsLoadingRooms,
         isMobile,
         handleSelectRoom,
-        handleOpenLeaveDialog
+        handleOpenLeaveDialog,
+        handleOpenDeleteRoomDialog
     } = useSocial();
 
     return (
@@ -90,6 +91,7 @@ export const RoomsView: React.FC = () => {
                                 room={room}
                                 onSelect={() => handleSelectRoom(room._id)}
                                 onLeave={() => handleOpenLeaveDialog(room._id)}
+                                onDelete={() => handleOpenDeleteRoomDialog(room._id)}
                                 index={index}
                             />
                         </SocialErrorBoundary>

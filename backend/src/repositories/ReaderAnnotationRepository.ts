@@ -103,4 +103,13 @@ export class ReaderAnnotationRepository extends BaseRepository<IReaderAnnotation
             linkId: { $eq: linkId as any }
         } as SafeFilter<IReaderAnnotation>);
     }
+
+    /**
+     * Delete all annotations for a room
+     */
+    async deleteByRoom(roomId: string): Promise<number> {
+        return this.deleteMany({
+            roomId: { $eq: roomId as any }
+        } as SafeFilter<IReaderAnnotation>);
+    }
 }

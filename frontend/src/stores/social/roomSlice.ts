@@ -159,6 +159,7 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
             return null;
         } finally {
             set({ isLoadingContent: false, isLoadingLinks: false });
+            const { setCryptoStatus } = useSessionStore.getState();
             setCryptoStatus('idle');
         }
     },
@@ -325,4 +326,29 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
             linksCache: {},
         });
     },
+
+    deleteRoom: async (roomId: string) => {
+        const { rooms, currentRoom, roomKeys } = get();
+        try {
+            await socialService.deleteRoom(roomId);
+
+            // Clean up state
+            const newRooms = rooms.filter(r => r._id !== roomId);
+            const newRoomKeys = new Map(roomKeys);
+            newRoomKeys.delete(roomId);
+
+            set({
+                rooms: newRooms,
+                roomKeys: newRoomKeys,
+            });
+
+            // If deleted current room, exit to room list
+            if (currentRoom?._id === roomId) {
+                get().clearRoomContent();
+            }
+        } catch (error) {
+            console.error('Failed to delete room:', error);
+            throw error;
+        }
+    }
 });

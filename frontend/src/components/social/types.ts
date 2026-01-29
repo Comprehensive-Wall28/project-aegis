@@ -133,10 +133,19 @@ export interface MoveLinkDialogProps {
     isLoading: boolean;
 }
 
+export interface DeleteRoomDialogProps {
+    open: boolean;
+    room: Room | null;
+    onClose: () => void;
+    onConfirm: () => void;
+    isLoading: boolean;
+}
+
 export interface RoomCardProps {
     room: Room;
     onSelect: () => void;
     onLeave?: (e: React.MouseEvent) => void;
+    onDelete?: (e: React.MouseEvent) => void;
     index?: number;
 }
 

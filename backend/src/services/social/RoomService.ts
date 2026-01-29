@@ -9,6 +9,7 @@ import { LinkCommentRepository } from '../../repositories/LinkCommentRepository'
 import { IRoom } from '../../models/Room';
 import { ICollection } from '../../models/Collection';
 import { ILinkPost } from '../../models/LinkPost';
+import { ReaderAnnotationRepository } from '../../repositories/ReaderAnnotationRepository';
 import logger from '../../utils/logger';
 
 export interface CreateRoomDTO {
@@ -23,6 +24,7 @@ export interface RoomWithKey {
     name: string;
     description: string;
     icon: string;
+    role: 'owner' | 'admin' | 'member';
     encryptedRoomKey?: string;
 }
 
@@ -40,6 +42,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
     private linkPostRepo: LinkPostRepository;
     private linkViewRepo: LinkViewRepository;
     private linkCommentRepo: LinkCommentRepository;
+    private readerAnnotationRepo: ReaderAnnotationRepository;
 
     constructor() {
         super(new RoomRepository());
@@ -47,6 +50,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
         this.linkPostRepo = new LinkPostRepository();
         this.linkViewRepo = new LinkViewRepository();
         this.linkCommentRepo = new LinkCommentRepository();
+        this.readerAnnotationRepo = new ReaderAnnotationRepository();
     }
 
     async createRoom(userId: string, data: CreateRoomDTO, req: Request): Promise<IRoom> {
@@ -96,6 +100,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
                     name: room.name,
                     description: room.description,
                     icon: room.icon,
+                    role: member?.role || 'member',
                     // encryptedRoomKey IS needed in list view to decrypt room names/descriptions
                     encryptedRoomKey: member?.encryptedRoomKey
                 };
@@ -271,6 +276,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
                     name: room.name,
                     description: room.description,
                     icon: room.icon,
+                    role: member?.role || 'member',
                     encryptedRoomKey: member?.encryptedRoomKey
                 },
                 collections,
@@ -310,6 +316,59 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
             if (error instanceof ServiceError) throw error;
             logger.error('Leave room error:', error);
             throw new ServiceError('Failed to leave room', 500);
+        }
+    }
+
+    async deleteRoom(userId: string, roomId: string, req: Request): Promise<void> {
+        try {
+            const room = await this.repository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new ServiceError('Room not found or access denied', 404);
+            }
+
+            const member = room.members.find(m => m.userId.toString() === userId);
+            if (!member || member.role !== 'owner') {
+                throw new ServiceError('Only room owners can delete rooms', 403);
+            }
+
+            // Cascading delete
+            // 1. Find all collections
+            const collections = await this.collectionRepo.findByRoom(roomId);
+            const collectionIds = collections.map(c => c._id.toString());
+
+            // 2. Find all links
+            const links = await this.linkPostRepo.findByCollections(collectionIds);
+            const linkIds = links.map(l => l._id.toString());
+
+            // 3. Delete related entities in order
+            await Promise.all([
+                // Delete comments for all links
+                ...linkIds.map(linkId => this.linkCommentRepo.deleteByLinkId(linkId)),
+                // Delete annotations for the room
+                this.readerAnnotationRepo.deleteByRoom(roomId),
+                // Delete views for the room
+                this.linkViewRepo.deleteByRoom(roomId)
+            ]);
+
+            // 4. Delete links
+            if (collectionIds.length > 0) {
+                await Promise.all(collectionIds.map(cid => this.linkPostRepo.deleteByCollection(cid)));
+            }
+
+            // 5. Delete collections
+            await this.collectionRepo.deleteByRoom(roomId);
+
+            // 6. Delete the room itself
+            await this.repository.deleteById(roomId);
+
+            await this.logAction(userId, 'ROOM_DELETE', 'SUCCESS', req, {
+                roomId,
+                name: room.name // Log the name for audit trail before it's gone
+            });
+        } catch (error) {
+            if (error instanceof ServiceError) throw error;
+            logger.error('Delete room error:', error);
+            throw new ServiceError('Failed to delete room', 500);
         }
     }
 }

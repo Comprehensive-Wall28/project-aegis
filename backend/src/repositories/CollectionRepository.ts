@@ -49,4 +49,13 @@ export class CollectionRepository extends BaseRepository<ICollection> {
             type: { $eq: 'links' as any }
         } as SafeFilter<ICollection>);
     }
+
+    /**
+     * Delete all collections in a room
+     */
+    async deleteByRoom(roomId: string): Promise<number> {
+        return this.deleteMany({
+            roomId: { $eq: roomId as any }
+        } as SafeFilter<ICollection>);
+    }
 }

@@ -24,7 +24,8 @@ import {
     getAnnotations,
     createAnnotation,
     deleteAnnotation,
-    leaveRoom
+    leaveRoom,
+    deleteRoom
 } from '../controllers/socialController';
 import { proxyImage } from '../controllers/linkPreviewController';
 import { protect } from '../middleware/authMiddleware';
@@ -42,6 +43,7 @@ router.post('/rooms', protect, csrfProtection, createRoom);
 router.post('/rooms/:roomId/invite', protect, csrfProtection, createInvite);
 router.post('/rooms/join', protect, csrfProtection, joinRoom);
 router.post('/rooms/:roomId/leave', protect, csrfProtection, leaveRoom);
+router.delete('/rooms/:roomId', protect, csrfProtection, deleteRoom);
 router.post('/rooms/:roomId/links', protect, csrfProtection, postLink);
 router.post('/rooms/:roomId/collections', protect, csrfProtection, createCollection);
 router.get('/rooms/:roomId', protect, csrfProtection, getRoomContent);
