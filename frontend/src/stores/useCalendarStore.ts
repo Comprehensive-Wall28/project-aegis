@@ -36,9 +36,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             const encryptedEvents = await calendarService.getEvents({ start, end });
             if (decryptFn) {
                 const decryptedEvents = await decryptFn(encryptedEvents);
-                set({ events: decryptedEvents, isLoading: false });
+                set({ events: decryptedEvents as DecryptedCalendarEvent[], isLoading: false });
             } else {
-                set({ events: encryptedEvents, isLoading: false });
+                // Without decryption function, we cannot properly set encrypted events as decrypted
+                set({ events: [], isLoading: false, error: 'Decryption not available' });
             }
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to fetch events';

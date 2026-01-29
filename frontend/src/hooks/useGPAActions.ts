@@ -42,7 +42,7 @@ export const useGPAActions = (showSnackbar: (msg: string, severity: 'success' | 
             }
 
             setGPASystem(prefs.gpaSystem);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to fetch GPA data:', error);
             // Network errors are handled by global BackendStatusProvider
             // Only set empty courses for other errors

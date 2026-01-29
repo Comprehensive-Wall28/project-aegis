@@ -72,8 +72,9 @@ export function useSocialHandlers(state: SocialState) {
             setNewLinkUrl('');
             toggleOverlay('post', null);
             showSnackbar('Link shared successfully', 'success');
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.message || 'Failed to post link';
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } }; message?: string };
+            const message = err.response?.data?.message || err.message || 'Failed to post link';
             setPostLinkError(message);
             showSnackbar(message, 'error');
         } finally {
@@ -110,8 +111,9 @@ export function useSocialHandlers(state: SocialState) {
             toggleOverlay('createRoom', null);
             showSnackbar('Room created successfully', 'success');
             handleSelectRoom(room._id);
-        } catch (error: any) {
-            showSnackbar(error.message || 'Failed to create room', 'error');
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            showSnackbar(err.message || 'Failed to create room', 'error');
         } finally {
             setIsCreating(false);
         }
@@ -125,8 +127,9 @@ export function useSocialHandlers(state: SocialState) {
             await createCollection(name.trim());
             toggleOverlay('createCol', null);
             showSnackbar('Collection created successfully', 'success');
-        } catch (error: any) {
-            showSnackbar(error.message || 'Failed to create collection', 'error');
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            showSnackbar(err.message || 'Failed to create collection', 'error');
         } finally {
             setIsCreatingCollection(false);
         }
@@ -140,8 +143,9 @@ export function useSocialHandlers(state: SocialState) {
             try {
                 await moveLink(draggedLinkId, collectionId);
                 showSnackbar('Link moved successfully', 'success');
-            } catch (error: any) {
-                showSnackbar(error.message || 'Failed to move link', 'error');
+            } catch (error: unknown) {
+                const err = error as { message?: string };
+                showSnackbar(err.message || 'Failed to move link', 'error');
             }
         }
 
@@ -157,8 +161,9 @@ export function useSocialHandlers(state: SocialState) {
             await moveLink(linkToMove._id, collectionId);
             toggleOverlay('move', null);
             showSnackbar('Link moved successfully', 'success');
-        } catch (error: any) {
-            showSnackbar(error.message || 'Failed to move link', 'error');
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            showSnackbar(err.message || 'Failed to move link', 'error');
         } finally {
             setIsMovingLink(false);
         }
@@ -171,8 +176,9 @@ export function useSocialHandlers(state: SocialState) {
         try {
             await deleteCollection(collectionToDelete);
             showSnackbar('Collection deleted', 'success');
-        } catch (error: any) {
-            showSnackbar(error.message || 'Failed to delete collection', 'error');
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            showSnackbar(err.message || 'Failed to delete collection', 'error');
         }
         setIsDeletingCollection(false);
         setDeleteConfirmOpen(false);
@@ -183,8 +189,9 @@ export function useSocialHandlers(state: SocialState) {
         try {
             await deleteLink(linkId);
             showSnackbar('Link deleted successfully', 'success');
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.message || 'Failed to delete link';
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } }; message?: string };
+            const message = err.response?.data?.message || err.message || 'Failed to delete link';
             showSnackbar(message, 'error');
         }
     }, [deleteLink, showSnackbar]);
@@ -196,8 +203,9 @@ export function useSocialHandlers(state: SocialState) {
             const inviteUrl = await createInvite(currentRoom._id);
             await navigator.clipboard.writeText(inviteUrl);
             showSnackbar('Invite link copied to clipboard', 'success');
-        } catch (error: any) {
-            showSnackbar(error.message || 'Failed to create invite', 'error');
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            showSnackbar(err.message || 'Failed to create invite', 'error');
         }
     }, [currentRoom, createInvite, showSnackbar]);
 
@@ -206,9 +214,10 @@ export function useSocialHandlers(state: SocialState) {
         let filtered = links;
 
         if (state.selectedUploader) {
-            filtered = filtered.filter((l) =>
-                typeof l.userId === 'object' && l.userId._id === state.selectedUploader
-            );
+            filtered = filtered.filter((l) => {
+                const userId = typeof l.userId === 'object' && l.userId ? (l.userId as { _id: string })._id : null;
+                return userId === state.selectedUploader;
+            });
         }
 
         if (viewFilter !== 'all') {
@@ -345,7 +354,7 @@ export function useSocialHandlers(state: SocialState) {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [currentRoom, zenModeOpen, toggleOverlay]);
 
-    const handleOpenMoveDialog = useCallback((link: any) => {
+    const handleOpenMoveDialog = useCallback((link: { _id: string }) => {
         toggleOverlay('move', link._id);
     }, [toggleOverlay]);
 

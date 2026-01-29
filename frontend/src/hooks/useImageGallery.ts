@@ -78,8 +78,9 @@ export const useImageGallery = (
             const entry: CacheEntry = { blobUrl, error: null };
             cacheRef.current[fileId] = entry;
             return entry;
-        } catch (err: any) {
-            const errorMsg = err.message || 'Failed to decrypt image';
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            const errorMsg = error.message || 'Failed to decrypt image';
             const entry: CacheEntry = { blobUrl: '', error: errorMsg };
             cacheRef.current[fileId] = entry;
             console.error(`Failed to load image ${fileId}:`, err);

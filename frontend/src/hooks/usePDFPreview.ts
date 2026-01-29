@@ -67,11 +67,12 @@ export const usePDFPreview = (
                 setBlobUrl(url);
                 setIsLoading(false);
                 setError(null);
-            } catch (err: any) {
+            } catch (err: unknown) {
                 if (expectedFileIdRef.current !== fileId) return;
 
+                const error = err as { message?: string };
                 console.error('Failed to decrypt PDF:', err);
-                setError(err.message || 'Failed to decrypt PDF');
+                setError(error.message || 'Failed to decrypt PDF');
                 setIsLoading(false);
             } finally {
                 setCryptoStatus('idle');

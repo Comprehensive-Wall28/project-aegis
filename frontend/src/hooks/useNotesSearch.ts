@@ -81,7 +81,6 @@ export const useNotesSearch = (
         prevTitlesRef.current = new Map(decryptedTitles);
 
         // Trigger search after delta updates
-        setIsFiltering(true);
         workerRef.current.postMessage({
             type: 'SEARCH',
             payload: {
@@ -97,9 +96,8 @@ export const useNotesSearch = (
         if (!workerRef.current) return;
 
         // Set filtering state immediately to avoid showing empty list flicker
-        setIsFiltering(true);
-
         const timer = setTimeout(() => {
+            setIsFiltering(true);
             workerRef.current?.postMessage({
                 type: 'SEARCH',
                 payload: {

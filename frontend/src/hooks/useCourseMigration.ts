@@ -94,9 +94,10 @@ export const useCourseMigration = () => {
                         ...prev,
                         migrated: prev.migrated + 1,
                     }));
-                } catch (err: any) {
+                } catch (err: unknown) {
+                    const error = err as { message?: string };
                     failed++;
-                    errors.push(`Failed to migrate "${course.name}": ${err.message}`);
+                    errors.push(`Failed to migrate "${course.name}": ${error.message || 'Unknown error'}`);
                     setProgress((prev) => ({
                         ...prev,
                         failed: prev.failed + 1,
@@ -112,13 +113,14 @@ export const useCourseMigration = () => {
                 failed,
                 errors,
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
             setProgress((prev) => ({ ...prev, inProgress: false }));
             return {
                 success: false,
                 migrated,
                 failed,
-                errors: [`Migration failed: ${error.message}`],
+                errors: [`Migration failed: ${errorMsg}`],
             };
         } finally {
             setCryptoStatus('idle');

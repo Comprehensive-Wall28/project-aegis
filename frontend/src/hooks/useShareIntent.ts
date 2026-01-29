@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
+import type { Room } from '@/services/socialService';
 
 interface UseShareIntentProps {
-    currentRoom: any; // Type as Room if possible
+    currentRoom: Room | null;
     handlePostLink: (url: string) => void;
     setPendingShareUrl: (url: string) => void;
     showSnackbar: (message: string, severity: 'success' | 'error' | 'info') => void;

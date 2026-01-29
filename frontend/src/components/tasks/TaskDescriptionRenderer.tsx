@@ -79,7 +79,7 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
 
                 <Divider sx={{ mb: 1.5, opacity: 0.5 }} />
 
-                {type === 'aegis-task' ? (
+                {type === 'aegis-task' && 'status' in data ? (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Typography variant="caption" color="text.secondary">Status</Typography>
@@ -96,7 +96,7 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
                                 }}
                             />
                         </Box>
-                        {data.dueDate && (
+                        {'dueDate' in data && data.dueDate && (
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Typography variant="caption" color="text.secondary">Due Date</Typography>
                                 <Typography variant="caption" sx={{ fontWeight: 600 }}>
@@ -111,14 +111,14 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
                             <TimeIcon sx={{ fontSize: 14, mt: 0.3, color: 'text.secondary' }} />
                             <Box>
                                 <Typography variant="caption" sx={{ display: 'block', fontWeight: 600 }}>
-                                    {dayjs(data.startDate).format('MMM D, h:mm A')}
+                                    {dayjs('startDate' in data && data.startDate ? data.startDate : '').format('MMM D, h:mm A')}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                    Ends {dayjs(data.endDate).format('h:mm A')}
+                                    Ends {dayjs('endDate' in data && data.endDate ? data.endDate : '').format('h:mm A')}
                                 </Typography>
                             </Box>
                         </Box>
-                        {data.location && (
+                        {'location' in data && data.location && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <LocationIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
                                 <Typography variant="caption" sx={{ fontWeight: 500 }}>{data.location}</Typography>

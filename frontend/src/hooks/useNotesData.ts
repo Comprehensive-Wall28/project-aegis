@@ -6,7 +6,7 @@ import { useNotesAutoDecrypt } from './useNotesAutoDecrypt';
 import { useNotesCrud } from './useNotesCrud';
 import { useNotesPagination } from './useNotesPagination';
 
-const arraysEqual = (a: any[], b: any[]) =>
+const arraysEqual = (a: string[], b: string[]) =>
     a.length === b.length && a.every((val, index) => val === b[index]);
 
 export const useNotesData = () => {
@@ -91,8 +91,9 @@ export const useNotesData = () => {
             if (pqcEngineStatus === 'operational') {
                 decryptTitles(notesList.items);
             }
-        } catch (err: any) {
-            setMetadataError(err.message || 'Failed to load data');
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            setMetadataError(error.message || 'Failed to load data');
         } finally {
             setIsLoading(false);
             setIsRefreshing(false);
