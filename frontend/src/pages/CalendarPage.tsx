@@ -274,7 +274,8 @@ export function CalendarPage() {
         }
     };
 
-    const handleDeleteEvent = async (id: string) => {
+    const handleDeleteEvent = async (id: string | undefined) => {
+        if (!id) return;
         try {
             await deleteEvent(id);
             showSnackbar('Event deleted successfully', 'success');

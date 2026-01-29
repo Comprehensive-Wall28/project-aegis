@@ -31,9 +31,26 @@ const AEGIS_COLORS = [
 export interface EventDialogProps {
     open: boolean;
     onClose: () => void;
-    onSubmit: (data: any) => void;
-    onDelete?: (id: string) => void;
-    event?: any; // If editing
+    onSubmit: (data: {
+        title: string;
+        description: string;
+        location: string;
+        startDate: string;
+        endDate: string;
+        isAllDay: boolean;
+        color: string;
+    }) => void;
+    onDelete?: (id: string | undefined) => void;
+    event?: {
+        _id?: string;
+        title?: string;
+        description?: string;
+        location?: string;
+        start?: string | Date;
+        end?: string | Date;
+        allDay?: boolean;
+        color?: string;
+    } | null; // If editing
     isSaving?: boolean;
 }
 
@@ -64,24 +81,30 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
     };
 
     useEffect(() => {
-        if (event) {
-            setTitle(event.title || '');
-            setDescription(event.description || '');
-            setLocation(event.location || '');
-            setStartDate(formatDateForInput(event.start));
-            setEndDate(formatDateForInput(event.end));
-            setIsAllDay(event.allDay || false);
-            setColor(event.color || AEGIS_COLORS[0].value);
-        } else {
-            // Reset for new event
-            setTitle('');
-            setDescription('');
-            setLocation('');
-            setStartDate(formatDateForInput(new Date()));
-            setEndDate(formatDateForInput(new Date(Date.now() + 3600000)));
-            setIsAllDay(false);
-            setColor(AEGIS_COLORS[0].value);
-        }
+        if (!open) return;
+        
+        const updateState = () => {
+            if (event) {
+                setTitle(event.title || '');
+                setDescription(event.description || '');
+                setLocation(event.location || '');
+                setStartDate(formatDateForInput(event.start));
+                setEndDate(formatDateForInput(event.end));
+                setIsAllDay(event.allDay || false);
+                setColor(event.color || AEGIS_COLORS[0].value);
+            } else {
+                // Reset for new event
+                setTitle('');
+                setDescription('');
+                setLocation('');
+                setStartDate(formatDateForInput(new Date()));
+                setEndDate(formatDateForInput(new Date(Date.now() + 3600000)));
+                setIsAllDay(false);
+                setColor(AEGIS_COLORS[0].value);
+            }
+        };
+        
+        updateState();
     }, [event, open]);
 
     const handleMentionSelect = (entity: MentionEntity) => {
@@ -212,7 +235,7 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                                 dialog: {
                                     TransitionProps: {
                                         onExited: () => setIsPickerOpen(false)
-                                    } as any,
+                                    } as Record<string, unknown>,
                                     sx: {
                                         '& .MuiPaper-root': {
                                             borderRadius: '24px',
@@ -241,7 +264,7 @@ export const EventDialog = ({ open, onClose, onSubmit, onDelete, event, isSaving
                                 dialog: {
                                     TransitionProps: {
                                         onExited: () => setIsPickerOpen(false)
-                                    } as any,
+                                    } as Record<string, unknown>,
                                     sx: {
                                         '& .MuiPaper-root': {
                                             borderRadius: '24px',
