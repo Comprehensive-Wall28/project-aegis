@@ -337,14 +337,14 @@ export const getTheme = (mode: ThemeMode) => {
                 },
                 variants: [
                     {
-                        props: { variant: 'glass' as any },
+                        props: { variant: 'glass' },
                         style: {
                             background: selectedPalette.background.paper,
                             border: `1px solid ${selectedPalette.divider}`,
                         },
                     },
                     {
-                        props: { variant: 'solid' as any },
+                        props: { variant: 'solid' },
                         style: {
                             background: selectedPalette.background.paper,
                             backgroundImage: 'none',
@@ -354,7 +354,7 @@ export const getTheme = (mode: ThemeMode) => {
                         },
                     },
                     {
-                        props: { variant: 'translucent' as any },
+                        props: { variant: 'translucent' },
                         style: {
                             background: selectedPalette.background.paper,
                             border: `1px solid ${selectedPalette.divider}`,

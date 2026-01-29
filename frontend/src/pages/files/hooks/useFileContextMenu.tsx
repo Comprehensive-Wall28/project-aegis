@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { useContextMenu, CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/ContextMenu';
+import { useContextMenu } from '@/components/useContextMenu';
+import { CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/vault/contextMenuIcons';
 import {
     Folder as FolderIcon,
     FolderOpen as FolderOpenIcon,
