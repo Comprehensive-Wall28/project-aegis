@@ -12,6 +12,7 @@ import {
     LinearProgress,
     useMediaQuery
 } from '@mui/material';
+import type { Theme } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { Virtuoso } from 'react-virtuoso';
@@ -49,7 +50,7 @@ const NoteItem = memo(({
     onDelete: (id: string, e: React.MouseEvent) => void;
     onDragStart: (e: React.DragEvent, id: string) => void;
     onDragEnd: (e: React.DragEvent) => void;
-    theme: any;
+    theme: Theme;
     index: number;
     isMobile: boolean;
 }) => {

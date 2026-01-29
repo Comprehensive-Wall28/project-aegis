@@ -9,6 +9,7 @@ import {
     useTheme,
     CircularProgress,
 } from '@mui/material';
+import { AxiosError } from 'axios';
 import { useSessionStore } from '@/stores/sessionStore';
 import authService from '@/services/authService';
 
@@ -92,8 +93,8 @@ export function AccountSettings({ onNotification }: AccountSettingsProps) {
             updateUser({ username: updatedUser.username, email: updatedUser.email });
             onNotification('success', 'Profile updated successfully!');
             setHasAccountChanges(false);
-        } catch (error: any) {
-            const message = error?.response?.data?.message || 'Failed to update profile.';
+        } catch (error: AxiosError<{ message: string }> | unknown) {
+            const message = (error as AxiosError<{ message: string }>)?.response?.data?.message || 'Failed to update profile.';
             onNotification('error', message);
         } finally {
             setIsLoading(false);

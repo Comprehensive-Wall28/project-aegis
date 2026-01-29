@@ -33,6 +33,8 @@ import calendarService from '@/services/calendarService';
 import { useTaskEncryption } from '@/hooks/useTaskEncryption';
 import { useCalendarEncryption } from '@/hooks/useCalendarEncryption';
 import { useDebounce } from '@/hooks/useDebounce';
+import type { DecryptedTask } from '@/stores/useTaskStore';
+import type { DecryptedCalendarEvent } from '@/stores/useCalendarStore';
 
 export type MentionEntityType = 'file' | 'task' | 'event';
 
@@ -41,7 +43,7 @@ export interface MentionEntity {
     type: MentionEntityType;
     name: string;
     folderId?: string; // For files
-    data: any;
+    data: FileMetadata | DecryptedTask | DecryptedCalendarEvent;
 }
 
 interface MentionPickerProps {
@@ -66,9 +68,9 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
     const { decryptTasks } = useTaskEncryption();
     const { decryptEvents } = useCalendarEncryption();
 
-    const [paginatedTasks, setPaginatedTasks] = useState<any[]>([]);
+    const [paginatedTasks, setPaginatedTasks] = useState<DecryptedTask[]>([]);
     const [tasksCursor, setTasksCursor] = useState<string | null>(null);
-    const [paginatedEvents, setPaginatedEvents] = useState<any[]>([]);
+    const [paginatedEvents, setPaginatedEvents] = useState<DecryptedCalendarEvent[]>([]);
     const [eventsCursor, setEventsCursor] = useState<string | null>(null);
     const [paginatedFiles, setPaginatedFiles] = useState<FileMetadata[]>([]);
     const [filesCursor, setFilesCursor] = useState<string | null>(null);
@@ -82,9 +84,10 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
 
             setPaginatedTasks(prev => cursor ? [...prev, ...items] : items);
             setTasksCursor(result.nextCursor);
-        } catch (err: any) {
+        } catch (err: unknown) {
             // Ignore abort errors
-            if (err?.name !== 'AbortError' && err?.code !== 'ERR_CANCELED') {
+            const error = err as Record<string, unknown>;
+            if (error?.name !== 'AbortError' && error?.code !== 'ERR_CANCELED') {
                 console.error('Failed to fetch paginated tasks:', err);
             }
         } finally {
@@ -100,9 +103,10 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
 
             setPaginatedEvents(prev => cursor ? [...prev, ...decrypted] : decrypted);
             setEventsCursor(result.nextCursor);
-        } catch (err: any) {
+        } catch (err: unknown) {
             // Ignore abort errors
-            if (err?.name !== 'AbortError' && err?.code !== 'ERR_CANCELED') {
+            const error = err as Record<string, unknown>;
+            if (error?.name !== 'AbortError' && error?.code !== 'ERR_CANCELED') {
                 console.error('Failed to fetch paginated events:', err);
             }
         } finally {
@@ -172,8 +176,9 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                     setPaginatedFiles(filesResult.items);
                     setFilesCursor(filesResult.nextCursor);
                 }
-            } catch (err: any) {
-                if (err?.name !== 'AbortError' && err?.code !== 'ERR_CANCELED') {
+            } catch (err: unknown) {
+                const error = err as Record<string, unknown>;
+                if (error?.name !== 'AbortError' && error?.code !== 'ERR_CANCELED') {
                     console.error('Failed to fetch picker data:', err);
                 }
             } finally {
@@ -222,12 +227,12 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
 
     const filteredTasks = useMemo(() => {
         const query = searchQuery.toLowerCase();
-        return paginatedTasks.filter(task => task.title.toLowerCase().includes(query));
+        return paginatedTasks.filter((task: DecryptedTask) => task.title.toLowerCase().includes(query));
     }, [paginatedTasks, searchQuery]);
 
     const filteredEvents = useMemo(() => {
         const query = searchQuery.toLowerCase();
-        return paginatedEvents.filter(event => event.title.toLowerCase().includes(query));
+        return paginatedEvents.filter((event: DecryptedCalendarEvent) => event.title.toLowerCase().includes(query));
     }, [paginatedEvents, searchQuery]);
 
     const currentItemsCount = useMemo(() => {
@@ -257,10 +262,10 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                     if (file) onSelect({ id: file._id, type: 'file', name: file.originalFileName, folderId: file.folderId || undefined, data: file });
                 }
             } else if (activeTab === 1) {
-                const task = filteredTasks[selectedIndex];
+                const task = filteredTasks[selectedIndex] as DecryptedTask | undefined;
                 if (task) onSelect({ id: task._id, type: 'task', name: task.title, data: task });
             } else if (activeTab === 2) {
-                const event = filteredEvents[selectedIndex];
+                const event = filteredEvents[selectedIndex] as DecryptedCalendarEvent | undefined;
                 if (event) onSelect({ id: event._id, type: 'event', name: event.title, data: event });
             }
         } else if (e.key === 'Escape') {
@@ -465,7 +470,7 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                                 )}
                             </>
                         )}
-                        {activeTab === 1 && filteredTasks.map((task, index) => (
+                        {activeTab === 1 && filteredTasks.map((task: DecryptedTask, index) => (
                             <ListItem
                                 key={task._id}
                                 component="div"
@@ -513,7 +518,7 @@ export const MentionPicker = ({ onSelect, onClose, anchorEl }: MentionPickerProp
                                 </Box>
                             </ListItem>
                         )}
-                        {activeTab === 2 && filteredEvents.map((event, index) => (
+                        {activeTab === 2 && filteredEvents.map((event: DecryptedCalendarEvent, index) => (
                             <ListItem
                                 key={event._id}
                                 component="div"

@@ -1,13 +1,14 @@
 import React, { useCallback, useState } from 'react';
 import { CloudUpload as UploadIcon, Lock as FileLockIcon, GppGood as ShieldCheckIcon } from '@mui/icons-material';
 import { Box, Typography, Paper, LinearProgress, alpha, useTheme } from '@mui/material';
+import { type SxProps } from '@mui/material/styles';
 import { useVaultUpload } from '../../hooks/useVaultUpload';
 
 
 interface UploadZoneProps {
     onUploadComplete?: () => void;
     folderId?: string | null;
-    sx?: any;
+    sx?: SxProps;
 }
 
 const UploadZone: React.FC<UploadZoneProps> = ({ onUploadComplete, folderId, sx }) => {

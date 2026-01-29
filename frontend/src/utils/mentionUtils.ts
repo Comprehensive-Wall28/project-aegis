@@ -3,9 +3,9 @@
  */
 
 // Regex patterns for different mention types
-const FILE_MENTION_REGEX = /\[@.*?\]\(aegis-file:\/\/([^\/]+)\/([^\)]+)\)/g;
-const TASK_MENTION_REGEX = /\[#.*?\]\(aegis-task:\/\/([^\)]+)\)/g;
-const EVENT_MENTION_REGEX = /\[~.*?\]\(aegis-event:\/\/([^\)]+)\)/g;
+const FILE_MENTION_REGEX = /\[@.*?\]\(aegis-file:\/\/([^/]+)\/([^)]+)\)/g;
+const TASK_MENTION_REGEX = /\[#.*?\]\(aegis-task:\/\/([^)]+)\)/g;
+const EVENT_MENTION_REGEX = /\[~.*?\]\(aegis-event:\/\/([^)]+)\)/g;
 
 /**
  * Extracts all unique entity IDs mentioned in the given markdown text.

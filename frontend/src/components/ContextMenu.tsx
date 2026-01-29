@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     Menu,
     MenuItem,
@@ -8,13 +7,7 @@ import {
     alpha,
     useTheme
 } from '@mui/material';
-import {
-    CreateNewFolder as CreateFolderIcon,
-    DriveFileRenameOutline as RenameIcon,
-    Delete as DeleteIcon,
-    FolderOpen as FolderIcon,
-    ContentCut as MoveIcon
-} from '@mui/icons-material';
+
 
 interface ContextMenuItem {
     label: string;
@@ -89,41 +82,3 @@ export function ContextMenu({ open, anchorPosition, onClose, items }: ContextMen
         </Menu>
     );
 }
-
-// Hook for managing context menu state
-export function useContextMenu() {
-    const [contextMenu, setContextMenu] = useState<{
-        open: boolean;
-        position: { x: number; y: number } | null;
-        target: { type: 'file' | 'folder' | 'empty'; id?: string } | null;
-    }>({
-        open: false,
-        position: null,
-        target: null,
-    });
-
-    const handleContextMenu = (
-        e: React.MouseEvent,
-        target: { type: 'file' | 'folder' | 'empty'; id?: string }
-    ) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setContextMenu({
-            open: true,
-            position: { x: e.clientX, y: e.clientY },
-            target,
-        });
-    };
-
-    const closeContextMenu = () => {
-        setContextMenu({ open: false, position: null, target: null });
-    };
-
-    return {
-        contextMenu,
-        handleContextMenu,
-        closeContextMenu,
-    };
-}
-
-export { CreateFolderIcon, RenameIcon, DeleteIcon, FolderIcon, MoveIcon };

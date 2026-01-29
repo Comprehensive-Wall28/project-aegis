@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { AxiosError } from 'axios';
 import {
     Box,
     Typography,
@@ -71,9 +72,9 @@ export const PublicLinkSettings: React.FC<PublicLinkSettingsProps> = ({ onNotifi
             });
             setLinks(response.data.links);
             setTotalPages(response.data.pages);
-        } catch (err: any) {
+        } catch (err: AxiosError<{ message: string }> | unknown) {
             console.error('Failed to fetch links:', err);
-            setError(err.response?.data?.message || 'Failed to load public links');
+            setError((err as AxiosError<{ message: string }>)?.response?.data?.message || 'Failed to load public links');
         } finally {
             setLoading(false);
         }
@@ -97,8 +98,8 @@ export const PublicLinkSettings: React.FC<PublicLinkSettingsProps> = ({ onNotifi
             }
             // Auto-refresh to refill the page if there are more
             fetchLinks();
-        } catch (err: any) {
-            const message = err.response?.data?.message || 'Failed to revoke link';
+        } catch (err: AxiosError<{ message: string }> | unknown) {
+            const message = (err as AxiosError<{ message: string }>)?.response?.data?.message || 'Failed to revoke link';
             if (onNotification) {
                 onNotification('error', message);
             } else {

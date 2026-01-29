@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AxiosError } from 'axios';
 import {
     Box,
     Paper,
@@ -102,11 +103,11 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
             };
 
             const updatedUser = await authService.updateProfile({ preferences });
-            updateUser({ preferences: updatedUser.preferences } as any);
+            updateUser({ preferences: updatedUser.preferences });
             onNotification('success', 'Security preferences saved!');
             setHasPreferencesChanges(false);
-        } catch (error: any) {
-            const message = error?.response?.data?.message || 'Failed to save preferences.';
+        } catch (error: AxiosError<{ message: string }> | unknown) {
+            const message = (error as AxiosError<{ message: string }>)?.response?.data?.message || 'Failed to save preferences.';
             onNotification('error', message);
         } finally {
             setIsPreferencesLoading(false);
@@ -129,13 +130,13 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
                 // Refresh user data to update credentials list
                 const updatedUser = await authService.validateSession();
                 if (updatedUser) {
-                    updateUser(updatedUser as any);
+                    updateUser(updatedUser);
                 }
                 onNotification('success', 'Passkey registered successfully! It will now be used as 2FA for your next login.');
             }
-        } catch (error: any) {
+        } catch (error: AxiosError<{ message: string }> | unknown) {
             console.error(error);
-            onNotification('error', error.response?.data?.message || 'Failed to register passkey.');
+            onNotification('error', (error as AxiosError<{ message: string }>)?.response?.data?.message || 'Failed to register passkey.');
         } finally {
             setIsPasskeyLoading(false);
         }
@@ -152,12 +153,12 @@ export function SecuritySettings({ onNotification }: SecuritySettingsProps) {
             // Refresh user data to update credentials list
             const updatedUser = await authService.validateSession();
             if (updatedUser) {
-                updateUser(updatedUser as any);
+                updateUser(updatedUser);
             }
             onNotification('success', 'Passkey removed successfully.');
-        } catch (error: any) {
+        } catch (error: AxiosError<{ message: string }> | unknown) {
             console.error(error);
-            onNotification('error', error.response?.data?.message || 'Failed to remove passkey.');
+            onNotification('error', (error as AxiosError<{ message: string }>)?.response?.data?.message || 'Failed to remove passkey.');
         } finally {
             setRemovingPasskeyId(null);
         }

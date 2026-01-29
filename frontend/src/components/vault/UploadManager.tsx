@@ -27,8 +27,10 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { type UploadItem } from '../../stores/useUploadStore';
 import { useVaultUpload } from '../../hooks/useVaultUpload';
+import type { Theme } from '@mui/material/styles';
 
-interface UploadManagerProps { }
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+interface UploadManagerProps {}
 
 // Get file icon based on mime type
 const getFileIcon = (fileName: string) => {
@@ -60,11 +62,10 @@ const UploadItemRow = React.memo(({
     truncateFileName
 }: {
     upload: UploadItem;
-    theme: any;
+    theme: Theme;
     getFileIcon: (name: string) => React.ElementType;
     truncateFileName: (name: string, max?: number) => string;
 }) => {
-    const FileIconComponent = getFileIcon(upload.file.name);
     const isActive = upload.status === 'encrypting' || upload.status === 'uploading';
     const isPending = upload.status === 'pending';
     const isComplete = upload.status === 'completed';
@@ -97,7 +98,8 @@ const UploadItemRow = React.memo(({
                     justifyContent: 'center',
                 }}
             >
-                <FileIconComponent
+                <Box
+                    component={getFileIcon(upload.file.name)}
                     sx={{
                         fontSize: 18,
                         color: isError ? 'error.main' : 'primary.main',

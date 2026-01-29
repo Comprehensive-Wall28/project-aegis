@@ -108,7 +108,7 @@ export const useKanbanLogic = ({
         }
 
         // Check if over a column
-        if (Object.values(TASK_STATUS).includes(overId as any)) {
+        if (Object.values(TASK_STATUS).includes(overId as string & typeof TASK_STATUS[keyof typeof TASK_STATUS])) {
             setOverColumnId(overId);
         } else {
             // Check if over a task, then get its column
@@ -140,14 +140,14 @@ export const useKanbanLogic = ({
         if (!activeTask) return;
 
         const sourceStatus = activeTask.status;
-        let targetStatus = sourceStatus;
+        let targetStatus: typeof sourceStatus = sourceStatus;
 
         // Determine target status
-        if (Object.values(TASK_STATUS).includes(overId as any)) {
-            targetStatus = overId as any;
+        if (Object.values(TASK_STATUS).includes(overId as string & typeof TASK_STATUS[keyof typeof TASK_STATUS])) {
+            targetStatus = overId as typeof sourceStatus;
         } else {
             const status = tasksMap.get(overId);
-            if (status) targetStatus = status as any;
+            if (status) targetStatus = status as typeof sourceStatus;
         }
 
         const sourceColTasks = tasksByStatus[sourceStatus];
@@ -200,7 +200,7 @@ export const useKanbanLogic = ({
                 onTaskMove(updates);
             }
         }
-    }, [tasksMap, tasksById, tasksByStatus, sortMode, onTaskMove, setOverColumnId]);
+    }, [tasksMap, tasksById, tasksByStatus, sortMode, onTaskMove, onDeleteTask, setOverColumnId]);
 
     return {
         sensors,

@@ -72,9 +72,12 @@ export function SettingsPage() {
     useEffect(() => {
         if (location.state?.activeTab !== undefined) {
             const newTab = location.state.activeTab;
-            setActiveTab(newTab);
-            // Also sync search params if navigated via state
-            setSearchParams({ tab: TAB_MAP[newTab] }, { replace: true });
+            // Use setTimeout to defer state updates
+            const timer = setTimeout(() => {
+                setActiveTab(newTab);
+                setSearchParams({ tab: TAB_MAP[newTab] }, { replace: true });
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [location.state, setSearchParams]);
 

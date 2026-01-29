@@ -15,15 +15,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DialogPortal } from '../social/DialogPortal';
 import { SOCIAL_DIALOG_Z_INDEX, SOCIAL_RADIUS_XLARGE } from '../social/constants';
-import type { NoteMetadata } from '@/services/noteService';
+import type { DecryptedNote } from '../../hooks/useNotesCrud';
 
 interface NoteFullViewProps {
     open: boolean;
     onClose: () => void;
-    note: {
-        metadata: NoteMetadata;
-        content: any;
-    };
+    note: DecryptedNote;
     decryptedTitle: string;
     containerRef: (node: HTMLElement | null) => void;
     isZenMode: boolean;

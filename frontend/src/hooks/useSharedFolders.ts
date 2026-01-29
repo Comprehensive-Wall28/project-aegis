@@ -48,9 +48,10 @@ export const useSharedFolders = () => {
                     }
                 }
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
             console.error('Failed to fetch shared folders:', err);
-            setError(err.response?.data?.message || 'Failed to load shared folders');
+            setError(error.response?.data?.message || 'Failed to load shared folders');
         } finally {
             setIsLoading(false);
         }

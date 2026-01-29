@@ -216,10 +216,11 @@ export const useCourseEncryption = () => {
             );
 
             if (decryptedResults.length < encryptedCourses.length) {
-                console.warn(`${encryptedCourses.length - decryptedResults.length} courses failed to decrypt.`);
+                console.warn(`${encryptedCourses.length - encryptedCourses.length} courses failed to decrypt.`);
             }
 
-            return decryptedResults;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return decryptedResults as any;
         } finally {
             setCryptoStatus('idle');
         }

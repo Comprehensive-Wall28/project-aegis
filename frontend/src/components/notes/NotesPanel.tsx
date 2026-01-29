@@ -13,6 +13,7 @@ import {
     useTheme,
     LinearProgress
 } from '@mui/material';
+import type { Theme } from '@mui/material';
 import {
     Search,
     Tag,
@@ -72,7 +73,7 @@ const NoteItem = memo(({
     onDragEnd: (e: React.DragEvent) => void;
     onHoverStart: (note: NoteMetadata) => void;
     onHoverEnd: () => void;
-    theme: any;
+    theme: Theme;
     index: number;
 }) => {
     const itemRef = useRef<HTMLDivElement>(null);

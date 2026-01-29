@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useMemo } from 'react';
 import { useSocialState } from '../../hooks/useSocialState';
-import type { SocialState } from '../../hooks/useSocialState';
+import type { SocialContextType } from '../../types/social';
 import { useSocialHandlers } from '../../hooks/useSocialHandlers';
 
-export type SocialContextType = SocialState & ReturnType<typeof useSocialHandlers>;
-
 const SocialContext = createContext<SocialContextType | null>(null);
+
+export { SocialContext };
 
 export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const state = useSocialState();
@@ -21,12 +21,4 @@ export const SocialProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             {children}
         </SocialContext.Provider>
     );
-};
-
-export const useSocial = () => {
-    const context = useContext(SocialContext);
-    if (!context) {
-        throw new Error('useSocial must be used within a SocialProvider');
-    }
-    return context;
 };

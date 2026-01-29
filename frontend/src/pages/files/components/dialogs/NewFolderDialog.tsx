@@ -1,5 +1,5 @@
 import { Dialog, DialogTitle, DialogContent, TextField, DialogActions, Button } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface NewFolderDialogProps {
     open: boolean;
@@ -10,11 +10,6 @@ interface NewFolderDialogProps {
 export function NewFolderDialog({ open, onClose, onCreate }: NewFolderDialogProps) {
     const [name, setName] = useState('');
 
-    // Reset name when dialog opens
-    useEffect(() => {
-        if (open) setName('');
-    }, [open]);
-
     const handleSubmit = () => {
         if (!name.trim()) return;
         onCreate(name);
@@ -23,10 +18,13 @@ export function NewFolderDialog({ open, onClose, onCreate }: NewFolderDialogProp
     return (
         <Dialog
             open={open}
-            onClose={onClose}
+            onClose={() => {
+                setName('');
+                onClose();
+            }}
             maxWidth="xs"
             fullWidth
-            slotProps={{ paper: { variant: 'solid' as any, sx: { borderRadius: '24px' } } }}
+            slotProps={{ paper: { variant: 'solid' as const, sx: { borderRadius: '24px' } } }}
         >
             <DialogTitle sx={{ fontWeight: 700 }}>Create New Folder</DialogTitle>
             <DialogContent>

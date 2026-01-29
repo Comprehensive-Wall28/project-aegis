@@ -45,49 +45,73 @@ export function useSocialUrlSync(links: LinkPost[]) {
 
         // Comments Link
         if (commentsId) {
+
             const link = links.find(l => l._id === commentsId);
-            if (link && commentsLink?._id !== commentsId) setCommentsLink(link);
+            if (link && commentsLink?._id !== commentsId) {
+                // Defer state update to avoid synchronous setState in effect
+                Promise.resolve().then(() => {
+                    setCommentsLink(link);
+                });
+            }
         } else if (commentsLink) {
-            setCommentsLink(null);
+            Promise.resolve().then(() => {
+                setCommentsLink(null);
+            });
         }
 
         // Reader Link
         if (readerId) {
             const link = links.find(l => l._id === readerId);
-            if (link && readerLink?._id !== readerId) setReaderLink(link);
+            if (link && readerLink?._id !== readerId) {
+                Promise.resolve().then(() => {
+                    setReaderLink(link);
+                });
+            }
         } else if (readerLink) {
-            setReaderLink(null);
+            Promise.resolve().then(() => {
+                setReaderLink(null);
+            });
         }
 
         // Move Link
         if (moveId) {
             const link = links.find(l => l._id === moveId);
             if (link && (linkToMove?._id !== moveId || !showMoveDialog)) {
-                setLinkToMove(link);
-                setShowMoveDialog(true);
+                Promise.resolve().then(() => {
+                    setLinkToMove(link);
+                    setShowMoveDialog(true);
+                });
             }
         } else if (showMoveDialog) {
-            setShowMoveDialog(false);
-            setLinkToMove(null);
+            Promise.resolve().then(() => {
+                setShowMoveDialog(false);
+                setLinkToMove(null);
+            });
         }
 
         // Preview Link
         if (previewId) {
             const link = links.find(l => l._id === previewId);
             if (link && (previewLink?._id !== previewId || !showPreview)) {
-                setPreviewLink(link);
-                setShowPreview(true);
+                Promise.resolve().then(() => {
+                    setPreviewLink(link);
+                    setShowPreview(true);
+                });
             }
         } else if (showPreview) {
-            setShowPreview(false);
-            setPreviewLink(null);
+            Promise.resolve().then(() => {
+                setShowPreview(false);
+                setPreviewLink(null);
+            });
         }
 
         // Boolean Dialogs
-        if (post !== showPostLinkDialog) setShowPostLinkDialog(post);
-        if (createRoom !== showCreateDialog) setShowCreateDialog(createRoom);
-        if (createCol !== showCollectionDialog) setShowCollectionDialog(createCol);
-        if (zen !== zenModeOpen) setZenModeOpen(zen);
+        Promise.resolve().then(() => {
+            if (post !== showPostLinkDialog) setShowPostLinkDialog(post);
+            if (createRoom !== showCreateDialog) setShowCreateDialog(createRoom);
+            if (createCol !== showCollectionDialog) setShowCollectionDialog(createCol);
+            if (zen !== zenModeOpen) setZenModeOpen(zen);
+        });
 
     }, [searchParams, links, commentsLink, readerLink, linkToMove, showMoveDialog, previewLink, showPreview, showPostLinkDialog, showCreateDialog, showCollectionDialog, zenModeOpen]);
 

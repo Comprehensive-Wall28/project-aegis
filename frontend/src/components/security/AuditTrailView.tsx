@@ -18,6 +18,7 @@ import {
     TableRow,
     Pagination,
     Skeleton,
+    type Theme,
 } from '@mui/material';
 import {
     History as HistoryIcon,
@@ -32,6 +33,15 @@ import auditService, { type AuditLog } from '@/services/auditService';
 
 interface AuditTrailViewProps {
     maxHeight?: string | number;
+}
+
+interface AuditLogRowProps {
+    log: AuditLog;
+    isMobile: boolean;
+    expanded: boolean;
+    onToggle: () => void;
+    theme: Theme;
+    getStatusColor: (status: 'SUCCESS' | 'FAILURE') => string;
 }
 
 export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
@@ -243,7 +253,7 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
 }
 
 // Sub-component for a cleaner main component
-function AuditLogRow({ log, isMobile, expanded, onToggle, theme, getStatusColor }: any) {
+function AuditLogRow({ log, isMobile, expanded, onToggle, theme, getStatusColor }: AuditLogRowProps) {
     return (
         <>
             <TableRow

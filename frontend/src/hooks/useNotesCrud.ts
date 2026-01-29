@@ -60,8 +60,9 @@ export const useNotesCrud = (
                 content: emptyContent,
             });
             return newNote;
-        } catch (err: any) {
-            setError(err.message || 'Failed to create note');
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            setError(error.message || 'Failed to create note');
             throw err;
         }
     }, [encryptNote, generateNoteHash, selectedFolderId, setNotes, setDecryptedTitles, decryptedTitlesRef]);
@@ -107,12 +108,14 @@ export const useNotesCrud = (
                 metadata: note,
                 content: decryptedContent,
             });
-        } catch (err: any) {
-            if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') return;
+        } catch (err: unknown) {
+            const error = err as { name?: string; code?: string };
+            if (error.name === 'AbortError' || error.code === 'ERR_CANCELED') return;
 
             if (activeNoteIdRef.current === note._id) {
+                const error = err as { message?: string };
                 console.error('Failed to load note content:', err);
-                setError(err.message || 'Failed to load note content');
+                setError(error.message || 'Failed to load note content');
             }
         } finally {
             if (activeNoteIdRef.current === note._id) {
@@ -159,7 +162,7 @@ export const useNotesCrud = (
             } : null);
 
             setNotes(prev => prev.map(n => n._id === finalNote._id ? finalNote : n));
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to save note:', err);
             throw err;
         }
@@ -181,8 +184,9 @@ export const useNotesCrud = (
             if (selectedNote?.metadata._id === id) {
                 setSelectedNote(null);
             }
-        } catch (err: any) {
-            setError(err.message || 'Failed to delete note');
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            setError(error.message || 'Failed to delete note');
             throw err;
         }
     }, [selectedNote, setNotes, setDecryptedTitles, decryptedTitlesRef]);
@@ -210,8 +214,9 @@ export const useNotesCrud = (
                     metadata: { ...prev.metadata, noteFolderId: folderId || undefined }
                 } : null);
             }
-        } catch (err: any) {
-            setError(err.message || 'Failed to move note');
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            setError(error.message || 'Failed to move note');
             throw err;
         }
     }, [selectedNote, setNotes]);

@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { CreateRoomDialog, CreateCollectionDialog, PostLinkDialog, MoveLinkDialog } from './SocialDialogs';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { useSocial } from './SocialPageContext';
+import { useSocial } from '@/hooks/useSocial';
 
 export const SocialPageDialogs = memo(() => {
     const {

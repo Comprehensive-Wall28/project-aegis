@@ -298,6 +298,7 @@ export const SearchExtension = Extension.create<SearchOptions, SearchStorage>({
     },
 
     addProseMirrorPlugins() {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         const extension = this;
 
         return [

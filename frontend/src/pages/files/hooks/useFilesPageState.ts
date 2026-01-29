@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { FileMetadata } from '@/services/vaultService';
 
 export type ViewPreset = 'standard' | 'compact' | 'gallery';
 
@@ -28,7 +29,7 @@ export function useFilesPageState() {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewInitialId, setPreviewInitialId] = useState<string | null>(null);
     const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
-    const [pdfPreviewFile, setPdfPreviewFile] = useState<any | null>(null);
+    const [pdfPreviewFile, setPdfPreviewFile] = useState<FileMetadata | null>(null);
 
     return {
         viewPreset,

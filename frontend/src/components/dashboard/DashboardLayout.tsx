@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { SystemStatusBar } from './SystemStatusBar';
 import { motion } from 'framer-motion';
+import type { PanInfo } from 'framer-motion';
 import { Box, alpha, useTheme, Paper, Snackbar, Alert } from '@mui/material';
 import { refreshCsrfToken } from '@/services/api';
 import UploadManager from '@/components/vault/UploadManager';
@@ -143,7 +144,7 @@ export function DashboardLayout() {
     }, [joinRoom, navigate]);
 
     // Swipe to open sidebar (left swipe on mobile)
-    const handlePanEnd = (_: any, info: any) => {
+    const handlePanEnd = (_: PointerEvent, info: PanInfo) => {
         // Detect swipe to left (negative velocity or offset) from the right side
         if (info.offset.x < -50 && info.velocity.x < -100) {
             setIsMobileMenuOpen(true);

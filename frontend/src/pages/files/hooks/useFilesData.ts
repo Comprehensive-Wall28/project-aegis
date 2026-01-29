@@ -91,7 +91,7 @@ export function useFilesData() {
                 }
             }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to fetch files:', error);
             const err = error as { response?: { status: number } };
             // Handle specific folder not found errors (e.g. from deep link)

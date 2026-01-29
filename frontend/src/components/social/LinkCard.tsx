@@ -308,7 +308,11 @@ export const LinkCard = memo(({
                                     size="small"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        isViewed ? onUnview?.(link._id) : onView?.(link._id);
+                                        if (isViewed) {
+                                            onUnview?.(link._id);
+                                        } else {
+                                            onView?.(link._id);
+                                        }
                                     }}
                                     sx={{
                                         color: isViewed ? '#0ea5e9' : 'text.disabled',

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, type ElementType } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Link, Typography, alpha, Box, Popover, useTheme, Chip, Divider } from '@mui/material';
 import {
@@ -8,8 +8,8 @@ import {
     Schedule as TimeIcon,
 } from '@mui/icons-material';
 import { getFileIconInfo, isPreviewable } from '@/pages/files/utils';
-import { useTaskStore, type DecryptedTask } from '@/stores/useTaskStore';
-import { useCalendarStore, type DecryptedCalendarEvent } from '@/stores/useCalendarStore';
+import { useTaskStore } from '@/stores/useTaskStore';
+import { useCalendarStore } from '@/stores/useCalendarStore';
 import vaultService, { type FileMetadata } from '@/services/vaultService';
 import PDFPreviewOverlay from '@/components/vault/PDFPreviewOverlay';
 import ImagePreviewOverlay from '@/components/vault/ImagePreviewOverlay';
@@ -18,13 +18,13 @@ import dayjs from 'dayjs';
 interface TaskDescriptionRendererProps {
     text: string;
     variant?: 'body1' | 'body2' | 'caption';
-    sx?: any;
+    sx?: Record<string, unknown>;
 }
 
 // Entity types and their prefixes/regex groups
-const MENTION_REGEX = /\[([@#~])(.*?)\]\((aegis-\w+):\/\/([\w-\/]+)\)/g;
+const MENTION_REGEX = /\[([@#~])(.*?)\]\((aegis-\w+):\/\/([\w-/]+)\)/g;
 
-const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: string, anchorEl: HTMLElement | null, onClose: () => void }) => {
+const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string; id: string; anchorEl: HTMLElement | null; onClose: () => void }) => {
     const theme = useTheme();
     const { tasks } = useTaskStore();
     const { events } = useCalendarStore();
@@ -79,59 +79,53 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
 
                 <Divider sx={{ mb: 1.5, opacity: 0.5 }} />
 
-                {type === 'aegis-task' ? (() => {
-                    const task = data as DecryptedTask;
-                    return (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {type === 'aegis-task' && 'status' in data ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="caption" color="text.secondary">Status</Typography>
+                            <Chip
+                                label={data.status.replace('_', ' ')}
+                                size="small"
+                                sx={{
+                                    height: 20,
+                                    fontSize: '0.65rem',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                    color: theme.palette.primary.main
+                                }}
+                            />
+                        </Box>
+                        {'dueDate' in data && data.dueDate && (
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="caption" color="text.secondary">Status</Typography>
-                                <Chip
-                                    label={task.status.replace('_', ' ')}
-                                    size="small"
-                                    sx={{
-                                        height: 20,
-                                        fontSize: '0.65rem',
-                                        fontWeight: 700,
-                                        textTransform: 'uppercase',
-                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                        color: theme.palette.primary.main
-                                    }}
-                                />
+                                <Typography variant="caption" color="text.secondary">Due Date</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                                    {dayjs(data.dueDate).format('MMM D, YYYY')}
+                                </Typography>
                             </Box>
-                            {task.dueDate && (
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Typography variant="caption" color="text.secondary">Due Date</Typography>
-                                    <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                                        {dayjs(task.dueDate).format('MMM D, YYYY')}
-                                    </Typography>
-                                </Box>
-                            )}
-                        </Box>
-                    );
-                })() : (() => {
-                    const event = data as DecryptedCalendarEvent;
-                    return (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                                <TimeIcon sx={{ fontSize: 14, mt: 0.3, color: 'text.secondary' }} />
-                                <Box>
-                                    <Typography variant="caption" sx={{ display: 'block', fontWeight: 600 }}>
-                                        {dayjs(event.startDate).format('MMM D, h:mm A')}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Ends {dayjs(event.endDate).format('h:mm A')}
-                                    </Typography>
-                                </Box>
+                        )}
+                    </Box>
+                ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                            <TimeIcon sx={{ fontSize: 14, mt: 0.3, color: 'text.secondary' }} />
+                            <Box>
+                                <Typography variant="caption" sx={{ display: 'block', fontWeight: 600 }}>
+                                    {dayjs('startDate' in data && data.startDate ? data.startDate : '').format('MMM D, h:mm A')}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    Ends {dayjs('endDate' in data && data.endDate ? data.endDate : '').format('h:mm A')}
+                                </Typography>
                             </Box>
-                            {event.location && (
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <LocationIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                    <Typography variant="caption" sx={{ fontWeight: 500 }}>{event.location}</Typography>
-                                </Box>
-                            )}
                         </Box>
-                    );
-                })()}
+                        {'location' in data && data.location && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <LocationIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                                <Typography variant="caption" sx={{ fontWeight: 500 }}>{data.location}</Typography>
+                            </Box>
+                        )}
+                    </Box>
+                )}
             </Box>
         </Popover>
     );
@@ -139,11 +133,10 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
 
 export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDescriptionRendererProps) => {
     const theme = useTheme();
-    const [hoverEntity, setHoverEntity] = useState<{ type: string, id: string, anchorEl: HTMLElement | null } | null>(null);
+    const [hoverEntity, setHoverEntity] = useState<{ type: string; id: string; anchorEl: HTMLElement | null } | null>(null);
     const [previewFile, setPreviewFile] = useState<FileMetadata | null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const [_isFetchingMetadata, setIsFetchingMetadata] = useState(false);
-    const hoverTimeout = useRef<any>(null);
+    const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     if (!text) return null;
 
@@ -174,14 +167,11 @@ export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDes
         const fileId = pathParts[1] || pathParts[0];
 
         try {
-            setIsFetchingMetadata(true);
             const fileData = await vaultService.getFile(fileId);
             setPreviewFile(fileData);
             setIsPreviewOpen(true);
         } catch (err) {
             console.error('Failed to fetch file metadata for preview:', err);
-        } finally {
-            setIsFetchingMetadata(false);
         }
     };
 
@@ -190,11 +180,11 @@ export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDes
             parts.push(text.substring(lastIndex, match.index));
         }
 
-        const [_fullMatch, prefix, label, type, path] = match;
+        const [, prefix, label, type, path] = match;
 
         let iconColor = theme.palette.primary.main;
         let targetPath = '';
-        let EntityIcon: any = TaskIcon;
+        let EntityIcon: ElementType = TaskIcon;
         let entityId = path;
 
         if (type === 'aegis-file') {

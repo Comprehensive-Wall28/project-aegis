@@ -18,7 +18,7 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [show2FA, setShow2FA] = useState(false);
-    const [authOptions, setAuthOptions] = useState<any>(null);
+    const [authOptions, setAuthOptions] = useState<Record<string, unknown> | null>(null);
 
     // Track open count to force fresh state on each open
     const [openCount, setOpenCount] = useState(0);
@@ -66,11 +66,11 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
                 const response = await authService.login(email, password);
 
                 if (response.status === '2FA_REQUIRED') {
-                    setAuthOptions(response.options);
+                    setAuthOptions(response.options ?? null);
                     setShow2FA(true);
                     setLoading(false);
                     // Automatically trigger passkey auth after a short delay for UX
-                    setTimeout(() => handleComplete2FA(response.options), 500);
+                    setTimeout(() => handleComplete2FA(response.options ?? null), 500);
                     return;
                 }
 
@@ -83,12 +83,13 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
                 onClose();
                 navigate('/dashboard');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { code?: string; message?: string; response?: { data?: { message?: string } } };
             console.error(err);
             // Network errors are handled by global BackendStatusProvider
             // Only show error message for other errors
-            if (err.code !== 'ERR_NETWORK' && err.message !== 'Network Error') {
-                setError(err.response?.data?.message || 'Authentication failed');
+            if (error.code !== 'ERR_NETWORK' && error.message !== 'Network Error') {
+                setError(error.response?.data?.message || 'Authentication failed');
             }
         } finally {
             setLoading(false);
@@ -114,9 +115,10 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
                 onClose();
                 navigate('/dashboard');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
             console.error(err);
-            setError(err.response?.data?.message || 'Passkey 2FA failed');
+            setError(error.response?.data?.message || 'Passkey 2FA failed');
             setShow2FA(false);
         } finally {
             setLoading(false);

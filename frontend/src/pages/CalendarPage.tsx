@@ -49,10 +49,10 @@ export function CalendarPage() {
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
-    const [selectedEvent, setSelectedEvent] = useState<any>(null);
+    const [selectedEvent, setSelectedEvent] = useState<{ _id?: string; id?: string; start?: string; end?: string; allDay?: boolean; title?: string; description?: string; location?: string; color?: string; startDate?: string; endDate?: string; isAllDay?: boolean } | null>(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
     const [popoverState, setPopoverState] = useState<{ anchorEl: HTMLElement | null; date: Date | null }>({ anchorEl: null, date: null });
-    const calendarRef = useRef<any>(null);
+    const calendarRef = useRef<FullCalendar | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
 
     const toggleCalendarParam = useCallback((key: 'event' | 'edit' | 'new', value: string | null) => {
@@ -77,17 +77,18 @@ export function CalendarPage() {
 
     // Sync state FROM URL
     useEffect(() => {
-        const urlEventId = searchParams.get('event');
-        const urlEditId = searchParams.get('edit');
-        const urlNewDate = searchParams.get('new');
+        const timer = setTimeout(() => {
+            const urlEventId = searchParams.get('event');
+            const urlEditId = searchParams.get('edit');
+            const urlNewDate = searchParams.get('new');
 
-        if (urlEditId) {
-            const event = events.find(e => e._id === urlEditId);
-            if (event && (selectedEvent?._id !== urlEditId || !dialogOpen)) {
-                setSelectedEvent({
-                    ...event,
-                    id: event._id,
-                    start: event.startDate,
+            if (urlEditId) {
+                const event = events.find(e => e._id === urlEditId);
+                if (event && (selectedEvent?._id !== urlEditId || !dialogOpen)) {
+                    setSelectedEvent({
+                        ...event,
+                        id: event._id,
+                        start: event.startDate,
                     end: event.endDate,
                     allDay: event.isAllDay,
                 });
@@ -118,31 +119,37 @@ export function CalendarPage() {
             setPreviewOpen(false);
             setSelectedEvent(null);
         }
+        }, 0);
+        return () => clearTimeout(timer);
     }, [searchParams, events, dialogOpen, previewOpen, selectedEvent?._id, selectedEvent?.start]);
 
-    const handleDateClick = (arg: any) => {
+    const handleDateClick = (arg: { dateStr: string }) => {
         toggleCalendarParam('new', arg.dateStr);
     };
 
-    const handleSelect = (info: any) => {
+    const handleSelect = (info: { startStr: string }) => {
         // FullCalendar selection: we'll just use the start date for the "new" param for simplicity
         // as search params are easier with single values than complex ranges
         toggleCalendarParam('new', info.startStr);
     };
 
-    const handleEventClick = (info: any) => {
-        const id = typeof info === 'string' ? info : (info.event ? info.event.id : info.id);
+    const handleEventClick = (info: { event?: { id: string }; id?: string } | string) => {
+        const id = typeof info === 'string' ? info : (info.event ? info.event.id : info.id ?? null);
         toggleCalendarParam('event', id);
         setPopoverState({ anchorEl: null, date: null }); // Close popover if open
     };
 
-    const handleEditFromPreview = (event: any) => {
-        toggleCalendarParam('edit', event._id || event.id);
+    const handleEditFromPreview = (event: { _id?: string; id?: string }) => {
+        const id = event._id || event.id;
+        if (id) {
+            toggleCalendarParam('edit', id);
+        }
     };
 
-    const handleMoreLinkClick = (args: any) => {
+    const handleMoreLinkClick = (args: { jsEvent: { target: EventTarget | null; preventDefault: () => void }; date: Date }) => {
         args.jsEvent.preventDefault();
-        setPopoverState({ anchorEl: args.jsEvent.target, date: args.date });
+        const target = args.jsEvent.target as HTMLElement | null;
+        setPopoverState({ anchorEl: target, date: args.date });
     };
 
     const handleSwipeLeft = useCallback(() => {
@@ -200,11 +207,11 @@ export function CalendarPage() {
         });
     };
 
-    const handleEventDrop = async (info: any) => {
+    const handleEventDrop = async (info: { event: { id: string; start: Date | null; end?: Date | null; allDay: boolean }; revert: () => void }) => {
         const { event } = info;
         try {
             const existingEvent = events.find(e => e._id === event.id);
-            if (!existingEvent) return;
+            if (!existingEvent || !event.start) return;
 
             const recordHash = await generateRecordHash(
                 { title: existingEvent.title, description: existingEvent.description, location: existingEvent.location },
@@ -220,13 +227,14 @@ export function CalendarPage() {
             }, decryptEventData);
 
             showSnackbar('Event moved securely', 'success');
-        } catch (err: any) {
-            showSnackbar(err.message || 'Failed to move event', 'error');
+        } catch (err: unknown) {
+            const message = (err instanceof Error) ? err.message : 'Failed to move event';
+            showSnackbar(message, 'error');
             info.revert();
         }
     };
 
-    const handleDialogSubmit = async (data: any) => {
+    const handleDialogSubmit = async (data: { title: string; description: string; location: string; startDate: string; endDate: string; isAllDay: boolean; color: string }) => {
         try {
             const recordHash = await generateRecordHash(
                 { title: data.title, description: data.description, location: data.location },
@@ -260,23 +268,26 @@ export function CalendarPage() {
             }
             toggleCalendarParam('edit', null);
             toggleCalendarParam('new', null);
-        } catch (err: any) {
-            showSnackbar(err.message || 'Operation failed', 'error');
+        } catch (err: unknown) {
+            const message = (err instanceof Error) ? err.message : 'Operation failed';
+            showSnackbar(message, 'error');
         }
     };
 
-    const handleDeleteEvent = async (id: string) => {
+    const handleDeleteEvent = async (id: string | undefined) => {
+        if (!id) return;
         try {
             await deleteEvent(id);
             showSnackbar('Event deleted successfully', 'success');
             toggleCalendarParam('event', null);
             toggleCalendarParam('edit', null);
-        } catch (err: any) {
-            showSnackbar(err.message || 'Failed to delete event', 'error');
+        } catch (err: unknown) {
+            const message = (err instanceof Error) ? err.message : 'Failed to delete event';
+            showSnackbar(message, 'error');
         }
     };
 
-    const renderEventContent = (eventInfo: any) => {
+    const renderEventContent = (eventInfo: {event: {backgroundColor?: string; extendedProps?: {color?: string}; title?: string; start?: string; end?: string}}) => {
         const { event } = eventInfo;
         const backgroundColor = event.backgroundColor || event.extendedProps?.color || '#3f51b5';
 
@@ -324,7 +335,7 @@ export function CalendarPage() {
         }));
     }, [events]);
 
-    const popoverEvents = useMemo(() => getEventsForDate(popoverState.date), [popoverState.date, events]);
+    const popoverEvents = useMemo(() => getEventsForDate(popoverState.date), [popoverState.date, getEventsForDate]);
 
     if (pqcEngineStatus !== 'operational' && isLoading) {
         return (

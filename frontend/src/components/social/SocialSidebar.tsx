@@ -23,7 +23,7 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SOCIAL_RADIUS_XLARGE, SOCIAL_RADIUS_MEDIUM } from './constants';
-import { useSocial } from './SocialPageContext';
+import { useSocial } from '@/hooks/useSocial';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
 import type { Collection } from '@/services/socialService';
 

@@ -50,7 +50,10 @@ export const useNotesAutoDecrypt = (notes: NoteMetadata[]) => {
 
     useEffect(() => {
         if (pqcEngineStatus === 'operational' && notes.length > 0) {
-            decryptTitlesList(notes);
+            // Use a microtask to defer setState call
+            Promise.resolve().then(() => {
+                decryptTitlesList(notes);
+            });
         }
     }, [pqcEngineStatus, notes, decryptTitlesList]);
 

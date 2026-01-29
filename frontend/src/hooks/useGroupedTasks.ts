@@ -1,6 +1,6 @@
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import type { DecryptedTask } from '@/stores/useTaskStore';
-import type { SortMode } from '@/components/tasks/KanbanBoard'; // Need to export SortMode if not already or redefine
+import type { SortMode } from '@/components/tasks/KanbanBoard';
 import { TASK_STATUS, TASK_PRIORITY } from '@/constants/taskDefaults';
 
 const PRIORITY_VALUE = {
@@ -9,21 +9,7 @@ const PRIORITY_VALUE = {
     [TASK_PRIORITY.LOW]: 1,
 };
 
-function areArraysEqual(a: DecryptedTask[], b: DecryptedTask[]) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) return false;
-    }
-    return true;
-}
-
 export const useGroupedTasks = (tasks: DecryptedTask[], sortMode: SortMode) => {
-    const prevGroupedRef = useRef<Record<string, DecryptedTask[]>>({
-        [TASK_STATUS.TODO]: [],
-        [TASK_STATUS.IN_PROGRESS]: [],
-        [TASK_STATUS.DONE]: [],
-    });
-
     return useMemo(() => {
         const grouped: Record<string, DecryptedTask[]> = {
             [TASK_STATUS.TODO]: [],
@@ -62,25 +48,6 @@ export const useGroupedTasks = (tasks: DecryptedTask[], sortMode: SortMode) => {
             });
         });
 
-        // Stabilize references
-        const prev = prevGroupedRef.current;
-        const finalGrouped: Record<string, DecryptedTask[]> = {};
-        let hasChanges = false;
-
-        Object.keys(grouped).forEach(key => {
-            if (prev[key] && areArraysEqual(prev[key], grouped[key])) {
-                finalGrouped[key] = prev[key];
-            } else {
-                finalGrouped[key] = grouped[key];
-                hasChanges = true;
-            }
-        });
-
-        // If structure changed (shouldn't really happen for keys, but for safety)
-        if (hasChanges) {
-            prevGroupedRef.current = finalGrouped;
-        }
-
-        return finalGrouped;
+        return grouped;
     }, [tasks, sortMode]);
 };
