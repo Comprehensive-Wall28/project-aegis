@@ -73,7 +73,6 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
                 type: 'links'
             } as any);
 
-            logger.info(`Room created by user ${userId}`);
             await this.logAction(userId, 'ROOM_CREATE', 'SUCCESS', req, {
                 roomId: room._id.toString()
             });
@@ -122,7 +121,6 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
             const inviteCode = randomBytes(6).toString('base64url');
             await this.repository.updateInviteCode(roomId, inviteCode);
 
-            logger.info(`Invite code created for room ${roomId} by user ${userId}`);
             await this.logAction(userId, 'ROOM_INVITE_CREATE', 'SUCCESS', req, { roomId });
 
             return inviteCode;
@@ -179,7 +177,6 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
 
             await this.repository.addMember(room._id.toString(), userId, 'member', encryptedRoomKey);
 
-            logger.info(`User ${userId} joined room ${room._id}`);
             await this.logAction(userId, 'ROOM_JOIN', 'SUCCESS', req, {
                 roomId: room._id.toString()
             });

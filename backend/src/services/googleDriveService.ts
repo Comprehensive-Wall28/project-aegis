@@ -132,7 +132,6 @@ export const initiateUpload = async (
 
     activeUploads.set(sessionId, session);
 
-    logger.info(`Google Drive upload initiated: sessionId=${sessionId}, fileName=${fileName}, totalSize=${totalSize}`);
     return sessionId;
 };
 
@@ -209,7 +208,6 @@ export const appendChunk = async (
         duplex: 'half'
     } as any);
 
-    logger.info(`Google Drive chunk uploaded: sessionId=${sessionId}, chunkSize=${chunkLength}, received=${session.receivedSize}/${totalSize}, status=${response.status}`);
 
     // 200 or 201 means upload complete
     if (response.status === 200 || response.status === 201) {
@@ -264,7 +262,6 @@ export const finalizeUpload = async (sessionId: string): Promise<string> => {
             throw new Error('No file ID returned from Google Drive');
         }
 
-        logger.info(`Google Drive upload finalized: sessionId=${sessionId}, fileId=${fileId}`);
         activeUploads.delete(sessionId);
         return fileId;
     }
@@ -293,7 +290,6 @@ export const getFileStream = async (fileId: string): Promise<Readable> => {
         { responseType: 'stream' }
     );
 
-    logger.info(`Google Drive download stream opened: fileId=${fileId}`);
     return response.data as Readable;
 };
 
@@ -304,7 +300,6 @@ export const getFileStream = async (fileId: string): Promise<Readable> => {
 export const deleteFile = async (fileId: string): Promise<void> => {
     const drive = initializeDriveClient();
     await drive.files.delete({ fileId, supportsAllDrives: true });
-    logger.info(`Google Drive file deleted: fileId=${fileId}`);
 };
 
 /**
@@ -324,7 +319,6 @@ export const cancelUpload = async (sessionId: string): Promise<void> => {
             logger.warn(`Failed to cancel Google Drive upload: sessionId=${sessionId}`);
         }
         activeUploads.delete(sessionId);
-        logger.info(`Google Drive upload cancelled: sessionId=${sessionId}`);
     }
 };
 

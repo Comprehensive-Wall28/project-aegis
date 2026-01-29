@@ -99,7 +99,6 @@ export class ReaderService extends BaseService<any, ReaderAnnotationRepository> 
                 annotation
             });
 
-            // Log action
             await this.logAction(userId, 'LINK_COMMENT_ADD', 'SUCCESS', req, {
                 linkId,
                 roomId,
@@ -107,7 +106,6 @@ export class ReaderService extends BaseService<any, ReaderAnnotationRepository> 
                 isAnnotation: true
             });
 
-            logger.info(`Annotation created on link ${linkId} by user ${userId}`);
             return annotation;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -141,15 +139,12 @@ export class ReaderService extends BaseService<any, ReaderAnnotationRepository> 
                 annotationId
             });
 
-            // Log action
             await this.logAction(userId, 'LINK_COMMENT_DELETE', 'SUCCESS', req, {
                 annotationId,
                 linkId: annotation.linkId.toString(),
                 roomId,
                 isAnnotation: true
             });
-
-            logger.info(`Annotation ${annotationId} deleted by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Delete annotation error:', error);

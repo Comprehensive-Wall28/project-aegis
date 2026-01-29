@@ -70,7 +70,6 @@ export class CommentService extends BaseService<any, LinkCommentRepository> {
                 commentId: comment._id.toString()
             });
 
-            logger.info(`Comment posted on link ${linkId} by user ${userId}`);
             return comment;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -109,14 +108,11 @@ export class CommentService extends BaseService<any, LinkCommentRepository> {
                 commentId
             });
 
-            // Log action
             await this.logAction(userId, 'LINK_COMMENT_DELETE', 'SUCCESS', req, {
                 commentId,
                 linkId: comment.linkId.toString(),
                 roomId
             });
-
-            logger.info(`Comment ${commentId} deleted by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Delete comment error:', error);

@@ -43,7 +43,6 @@ export class AuditService extends BaseService<IAuditLog, AuditLogRepository> {
 
             const hasMore = clampedOffset + logs.length < total;
 
-            logger.info(`Fetched ${logs.length} audit logs for user ${userId}`);
 
             return {
                 logs,

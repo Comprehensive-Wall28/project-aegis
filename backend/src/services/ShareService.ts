@@ -90,7 +90,6 @@ export class ShareService {
                 await this.folderRepo.updateById(folder._id.toString(), { isShared: true } as any);
             }
 
-            logger.info(`Folder ${data.id} shared with user ${recipient.username} by user ${userId}`);
             return sharedFolder;
 
         } catch (error) {
@@ -136,7 +135,6 @@ export class ShareService {
                 permissions: data.permissions || ['READ', 'DOWNLOAD']
             } as any);
 
-            logger.info(`File ${data.id} shared with user ${recipient.username} by user ${userId}`);
             return sharedFile;
 
         } catch (error) {
@@ -223,7 +221,6 @@ export class ShareService {
                 allowedEmails: data.allowedEmails || []
             } as any);
 
-            logger.info(`Shared link created for ${data.resourceType} ${data.resourceId} by user ${userId}`);
             return sharedLink;
 
         } catch (error) {
@@ -297,7 +294,6 @@ export class ShareService {
             }
 
             await this.sharedLinkRepo.deleteById(linkId);
-            logger.info(`Shared link ${linkId} revoked by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Revoke link error:', error);

@@ -98,8 +98,6 @@ export class CollectionService extends BaseService<ICollection, CollectionReposi
                 collectionId,
                 roomId: room._id.toString()
             });
-
-            logger.info(`Collection ${collectionId} deleted by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Delete collection error:', error);
@@ -131,8 +129,6 @@ export class CollectionService extends BaseService<ICollection, CollectionReposi
                 roomId,
                 collectionIds
             });
-
-            logger.info(`Collections reordered in room ${roomId} by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Reorder collections error:', error);

@@ -204,7 +204,6 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 contentSize: contentBuffer.length
             });
 
-            logger.info(`Note created: ${note._id} by user ${userId}`);
             return note;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -327,7 +326,6 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 contentSize: contentBuffer.length
             });
 
-            logger.info(`Note content updated: ${noteId} by user ${userId}`);
             return note;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -369,8 +367,6 @@ export class NoteService extends BaseService<INote, NoteRepository> {
             await this.logAction(userId, 'NOTE_DELETE', 'SUCCESS', req, {
                 noteId: validatedId
             });
-
-            logger.info(`Note deleted: ${noteId} by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             this.handleRepositoryError(error);
@@ -464,7 +460,6 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 name: folder.name
             });
 
-            logger.info(`Note folder created: ${folder._id} by user ${userId}`);
             return folder;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -569,8 +564,6 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 folderId: validatedId,
                 descendantsDeleted: descendantIds.length
             });
-
-            logger.info(`Note folder deleted: ${folderId} by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             this.handleRepositoryError(error);

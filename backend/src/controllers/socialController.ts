@@ -113,7 +113,7 @@ export const unmarkLinkViewed = withAuth(async (req: AuthRequest, res: Response)
 });
 
 export const moveLink = withAuth(async (req: AuthRequest, res: Response) => {
-    const linkPost = await linkService.moveLink(req.user!.id, req.params.linkId as string, req.body.collectionId);
+    const linkPost = await linkService.moveLink(req.user!.id, req.params.linkId as string, req.body.collectionId, req);
     res.status(200).json({ message: 'Link moved successfully', linkPost });
 });
 

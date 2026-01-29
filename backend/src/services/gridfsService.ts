@@ -96,7 +96,6 @@ export const initiateUpload = (fileName: string, metadata?: Record<string, any>)
 
     activeStreams.set(streamId, session);
 
-    logger.info(`GridFS upload initiated with streaming: streamId=${streamId}, fileName=${fileName}`);
     return streamId;
 };
 
@@ -158,7 +157,6 @@ export const appendChunk = async (
         });
     }
 
-    logger.info(`GridFS chunk streamed: streamId=${streamId}, chunkSize=${chunkLength}, received=${session.receivedSize}/${totalSize}`);
 
     // Check if upload is complete
     const complete = session.receivedSize >= totalSize;
@@ -196,8 +194,6 @@ export const finalizeUpload = async (
     // Wait for GridFS upload to complete
     const fileId = await session.finishedPromise;
 
-    logger.info(`GridFS upload finalized: streamId=${streamId}, fileId=${fileId}`);
-
     // Cleanup
     activeStreams.delete(streamId);
 
@@ -214,7 +210,6 @@ export const getFileStream = (fileId: any): Readable => {
     const idString = fileId.toString();
     const id = new mongoose.mongo.ObjectId(idString);
 
-    logger.info(`GridFS download stream opened: fileId=${id}`);
     return gridBucket.openDownloadStream(id);
 };
 
@@ -228,7 +223,6 @@ export const deleteFile = async (fileId: any): Promise<void> => {
     const id = new mongoose.mongo.ObjectId(idString);
 
     await gridBucket.delete(id);
-    logger.info(`GridFS file deleted: fileId=${id}`);
 };
 
 /**
@@ -241,7 +235,6 @@ export const cancelUpload = (streamId: string): void => {
         // Destroy the streams to prevent memory leaks
         session.passthrough.destroy();
         activeStreams.delete(streamId);
-        logger.info(`GridFS upload cancelled: streamId=${streamId}`);
     }
 };
 
@@ -271,7 +264,6 @@ export const uploadBuffer = async (
         const uploadStream = gridBucket.openUploadStream(fileName, { metadata });
 
         uploadStream.on('finish', () => {
-            logger.info(`GridFS buffer uploaded: fileId=${uploadStream.id}, size=${buffer.length}`);
             resolve(uploadStream.id);
         });
 
@@ -299,7 +291,6 @@ export const downloadToBuffer = async (fileId: any): Promise<Buffer> => {
         stream.on('data', (chunk: Buffer) => chunks.push(chunk));
         stream.on('error', reject);
         stream.on('end', () => {
-            logger.info(`GridFS buffer downloaded: fileId=${fileId}`);
             resolve(Buffer.concat(chunks));
         });
     });

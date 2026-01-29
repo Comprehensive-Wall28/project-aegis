@@ -198,13 +198,12 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             }
 
             const folder = await this.repository.create({
-                ownerId: userId as any,
+                ownerId: new mongoose.Types.ObjectId(userId),
                 name: data.name.trim(),
-                parentId: data.parentId || null,
+                parentId: data.parentId ? new mongoose.Types.ObjectId(data.parentId) : null,
                 encryptedSessionKey: data.encryptedSessionKey
             } as any);
 
-            logger.info(`Folder created: ${folder.name} for user ${userId}`);
             return folder;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -241,7 +240,6 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
                 throw new ServiceError('Folder not found', 404);
             }
 
-            logger.info(`Folder updated: ${folder.name} for user ${userId}`);
             return folder;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -281,8 +279,6 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             if (!deleted) {
                 throw new ServiceError('Folder not found', 404);
             }
-
-            logger.info(`Folder deleted for user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Delete folder error:', error);
@@ -324,7 +320,6 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
 
             const result = await this.fileMetadataRepo.bulkMoveFiles(bulkUpdates, userId);
 
-            logger.info(`Moved ${result} files to folder ${normalizedFolderId || 'root'} for user ${userId}`);
             return result;
         } catch (error) {
             if (error instanceof ServiceError) throw error;

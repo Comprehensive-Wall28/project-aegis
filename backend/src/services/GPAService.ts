@@ -56,7 +56,6 @@ export class GPAService extends BaseService<ICourse, CourseRepository> {
                 encryptedSymmetricKey: data.encryptedSymmetricKey
             } as any);
 
-            logger.info(`Encrypted course created for user ${userId}`);
 
             await this.logAction(userId, 'COURSE_CREATE', 'SUCCESS', req, {
                 courseId: course._id.toString()
@@ -81,7 +80,6 @@ export class GPAService extends BaseService<ICourse, CourseRepository> {
                 throw new ServiceError('Course not found', 404);
             }
 
-            logger.info(`Course deleted for user ${userId}`);
 
             await this.logAction(userId, 'COURSE_DELETE', 'SUCCESS', req, {
                 courseId
@@ -129,7 +127,6 @@ export class GPAService extends BaseService<ICourse, CourseRepository> {
                 throw new ServiceError('User not found', 404);
             }
 
-            logger.info(`GPA system preference updated for user ${userId}: ${normalizedGpaSystem}`);
 
             await this.logAction(userId, 'PREFERENCES_UPDATE', 'SUCCESS', req, {
                 gpaSystem: normalizedGpaSystem
@@ -189,7 +186,6 @@ export class GPAService extends BaseService<ICourse, CourseRepository> {
                 throw new ServiceError('Failed to migrate course', 500);
             }
 
-            logger.info(`Course ${courseId} migrated to encrypted format for user ${userId}`);
             return updatedCourse;
         } catch (error) {
             if (error instanceof ServiceError) throw error;

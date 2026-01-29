@@ -19,7 +19,8 @@ function getAuditLogModel() {
  * Extracts the client IP address from the request.
  * Handles proxied requests (X-Forwarded-For) and direct connections.
  */
-export function getClientIp(req: Request): string {
+export function getClientIp(req?: Request): string {
+    if (!req || !req.headers) return 'unknown';
     // Check for forwarded header first (common in production behind load balancers)
     const forwarded = req.headers['x-forwarded-for'];
     if (forwarded) {
@@ -49,7 +50,7 @@ export async function logAuditEvent(
     userId: string,
     action: AuditAction,
     status: AuditStatus,
-    req: Request,
+    req?: Request,
     metadata: Record<string, any> = {}
 ): Promise<void> {
     try {
@@ -67,7 +68,6 @@ export async function logAuditEvent(
             timestamp
         });
 
-        logger.info(`Audit: ${action} ${status} for user ${userId} from ${ipAddress}`);
     } catch (error) {
         // Log the error but don't throw - audit logging should not break the main flow
         logger.error(`Failed to create audit log: ${error}`);
@@ -81,7 +81,7 @@ export async function logAuditEvent(
 export async function logFailedAuth(
     identifier: string,
     action: 'LOGIN_FAILED' | 'REGISTER',
-    req: Request,
+    req?: Request,
     metadata: Record<string, any> = {}
 ): Promise<void> {
     try {

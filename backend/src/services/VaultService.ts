@@ -107,7 +107,6 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 status: 'pending'
             } as Partial<IFileMetadata>);
 
-            logger.info(`Vault upload initiated: ${data.originalFileName} by User ${userId}`);
 
             await this.logAction(userId, 'FILE_UPLOAD', 'SUCCESS', req, {
                 fileName: data.originalFileName,
@@ -179,7 +178,6 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                     $inc: { totalStorageUsed: fileRecord.fileSize }
                 });
 
-                logger.info(`Vault upload completed: ${fileId} -> Google Drive ${googleDriveFileId}`);
                 return { complete: true, googleDriveFileId };
             }
 
@@ -220,7 +218,6 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             }
 
             const stream = await getFileStream(fileRecord.googleDriveFileId);
-            logger.info(`Vault download started: ${fileRecord.originalFileName} (${fileId})`);
 
             return { stream, file: fileRecord };
         } catch (error) {
@@ -347,7 +344,6 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 });
             }
 
-            logger.info(`Vault file deleted: ${fileRecord.fileName} (${fileId}) by User ${userId}`);
 
             await this.logAction(userId, 'FILE_DELETE', 'SUCCESS', req, {
                 fileName: fileRecord.originalFileName,

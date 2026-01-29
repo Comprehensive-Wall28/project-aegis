@@ -270,7 +270,7 @@ export class LinkService extends BaseService<ILinkPost, LinkPostRepository> {
         }
     }
 
-    async moveLink(userId: string, linkId: string, collectionId: string): Promise<ILinkPost> {
+    async moveLink(userId: string, linkId: string, collectionId: string, req: Request): Promise<ILinkPost> {
         try {
             if (!collectionId) {
                 throw new ServiceError('Target collection ID is required', 400);
@@ -301,7 +301,7 @@ export class LinkService extends BaseService<ILinkPost, LinkPostRepository> {
                 link: updated
             });
 
-            await this.logAction(userId, 'LINK_MOVE', 'SUCCESS', {} as any, {
+            await this.logAction(userId, 'LINK_MOVE', 'SUCCESS', req, {
                 linkId,
                 oldCollectionId: link.collectionId.toString(),
                 newCollectionId: collectionId,
