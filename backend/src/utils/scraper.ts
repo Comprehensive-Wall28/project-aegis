@@ -1,7 +1,5 @@
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
-const { chromium: chromiumStealth } = require('playwright-extra');
-const stealth = require('puppeteer-extra-plugin-stealth')();
-chromiumStealth.use(stealth);
+import { applyStealthScripts } from './stealth';
 
 import createMetascraper from 'metascraper';
 import metascraperTitle from 'metascraper-title';
@@ -234,6 +232,7 @@ const getBrowser = async (): Promise<Browser> => {
             '--disable-extensions',
             '--no-zygote',
             '--js-flags=--max-old-space-size=512',
+            '--disable-blink-features=AutomationControlled',
         ],
     };
 
@@ -241,7 +240,7 @@ const getBrowser = async (): Promise<Browser> => {
         launchOptions.executablePath = executablePath;
     }
 
-    browserLaunchPromise = chromiumStealth.launch(launchOptions).then((browser: Browser) => {
+    browserLaunchPromise = chromium.launch(launchOptions).then((browser: Browser) => {
         browserInstance = browser;
         browserLaunchPromise = null;
 
@@ -300,6 +299,7 @@ const advancedScrapeInternal = async (targetUrl: string): Promise<ScrapeResult> 
             }
         });
         page = await context.newPage();
+        await applyStealthScripts(page);
         await context.addInitScript("window.__name = (f) => f;");
 
         // Block unnecessary resources but allow some small images from same domain for stealth
@@ -643,6 +643,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             }
         });
         page = await context.newPage();
+        await applyStealthScripts(page);
         await context.addInitScript("window.__name = (f) => f;");
 
         // Block unnecessary resources but keep images for reader mode (smartly)
