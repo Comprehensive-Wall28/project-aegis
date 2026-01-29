@@ -42,6 +42,19 @@ import {
 } from '@mui/icons-material';
 import { Editor } from '@tiptap/react';
 
+interface SearchStorage {
+    results: Array<{ from: number; to: number }> | [];
+    currentIndex: number;
+    searchTerm: string;
+    caseSensitive: boolean;
+    useRegex: boolean;
+    wholeWord: boolean;
+    replaceText: string;
+    regexError: boolean;
+    searchHistory: string[];
+    lastReplacedCount: number;
+}
+
 interface EditorToolbarProps {
     editor: Editor;
     onAddLink: () => void;
@@ -137,7 +150,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     }, [localSearchTerm]);
 
     // Sync local state with storage
-    const storage = (editor.storage as any).search || {
+    const storage: SearchStorage = ((editor.storage as unknown) as Record<string, SearchStorage>).search || {
         results: [],
         currentIndex: 0,
         searchTerm: '',
@@ -153,8 +166,15 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     // Keep local state in sync when search is opened
     useEffect(() => {
         if (showSearch) {
-            setLocalSearchTerm(storage.searchTerm);
-            setLocalReplaceText(storage.replaceText);
+            // Only update if values actually changed to avoid cascading renders
+            if (localSearchTerm !== (storage.searchTerm as string)) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setLocalSearchTerm(storage.searchTerm as string);
+            }
+            if (localReplaceText !== (storage.replaceText as string)) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setLocalReplaceText(storage.replaceText as string);
+            }
         }
     }, [showSearch]);
 
@@ -336,14 +356,15 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                     if (item.type === 'divider') {
                         return <Divider key={index} orientation="vertical" flexItem sx={{ mx: 0.5 }} />;
                     }
+                    const toolItem = item as { title: string; action: () => void; isActive: boolean; icon: React.ReactNode };
                     return (
-                        <Tooltip key={index} title={(item as any).title}>
+                        <Tooltip key={index} title={toolItem.title}>
                             <IconButton
                                 size="small"
-                                onClick={(item as any).action}
-                                sx={getButtonStyle((item as any).isActive)}
+                                onClick={toolItem.action}
+                                sx={getButtonStyle(toolItem.isActive)}
                             >
-                                {(item as any).icon}
+                                {toolItem.icon}
                             </IconButton>
                         </Tooltip>
                     );
