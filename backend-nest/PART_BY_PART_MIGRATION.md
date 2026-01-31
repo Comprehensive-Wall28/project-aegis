@@ -29,11 +29,11 @@ This file tracks the migration of Social, Folder, and Vault modules from the old
     - [x] `getInviteInfo` (GET /social/invite/:inviteCode)
 - [x] **Routes: /api/social/proxy-image** ✨ NEW
     - [x] `proxyImage` (GET /social/proxy-image) ✨ NEW
-- [ ] **Reader Mode**
-    - [ ] `getReaderContent` (GET /social/links/:linkId/reader)
-    - [ ] `getAnnotations` (GET /social/links/:linkId/annotations)
-    - [ ] `createAnnotation` (POST /social/links/:linkId/annotations)
-    - [ ] `deleteAnnotation` (DELETE /social/annotations/:annotationId)
+- [x] **Reader Mode**
+    - [x] `getReaderContent` (GET /social/links/:linkId/reader)
+    - [x] `getAnnotations` (GET /social/links/:linkId/annotations)
+    - [x] `createAnnotation` (POST /social/links/:linkId/annotations)
+    - [x] `deleteAnnotation` (DELETE /social/annotations/:annotationId)
 
 
 ## Phase 2: Folder Module

@@ -7,6 +7,8 @@ import { CreateRoomDto, JoinRoomDto, RoomResponseDto } from './dto/room.dto';
 import { CreateCollectionDto, UpdateCollectionDto, ReorderCollectionsDto } from './dto/collection.dto';
 import { PostLinkDto, MoveLinkDto, CursorQueryDto, SearchQueryDto, ProxyImageQueryDto } from './dto/link.dto';
 import { CreateCommentDto } from './dto/comment.dto';
+import { CreateAnnotationDto } from './dto/reader.dto';
+import { ReaderService } from './reader.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FastifyRequest, FastifyReply } from 'fastify';
@@ -18,6 +20,7 @@ export class SocialController {
         private readonly linkService: LinkService,
         private readonly commentService: CommentService,
         private readonly imageProxyService: ImageProxyService,
+        private readonly readerService: ReaderService,
     ) { }
 
     @Get('rooms')
@@ -297,5 +300,47 @@ export class SocialController {
         reply.header('Content-Type', contentType);
         reply.header('Cache-Control', 'public, max-age=86400'); // 1 day
         reply.send(stream);
+    }
+
+    // ===== Reader Mode Endpoints =====
+
+    @Get('links/:linkId/reader')
+    @UseGuards(JwtAuthGuard)
+    async getReaderContent(
+        @CurrentUser() user: any,
+        @Param('linkId') linkId: string,
+    ) {
+        return this.readerService.getReaderContent(user.id, linkId);
+    }
+
+    @Get('links/:linkId/annotations')
+    @UseGuards(JwtAuthGuard)
+    async getAnnotations(
+        @CurrentUser() user: any,
+        @Param('linkId') linkId: string,
+    ) {
+        return this.readerService.getAnnotations(user.id, linkId);
+    }
+
+    @Post('links/:linkId/annotations')
+    @UseGuards(JwtAuthGuard)
+    async createAnnotation(
+        @CurrentUser() user: any,
+        @Param('linkId') linkId: string,
+        @Body() createAnnotationDto: CreateAnnotationDto,
+        @Req() req: FastifyRequest,
+    ) {
+        return this.readerService.createAnnotation(user.id, linkId, createAnnotationDto, req);
+    }
+
+    @Delete('annotations/:annotationId')
+    @UseGuards(JwtAuthGuard)
+    async deleteAnnotation(
+        @CurrentUser() user: any,
+        @Param('annotationId') annotationId: string,
+        @Req() req: FastifyRequest,
+    ) {
+        await this.readerService.deleteAnnotation(user.id, annotationId, req);
+        return { message: 'Annotation deleted successfully' };
     }
 }
