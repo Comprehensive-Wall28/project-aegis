@@ -8,7 +8,7 @@ export class ReaderContentCacheRepository {
     private readonly logger = new Logger(ReaderContentCacheRepository.name);
 
     constructor(
-        @InjectModel(ReaderContentCache.name)
+        @InjectModel(ReaderContentCache.name, 'audit')
         private readonly cacheModel: Model<ReaderContentCache>,
     ) { }
 

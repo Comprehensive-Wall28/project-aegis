@@ -15,7 +15,7 @@ async function bootstrap() {
 
   // Get config service once for all configuration
   const configService = app.get(ConfigService);
-  
+
   // Register cookie parser
   await app.register(require('@fastify/cookie'), {
     secret: configService.get<string>('COOKIE_SECRET') || process.env.COOKIE_SECRET
@@ -23,7 +23,7 @@ async function bootstrap() {
 
   // Register CSRF protection
   await app.register(require('@fastify/csrf-protection'), {
-    cookieOpts: { 
+    cookieOpts: {
       signed: false,
       httpOnly: false, // Frontend needs to read XSRF-TOKEN cookie
       sameSite: configService.get<string>('NODE_ENV') === 'production' ? 'none' : 'lax',
@@ -51,7 +51,7 @@ async function bootstrap() {
     origin: clientOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-xsrf-token', 'x-csrf-token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-xsrf-token', 'x-csrf-token', 'Content-Range'],
   });
 
   app.useGlobalPipes(new ValidationPipe({

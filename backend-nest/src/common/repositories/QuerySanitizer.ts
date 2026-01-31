@@ -95,36 +95,63 @@ export class QuerySanitizer {
             }
 
             // Handle ID fields specially
-            if (key === '_id' || key === 'userId' || key === 'noteFolderId' || key === 'parentId' || key === 'ownerId') {
-                if (typeof value === 'string') {
+            const isIdField = key === '_id' ||
+                key.endsWith('Id') ||
+                key === 'sharedWith' ||
+                key === 'sharedBy' ||
+                key === 'ownerId' ||
+                key === 'userId';
+
+            if (isIdField) {
+                if (value === null) {
+                    sanitized[key] = null;
+                } else if (typeof value === 'string') {
                     const sanitizedId = this.sanitizeObjectId(value);
                     if (sanitizedId) {
                         sanitized[key] = new mongoose.Types.ObjectId(sanitizedId);
                     }
+                } else if (value instanceof mongoose.Types.ObjectId) {
+                    sanitized[key] = value;
                 } else if (typeof value === 'object' && value !== null) {
                     const idObj = value as Record<string, unknown>;
-                    if ('$eq' in idObj && typeof idObj.$eq === 'string') {
-                        const sanitizedId = this.sanitizeObjectId(idObj.$eq);
-                        if (sanitizedId) {
-                            sanitized[key] = new mongoose.Types.ObjectId(sanitizedId);
+                    if ('$eq' in idObj) {
+                        if (idObj.$eq === null) {
+                            sanitized[key] = { $eq: null };
+                        } else if (typeof idObj.$eq === 'string') {
+                            const sanitizedId = this.sanitizeObjectId(idObj.$eq);
+                            if (sanitizedId) {
+                                sanitized[key] = { $eq: new mongoose.Types.ObjectId(sanitizedId) };
+                            }
+                        } else if (idObj.$eq instanceof mongoose.Types.ObjectId) {
+                            sanitized[key] = { $eq: idObj.$eq };
                         }
-                    } else if ('$ne' in idObj && typeof idObj.$ne === 'string') {
-                        const sanitizedId = this.sanitizeObjectId(idObj.$ne);
-                        if (sanitizedId) {
-                            sanitized[key] = { $ne: new mongoose.Types.ObjectId(sanitizedId) };
+                    } else if ('$ne' in idObj) {
+                        if (idObj.$ne === null) {
+                            sanitized[key] = { $ne: null };
+                        } else if (typeof idObj.$ne === 'string') {
+                            const sanitizedId = this.sanitizeObjectId(idObj.$ne);
+                            if (sanitizedId) {
+                                sanitized[key] = { $ne: new mongoose.Types.ObjectId(sanitizedId) };
+                            }
+                        } else if (idObj.$ne instanceof mongoose.Types.ObjectId) {
+                            sanitized[key] = { $ne: idObj.$ne };
                         }
                     } else if ('$in' in idObj && Array.isArray(idObj.$in)) {
                         const validIds = idObj.$in
-                            .filter((id): id is string => typeof id === 'string')
-                            .map(id => this.sanitizeObjectId(id))
-                            .filter((id): id is string | null => id !== null)
-                            .map(id => new mongoose.Types.ObjectId(id!));
+                            .map(id => {
+                                if (id === null) return null;
+                                if (typeof id === 'string') {
+                                    const sid = this.sanitizeObjectId(id);
+                                    return sid ? new mongoose.Types.ObjectId(sid) : undefined;
+                                }
+                                if (id instanceof mongoose.Types.ObjectId) return id;
+                                return undefined;
+                            })
+                            .filter(id => id !== undefined);
                         if (validIds.length > 0) {
                             sanitized[key] = { $in: validIds };
                         }
                     }
-                } else if (value instanceof mongoose.Types.ObjectId) {
-                    sanitized[key] = value;
                 }
                 continue;
             }

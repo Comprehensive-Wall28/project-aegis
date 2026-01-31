@@ -46,6 +46,61 @@ describe('QuerySanitizer', () => {
             const result = QuerySanitizer.sanitizeQuery(query);
             expect(result.nested).toEqual({});
         });
+
+        it('should allow null for ID fields', () => {
+            const query = { _id: null, parentId: null };
+            const result = QuerySanitizer.sanitizeQuery(query);
+            expect(result).toEqual({ _id: null, parentId: null });
+        });
+
+        it('should allow ObjectId instances for ID fields', () => {
+            const id = new mongoose.Types.ObjectId();
+            const query = { _id: id, ownerId: id };
+            const result = QuerySanitizer.sanitizeQuery(query);
+            expect(result).toEqual({ _id: id, ownerId: id });
+        });
+
+        it('should allow $eq: null for ID fields', () => {
+            const query = { parentId: { $eq: null } };
+            const result = QuerySanitizer.sanitizeQuery(query);
+            expect(result).toEqual({ parentId: { $eq: null } });
+        });
+
+        it('should allow $ne: null for ID fields', () => {
+            const query = { parentId: { $ne: null } };
+            const result = QuerySanitizer.sanitizeQuery(query);
+            expect(result).toEqual({ parentId: { $ne: null } });
+        });
+
+        it('should handle $in with mixed null and IDs', () => {
+            const id = new mongoose.Types.ObjectId();
+            const idStr = id.toString();
+            const query = { parentId: { $in: [null, idStr] } };
+            const result = QuerySanitizer.sanitizeQuery(query);
+            expect(result.parentId).toBeDefined();
+            const inList = (result.parentId as any).$in;
+            expect(inList).toHaveLength(2);
+            expect(inList[0]).toBeNull();
+            expect(inList[1]).toEqual(id);
+        });
+
+        it('should recognize various ID field names', () => {
+            const id = new mongoose.Types.ObjectId();
+            const idStr = id.toString();
+            const query = {
+                folderId: idStr,
+                sharedWith: idStr,
+                sharedBy: idStr,
+                linkId: idStr,
+                inviteId: idStr
+            };
+            const result = QuerySanitizer.sanitizeQuery(query);
+            expect(result.folderId).toEqual(id);
+            expect(result.sharedWith).toEqual(id);
+            expect(result.sharedBy).toEqual(id);
+            expect(result.linkId).toEqual(id);
+            expect(result.inviteId).toEqual(id);
+        });
     });
 
     describe('sanitizeUpdate', () => {
