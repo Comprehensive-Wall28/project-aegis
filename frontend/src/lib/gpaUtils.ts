@@ -1,4 +1,4 @@
-import CryptoJS from 'crypto-js';
+
 
 export interface CourseData {
     name: string;
@@ -53,12 +53,19 @@ export const calculateGermanGPA = (
 /**
  * Generate a SHA256 hash for a course record.
  */
-export const generateCourseHash = (
+
+/**
+ * Generate a SHA256 hash for a course record.
+ */
+export const generateCourseHash = async (
     course: CourseData,
     userId: string
-): string => {
+): Promise<string> => {
     const data = `${userId}:${course.semester}:${course.name}:${course.grade}:${course.credits}`;
-    return CryptoJS.SHA256(data).toString();
+    const encoder = new TextEncoder();
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', encoder.encode(data));
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
 /**
@@ -193,4 +200,47 @@ export const getGradeRange = (system: 'NORMAL' | 'GERMAN'): { min: number; max: 
         return { min: 1.0, max: 5.0, step: 0.1 };
     }
     return { min: 0, max: 4.0, step: 0.1 };
+};
+
+/**
+ * Calculate GPA percentage for gauge or progress bar.
+ */
+export const calculateGPAPercentage = (
+    currentGPA: number | null,
+    system: 'NORMAL' | 'GERMAN',
+    nMax: number = 1.0,
+    nMin: number = 4.0
+): number => {
+    if (currentGPA === null) return 0;
+
+    if (system === 'GERMAN') {
+        const percentage = ((nMin - currentGPA) / (nMin - nMax)) * 100;
+        return Math.max(0, Math.min(100, percentage));
+    } else {
+        const percentage = (currentGPA / 4.0) * 100;
+        return Math.max(0, Math.min(100, percentage));
+    }
+};
+
+/**
+ * Get color intent for GPA status.
+ * Returns semantic color names that can be mapped to theme palette.
+ */
+export const getGPAStatusIntent = (
+    currentGPA: number | null,
+    system: 'NORMAL' | 'GERMAN'
+): 'primary' | 'info' | 'text.primary' | 'error' => {
+    if (currentGPA === null) return 'primary';
+
+    if (system === 'GERMAN') {
+        if (currentGPA <= 1.5) return 'primary';      // Excellent
+        if (currentGPA <= 2.5) return 'info';         // Good
+        if (currentGPA <= 3.5) return 'text.primary'; // Satisfactory
+        return 'error';                               // Poor
+    } else {
+        if (currentGPA >= 3.7) return 'primary';
+        if (currentGPA >= 3.0) return 'info';
+        if (currentGPA >= 2.0) return 'text.primary'; // Satisfactory
+        return 'error';
+    }
 };

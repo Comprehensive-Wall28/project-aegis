@@ -13,6 +13,7 @@ import {
     useTheme,
     LinearProgress
 } from '@mui/material';
+import type { Theme } from '@mui/material';
 import {
     Search,
     Tag,
@@ -72,7 +73,7 @@ const NoteItem = memo(({
     onDragEnd: (e: React.DragEvent) => void;
     onHoverStart: (note: NoteMetadata) => void;
     onHoverEnd: () => void;
-    theme: any;
+    theme: Theme;
     index: number;
 }) => {
     const itemRef = useRef<HTMLDivElement>(null);
@@ -244,7 +245,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
             flexDirection: 'column',
             height: '100%',
             bgcolor: 'background.paper',
-            borderRadius: '16px',
+            borderRadius: '24px',
             border: 1,
             borderColor: 'divider',
             overflow: 'hidden',

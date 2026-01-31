@@ -27,20 +27,12 @@ class SocketManager {
         });
 
         this.io.on('connection', (socket) => {
-            logger.info(`Socket connected: ${socket.id}`);
-
             socket.on('join-room', (roomId: string) => {
                 socket.join(roomId);
-                logger.info(`Socket ${socket.id} joined room: ${roomId}`);
             });
 
             socket.on('leave-room', (roomId: string) => {
                 socket.leave(roomId);
-                logger.info(`Socket ${socket.id} left room: ${roomId}`);
-            });
-
-            socket.on('disconnect', () => {
-                logger.info(`Socket disconnected: ${socket.id}`);
             });
         });
     }
@@ -51,7 +43,6 @@ class SocketManager {
             return;
         }
         this.io.to(roomId).emit(event, data);
-        logger.info(`Broadcasted event ${event} to room ${roomId}`);
     }
 
     public getIO(): SocketServer | null {

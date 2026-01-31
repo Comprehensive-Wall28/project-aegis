@@ -20,7 +20,7 @@ export const LinkViewSchema: Schema = new Schema({
 LinkViewSchema.index({ linkId: 1, userId: 1 }, { unique: true });
 
 // Index for efficient lookup of all views by a user
-LinkViewSchema.index({ userId: 1 });
+LinkViewSchema.index({ userId: 1, linkId: 1 });
 
 // Index for room-wide unviewed count aggregation
 LinkViewSchema.index({ roomId: 1, userId: 1, collectionId: 1 });

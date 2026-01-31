@@ -1,19 +1,16 @@
 import crypto from 'crypto';
 import { Request } from 'express';
 import { BaseService, ServiceError } from './base/BaseService';
-import { SharedFolderRepository } from '../repositories/SharedFolderRepository';
 import { SharedFileRepository } from '../repositories/SharedFileRepository';
 import { SharedLinkRepository } from '../repositories/SharedLinkRepository';
-import { FolderRepository } from '../repositories/FolderRepository';
 import { FileMetadataRepository } from '../repositories/FileMetadataRepository';
 import { UserRepository } from '../repositories/UserRepository';
-import { ISharedFolder } from '../models/SharedFolder';
 import { ISharedFile } from '../models/SharedFile';
 import { ISharedLink } from '../models/SharedLink';
 import logger from '../utils/logger';
 
 export interface InviteDTO {
-    id: string; // folderId or fileId
+    id: string; // fileId
     email: string;
     encryptedSharedKey: string;
     permissions?: string[];
@@ -21,7 +18,7 @@ export interface InviteDTO {
 
 export interface CreateLinkDTO {
     resourceId: string;
-    resourceType: 'file' | 'folder';
+    resourceType: 'file';
     encryptedKey: string;
     isPublic?: boolean;
     allowedEmails?: string[];
@@ -31,73 +28,16 @@ export interface CreateLinkDTO {
  * ShareService handles internal sharing (user-to-user) and link creation
  */
 export class ShareService {
-    private sharedFolderRepo: SharedFolderRepository;
     private sharedFileRepo: SharedFileRepository;
     private sharedLinkRepo: SharedLinkRepository;
-    private folderRepo: FolderRepository;
     private fileRepo: FileMetadataRepository;
     private userRepo: UserRepository;
 
     constructor() {
-        this.sharedFolderRepo = new SharedFolderRepository();
         this.sharedFileRepo = new SharedFileRepository();
         this.sharedLinkRepo = new SharedLinkRepository();
-        this.folderRepo = new FolderRepository();
         this.fileRepo = new FileMetadataRepository();
         this.userRepo = new UserRepository();
-    }
-
-    /**
-     * Invite a user to a shared folder
-     */
-    async inviteToFolder(userId: string, data: InviteDTO, req: Request): Promise<ISharedFolder> {
-        try {
-            if (!data.id || !data.email || !data.encryptedSharedKey) {
-                throw new ServiceError('Missing required fields', 400);
-            }
-
-            // Check owner
-            const folder = await this.folderRepo.findByIdAndOwner(data.id, userId);
-            if (!folder) {
-                throw new ServiceError('Folder not found', 404);
-            }
-
-            // Find recipient
-            const recipient = await this.userRepo.findByEmail(data.email);
-            if (!recipient) {
-                throw new ServiceError('Recipient not found', 404);
-            }
-
-            if (recipient._id.toString() === userId) {
-                throw new ServiceError('Cannot share folder with yourself', 400);
-            }
-
-            // Check existing share
-            const existing = await this.sharedFolderRepo.findByFolderAndUser(data.id, recipient._id.toString());
-            if (existing) {
-                throw new ServiceError('Folder already shared with this user', 400);
-            }
-
-            const sharedFolder = await this.sharedFolderRepo.create({
-                folderId: data.id as any,
-                sharedBy: userId as any,
-                sharedWith: recipient._id as any,
-                encryptedSharedKey: data.encryptedSharedKey,
-                permissions: data.permissions || ['READ', 'DOWNLOAD']
-            } as any);
-
-            if (!folder.isShared) {
-                await this.folderRepo.updateById(folder._id.toString(), { isShared: true } as any);
-            }
-
-            logger.info(`Folder ${data.id} shared with user ${recipient.username} by user ${userId}`);
-            return sharedFolder;
-
-        } catch (error) {
-            if (error instanceof ServiceError) throw error;
-            logger.error('Invite to folder error:', error);
-            throw new ServiceError('Failed to share folder', 500);
-        }
     }
 
     /**
@@ -136,42 +76,12 @@ export class ShareService {
                 permissions: data.permissions || ['READ', 'DOWNLOAD']
             } as any);
 
-            logger.info(`File ${data.id} shared with user ${recipient.username} by user ${userId}`);
             return sharedFile;
 
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Invite to file error:', error);
             throw new ServiceError('Failed to share file', 500);
-        }
-    }
-
-    /**
-     * Get folders shared with user
-     */
-    async getSharedWithMe(userId: string): Promise<ISharedFolder[]> {
-        try {
-            return await this.sharedFolderRepo.findSharedWithUser(userId);
-        } catch (error) {
-            logger.error('Get shared folders error:', error);
-            throw new ServiceError('Failed to fetch shared folders', 500);
-        }
-    }
-
-    /**
-     * Get shared folder key
-     */
-    async getSharedFolderKey(userId: string, folderId: string): Promise<{ encryptedSharedKey: string }> {
-        try {
-            const sharedFolder = await this.sharedFolderRepo.findByFolderAndUser(folderId, userId);
-            if (!sharedFolder) {
-                throw new ServiceError('Access denied or folder not shared', 403);
-            }
-            return { encryptedSharedKey: sharedFolder.encryptedSharedKey };
-        } catch (error) {
-            if (error instanceof ServiceError) throw error;
-            logger.error('Get shared folder key error:', error);
-            throw new ServiceError('Failed to fetch key', 500);
         }
     }
 
@@ -204,11 +114,8 @@ export class ShareService {
             if (data.resourceType === 'file') {
                 const file = await this.fileRepo.findByIdAndOwner(data.resourceId, userId);
                 if (!file) throw new ServiceError('File not found', 404);
-            } else if (data.resourceType === 'folder') {
-                const folder = await this.folderRepo.findByIdAndOwner(data.resourceId, userId);
-                if (!folder) throw new ServiceError('Folder not found', 404);
             } else {
-                throw new ServiceError('Invalid resource type', 400);
+                throw new ServiceError('Invalid resource type. Folder sharing is disabled.', 400);
             }
 
             const token = crypto.randomBytes(32).toString('hex');
@@ -223,7 +130,6 @@ export class ShareService {
                 allowedEmails: data.allowedEmails || []
             } as any);
 
-            logger.info(`Shared link created for ${data.resourceType} ${data.resourceId} by user ${userId}`);
             return sharedLink;
 
         } catch (error) {
@@ -240,12 +146,6 @@ export class ShareService {
         try {
             const skip = (page - 1) * limit;
 
-            // Using base repository findMany/count would be cleaner but complex due to custom population/filter logic in original
-            // We'll use the repository methods we add to SharedLinkRepository or just use raw find for now in repo
-            // Since SharedLinkRepository inherits BaseRepository, we can extend it.
-            // For now, let's assume we can add a method there or use what exists.
-
-
             const { links, total } = await this.sharedLinkRepo.findLinksByCreator(userId, skip, limit);
 
             const populatedLinks = await Promise.all(links.map(async (link: ISharedLink) => {
@@ -258,11 +158,6 @@ export class ShareService {
                             fileSize: file.fileSize,
                             mimeType: file.mimeType
                         };
-                    }
-                } else {
-                    const folder = await this.folderRepo.findById(link.resourceId.toString());
-                    if (folder) {
-                        linkObj.resourceDetails = { name: folder.name };
                     }
                 }
                 return linkObj;
@@ -297,7 +192,6 @@ export class ShareService {
             }
 
             await this.sharedLinkRepo.deleteById(linkId);
-            logger.info(`Shared link ${linkId} revoked by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Revoke link error:', error);

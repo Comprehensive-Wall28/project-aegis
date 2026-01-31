@@ -25,12 +25,14 @@ export const LinkDialog: React.FC<LinkDialogProps> = ({
     initialText = '',
     onConfirm
 }) => {
-    const [url, setUrl] = useState(initialUrl);
-    const [text, setText] = useState(initialText);
+    const [url, setUrl] = useState<string>(initialUrl);
+    const [text, setText] = useState<string>(initialText);
 
     useEffect(() => {
         if (open) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setUrl(initialUrl);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setText(initialText);
         }
     }, [open, initialUrl, initialText]);

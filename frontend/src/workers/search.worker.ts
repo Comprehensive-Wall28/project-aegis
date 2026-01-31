@@ -10,6 +10,14 @@ interface NoteSearchData {
     updatedAt: string;
 }
 
+interface Note {
+    _id: string;
+    tags?: string[];
+    noteFolderId?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
 type FilterPayload = {
     query: string;
     folderId: string | null;
@@ -17,8 +25,8 @@ type FilterPayload = {
 };
 
 type WorkerMessage =
-    | { type: 'UPDATE_DATA'; payload: { notes: any[]; decryptedTitles: Map<string, string> } }
-    | { type: 'UPDATE_NOTE'; payload: { note: any; decryptedTitle: string } }
+    | { type: 'UPDATE_DATA'; payload: { notes: Note[]; decryptedTitles: Map<string, string> } }
+    | { type: 'UPDATE_NOTE'; payload: { note: Note; decryptedTitle: string } }
     | { type: 'DELETE_NOTE'; payload: { id: string } }
     | { type: 'SEARCH'; payload: FilterPayload };
 
@@ -80,7 +88,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
         fuse = new Fuse(searchIndex, FUSE_OPTIONS);
 
     } else if (type === 'SEARCH') {
-        let { query, folderId, tags } = payload;
+        const { query, folderId, tags } = payload;
         let resultIds: string[] = [];
 
         // Parse query for inline tags (e.g. "#important")
@@ -106,7 +114,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
             // Global Search logic
             if (fuse) {
                 const fuseResults = fuse.search(cleanQuery);
-                resultIds = fuseResults.map((r: any) => r.item._id);
+                resultIds = fuseResults.map((r: { item: NoteSearchData }) => r.item._id);
             }
         } else if (inlineTags.length > 0) {
             // If only tags in query (no text), search by tags global (or scoped?)

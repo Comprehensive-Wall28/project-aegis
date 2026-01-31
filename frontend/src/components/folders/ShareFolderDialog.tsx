@@ -67,9 +67,10 @@ export const ShareFolderDialog: React.FC<ShareFolderDialogProps> = ({
             setSuccess(true);
             setEmail('');
             // Optional: onClose after a delay or let user see success
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Sharing failed:', err);
-            setError(err.response?.data?.message || err.message || 'Failed to share folder');
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
+            setError(error.response?.data?.message || error.message || 'Failed to share folder');
         } finally {
             setIsLoading(false);
         }

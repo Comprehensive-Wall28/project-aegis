@@ -8,6 +8,7 @@ import {
     Box,
     alpha,
     useTheme,
+    Fade,
 } from '@mui/material';
 import { Warning as WarningIcon } from '@mui/icons-material';
 
@@ -48,6 +49,7 @@ export function ConfirmDialog({
         <Dialog
             open={open}
             onClose={onCancel}
+            TransitionComponent={Fade}
             slotProps={{
                 paper: {
                     sx: {

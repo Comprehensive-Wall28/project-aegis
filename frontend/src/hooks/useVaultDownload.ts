@@ -217,9 +217,10 @@ export const useVaultDownload = () => {
             setState({ status: 'completed', progress: 100, error: null });
             return blob;
 
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { message?: string };
             console.error('Download/Decrypt failed:', err);
-            setState({ status: 'error', progress: 0, error: err.message || 'Decryption failed' });
+            setState({ status: 'error', progress: 0, error: error.message || 'Decryption failed' });
             return null;
         } finally {
             setCryptoStatus('idle');

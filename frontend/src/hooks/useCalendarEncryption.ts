@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
-// @ts-ignore - Module likely exists but types are missing in environment
+// Module exists but types are missing in environment
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 
 export interface CalendarEventData {
@@ -185,7 +185,7 @@ export const useCalendarEncryption = () => {
             );
 
             return results
-                .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+                .filter((r): r is PromiseFulfilledResult<CalendarEventData & { _id: string; startDate: string; endDate: string; isAllDay: boolean; color: string; createdAt: string; updatedAt: string }> => r.status === 'fulfilled')
                 .map(r => r.value);
         } finally {
             setCryptoStatus('idle');

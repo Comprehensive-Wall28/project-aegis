@@ -29,7 +29,7 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
             const rooms = await socialService.getUserRooms();
             set({ rooms });
 
-            // Proactive Background Decryption
+            // Proactive Background Decryption for room names/descriptions
             const state = get();
             const roomsToDecrypt = rooms.filter(r => r.encryptedRoomKey && !state.roomKeys.has(r._id));
 
@@ -53,7 +53,7 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
                                 return { roomKeys: updatedKeys };
                             });
                         } catch (err) {
-                            console.error(`Failed to background decrypt:`, err);
+                            console.error(`Failed to background decrypt room ${room._id}:`, err);
                         }
                     }
                     setCryptoStatus('idle');
@@ -68,10 +68,10 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
         }
     },
 
-    selectRoom: async (roomId: string) => {
+    selectRoom: async (roomId: string, initialCollectionId?: string) => {
         const state = get();
         // Avoid parallel requests to the same room or if already loading
-        if (state.isLoadingContent && state.currentRoom?._id === roomId) return;
+        if (state.isLoadingContent && state.currentRoom?._id === roomId) return null;
 
         set({
             isLoadingContent: true,
@@ -87,7 +87,8 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
 
         const { setCryptoStatus } = useSessionStore.getState();
         try {
-            const content: RoomContent = await socialService.getRoomContent(roomId);
+            // Pass initialCollectionId to avoid waterfall requests
+            const content: RoomContent = await socialService.getRoomContent(roomId, initialCollectionId);
             const sessionUser = useSessionStore.getState().user;
 
             if (content.room.encryptedRoomKey && sessionUser?.privateKey) {
@@ -114,7 +115,19 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
                 ? currentState.rooms.map(r => r._id === roomId ? content.room : r)
                 : [...currentState.rooms, content.room];
 
-            const firstCollectionId = content.collections[0]?._id || null;
+            // Use initialCollectionId if provided and exists in the fetched collections
+            // Otherwise fall back to the first collection
+            const targetCollectionId = initialCollectionId && content.collections.some(c => c._id === initialCollectionId)
+                ? initialCollectionId
+                : (content.collections[0]?._id || null);
+
+            const linksCache = { ...currentState.linksCache };
+            if (targetCollectionId && content.links) {
+                linksCache[targetCollectionId] = {
+                    links: content.links,
+                    hasMore: (content.links?.length || 0) >= 12
+                };
+            }
 
             set({
                 currentRoom: content.room,
@@ -124,19 +137,29 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
                 viewedLinkIds: new Set(content.viewedLinkIds || []),
                 commentCounts: content.commentCounts || {},
                 rooms: updatedRooms,
-                currentCollectionId: firstCollectionId,
+                currentCollectionId: targetCollectionId,
                 hasMoreLinks: (content.links?.length || 0) >= 12,
+                linksCache
             });
+            // Waterfall fetch removed since getRoomContent now handles it
 
-            if (firstCollectionId && (!content.links || content.links.length === 0)) {
-                await get().fetchCollectionLinks(firstCollectionId, false);
-            }
-        } catch (error: any) {
+            return targetCollectionId;
+        } catch (error: unknown) {
             console.error('Failed to select room:', error);
-            const message = error.response?.data?.message || error.message || 'Failed to access room';
+            let message = 'Failed to access room';
+
+            if (error instanceof Error) {
+                message = error.message;
+            } else if (typeof error === 'object' && error !== null && 'response' in error) {
+                const apiError = error as { response?: { data?: { message?: string } } };
+                message = apiError.response?.data?.message || 'Failed to access room';
+            }
+
             set({ error: message });
+            return null;
         } finally {
             set({ isLoadingContent: false, isLoadingLinks: false });
+            const { setCryptoStatus } = useSessionStore.getState();
             setCryptoStatus('idle');
         }
     },
@@ -147,6 +170,8 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
         const { setCryptoStatus } = useSessionStore.getState();
 
         try {
+            // Don't pass collectionId - this is just for refreshing collections metadata
+            // Links are managed separately through selectCollection
             const content: RoomContent = await socialService.getRoomContent(state.currentRoom._id);
             const sessionUser = useSessionStore.getState().user;
 
@@ -243,6 +268,29 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
         }
     },
 
+    leaveRoom: async (roomId: string) => {
+        try {
+            await socialService.leaveRoom(roomId);
+            set((prev) => ({
+                rooms: prev.rooms.filter(r => r._id !== roomId),
+                currentRoom: prev.currentRoom?._id === roomId ? null : prev.currentRoom,
+                // cleanup keys and cache if needed
+                roomKeys: (() => {
+                    const newKeys = new Map(prev.roomKeys);
+                    newKeys.delete(roomId);
+                    return newKeys;
+                })()
+            }));
+
+            if (get().currentRoom === null) {
+                get().clearRoomContent();
+            }
+        } catch (error) {
+            console.error('Failed to leave room:', error);
+            throw error;
+        }
+    },
+
     createInvite: async (roomId: string) => {
         const state = get();
         const roomKey = state.roomKeys.get(roomId);
@@ -278,4 +326,29 @@ export const createRoomSlice: StateCreator<SocialState, [], [], Pick<SocialState
             linksCache: {},
         });
     },
+
+    deleteRoom: async (roomId: string) => {
+        const { rooms, currentRoom, roomKeys } = get();
+        try {
+            await socialService.deleteRoom(roomId);
+
+            // Clean up state
+            const newRooms = rooms.filter(r => r._id !== roomId);
+            const newRoomKeys = new Map(roomKeys);
+            newRoomKeys.delete(roomId);
+
+            set({
+                rooms: newRooms,
+                roomKeys: newRoomKeys,
+            });
+
+            // If deleted current room, exit to room list
+            if (currentRoom?._id === roomId) {
+                get().clearRoomContent();
+            }
+        } catch (error) {
+            console.error('Failed to delete room:', error);
+            throw error;
+        }
+    }
 });

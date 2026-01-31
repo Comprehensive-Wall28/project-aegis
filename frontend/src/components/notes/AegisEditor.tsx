@@ -77,7 +77,6 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
                 heading: {
                     levels: [1, 2, 3],
                 },
-                // @ts-ignore
                 link: {
                     openOnClick: false,
                     HTMLAttributes: {
@@ -367,7 +366,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             },
             {
                 check: () => isCtrl && isAlt && ['1', '2', '3'].includes(key),
-                action: () => editor?.chain().focus().toggleHeading({ level: parseInt(key) as any }).run()
+                action: () => editor?.chain().focus().toggleHeading({ level: parseInt(key) as 1 | 2 | 3 }).run()
             },
             {
                 check: () => key === 'escape' && fullscreen && onToggleFullscreen,

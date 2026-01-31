@@ -12,6 +12,7 @@ import {
     LinearProgress,
     useMediaQuery
 } from '@mui/material';
+import type { Theme } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { Virtuoso } from 'react-virtuoso';
@@ -49,7 +50,7 @@ const NoteItem = memo(({
     onDelete: (id: string, e: React.MouseEvent) => void;
     onDragStart: (e: React.DragEvent, id: string) => void;
     onDragEnd: (e: React.DragEvent) => void;
-    theme: any;
+    theme: Theme;
     index: number;
     isMobile: boolean;
 }) => {
@@ -127,22 +128,44 @@ const NoteItem = memo(({
                         secondary: { component: 'div' }
                     }}
                 />
-                <Tooltip title="Delete">
+                {isMobile ? (
                     <IconButton
                         size="small"
-                        onClick={(e) => onDelete(note._id, e)}
+                        onClick={(e) => {
+                            e.currentTarget.blur();
+                            onDelete(note._id, e);
+                        }}
                         sx={{
-                            opacity: isMobile ? 1 : 0,
-                            '.MuiListItemButton-root:hover &': { opacity: isMobile ? 1 : 0.5 },
+                            opacity: 1,
+                            '.MuiListItemButton-root:hover &': { opacity: 1 },
                             '&:hover': {
-                                opacity: 1 + ' !important',
                                 color: 'error.main',
                             }
                         }}
                     >
                         <Delete fontSize="small" />
                     </IconButton>
-                </Tooltip>
+                ) : (
+                    <Tooltip title="Delete">
+                        <IconButton
+                            size="small"
+                            onClick={(e) => {
+                                e.currentTarget.blur();
+                                onDelete(note._id, e);
+                            }}
+                            sx={{
+                                opacity: 0,
+                                '.MuiListItemButton-root:hover &': { opacity: 0.5 },
+                                '&:hover': {
+                                    opacity: 1 + ' !important',
+                                    color: 'error.main',
+                                }
+                            }}
+                        >
+                            <Delete fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                )}
             </ListItemButton>
         </motion.div>
     );

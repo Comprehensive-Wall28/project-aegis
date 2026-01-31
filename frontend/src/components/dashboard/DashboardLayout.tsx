@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { SystemStatusBar } from './SystemStatusBar';
 import { motion } from 'framer-motion';
+import type { PanInfo } from 'framer-motion';
 import { Box, alpha, useTheme, Paper, Snackbar, Alert } from '@mui/material';
 import { refreshCsrfToken } from '@/services/api';
 import UploadManager from '@/components/vault/UploadManager';
@@ -15,6 +16,7 @@ import { useVaultDownload } from '@/hooks/useVaultDownload';
 import vaultService from '@/services/vaultService';
 import { backgroundCache } from '@/lib/backgroundCache';
 import { useGlobalData } from '@/hooks/useGlobalData';
+import { QuickOpen } from '@/components/navigation/QuickOpen';
 
 export function DashboardLayout() {
     // Global data hydration
@@ -142,7 +144,7 @@ export function DashboardLayout() {
     }, [joinRoom, navigate]);
 
     // Swipe to open sidebar (left swipe on mobile)
-    const handlePanEnd = (_: any, info: any) => {
+    const handlePanEnd = (_: PointerEvent, info: PanInfo) => {
         // Detect swipe to left (negative velocity or offset) from the right side
         if (info.offset.x < -50 && info.velocity.x < -100) {
             setIsMobileMenuOpen(true);
@@ -228,7 +230,7 @@ export function DashboardLayout() {
                 </Box>
 
                 {/* Content Area ('The Stage') */}
-                <Box sx={{ flexGrow: 1, p: { xs: 1, sm: 2 }, pt: 0, overflow: 'hidden' }}>
+                <Box sx={{ flexGrow: 1, p: { xs: 1, sm: 2 }, overflow: 'hidden' }}>
                     <Paper
                         elevation={0}
                         component={motion.div}
@@ -240,7 +242,7 @@ export function DashboardLayout() {
                             minHeight: 0,
                             display: 'flex',
                             flexDirection: 'column',
-                            borderRadius: '16px',
+                            borderRadius: '24px',
                             overflow: 'hidden',
                             // Solid stage for professionalism and performance
                             bgcolor: theme.palette.background.paper,
@@ -271,6 +273,7 @@ export function DashboardLayout() {
 
             {/* Persistent Upload Manager */}
             <UploadManager />
+            <QuickOpen />
 
             <style>{`
                 @keyframes mesh {

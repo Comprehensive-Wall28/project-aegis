@@ -58,7 +58,7 @@ const KanbanColumnComponent = ({
                 ref={setNodeRef}
                 sx={{
                     p: 1.5,
-                    borderRadius: '20px',
+                    borderRadius: '24px',
                     bgcolor: alpha(theme.palette.background.paper, activeOver ? 0.7 : 0.5),
                     border: `2px dashed ${activeOver
                         ? alpha(color, 0.5)

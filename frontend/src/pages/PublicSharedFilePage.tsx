@@ -117,17 +117,17 @@ export const PublicSharedFilePage = () => {
     const [pdfAspectRatio, setPdfAspectRatio] = useState<number>(0.707); // Default to A4 portrait
     const pdfContainerRef = useRef<HTMLDivElement>(null);
 
-    const decryptChunk = async (chunk: Uint8Array, key: CryptoKey) => {
+    const decryptChunk = async (chunk: Uint8Array, key: CryptoKey): Promise<ArrayBuffer> => {
         const iv = chunk.slice(0, 16);
         const data = chunk.slice(16);
         return window.crypto.subtle.decrypt(
-            { name: 'AES-CTR', counter: iv, length: 64 },
+            { name: 'AES-CTR', counter: new Uint8Array(iv), length: 64 },
             key,
             data
         );
     };
 
-    const downloadAndPreview = async (meta: SharedFileMetadata, key: CryptoKey) => {
+    const downloadAndPreview = async (meta: SharedFileMetadata, key: CryptoKey): Promise<void> => {
         try {
             if (previewUrl) return;
             setPreviewLoading(true);
@@ -170,7 +170,7 @@ export const PublicSharedFilePage = () => {
             const url = URL.createObjectURL(blob);
             setPreviewUrl(url);
 
-        } catch (e) {
+        } catch (e: unknown) {
             console.error('Preview generation failed:', e);
         } finally {
             setPreviewLoading(false);
@@ -187,7 +187,7 @@ export const PublicSharedFilePage = () => {
                 const linkKeyRaw = hexToBytes(hash);
                 const linkKey = await window.crypto.subtle.importKey(
                     'raw',
-                    linkKeyRaw as any,
+                    new Uint8Array(linkKeyRaw),
                     'AES-GCM',
                     false,
                     ['decrypt']
@@ -221,9 +221,10 @@ export const PublicSharedFilePage = () => {
                     downloadAndPreview(finalMetadata, dek);
                 }
 
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error('Failed to load shared file:', err);
-                setError(err.response?.data?.message || err.message || 'Failed to load file');
+                const message = (err instanceof Error) ? err.message : 'Failed to load file';
+                setError(message);
             } finally {
                 setLoading(false);
             }
@@ -313,8 +314,9 @@ export const PublicSharedFilePage = () => {
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
 
-        } catch (err: any) {
-            setError('Download failed: ' + err.message);
+        } catch (err: unknown) {
+            const message = (err instanceof Error) ? err.message : 'Unknown error';
+            setError('Download failed: ' + message);
         } finally {
             setDownloading(false);
         }

@@ -42,7 +42,7 @@ const navItems = [
     { name: 'Files', href: '/dashboard/files', icon: FolderOpenIcon },
     { name: 'Tasks', href: '/dashboard/tasks', icon: TasksIcon },
     { name: 'Notes', href: '/dashboard/notes', icon: NotesIcon },
-    { name: 'GPA Tracker', href: '/dashboard/gpa', icon: LineChartIcon },
+    { name: 'GPA', href: '/dashboard/gpa', icon: LineChartIcon },
     { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
     // { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
     { name: 'Settings', href: '/dashboard/security', icon: SettingsIcon },

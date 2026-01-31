@@ -13,10 +13,12 @@ export interface RoomSlice {
     error: string | null;
 
     fetchRooms: () => Promise<void>;
-    selectRoom: (roomId: string) => Promise<void>;
+    selectRoom: (roomId: string, initialCollectionId?: string) => Promise<string | null>;
     refreshCurrentRoom: () => Promise<void>;
     createRoom: (name: string, description: string, icon?: string) => Promise<Room>;
     joinRoom: (inviteCode: string, roomKey: CryptoKey) => Promise<void>;
+    leaveRoom: (roomId: string) => Promise<void>;
+    deleteRoom: (roomId: string) => Promise<void>;
     createInvite: (roomId: string) => Promise<string>;
     setPendingInvite: (invite: RoomSlice['pendingInvite']) => void;
     clearError: () => void;
@@ -30,6 +32,7 @@ export interface CollectionSlice {
     selectCollection: (collectionId: string, force?: boolean) => Promise<void>;
     createCollection: (name: string) => Promise<Collection>;
     deleteCollection: (collectionId: string) => Promise<void>;
+    renameCollection: (collectionId: string, name: string) => Promise<void>;
     reorderCollections: (collectionIds: string[]) => Promise<void>;
 }
 
@@ -46,7 +49,7 @@ export interface LinkSlice {
     fetchCollectionLinks: (collectionId: string, isLoadMore?: boolean, silent?: boolean, limit?: number) => Promise<void>;
     loadMoreLinks: () => Promise<void>;
     loadAllLinks: () => Promise<void>;
-    searchRoomLinks: (query: string, limit?: number) => Promise<void>;
+    searchRoomLinks: (query: string, signal?: AbortSignal, limit?: number) => Promise<void>;
     postLink: (url: string) => Promise<LinkPost>;
     deleteLink: (linkId: string) => Promise<void>;
     moveLink: (linkId: string, collectionId: string) => Promise<void>;

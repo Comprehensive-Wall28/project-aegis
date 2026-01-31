@@ -204,7 +204,6 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 contentSize: contentBuffer.length
             });
 
-            logger.info(`Note created: ${note._id} by user ${userId}`);
             return note;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -327,7 +326,6 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 contentSize: contentBuffer.length
             });
 
-            logger.info(`Note content updated: ${noteId} by user ${userId}`);
             return note;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -369,8 +367,6 @@ export class NoteService extends BaseService<INote, NoteRepository> {
             await this.logAction(userId, 'NOTE_DELETE', 'SUCCESS', req, {
                 noteId: validatedId
             });
-
-            logger.info(`Note deleted: ${noteId} by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             this.handleRepositoryError(error);
@@ -464,7 +460,6 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 name: folder.name
             });
 
-            logger.info(`Note folder created: ${folder._id} by user ${userId}`);
             return folder;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -551,26 +546,25 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 throw new ServiceError('Folder not found', 404, 'NOT_FOUND');
             }
 
-            // Get all descendant folder IDs
+            // Get all descendant folder IDs (optimized)
             const descendantIds = await this.folderRepository.getDescendantIds(userId, validatedId);
             const allFolderIds = [validatedId, ...descendantIds];
 
-            // Move all notes from deleted folders to root
-            for (const id of allFolderIds) {
-                await this.repository.moveNotesToRoot(userId, id);
-            }
+            // Move all notes from deleted folders to root (bulk operation)
+            await this.repository.moveNotesToRoot(userId, allFolderIds);
 
-            // Delete all folders (child folders first, then parent)
-            for (const id of [...descendantIds.reverse(), validatedId]) {
-                await this.folderRepository.deleteByIdAndUser(id, userId);
-            }
+            // Delete all folders (bulk operation)
+            // Note: We need a bulk delete on NoteFolderRepository or BaseRepository
+            // BaseRepository has deleteMany(filter)
+            await this.folderRepository.deleteMany({
+                _id: { $in: allFolderIds.map((id: string) => new mongoose.Types.ObjectId(id)) },
+                userId: { $eq: userId } // Safety check
+            } as any);
 
             await this.logAction(userId, 'NOTE_FOLDER_DELETE', 'SUCCESS', req, {
                 folderId: validatedId,
                 descendantsDeleted: descendantIds.length
             });
-
-            logger.info(`Note folder deleted: ${folderId} by user ${userId}`);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             this.handleRepositoryError(error);

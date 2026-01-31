@@ -2,9 +2,7 @@ import { memo } from 'react';
 import { Box, Paper, Typography, Stack, IconButton, useTheme, alpha } from '@mui/material';
 import {
     Folder as FolderIcon,
-    Share as ShareIcon,
     Delete as TrashIcon,
-    FolderShared as SharedIcon,
     MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import type { Folder } from '@/services/folderService';
@@ -18,7 +16,6 @@ interface FolderGridItemProps {
     dragOverId: string | null;
     onNavigate: (folder: Folder) => void;
     onContextMenu: (e: React.MouseEvent, target: ContextMenuTarget) => void;
-    onShare: (folder: Folder) => void;
     onDelete: (id: string) => void;
     onDragOver: (id: string | null) => void;
     onDrop: (targetId: string, droppedFileId: string) => void;
@@ -32,7 +29,6 @@ export const FolderGridItem = memo(({
     dragOverId,
     onNavigate,
     onContextMenu,
-    onShare,
     onDelete,
     onDragOver,
     onDrop
@@ -84,20 +80,7 @@ export const FolderGridItem = memo(({
             >
                 <Box sx={{ mb: typoScaling.mb, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))', position: 'relative' }}>
                     <FolderIcon sx={{ fontSize: iconScaling.size, color: folder.color || '#FFB300' }} />
-                    {folder.isSharedWithMe && (
-                        <SharedIcon
-                            sx={{
-                                position: 'absolute',
-                                bottom: -iconScaling.size * 0.1,
-                                right: -iconScaling.size * 0.1,
-                                fontSize: iconScaling.size * 0.5,
-                                color: 'primary.main',
-                                bgcolor: alpha(theme.palette.background.paper, 0.95),
-                                borderRadius: '50%',
-                                p: 0.2
-                            }}
-                        />
-                    )}
+
                 </Box>
 
                 <Typography
@@ -110,7 +93,7 @@ export const FolderGridItem = memo(({
                         px: 0.5,
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical' as any,
+                        WebkitBoxOrient: 'vertical' as const,
                         overflow: 'hidden',
                         lineHeight: 1.3,
                         wordBreak: 'break-word',
@@ -130,20 +113,11 @@ export const FolderGridItem = memo(({
                     justifyContent="center"
                     onClick={e => e.stopPropagation()}
                 >
-                    <IconButton
-                        size="small"
-                        onClick={() => onShare(folder)}
-                        sx={{
-                            color: 'primary.main',
-                            p: 0.5,
-                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
-                        }}
-                    >
-                        <ShareIcon fontSize="small" />
-                    </IconButton>
+
                     <IconButton
                         size="small"
                         onClick={() => onDelete(folder._id)}
+                        aria-label="Delete folder"
                         sx={{
                             color: '#EF5350',
                             p: 0.5,
@@ -155,6 +129,7 @@ export const FolderGridItem = memo(({
                     <IconButton
                         size="small"
                         onClick={(e) => onContextMenu(e, { type: 'folder', id: folder._id })}
+                        aria-label="More options"
                         sx={{
                             color: 'text.secondary',
                             p: 0.5,

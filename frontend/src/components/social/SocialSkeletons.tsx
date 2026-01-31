@@ -2,7 +2,7 @@ import { Box, Paper, Skeleton, alpha, useTheme } from '@mui/material';
 import {
     SOCIAL_LINK_CARD_HEIGHT,
     SOCIAL_LINK_PREVIEW_HEIGHT,
-    SOCIAL_RADIUS_XLARGE,
+    SOCIAL_RADIUS_MEDIUM,
     SOCIAL_RADIUS_XSMALL
 } from './constants';
 
@@ -27,6 +27,7 @@ export const LinkCardSkeleton = () => {
     const theme = useTheme();
     return (
         <Box sx={{
+            width: '100%',
             height: SOCIAL_LINK_CARD_HEIGHT,
             padding: '3px',
             boxSizing: 'border-box'
@@ -34,7 +35,7 @@ export const LinkCardSkeleton = () => {
             <Paper
                 elevation={1}
                 sx={{
-                    borderRadius: SOCIAL_RADIUS_XLARGE,
+                    borderRadius: SOCIAL_RADIUS_MEDIUM,
                     height: '100%',
                     overflow: 'hidden',
                     display: 'flex',

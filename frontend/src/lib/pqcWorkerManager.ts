@@ -6,6 +6,7 @@
 class PQCWorkerManager {
     private worker: Worker | null = null;
     private messageId = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private pendingRequests = new Map<number, { resolve: (data: any) => void; reject: (err: any) => void }>();
 
     constructor() {
@@ -31,7 +32,8 @@ class PQCWorkerManager {
         this.pendingRequests.delete(requestId);
     }
 
-    private sendRequest(type: string, data: any): Promise<any> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private sendRequest(type: string, data: Record<string, any>): Promise<any> {
         if (!this.worker) return Promise.reject(new Error('Worker not supported'));
 
         const id = this.messageId++;
@@ -108,6 +110,7 @@ class PQCWorkerManager {
     /**
      * HIGHLY EXPENSIVE: Decrypt multiple courses using PQC and AES in worker
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async batchDecryptCourses(courses: any[], privateKeyHex: string): Promise<any[]> {
         const hexToBytes = (hex: string) =>
             new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
@@ -120,6 +123,7 @@ class PQCWorkerManager {
     /**
      * HIGHLY EXPENSIVE: Decrypt multiple tasks using PQC and AES in worker
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async batchDecryptTasks(tasks: any[], privateKeyHex: string): Promise<{ tasks: any[], failedTaskIds: string[] }> {
         const hexToBytes = (hex: string) =>
             new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));

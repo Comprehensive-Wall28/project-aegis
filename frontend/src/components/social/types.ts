@@ -18,12 +18,12 @@ export interface SocialHeaderProps {
     viewFilter: 'all' | 'viewed' | 'unviewed';
     handleViewFilterChange: (filter: 'all' | 'viewed' | 'unviewed') => void;
     uniqueUploaders: { id: string, username: string }[];
-    newLinkUrl: string;
-    setNewLinkUrl: (url: string) => void;
-    handlePostLink: () => void;
+    handlePostLink: (url?: string) => void;
     isPostingLink: boolean;
     sortOrder: 'latest' | 'oldest';
     handleSortOrderChange: (order: 'latest' | 'oldest') => void;
+    isLoadingLinks?: boolean;
+    isSearchingLinks?: boolean;
     isZenModeOpen?: boolean;
     onToggleZenMode?: () => void;
     onCreateRoom?: () => void;
@@ -63,32 +63,8 @@ export interface SocialSidebarProps {
 }
 
 export interface LinksContainerProps {
-    linksContainerRef: React.RefObject<HTMLDivElement | null>;
-    isMobile: boolean;
-    currentCollectionId: string | null;
-    collections: Collection[];
-    setMobileDrawerOpen: (open: boolean) => void;
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
-    isLoadingContent: boolean;
-    isLoadingLinks: boolean;
-    isSearchingLinks: boolean;
-    filteredLinks: LinkPost[];
-    deleteLink: (id: string) => void;
-    setDraggedLinkId: (id: string | null) => void;
-    markLinkViewed: (id: string) => void;
-    unmarkLinkViewed: (id: string) => void;
-    setCommentsLink: (link: LinkPost | null) => void;
-    setReaderLink: (link: LinkPost | null) => void;
-    previewLinkId: string | null;
-    setPreviewLink: (link: LinkPost | null) => void;
-    viewedLinkIds: Set<string>;
-    commentCounts: Record<string, number>;
-    currentUserId: string | undefined;
-    hasMoreLinks: boolean;
-    loadAllLinks: () => void;
-    onMoveLink?: (link: LinkPost) => void;
-    hideCollectionSelector?: boolean;
+    noContainer?: boolean;
+    menuZIndex?: number;
 }
 
 export interface LinkCardProps {
@@ -106,6 +82,7 @@ export interface LinkCardProps {
     canDelete?: boolean;
     onMoveClick?: (link: LinkPost) => void;
     highlight?: string;
+    menuZIndex?: number;
 }
 
 export interface CommentsOverlayProps {
@@ -131,6 +108,14 @@ export interface CreateCollectionDialogProps {
     isLoading: boolean;
 }
 
+export interface RenameCollectionDialogProps {
+    open: boolean;
+    collection: Collection | null;
+    onClose: () => void;
+    onSubmit: (name: string) => void;
+    isLoading: boolean;
+}
+
 export interface PostLinkDialogProps {
     open: boolean;
     onClose: () => void;
@@ -148,9 +133,19 @@ export interface MoveLinkDialogProps {
     isLoading: boolean;
 }
 
+export interface DeleteRoomDialogProps {
+    open: boolean;
+    room: Room | null;
+    onClose: () => void;
+    onConfirm: () => void;
+    isLoading: boolean;
+}
+
 export interface RoomCardProps {
     room: Room;
     onSelect: () => void;
+    onLeave?: (e: React.MouseEvent) => void;
+    onDelete?: (e: React.MouseEvent) => void;
     index?: number;
 }
 

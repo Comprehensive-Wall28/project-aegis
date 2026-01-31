@@ -44,7 +44,7 @@ interface ReaderModeOverlayProps {
     currentUserId?: string;
 }
 
-const StaticReaderContent = memo(({ content, sx, onMouseUp }: { content: string; sx: any; onMouseUp: () => void }) => (
+const StaticReaderContent = memo(({ content, sx, onMouseUp }: { content: string; sx: React.CSSProperties; onMouseUp: () => void }) => (
     <Box
         onMouseUp={onMouseUp}
         sx={sx}
@@ -96,21 +96,22 @@ export const ReaderModeOverlay = memo(({
             setIsLoadingContent(true);
             setContentError(null);
             try {
-                const result = await socialService.getReaderContent(link._id);
+                const result = await socialService.getReaderContent(link?._id || '');
                 setReaderContent(result);
 
                 if (result.status !== 'success') {
                     setContentError(result.error || 'Unable to load article content');
                 }
-            } catch (error: any) {
-                setContentError(error.message || 'Failed to load reader content');
+            } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : 'Failed to load reader content';
+                setContentError(message);
             } finally {
                 setIsLoadingContent(false);
             }
         };
 
         loadContent();
-    }, [open, link._id]);
+    }, [open, link?._id]);
 
     // Close on Escape key
     useEffect(() => {
@@ -213,7 +214,7 @@ export const ReaderModeOverlay = memo(({
         const loadAnnotations = async () => {
             setIsLoadingAnnotations(true);
             try {
-                const rawAnnotations = await socialService.getAnnotations(link._id);
+                const rawAnnotations = await socialService.getAnnotations(link?._id || '');
 
                 // Decrypt annotations
                 const decrypted: DecryptedAnnotation[] = await Promise.all(
@@ -237,7 +238,7 @@ export const ReaderModeOverlay = memo(({
         };
 
         loadAnnotations();
-    }, [open, link._id, readerContent, decryptAnnotation]);
+    }, [open, link?._id, readerContent, decryptAnnotation]);
 
     // Handle text selection for annotation
     const handleMouseUp = useCallback(() => {
@@ -270,7 +271,7 @@ export const ReaderModeOverlay = memo(({
         try {
             const encryptedContent = await encryptAnnotation(newAnnotation.trim());
             const annotation = await socialService.createAnnotation(
-                link._id,
+                link?._id || '',
                 selectedParagraphId,
                 selectedText,
                 encryptedContent
@@ -682,6 +683,8 @@ export const ReaderModeOverlay = memo(({
         </Box>
     );
 
+    if (!open || !link) return null;
+
     return (
         <DialogPortal>
             <AnimatePresence>
@@ -698,7 +701,7 @@ export const ReaderModeOverlay = memo(({
                                 position: 'fixed',
                                 inset: 0,
                                 zIndex: SOCIAL_DIALOG_Z_INDEX - 1,
-                                bgcolor: 'rgba(0, 0, 0, 0.6)',
+                                bgcolor: alpha(theme.palette.common.black, 0.5),
                                 backdropFilter: 'blur(4px)',
                             }}
                         />
@@ -706,10 +709,10 @@ export const ReaderModeOverlay = memo(({
                         {/* Floating Panel */}
                         <Box
                             component={motion.div}
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            initial={isMobile ? { opacity: 0, y: 40 } : { opacity: 0, scale: 0.98, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            exit={isMobile ? { opacity: 0, y: 40 } : { opacity: 0, scale: 0.98, y: 10 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             sx={{
                                 position: 'fixed',
                                 // Equal gaps on all sides

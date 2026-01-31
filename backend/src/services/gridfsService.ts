@@ -15,9 +15,34 @@ interface UploadSession {
     receivedSize: number;
     finishedPromise: Promise<any>;
     error: Error | null;
+    lastUpdated: number;
 }
 
 const activeStreams: Map<string, UploadSession> = new Map();
+
+/**
+ * Clean up stale upload sessions that haven't received data in a while
+ * @param maxAgeMs Maximum age in milliseconds (default: 1 hour)
+ */
+export const cleanupStaleUploads = (maxAgeMs: number = 3600000): number => {
+    const now = Date.now();
+    let cleaned = 0;
+
+    for (const [id, session] of activeStreams.entries()) {
+        if (now - session.lastUpdated > maxAgeMs) {
+            // Destroy stream and remove
+            session.passthrough.destroy(new Error('Upload session timed out'));
+            activeStreams.delete(id);
+            cleaned++;
+        }
+    }
+
+    if (cleaned > 0) {
+        logger.info(`Cleaned up ${cleaned} stale GridFS upload sessions`);
+    }
+
+    return cleaned;
+};
 
 /**
  * Initialize GridFS bucket. Must be called after MongoDB connection is established.
@@ -85,7 +110,8 @@ export const initiateUpload = (fileName: string, metadata?: Record<string, any>)
         totalSize: 0,
         receivedSize: 0,
         finishedPromise,
-        error: null
+        error: null,
+        lastUpdated: Date.now()
     };
 
     // Handle passthrough errors
@@ -96,7 +122,6 @@ export const initiateUpload = (fileName: string, metadata?: Record<string, any>)
 
     activeStreams.set(streamId, session);
 
-    logger.info(`GridFS upload initiated with streaming: streamId=${streamId}, fileName=${fileName}`);
     return streamId;
 };
 
@@ -127,6 +152,7 @@ export const appendChunk = async (
     }
 
     session.totalSize = totalSize;
+    session.lastUpdated = Date.now();
     // session.receivedSize += chunk.length; // This doesn't work for streams
 
     // Write chunk with backpressure handling
@@ -158,7 +184,6 @@ export const appendChunk = async (
         });
     }
 
-    logger.info(`GridFS chunk streamed: streamId=${streamId}, chunkSize=${chunkLength}, received=${session.receivedSize}/${totalSize}`);
 
     // Check if upload is complete
     const complete = session.receivedSize >= totalSize;
@@ -196,8 +221,6 @@ export const finalizeUpload = async (
     // Wait for GridFS upload to complete
     const fileId = await session.finishedPromise;
 
-    logger.info(`GridFS upload finalized: streamId=${streamId}, fileId=${fileId}`);
-
     // Cleanup
     activeStreams.delete(streamId);
 
@@ -214,7 +237,6 @@ export const getFileStream = (fileId: any): Readable => {
     const idString = fileId.toString();
     const id = new mongoose.mongo.ObjectId(idString);
 
-    logger.info(`GridFS download stream opened: fileId=${id}`);
     return gridBucket.openDownloadStream(id);
 };
 
@@ -228,7 +250,6 @@ export const deleteFile = async (fileId: any): Promise<void> => {
     const id = new mongoose.mongo.ObjectId(idString);
 
     await gridBucket.delete(id);
-    logger.info(`GridFS file deleted: fileId=${id}`);
 };
 
 /**
@@ -241,7 +262,6 @@ export const cancelUpload = (streamId: string): void => {
         // Destroy the streams to prevent memory leaks
         session.passthrough.destroy();
         activeStreams.delete(streamId);
-        logger.info(`GridFS upload cancelled: streamId=${streamId}`);
     }
 };
 
@@ -271,7 +291,6 @@ export const uploadBuffer = async (
         const uploadStream = gridBucket.openUploadStream(fileName, { metadata });
 
         uploadStream.on('finish', () => {
-            logger.info(`GridFS buffer uploaded: fileId=${uploadStream.id}, size=${buffer.length}`);
             resolve(uploadStream.id);
         });
 
@@ -289,17 +308,32 @@ export const uploadBuffer = async (
  * Download a file from GridFS to a buffer.
  * Useful for small files like notes.
  * @param fileId - The GridFS file ID
+ * @param maxSize - Maximum allowed size in bytes (default: 10MB)
  * @returns The file content as a Buffer
  */
-export const downloadToBuffer = async (fileId: any): Promise<Buffer> => {
-    const stream = getFileStream(fileId);
+export const downloadToBuffer = async (fileId: any, maxSize: number = 10 * 1024 * 1024): Promise<Buffer> => {
+    const gridBucket = getBucket();
+    const idString = fileId.toString();
+    const id = new mongoose.mongo.ObjectId(idString);
+
+    // Check file size first
+    const files = await gridBucket.find({ _id: id }).toArray();
+    if (!files || files.length === 0) {
+        throw new Error(`File not found: ${idString}`);
+    }
+
+    const file = files[0];
+    if (file.length > maxSize) {
+        throw new Error(`File too large for buffer download: ${file.length} bytes (max: ${maxSize})`);
+    }
+
+    const stream = gridBucket.openDownloadStream(id);
     const chunks: Buffer[] = [];
 
     return new Promise((resolve, reject) => {
         stream.on('data', (chunk: Buffer) => chunks.push(chunk));
         stream.on('error', reject);
         stream.on('end', () => {
-            logger.info(`GridFS buffer downloaded: fileId=${fileId}`);
             resolve(Buffer.concat(chunks));
         });
     });

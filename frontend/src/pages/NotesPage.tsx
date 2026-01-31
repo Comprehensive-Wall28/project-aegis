@@ -95,9 +95,10 @@ const NotesPage: React.FC = () => {
 
     // Sync error from hook to snackbar
     useEffect(() => {
-        if (notesData.error) {
-            setErrorSnackbarOpen(true);
-        }
+        const timer = setTimeout(() => {
+            setErrorSnackbarOpen(notesData.error ? true : false);
+        }, 0);
+        return () => clearTimeout(timer);
     }, [notesData.error]);
 
     const handleCloseError = (_event?: React.SyntheticEvent | Event, reason?: string) => {
@@ -117,7 +118,9 @@ const NotesPage: React.FC = () => {
             const noteTitle = decryptedTitles.get(noteId) || 'Note';
             setSuccessMessage(`Moved "${noteTitle}" to ${folderName}`);
             setSuccessSnackbarOpen(true);
-        } catch (err) { }
+        } catch (err) {
+            console.error('Failed to move note:', err);
+        }
     }, [moveNote, folders, decryptedTitles]);
 
     // Drag & Drop Hook
@@ -173,18 +176,28 @@ const NotesPage: React.FC = () => {
                 // Only select if not already loading content for this specific note
                 if (noteToSelect) {
                     handleSelectNote(noteToSelect);
-                    if (isMobile) setMobileEditorOpen(true);
                 }
+            }
+
+            // Always ensure mobile editor is open if we have a note URL
+            if (isMobile) {
+                // Use setTimeout to defer state update
+                const timer = setTimeout(() => setMobileEditorOpen(true), 0);
+                return () => clearTimeout(timer);
             }
         } else if (selectedNote) {
             // Close note if it was open but no 'n' in URL
-            setSelectedNote(null);
-            setIsZenMode(false);
-            setEditorContainer(null);
-            if (isMobile) setMobileEditorOpen(false);
+            const timer = setTimeout(() => {
+                setSelectedNote(null);
+                setIsZenMode(false);
+                setEditorContainer(null);
+                if (isMobile) {
+                    setMobileEditorOpen(false);
+                }
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [searchParams, notes, isMobile, handleSelectNote, setSelectedFolderId, setSelectedNote]);
-    // Changed back to 'notes' now that hook references are stable
 
     const handleSelectNoteDesktop = useCallback(async (note: NoteMetadata) => {
         updateUrlParams(note._id);
@@ -196,10 +209,14 @@ const NotesPage: React.FC = () => {
 
     const handleCreateNoteWrapper = useCallback(async () => {
         try {
-            await handleCreateNote();
-            if (isMobile) setMobileEditorOpen(true);
-        } catch (err) { }
-    }, [handleCreateNote, isMobile]);
+            const newNote = await handleCreateNote();
+            if (newNote) {
+                updateUrlParams(newNote._id);
+            }
+        } catch (err) {
+            console.error('Failed to create note:', err);
+        }
+    }, [handleCreateNote, updateUrlParams]);
 
     const handleCloseNote = useCallback(() => {
         updateUrlParams(null);
@@ -225,7 +242,9 @@ const NotesPage: React.FC = () => {
                 await updateFolder(editingFolderId, name);
             }
             setFolderDialogOpen(false);
-        } catch (err) { }
+        } catch (err) {
+            console.error('Failed to confirm folder:', err);
+        }
     };
 
     const openDeleteConfirm = (mode: 'note' | 'folder', id: string, title: string) => {
@@ -247,7 +266,9 @@ const NotesPage: React.FC = () => {
                 }
             }
             setDeleteConfirmOpen(false);
-        } catch (err) { }
+        } catch (err) {
+            console.error('Failed to delete item:', err);
+        }
     };
 
     const handleToggleTag = (tag: string) => {

@@ -34,7 +34,7 @@ export interface AuthResponse {
     pqcPublicKey?: string;
     preferences?: UserPreferences;
     status?: string;
-    options?: any;
+    options?: Record<string, unknown>;
 }
 
 // Migration helper: SHA-256 for legacy support
@@ -66,7 +66,7 @@ const authService = {
         ]);
 
         // 3. Call backend login
-        const response = await apiClient.post<any>('/auth/login', {
+        const response = await apiClient.post<AuthResponse>('/auth/login', {
             email: normalizedEmail,
             argon2Hash: argon2Hash.toLowerCase(),
             legacyHash: legacyHash.toLowerCase()

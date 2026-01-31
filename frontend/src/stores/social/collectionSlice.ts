@@ -10,10 +10,21 @@ export const createCollectionSlice: StateCreator<SocialState, [], [], Pick<Socia
 
     selectCollection: async (collectionId: string, force?: boolean) => {
         const state = get();
-        if (!force && state.currentCollectionId === collectionId) return;
-
-        // Check cache (skip if forced)
+        // Check cache first (unless forced and we have no search query)
         const cached = !force ? state.linksCache[collectionId] : null;
+
+        if (state.currentCollectionId === collectionId) {
+            if (cached) {
+                // Always restore from cache when same collection is selected
+                // This handles the search -> clear case properly
+                set({
+                    links: cached.links,
+                    hasMoreLinks: cached.hasMore,
+                });
+            }
+            if (!force) return;
+        }
+
         if (cached) {
             set({
                 currentCollectionId: collectionId,
@@ -23,12 +34,13 @@ export const createCollectionSlice: StateCreator<SocialState, [], [], Pick<Socia
             return;
         }
 
-        set((prev) => ({
+        set({
             currentCollectionId: collectionId,
-            links: force && prev.currentCollectionId === collectionId ? prev.links : [],
+            // Preserve current links during transition to prevent skeleton flash
+            // The links will be replaced when fetchCollectionLinks completes
             hasMoreLinks: false,
             isLoadingLinks: true
-        }));
+        });
 
         await get().fetchCollectionLinks(collectionId, false);
     },
@@ -78,6 +90,33 @@ export const createCollectionSlice: StateCreator<SocialState, [], [], Pick<Socia
             links: updatedLinks,
             currentCollectionId: newCollectionId,
         });
+    },
+    renameCollection: async (collectionId: string, name: string) => {
+        const state = get();
+        const { setCryptoStatus } = useSessionStore.getState();
+        if (!state.currentRoom) throw new Error('No room selected');
+
+        const roomKey = state.roomKeys.get(state.currentRoom._id);
+        if (!roomKey) throw new Error('Room key not available');
+
+        setCryptoStatus('encrypting');
+        try {
+            const encryptedName = await encryptWithAES(roomKey, name);
+            setCryptoStatus('idle');
+
+            const updatedCollection = await socialService.updateCollection(collectionId, encryptedName);
+
+            set({
+                collections: state.collections.map(c =>
+                    c._id === collectionId ? updatedCollection : c
+                )
+            });
+        } catch (error) {
+            console.error('Failed to rename collection:', error);
+            throw error;
+        } finally {
+            setCryptoStatus('idle');
+        }
     },
 
     reorderCollections: async (collectionIds: string[]) => {

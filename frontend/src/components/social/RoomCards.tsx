@@ -1,9 +1,10 @@
 import { memo, forwardRef } from 'react';
 import { Box, Paper, Typography, Avatar, IconButton, alpha, useTheme, Skeleton, useMediaQuery } from '@mui/material';
-import { Group as GroupIcon, Add as AddIcon, Lock as LockIcon } from '@mui/icons-material';
+import { Group as GroupIcon, Add as AddIcon, Lock as LockIcon, ExitToApp as LeaveIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useDecryptedRoomMetadata } from '@/hooks/useDecryptedMetadata';
 import { motion } from 'framer-motion';
 import type { RoomCardProps, CreateRoomCardProps } from './types';
+import { SOCIAL_RADIUS_LARGE } from './constants';
 
 // Motion-enabled Paper for animations
 const MotionPaper = motion.create(
@@ -33,6 +34,8 @@ const createCardVariants = (index: number) => ({
 export const RoomCard = memo(({
     room,
     onSelect,
+    onLeave,
+    onDelete,
     index = 0,
 }: RoomCardProps) => {
     const theme = useTheme();
@@ -55,20 +58,22 @@ export const RoomCard = memo(({
             initial={isDesktop ? 'hidden' : false}
             animate={isDesktop ? 'visible' : undefined}
             variants={isDesktop ? cardVariants : undefined}
-            whileTap={isDesktop ? { scale: 0.98 } : undefined}
             sx={{
                 p: 3,
-                borderRadius: '20px',
+                borderRadius: SOCIAL_RADIUS_LARGE,
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 2,
                 minHeight: 140,
-                border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-                transition: 'border-color 0.2s ease, background-color 0.2s ease',
+                border: `1px solid ${alpha(theme.palette.divider, 0.4)}`,
+                transition: theme.transitions.create(['border-color', 'background-color', 'box-shadow'], {
+                    duration: theme.transitions.duration.shorter,
+                }),
                 '&:hover': {
-                    borderColor: theme.palette.primary.main,
-                    bgcolor: alpha(theme.palette.primary.main, 0.04),
+                    borderColor: alpha(theme.palette.primary.main, 0.4),
+                    bgcolor: alpha(theme.palette.primary.main, 0.02),
+                    boxShadow: `0 4px 12px -2px ${alpha(theme.palette.common.black, 0.1)}`,
                 },
             }}
         >
@@ -96,7 +101,7 @@ export const RoomCard = memo(({
                         displayName.substring(0, 2).toUpperCase()
                     )}
                 </Avatar>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                     <Typography
                         variant="h6"
                         sx={{
@@ -105,7 +110,6 @@ export const RoomCard = memo(({
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                             color: isEncrypted ? 'text.secondary' : 'text.primary',
-                            minHeight: '1.5em',
                         }}
                     >
                         {isLoading ? (
@@ -114,16 +118,74 @@ export const RoomCard = memo(({
                             displayName
                         )}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        {room.memberCount || 1} member{(room.memberCount || 1) > 1 ? 's' : ''}
-                    </Typography>
                 </Box>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 'auto' }}>
-                <GroupIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary">
-                    Tap to enter
-                </Typography>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 'auto' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <GroupIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                    <Typography variant="body2" color="text.secondary">
+                        Tap to enter
+                    </Typography>
+                </Box>
+
+                {!isLoading && (
+                    <Box sx={{ display: 'flex', mr: -0.5 }}>
+                        {room.role === 'owner' ? (
+                            <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDelete?.(e);
+                                }}
+                                sx={{
+                                    color: 'text.secondary',
+                                    borderRadius: '12px',
+                                    px: 1.5,
+                                    py: 0.5,
+                                    gap: 0.5,
+                                    transition: theme.transitions.create(['background-color', 'color']),
+                                    '&:hover': {
+                                        color: 'error.main',
+                                        bgcolor: alpha(theme.palette.error.main, 0.08),
+                                    },
+                                }}
+                                aria-label="Delete room"
+                                title="Delete room"
+                            >
+                                <DeleteIcon sx={{ fontSize: 18 }} />
+                                <Typography variant="caption" sx={{ fontWeight: 600 }}>Delete</Typography>
+                            </IconButton>
+                        ) : (
+                            onLeave && (
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onLeave(e);
+                                    }}
+                                    sx={{
+                                        color: 'text.secondary',
+                                        borderRadius: '12px',
+                                        px: 1.5,
+                                        py: 0.5,
+                                        gap: 0.5,
+                                        transition: theme.transitions.create(['background-color', 'color']),
+                                        '&:hover': {
+                                            color: 'error.main',
+                                            bgcolor: alpha(theme.palette.error.main, 0.08),
+                                        },
+                                    }}
+                                    aria-label="Leave room"
+                                    title="Leave room"
+                                >
+                                    <LeaveIcon sx={{ fontSize: 18 }} />
+                                    <Typography variant="caption" sx={{ fontWeight: 600 }}>Leave</Typography>
+                                </IconButton>
+                            )
+                        )}
+                    </Box>
+                )}
             </Box>
         </MotionPaper>
     );
@@ -151,7 +213,7 @@ export const CreateRoomCard = memo(({
             whileTap={isDesktop ? { scale: 0.98 } : undefined}
             sx={{
                 p: 3,
-                borderRadius: '20px',
+                borderRadius: SOCIAL_RADIUS_LARGE,
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',

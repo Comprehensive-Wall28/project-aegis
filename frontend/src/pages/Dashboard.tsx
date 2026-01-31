@@ -1,44 +1,53 @@
 import { VaultQuickView } from '@/components/dashboard/widgets/VaultQuickView';
-import { GPASnapshot } from '@/components/dashboard/widgets/GPASnapshot';
+import { VaultStorageWidget } from '@/components/dashboard/widgets/VaultStorageWidget';
 import { LiveActivityWidget } from '@/components/dashboard/widgets/LiveActivityWidget';
 import { Box, Grid } from '@mui/material';
 import { motion, type Variants } from 'framer-motion';
+import { WidgetErrorBoundary } from '@/components/common/WidgetErrorBoundary';
+
+const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.05,
+            delayChildren: 0.1
+        }
+    }
+};
+
+const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            duration: 0.3,
+            ease: 'easeOut'
+        }
+    }
+};
 
 export function Dashboard() {
-    const containerVariants: Variants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.05,
-                delayChildren: 0.1
-            }
-        }
-    };
-
-    const itemVariants: Variants = {
-        hidden: { opacity: 0, y: 10 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0.3,
-                ease: 'easeOut'
-            }
-        }
-    };
 
     return (
         <motion.div
             initial="hidden"
             animate="visible"
             variants={containerVariants}
+            style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}
         >
             <Box
                 sx={{
+                    width: '100%',
                     maxWidth: 1600,
                     mx: 'auto',
-                    p: { xs: 0.5, sm: 2, md: 3 },
+                    p: { xs: 0, sm: 3, md: 3 }, // Removed padding for mobile to maximize space
+                    flexGrow: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    overflow: 'visible'
                 }}
             >
                 <Grid container spacing={{ xs: 2, md: 3 }}>
@@ -49,7 +58,9 @@ export function Dashboard() {
                             style={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}
                         >
                             <Box sx={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                <VaultQuickView />
+                                <WidgetErrorBoundary>
+                                    <VaultQuickView />
+                                </WidgetErrorBoundary>
                             </Box>
                         </motion.div>
                     </Grid>
@@ -64,7 +75,9 @@ export function Dashboard() {
                                     style={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}
                                 >
                                     <Box sx={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                        <GPASnapshot />
+                                        <WidgetErrorBoundary>
+                                            <VaultStorageWidget />
+                                        </WidgetErrorBoundary>
                                     </Box>
                                 </motion.div>
                             </Grid>
@@ -76,7 +89,9 @@ export function Dashboard() {
                                     style={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}
                                 >
                                     <Box sx={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                        <LiveActivityWidget />
+                                        <WidgetErrorBoundary>
+                                            <LiveActivityWidget />
+                                        </WidgetErrorBoundary>
                                     </Box>
                                 </motion.div>
                             </Grid>

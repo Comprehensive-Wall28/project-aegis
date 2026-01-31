@@ -95,4 +95,13 @@ export class LinkViewRepository extends BaseRepository<ILinkView> {
             logger.error('Failed to unmark link viewed:', err);
         });
     }
+
+    /**
+     * Delete all views for a room
+     */
+    async deleteByRoom(roomId: string): Promise<number> {
+        return this.deleteMany({
+            roomId: { $eq: roomId as any }
+        } as SafeFilter<ILinkView>);
+    }
 }

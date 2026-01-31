@@ -14,7 +14,10 @@ export const SOCIAL_SNACKBAR_Z_INDEX = 10000;
 
 // Border Radii
 export const SOCIAL_RADIUS_XLARGE = '24px';
-export const SOCIAL_RADIUS_LARGE = '20px';
-export const SOCIAL_RADIUS_MEDIUM = '16px';
+export const SOCIAL_RADIUS_LARGE = '24px';
+export const SOCIAL_RADIUS_MEDIUM = '24px';
 export const SOCIAL_RADIUS_SMALL = '12px';
 export const SOCIAL_RADIUS_XSMALL = '10px';
+
+// Regex
+export const SOCIAL_URL_REGEX = /^(https?:\/\/|www\.)\S+/i;

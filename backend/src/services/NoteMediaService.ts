@@ -57,7 +57,6 @@ export class NoteMediaService extends BaseService<INoteMedia, any> {
                 status: 'pending'
             });
 
-            logger.info(`Note media upload initiated: ${data.originalFileName} by User ${userId}`);
             return { mediaId: mediaRecord._id.toString() };
         } catch (error) {
             logger.error('Note media upload init error:', error);
@@ -115,7 +114,6 @@ export class NoteMediaService extends BaseService<INoteMedia, any> {
                 mediaRecord.uploadStreamId = undefined; // Session finished
                 await mediaRecord.save();
 
-                logger.info(`Note media upload completed: ${mediaId} -> GridFS ${gridFsFileId}`);
                 return { complete: true, receivedSize };
             }
 
@@ -176,6 +174,5 @@ export class NoteMediaService extends BaseService<INoteMedia, any> {
         }
 
         await NoteMedia.deleteOne({ _id: mediaId });
-        logger.info(`Note media deleted: ${mediaId} by User ${userId}`);
     }
 }

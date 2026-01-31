@@ -1,12 +1,16 @@
-import { useEffect, useMemo, memo, useRef } from 'react';
-import { Box, Paper, Typography, useTheme, Button, alpha } from '@mui/material';
+import { useMemo, memo } from 'react';
+import { Box, Typography, useTheme, Button, alpha, Skeleton } from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// ... inside LiveActivityWidget ...
+import { DashboardCard } from '@/components/common/DashboardCard';
 import { History as HistoryIcon, ArrowUpRight, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
-import { useTaskStore } from '@/stores/useTaskStore';
 import { ActivityItem } from '@/components/security/ActivityItem';
 import dayjs from 'dayjs';
 import type { DecryptedTask } from '@/stores/useTaskStore';
+import { useTaskEncryption } from '@/hooks/useTaskEncryption';
 
 const MemoizedActivityItem = memo(ActivityItem);
 
@@ -16,6 +20,8 @@ const TaskItem = memo(({ task }: { task: DecryptedTask }) => {
     const isOverdue = dayjs(task.dueDate).isBefore(dayjs());
     const isToday = dayjs(task.dueDate).isSame(dayjs(), 'day');
 
+    const daysUntil = dayjs(task.dueDate).startOf('day').diff(dayjs().startOf('day'), 'day');
+
     return (
         <Box
             sx={{
@@ -23,7 +29,7 @@ const TaskItem = memo(({ task }: { task: DecryptedTask }) => {
                 alignItems: 'center',
                 gap: 2,
                 p: 1.5,
-                borderRadius: '12px',
+                borderRadius: '24px',
                 bgcolor: alpha(theme.palette.background.paper, 0.3),
                 border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`, // Distinct border for tasks
                 transition: 'all 0.2s ease',
@@ -76,64 +82,63 @@ const TaskItem = memo(({ task }: { task: DecryptedTask }) => {
                     Due {dayjs(task.dueDate).format('MMM D, h:mm A')}
                     {isOverdue && ' (Overdue)'}
                     {isToday && ' (Today)'}
+                    {!isOverdue && !isToday && daysUntil === 1 && ' (Tomorrow)'}
+                    {!isOverdue && !isToday && daysUntil > 1 && ` (in ${daysUntil} days)`}
                 </Typography>
             </Box>
         </Box>
     );
 });
 
+import { useQuery } from '@tanstack/react-query';
+import activityService from '@/services/activityService';
+
 export function LiveActivityWidget() {
     const theme = useTheme();
     const navigate = useNavigate();
-    const { recentActivity, fetchRecentActivity, isAuthenticated } = useSessionStore();
-    const { tasks } = useTaskStore();
-    const hasFetched = useRef(false);
+    const { isAuthenticated } = useSessionStore();
+    // Removed tasks store usage as we fetch combined data now
 
-    // Fetch activity (only once)
-    useEffect(() => {
-        if (isAuthenticated && !hasFetched.current) {
-            hasFetched.current = true;
-            fetchRecentActivity();
-        }
-    }, [isAuthenticated, fetchRecentActivity]);
+    const { data: activityData, isLoading: isFetching } = useQuery({
+        queryKey: ['dashboardActivity'],
+        queryFn: () => activityService.getDashboardActivity(),
+        enabled: isAuthenticated,
+        staleTime: 1000 * 60, // 1 minute stale time
+    });
 
-    const upcomingTasks = useMemo(() => {
-        if (!tasks || tasks.length === 0) return [];
+    const { decryptTasks } = useTaskEncryption();
 
-        const now = dayjs();
-        return tasks
-            .filter(t => t.dueDate && t.status !== 'done' && (dayjs(t.dueDate).isAfter(now) || dayjs(t.dueDate).isSame(now, 'day')))
-            .sort((a, b) => dayjs(a.dueDate).valueOf() - dayjs(b.dueDate).valueOf())
-            .slice(0, 3); // Limit to top 3 upcoming tasks
-    }, [tasks]);
+    // Use a separate query for decryption to cache the result and avoid re-decrypting on remount
+    const { data: decryptedTasks = [], isLoading: isDecrypting } = useQuery({
+        queryKey: ['decryptedDashboardTasks', activityData?.tasks],
+        queryFn: async () => {
+            if (!activityData?.tasks || activityData.tasks.length === 0) return [];
+
+            try {
+                const result = await decryptTasks(activityData.tasks);
+                if (Array.isArray(result)) {
+                    return result;
+                } else {
+                    return result.tasks;
+                }
+            } catch (err) {
+                console.error('Failed to decrypt dashboard tasks:', err);
+                return [];
+            }
+        },
+        enabled: !!activityData?.tasks && activityData.tasks.length > 0,
+        staleTime: Infinity, // Keep decrypted data as long as the input data hasn't changed (queryKey dependency handles updates)
+        gcTime: 1000 * 60 * 5, // Keep in garbage collection for 5 mins
+    });
 
     const combinedItems = useMemo(() => {
-        const MAX_ITEMS = 3;
-        // top 3 tasks
-        const tasksToShow = upcomingTasks.slice(0, MAX_ITEMS);
-        // fill remainder
-        const remainingSlots = MAX_ITEMS - tasksToShow.length;
-        const activitiesToShow = recentActivity.slice(0, remainingSlots);
+        if (!activityData) return { tasks: [], activities: [] };
 
-        return { tasks: tasksToShow, activities: activitiesToShow };
-    }, [upcomingTasks, recentActivity]);
-
-    const paperStyles = useMemo(() => ({
-        p: { xs: 2, sm: 2.5 },
-        height: '100%',
-        borderRadius: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        position: 'relative',
-        contain: 'content',
-        transition: 'none',
-        bgcolor: theme.palette.background.paper, // Force opaque
-        backgroundImage: 'none', // Ensure no gradient
-        backdropFilter: 'none', // Disable blur
-        border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-        boxShadow: '0 4px 24px -1px rgba(0, 0, 0, 0.2)',
-    }), [theme]);
+        return {
+            tasks: decryptedTasks,
+            activities: activityData.activities || []
+        };
+    }, [activityData, decryptedTasks]);
 
     const handleViewAll = () => {
         if (combinedItems.tasks.length > 0) {
@@ -143,11 +148,20 @@ export function LiveActivityWidget() {
         }
     };
 
+    const showLoading = isFetching || (isDecrypting && activityData?.tasks && activityData.tasks.length > 0);
+
     return (
-        <Paper
-            variant="solid"
-            sx={paperStyles}
-            elevation={0}
+        <DashboardCard
+            sx={{
+                p: { xs: 2, sm: 2.5 },
+                transition: 'none',
+                bgcolor: theme.palette.background.paper, // Force opaque
+                backgroundImage: 'none', // Ensure no gradient
+                backdropFilter: 'none', // Disable blur
+                height: '293px',
+                display: 'flex',
+                flexDirection: 'column',
+            }}
         >
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, px: 0.5 }}>
@@ -187,27 +201,67 @@ export function LiveActivityWidget() {
                 </Button>
             </Box>
 
-            {/* Content List */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, overflow: 'hidden' }}>
 
-                {(combinedItems.tasks.length === 0 && combinedItems.activities.length === 0) ? (
-                    <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>
-                            No recent activity
-                        </Typography>
-                    </Box>
-                ) : (
-                    <>
-                        {combinedItems.tasks.map(task => (
-                            <TaskItem key={task._id} task={task} />
-                        ))}
-                        {combinedItems.activities.map((log) => (
-                            <MemoizedActivityItem key={log._id} log={log} variant="compact" />
-                        ))}
-                    </>
-                )}
+
+            {/* Content List */}
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, overflow: 'hidden', position: 'relative' }}>
+                <AnimatePresence mode="wait">
+                    {showLoading ? (
+                        <motion.div
+                            key="loading"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {[1, 2, 3].map((i) => (
+                                    <Box key={i} sx={{ display: 'flex', gap: 2, p: 1.5 }}>
+                                        <Skeleton variant="rounded" width={32} height={32} animation="wave" />
+                                        <Box sx={{ flex: 1 }}>
+                                            <Skeleton variant="text" width="60%" height={20} animation="wave" />
+                                            <Skeleton variant="text" width="40%" height={16} animation="wave" />
+                                        </Box>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </motion.div>
+                    ) : (combinedItems.tasks.length === 0 && combinedItems.activities.length === 0) ? (
+                        <motion.div
+                            key="empty"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>
+                                    No recent activity
+                                </Typography>
+                            </Box>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="content"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {combinedItems.tasks.map(task => (
+                                    <TaskItem key={task._id} task={task} />
+                                ))}
+                                {combinedItems.activities.map((log) => (
+                                    <MemoizedActivityItem key={log._id} log={log} variant="compact" />
+                                ))}
+                            </Box>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </Box>
-        </Paper>
+        </DashboardCard>
     );
 }
 

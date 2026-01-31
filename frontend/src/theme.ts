@@ -12,7 +12,7 @@ declare module '@mui/material/Paper' {
 const FONT_PRIMARY = 'Outfit, sans-serif';
 const FONT_SECONDARY = 'Inter, sans-serif';
 
-export type ThemeMode = 'default' | 'purple' | 'catppuccin-mocha' | 'catppuccin-macchiato' | 'catppuccin-frappe' | 'amoled' | 'grey' | 'ocean' | 'light' | 'tokyonight';
+export type ThemeMode = 'default' | 'purple' | 'catppuccin-mocha' | 'catppuccin-macchiato' | 'catppuccin-frappe' | 'amoled' | 'grey' | 'ocean' | 'ocean-dark' | 'light' | 'tokyonight';
 
 export const getTheme = (mode: ThemeMode) => {
 
@@ -217,6 +217,24 @@ export const getTheme = (mode: ThemeMode) => {
             },
             divider: 'rgba(148, 163, 184, 0.2)',
         },
+        'ocean-dark': {
+            background: {
+                default: '#05070a', // Even deeper blue
+                paper: '#080b12',   // Darker paper
+            },
+            primary: {
+                main: '#ffffff',    // White
+                contrastText: '#000000',
+            },
+            secondary: {
+                main: '#0f172a',    // Slate 900
+            },
+            text: {
+                primary: '#f1f5f9',
+                secondary: '#94a3b8',
+            },
+            divider: 'rgba(255, 255, 255, 0.05)', // Very subtle
+        },
         tokyonight: {
             background: {
                 default: '#13141b', // Even darker for outer depth
@@ -319,14 +337,14 @@ export const getTheme = (mode: ThemeMode) => {
                 },
                 variants: [
                     {
-                        props: { variant: 'glass' as any },
+                        props: { variant: 'glass' },
                         style: {
                             background: selectedPalette.background.paper,
                             border: `1px solid ${selectedPalette.divider}`,
                         },
                     },
                     {
-                        props: { variant: 'solid' as any },
+                        props: { variant: 'solid' },
                         style: {
                             background: selectedPalette.background.paper,
                             backgroundImage: 'none',
@@ -336,7 +354,7 @@ export const getTheme = (mode: ThemeMode) => {
                         },
                     },
                     {
-                        props: { variant: 'translucent' as any },
+                        props: { variant: 'translucent' },
                         style: {
                             background: selectedPalette.background.paper,
                             border: `1px solid ${selectedPalette.divider}`,
@@ -348,7 +366,15 @@ export const getTheme = (mode: ThemeMode) => {
                 styleOverrides: {
                     root: {
                         backgroundImage: 'none',
-                        borderRadius: 12,
+                        borderRadius: 24,
+                    },
+                },
+            },
+            MuiDialog: {
+                styleOverrides: {
+                    paper: {
+                        borderRadius: 24,
+                        backgroundImage: 'none',
                     },
                 },
             },

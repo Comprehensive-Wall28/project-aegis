@@ -13,8 +13,9 @@ export const useNotesMetadata = () => {
             const newFolder = await noteService.createFolder({ name });
             setFolders(prev => [...prev, newFolder]);
             return newFolder;
-        } catch (err: any) {
-            setError(err.message || 'Failed to create folder');
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            setError(error.message || 'Failed to create folder');
             throw err;
         }
     }, []);
@@ -23,8 +24,9 @@ export const useNotesMetadata = () => {
         try {
             const updatedFolder = await noteService.updateFolder(id, { name });
             setFolders(prev => prev.map(f => f._id === id ? updatedFolder : f));
-        } catch (err: any) {
-            setError(err.message || 'Failed to update folder');
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            setError(error.message || 'Failed to update folder');
             throw err;
         }
     }, []);
@@ -34,8 +36,9 @@ export const useNotesMetadata = () => {
             await noteService.deleteFolder(id);
             setFolders(prev => prev.filter(f => f._id !== id));
             if (selectedFolderId === id) setSelectedFolderId(null);
-        } catch (err: any) {
-            setError(err.message || 'Failed to delete folder');
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            setError(error.message || 'Failed to delete folder');
             throw err;
         }
     }, [selectedFolderId]);

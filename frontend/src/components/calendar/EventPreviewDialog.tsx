@@ -31,9 +31,29 @@ import { useBacklinks } from '../../hooks/useBacklinks';
 interface EventPreviewDialogProps {
     open: boolean;
     onClose: () => void;
-    onEdit: (event: any) => void;
-    onDelete: (eventId: string) => void;
-    event: any | null;
+    onEdit: (event: {
+        _id?: string;
+        title?: string;
+        description?: string;
+        location?: string;
+        startDate?: string;
+        endDate?: string;
+        isAllDay?: boolean;
+        color?: string;
+    }) => void;
+    onDelete: (eventId: string | undefined) => void;
+    event: {
+        _id?: string;
+        title?: string;
+        description?: string;
+        location?: string;
+        startDate?: string;
+        endDate?: string;
+        isAllDay?: boolean;
+        color?: string;
+        createdAt?: string;
+        updatedAt?: string;
+    } | null;
 }
 
 export const EventPreviewDialog = ({ open, onClose, onEdit, onDelete, event }: EventPreviewDialogProps) => {

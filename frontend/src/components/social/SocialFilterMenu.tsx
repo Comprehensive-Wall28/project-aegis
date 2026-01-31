@@ -11,6 +11,7 @@ import {
     ListSubheader,
     ListItemIcon,
     ListItemText,
+    Fade,
 } from '@mui/material';
 import {
     Group as GroupIcon,
@@ -68,6 +69,7 @@ export const SocialFilterMenu = memo(({
             open={open}
             onClose={onClose}
             disableScrollLock
+            TransitionComponent={Fade}
             sx={{ zIndex: zIndex || 1300 }}
             slotProps={{
                 paper: {

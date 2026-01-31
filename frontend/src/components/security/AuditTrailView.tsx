@@ -18,6 +18,7 @@ import {
     TableRow,
     Pagination,
     Skeleton,
+    type Theme,
 } from '@mui/material';
 import {
     History as HistoryIcon,
@@ -32,6 +33,15 @@ import auditService, { type AuditLog } from '@/services/auditService';
 
 interface AuditTrailViewProps {
     maxHeight?: string | number;
+}
+
+interface AuditLogRowProps {
+    log: AuditLog;
+    isMobile: boolean;
+    expanded: boolean;
+    onToggle: () => void;
+    theme: Theme;
+    getStatusColor: (status: 'SUCCESS' | 'FAILURE') => string;
 }
 
 export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
@@ -243,7 +253,7 @@ export function AuditTrailView({ maxHeight = 500 }: AuditTrailViewProps) {
 }
 
 // Sub-component for a cleaner main component
-function AuditLogRow({ log, isMobile, expanded, onToggle, theme, getStatusColor }: any) {
+function AuditLogRow({ log, isMobile, expanded, onToggle, theme, getStatusColor }: AuditLogRowProps) {
     return (
         <>
             <TableRow
@@ -315,23 +325,7 @@ function AuditLogRow({ log, isMobile, expanded, onToggle, theme, getStatusColor 
                     <Collapse in={expanded} timeout="auto" unmountOnExit>
                         <Box sx={{ py: 2, px: 1 }}>
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                                <Box>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '10px', letterSpacing: '0.05em' }}>
-                                        RECORD HASH
-                                    </Typography>
-                                    <Typography
-                                        variant="caption"
-                                        sx={{
-                                            display: 'block',
-                                            fontFamily: '"JetBrains Mono", monospace',
-                                            fontSize: '10px',
-                                            color: 'text.primary',
-                                            mt: 0.5,
-                                        }}
-                                    >
-                                        {log.recordHash.slice(0, 32)}...
-                                    </Typography>
-                                </Box>
+
                                 <Box>
                                     <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '10px', letterSpacing: '0.05em' }}>
                                         FULL TIMESTAMP

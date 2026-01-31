@@ -1,12 +1,11 @@
 /// <reference lib="webworker" />
-// @ts-ignore
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 import { bytesToHex, hexToBytes } from '../lib/cryptoUtils';
 
 type CryptoMessage =
-    | { type: 'ENCRYPT_NOTE'; payload: { content: any; title?: string; publicKey: string } }
+    | { type: 'ENCRYPT_NOTE'; payload: { content: unknown; title?: string; publicKey: string } }
     | { type: 'DECRYPT_NOTE'; payload: { encryptedContent: string; encapsulatedKey: string; encryptedSymmetricKey: string; privateKey: string } }
-    | { type: 'GENERATE_HASH'; payload: { content: any; tags: string[]; title?: string } };
+    | { type: 'GENERATE_HASH'; payload: { content: unknown; tags: string[]; title?: string } };
 
 self.onmessage = async (e: MessageEvent<CryptoMessage>) => {
     const { type, payload } = e.data;
@@ -162,10 +161,10 @@ self.onmessage = async (e: MessageEvent<CryptoMessage>) => {
                 payload: { hash: hashHex }
             });
         }
-    } catch (err: any) {
+    } catch (err: unknown) {
         self.postMessage({
             type: 'ERROR',
-            payload: { message: err.message || 'Crypto worker error' }
+            payload: { message: err instanceof Error ? err.message : 'Crypto worker error' }
         });
     }
 };

@@ -17,48 +17,20 @@ import {
     Close as CloseIcon,
     Search as SearchIcon,
     FilterList as FilterListIcon,
+    Add as AddIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DialogPortal } from './DialogPortal';
 import { SOCIAL_DIALOG_Z_INDEX } from './constants';
-import { LinksContainer } from './LinksContainer';
+import { useSocial } from '@/hooks/useSocial';
 import { SocialFilterMenu } from './SocialFilterMenu';
-import type { Collection, LinkPost } from '@/services/socialService';
+import { LinksContainer } from './LinksContainer';
+import type { Collection } from '@/services/socialService';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
 
 interface ZenModeOverlayProps {
     open: boolean;
     onClose: () => void;
-    collections: Collection[];
-    currentCollectionId: string | null;
-    selectCollection: (id: string) => void;
-    linksContainerRef: React.RefObject<HTMLDivElement | null>;
-    isMobile: boolean;
-    effectiveIsLoadingContent: boolean;
-    isLoadingLinks: boolean;
-    isSearchingLinks: boolean;
-    filteredLinks: LinkPost[];
-    handleDeleteLink: (id: string) => void;
-    setDraggedLinkId: (id: string | null) => void;
-    markLinkViewed: (id: string) => void;
-    unmarkLinkViewed: (id: string) => void;
-    toggleOverlay: (key: string, value: string | boolean | null) => void;
-    previewLink: LinkPost | null;
-    viewedLinkIds: Set<string>;
-    commentCounts: Record<string, number>;
-    currentUserId: string | undefined;
-    hasMoreLinks: boolean;
-    loadAllLinks: () => void;
-    handleOpenMoveDialog: (link: LinkPost) => void;
-    sortOrder: 'latest' | 'oldest';
-    onSortOrderChange: (order: 'latest' | 'oldest') => void;
-    viewFilter: 'all' | 'viewed' | 'unviewed';
-    onViewFilterChange: (filter: 'all' | 'viewed' | 'unviewed') => void;
-    selectedUploader: string | null;
-    onSelectUploader: (id: string | null) => void;
-    uniqueUploaders: { id: string, username: string }[];
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
 }
 
 const CollectionName = memo(({ collection }: { collection: Collection }) => {
@@ -71,37 +43,26 @@ CollectionName.displayName = 'CollectionName';
 export const ZenModeOverlay = memo(({
     open,
     onClose,
-    collections,
-    currentCollectionId,
-    selectCollection,
-    linksContainerRef,
-    isMobile,
-    effectiveIsLoadingContent,
-    isLoadingLinks,
-    isSearchingLinks,
-    filteredLinks,
-    handleDeleteLink,
-    setDraggedLinkId,
-    markLinkViewed,
-    unmarkLinkViewed,
-    toggleOverlay,
-    previewLink,
-    viewedLinkIds,
-    commentCounts,
-    currentUserId,
-    hasMoreLinks,
-    loadAllLinks,
-    handleOpenMoveDialog,
-    sortOrder,
-    onSortOrderChange,
-    viewFilter,
-    onViewFilterChange,
-    selectedUploader,
-    onSelectUploader,
-    uniqueUploaders,
-    searchQuery,
-    setSearchQuery,
 }: ZenModeOverlayProps) => {
+    const {
+        collections,
+        currentCollectionId,
+        handleSelectCollection: selectCollection,
+        isMobile,
+        effectiveIsLoadingContent,
+        toggleOverlay,
+        filteredLinks,
+        sortOrder,
+        setSortOrder: onSortOrderChange,
+        viewFilter,
+        setViewFilter: onViewFilterChange,
+        selectedUploader,
+        handleSelectUploader: onSelectUploader,
+        uniqueUploaders,
+        searchQuery,
+        setSearchQuery,
+    } = useSocial();
+
     const theme = useTheme();
     const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
     const searchRef = useRef<HTMLInputElement>(null);
@@ -158,7 +119,7 @@ export const ZenModeOverlay = memo(({
                                 position: 'fixed',
                                 inset: 0,
                                 zIndex: SOCIAL_DIALOG_Z_INDEX - 1,
-                                bgcolor: 'rgba(0, 0, 0, 0.85)',
+                                bgcolor: alpha(theme.palette.common.black, 0.7),
                                 backdropFilter: 'blur(10px)',
                             }}
                         />
@@ -166,10 +127,10 @@ export const ZenModeOverlay = memo(({
                         {/* Fullscreen Content */}
                         <Box
                             component={motion.div}
-                            initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.98 }}
-                            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                            initial={isMobile ? { opacity: 0, y: 40 } : { opacity: 0, scale: 0.99 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={isMobile ? { opacity: 0, y: 40 } : { opacity: 0, scale: 0.99 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             sx={{
                                 position: 'fixed',
                                 inset: isMobile ? 0 : 20,
@@ -266,8 +227,11 @@ export const ZenModeOverlay = memo(({
 
                                     <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 180 } }}>
                                         <Select
-                                            value={currentCollectionId || ''}
-                                            onChange={(e) => selectCollection(e.target.value as string)}
+                                            value={collections.some(c => c._id === currentCollectionId) ? currentCollectionId || '' : ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val) selectCollection(val as string);
+                                            }}
                                             MenuProps={{
                                                 style: { zIndex: SOCIAL_DIALOG_Z_INDEX + 10 },
                                                 variant: 'selectedMenu',
@@ -299,6 +263,20 @@ export const ZenModeOverlay = memo(({
                                         </Select>
                                     </FormControl>
 
+                                    {isMobile && (
+                                        <IconButton
+                                            onClick={() => toggleOverlay('post', true)}
+                                            sx={{
+                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                color: 'primary.main',
+                                                '&:hover': {
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.2),
+                                                }
+                                            }}
+                                        >
+                                            <AddIcon />
+                                        </IconButton>
+                                    )}
                                     <Tooltip title="Filter Links">
                                         <span>
                                             <IconButton
@@ -328,32 +306,8 @@ export const ZenModeOverlay = memo(({
                             {/* Main Grid */}
                             <Box sx={{ flex: 1, overflow: 'hidden', p: { xs: 1, md: 3 } }}>
                                 <LinksContainer
-                                    linksContainerRef={linksContainerRef}
-                                    isMobile={isMobile}
-                                    currentCollectionId={currentCollectionId}
-                                    collections={collections}
-                                    setMobileDrawerOpen={() => { }} // Not needed in Zen mode
-                                    searchQuery={searchQuery}
-                                    setSearchQuery={setSearchQuery}
-                                    isLoadingContent={effectiveIsLoadingContent}
-                                    isLoadingLinks={isLoadingLinks}
-                                    isSearchingLinks={isSearchingLinks}
-                                    filteredLinks={filteredLinks}
-                                    deleteLink={handleDeleteLink}
-                                    setDraggedLinkId={setDraggedLinkId}
-                                    markLinkViewed={markLinkViewed}
-                                    unmarkLinkViewed={unmarkLinkViewed}
-                                    setCommentsLink={(link) => toggleOverlay('comments', link?._id || null)}
-                                    setReaderLink={(link) => toggleOverlay('reader', link?._id || null)}
-                                    previewLinkId={previewLink?._id || null}
-                                    setPreviewLink={(link) => toggleOverlay('preview', link?._id || null)}
-                                    viewedLinkIds={viewedLinkIds}
-                                    commentCounts={commentCounts}
-                                    currentUserId={currentUserId}
-                                    hasMoreLinks={hasMoreLinks}
-                                    loadAllLinks={loadAllLinks}
-                                    onMoveLink={handleOpenMoveDialog}
-                                    hideCollectionSelector={true}
+                                    noContainer={true}
+                                    menuZIndex={SOCIAL_DIALOG_Z_INDEX + 10}
                                 />
                             </Box>
                         </Box>

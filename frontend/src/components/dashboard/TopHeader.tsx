@@ -12,6 +12,7 @@ import {
     Palette as PaletteIcon,
     Menu as MenuIcon
 } from '@mui/icons-material';
+import { Command } from 'lucide-react';
 import {
     Box,
     Typography,
@@ -127,6 +128,22 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
 
             {/* Right: Actions & User Profile */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+                {/* Search / Quick Open Trigger */}
+                <Tooltip title="Quick Open (Ctrl + Space)">
+                    <IconButton
+                        onClick={() => window.dispatchEvent(new CustomEvent('aegis:quick-open-toggle'))}
+                        sx={{
+                            color: theme.palette.text.secondary,
+                            '&:hover': {
+                                color: theme.palette.primary.main,
+                                bgcolor: alpha(theme.palette.primary.main, 0.05)
+                            }
+                        }}
+                    >
+                        <Command size={20} />
+                    </IconButton>
+                </Tooltip>
+
                 {/* Theme Toggle - Desktop only */}
                 <Tooltip title={`Theme: ${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}`}>
                     <Box sx={{ display: { xs: 'none', lg: 'block' } }}>

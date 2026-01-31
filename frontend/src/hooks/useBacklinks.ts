@@ -16,7 +16,7 @@ export const useBacklinks = (entityId: string) => {
 
     useEffect(() => {
         if (!entityId) {
-            setBacklinkIds([]);
+            // Don't call setState synchronously - let the component handle empty state naturally
             return;
         }
 
@@ -28,14 +28,18 @@ export const useBacklinks = (entityId: string) => {
                 setBacklinkIds(response.data);
             } catch (err) {
                 console.error('Failed to fetch backlinks:', err);
+                setBacklinkIds([]); // Set empty array on error
             }
         };
 
         fetchBacklinks();
     }, [entityId]);
 
+    // Reset backlinks when entityId becomes empty
+    const effectiveBacklinkIds = entityId ? backlinkIds : [];
+
     const backlinks = useMemo(() => {
-        return backlinkIds.map(bl => {
+        return effectiveBacklinkIds.map(bl => {
             if (bl.type === 'task') {
                 const task = tasks.find(t => t._id === bl.id);
                 return { ...bl, title: task?.title || 'Private Task' };
@@ -44,7 +48,7 @@ export const useBacklinks = (entityId: string) => {
                 return { ...bl, title: event?.title || 'Private Event' };
             }
         });
-    }, [backlinkIds, tasks, events]);
+    }, [effectiveBacklinkIds, tasks, events]);
 
     return backlinks;
 };

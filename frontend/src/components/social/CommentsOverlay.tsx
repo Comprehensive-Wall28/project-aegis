@@ -10,6 +10,7 @@ import {
     CircularProgress,
     useTheme,
     useMediaQuery,
+    alpha,
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -58,7 +59,7 @@ export const CommentsOverlay = memo(({
 
     // Fetch and decrypt comments
     const loadComments = useCallback(async (isLoadMore = false) => {
-        if (!open) return;
+        if (!open || !link) return;
 
         if (isLoadMore) setIsLoadingMore(true);
         else setIsLoading(true);
@@ -107,14 +108,15 @@ export const CommentsOverlay = memo(({
             } else {
                 setNextCursor(undefined);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to load comments:', error);
-            setError(error.message || 'Failed to load comments. Please try again.');
+            const message = error instanceof Error ? error.message : 'Failed to load comments. Please try again.';
+            setError(message);
         } finally {
             setIsLoading(false);
             setIsLoadingMore(false);
         }
-    }, [open, link._id, decryptComment, nextCursor]);
+    }, [open, link?._id, decryptComment, nextCursor]);
 
     useEffect(() => {
         setError(null);
@@ -127,7 +129,7 @@ export const CommentsOverlay = memo(({
         setIsPosting(true);
         try {
             const encryptedContent = await encryptComment(newComment.trim());
-            const comment = await socialService.postComment(link._id, encryptedContent);
+            const comment = await socialService.postComment(link?._id || '', encryptedContent);
 
             // Add to list with decrypted content
             setComments((prev) => [
@@ -182,6 +184,8 @@ export const CommentsOverlay = memo(({
         }
     };
 
+    if (!open || !link) return null;
+
     return (
         <DialogPortal>
             <AnimatePresence>
@@ -196,7 +200,7 @@ export const CommentsOverlay = memo(({
                             position: 'fixed',
                             inset: 0,
                             zIndex: SOCIAL_DIALOG_Z_INDEX,
-                            bgcolor: 'rgba(0,0,0,0.85)',
+                            bgcolor: alpha(theme.palette.common.black, 0.7),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -206,9 +210,10 @@ export const CommentsOverlay = memo(({
                         <Paper
                             elevation={0}
                             component={motion.div}
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
+                            initial={isMobile ? { y: 40, opacity: 0 } : { scale: 0.95, opacity: 0 }}
+                            animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
+                            exit={isMobile ? { y: 40, opacity: 0 } : { scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
                             onClick={(e) => e.stopPropagation()}
                             sx={{
                                 width: '100%',

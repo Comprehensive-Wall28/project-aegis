@@ -14,8 +14,8 @@ export interface Room {
     icon: string; // Encrypted
     members: RoomMember[];
     inviteCode?: string;
+    role?: 'owner' | 'admin' | 'member';
     encryptedRoomKey?: string; // User's encrypted copy of room key
-    memberCount?: number; // Number of members (from API)
 }
 
 export interface Collection {
@@ -115,7 +115,7 @@ const socialService = {
      * Get all rooms the user is a member of
      */
     getUserRooms: async (): Promise<Room[]> => {
-        const response = await apiClient.get<Room[]>('/social/rooms');
+        const response = await apiClient.get<Room[]>('social/rooms');
         return response.data;
     },
 
@@ -123,15 +123,20 @@ const socialService = {
      * Create a new room with encrypted metadata
      */
     createRoom: async (data: CreateRoomData): Promise<Room> => {
-        const response = await apiClient.post<Room>('/social/rooms', data);
+        const response = await apiClient.post<Room>('social/rooms', data);
         return response.data;
     },
 
     /**
      * Get room content including collections and links
      */
-    getRoomContent: async (roomId: string): Promise<RoomContent> => {
-        const response = await apiClient.get<RoomContent>(`/social/rooms/${roomId}`);
+    /**
+     * Get room content including collections and links
+     */
+    getRoomContent: async (roomId: string, collectionId?: string): Promise<RoomContent> => {
+        const response = await apiClient.get<RoomContent>(`social/rooms/${roomId}`, {
+            params: { collectionId }
+        });
         return response.data;
     },
 
@@ -151,7 +156,7 @@ const socialService = {
         commentCounts: Record<string, number>;
     }> => {
         const response = await apiClient.get(
-            `/social/rooms/${roomId}/collections/${collectionId}/links`,
+            `social/rooms/${roomId}/collections/${collectionId}/links`,
             {
                 params: {
                     limit,
@@ -168,7 +173,7 @@ const socialService = {
      */
     createInvite: async (roomId: string): Promise<{ inviteCode: string }> => {
         const response = await apiClient.post<{ inviteCode: string }>(
-            `/social/rooms/${roomId}/invite`
+            `social/rooms/${roomId}/invite`
         );
         return response.data;
     },
@@ -177,7 +182,7 @@ const socialService = {
      * Get invite information (public endpoint)
      */
     getInviteInfo: async (inviteCode: string): Promise<InviteInfo> => {
-        const response = await apiClient.get<InviteInfo>(`/social/invite/${inviteCode}`);
+        const response = await apiClient.get<InviteInfo>(`social/invite/${inviteCode}`);
         return response.data;
     },
 
@@ -189,10 +194,24 @@ const socialService = {
         encryptedRoomKey: string
     ): Promise<{ message: string; roomId: string }> => {
         const response = await apiClient.post<{ message: string; roomId: string }>(
-            '/social/rooms/join',
+            'social/rooms/join',
             { inviteCode, encryptedRoomKey }
         );
         return response.data;
+    },
+
+    /**
+     * Leave a room
+     */
+    leaveRoom: async (roomId: string): Promise<void> => {
+        await apiClient.post(`social/rooms/${roomId}/leave`);
+    },
+
+    /**
+     * Delete a room (owner only)
+     */
+    deleteRoom: async (roomId: string): Promise<void> => {
+        await apiClient.delete(`social/rooms/${roomId}`);
     },
 
     /**
@@ -204,7 +223,7 @@ const socialService = {
         collectionId?: string
     ): Promise<LinkPost> => {
         const response = await apiClient.post<LinkPost>(
-            `/social/rooms/${roomId}/links`,
+            `social/rooms/${roomId}/links`,
             { url, collectionId }
         );
         return response.data;
@@ -214,7 +233,7 @@ const socialService = {
      * Delete a link post
      */
     deleteLink: async (linkId: string): Promise<void> => {
-        await apiClient.delete(`/social/links/${linkId}`);
+        await apiClient.delete(`social/links/${linkId}`);
     },
 
     /**
@@ -226,7 +245,7 @@ const socialService = {
         type: 'links' | 'discussion' = 'links'
     ): Promise<Collection> => {
         const response = await apiClient.post<Collection>(
-            `/social/rooms/${roomId}/collections`,
+            `social/rooms/${roomId}/collections`,
             { name, type }
         );
         return response.data;
@@ -236,21 +255,21 @@ const socialService = {
      * Move a link to a different collection
      */
     moveLink: async (linkId: string, collectionId: string): Promise<void> => {
-        await apiClient.patch(`/social/links/${linkId}/move`, { collectionId });
+        await apiClient.patch(`social/links/${linkId}`, { collectionId });
     },
 
     /**
      * Mark a link as viewed by the current user
      */
     markLinkViewed: async (linkId: string): Promise<void> => {
-        await apiClient.post(`/social/links/${linkId}/view`);
+        await apiClient.post(`social/links/${linkId}/view`);
     },
 
     /**
      * Unmark a link as viewed by the current user
      */
     unmarkLinkViewed: async (linkId: string): Promise<void> => {
-        await apiClient.delete(`/social/links/${linkId}/view`);
+        await apiClient.delete(`social/links/${linkId}/view`);
     },
 
     /**
@@ -269,7 +288,7 @@ const socialService = {
             comments: LinkComment[];
             totalCount: number;
             hasMore: boolean;
-        }>(`/social/links/${linkId}/comments`, {
+        }>(`social/links/${linkId}/comments`, {
             params: {
                 limit,
                 cursorCreatedAt: beforeCursor?.createdAt,
@@ -283,7 +302,7 @@ const socialService = {
      * Post a new comment on a link
      */
     postComment: async (linkId: string, encryptedContent: string): Promise<LinkComment> => {
-        const response = await apiClient.post<LinkComment>(`/social/links/${linkId}/comments`, { encryptedContent });
+        const response = await apiClient.post<LinkComment>(`social/links/${linkId}/comments`, { encryptedContent });
         return response.data;
     },
 
@@ -291,21 +310,31 @@ const socialService = {
      * Delete a comment
      */
     deleteComment: async (commentId: string): Promise<void> => {
-        await apiClient.delete(`/social/comments/${commentId}`);
+        await apiClient.delete(`social/comments/${commentId}`);
     },
 
     /**
      * Delete a collection from a room
      */
     deleteCollection: async (collectionId: string): Promise<void> => {
-        await apiClient.delete(`/social/collections/${collectionId}`);
+        await apiClient.delete(`social/collections/${collectionId}`);
+    },
+
+    /**
+     * Update/Rename a collection
+     */
+    updateCollection: async (collectionId: string, name: string): Promise<Collection> => {
+        const response = await apiClient.patch<Collection>(`social/collections/${collectionId}`, {
+            name
+        });
+        return response.data;
     },
 
     /**
      * Reorder collections in a room
      */
     reorderCollections: async (roomId: string, collectionIds: string[]): Promise<void> => {
-        await apiClient.patch(`/social/rooms/${roomId}/collections/reorder`, {
+        await apiClient.patch(`social/rooms/${roomId}/collections/order`, {
             collectionIds,
         });
     },
@@ -316,14 +345,16 @@ const socialService = {
     searchRoomLinks: async (
         roomId: string,
         query: string,
-        limit: number = 50
+        limit: number = 50,
+        signal?: AbortSignal
     ): Promise<{
         links: LinkPost[];
         viewedLinkIds: string[];
         commentCounts: Record<string, number>;
     }> => {
         const response = await apiClient.get(`/social/rooms/${roomId}/search`, {
-            params: { q: query, limit }
+            params: { q: query, limit },
+            signal
         });
         return response.data;
     },

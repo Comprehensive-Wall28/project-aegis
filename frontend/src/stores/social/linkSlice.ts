@@ -133,25 +133,36 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
         await get().fetchCollectionLinks(state.currentCollectionId, true, false, 500);
     },
 
-    searchRoomLinks: async (query: string, limit: number = 50) => {
+    searchRoomLinks: async (query: string, signal?: AbortSignal, limit: number = 50) => {
         const state = get();
         if (!state.currentRoom) return;
 
         set({ isSearchingLinks: true });
 
         try {
-            const result = await socialService.searchRoomLinks(state.currentRoom._id, query, limit);
+            const result = await socialService.searchRoomLinks(state.currentRoom._id, query, limit, signal);
 
             set((prev) => ({
                 links: result.links,
                 viewedLinkIds: new Set([...prev.viewedLinkIds, ...(result.viewedLinkIds || [])]),
                 commentCounts: { ...prev.commentCounts, ...(result.commentCounts || {}) },
                 isSearchingLinks: false,
-                hasMoreLinks: false // Search results are usually fixed limit
+                hasMoreLinks: false
             }));
-        } catch (error) {
-            console.error('Failed to search room links:', error);
+        } catch (error: unknown) {
             set({ isSearchingLinks: false });
+
+            // Check for cancellation (Axios or AbortController)
+            const err = error as { name?: string; code?: string };
+            const isCanceled = err.name === 'CanceledError' ||
+                err.name === 'AbortError' ||
+                err.code === 'ERR_CANCELED';
+
+            if (isCanceled) {
+                return;
+            }
+
+            console.error('Failed to search room links:', error);
         }
     },
 
@@ -162,8 +173,9 @@ export const createLinkSlice: StateCreator<SocialState, [], [], Pick<SocialState
             if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
                 throw new Error('URL must start with http:// or https://');
             }
-        } catch (e: any) {
-            const msg = e.message === 'URL must start with http:// or https://' ? e.message : 'Invalid URL format';
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : 'Unknown error';
+            const msg = message === 'URL must start with http:// or https://' ? message : 'Invalid URL format';
             console.error('Validation error:', msg);
             throw new Error(msg);
         }

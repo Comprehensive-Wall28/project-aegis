@@ -8,7 +8,7 @@ import {
     moveFiles,
 } from '../controllers/folderController';
 import { protect } from '../middleware/authMiddleware';
-import { csrfProtection } from '../middleware/csrfMiddleware';
+import { csrfProtection } from '../middleware/customCsrf';
 
 const router = Router();
 

@@ -1,12 +1,12 @@
 import { useCallback, useRef, useMemo } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { hexToBytes } from '../lib/cryptoUtils';
-// @ts-ignore
+// Module exists but types are missing in environment
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
 
 export interface NoteContent {
     type: 'doc';
-    content: any[];
+    content: Array<Record<string, unknown>>;
 }
 
 export interface EncryptedNotePayload {

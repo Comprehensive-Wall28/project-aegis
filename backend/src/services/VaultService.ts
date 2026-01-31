@@ -4,9 +4,9 @@ import mongoose from 'mongoose';
 import { BaseService, ServiceError } from './base/BaseService';
 import { FileMetadataRepository } from '../repositories/FileMetadataRepository';
 import { UserRepository } from '../repositories/UserRepository';
+import { FolderRepository } from '../repositories/FolderRepository';
 import { IFileMetadata } from '../models/FileMetadata';
 import Folder from '../models/Folder';
-import SharedFolder from '../models/SharedFolder';
 import {
     initiateUpload,
     appendChunk,
@@ -43,11 +43,13 @@ export interface ChunkUploadResult {
  */
 export class VaultService extends BaseService<IFileMetadata, FileMetadataRepository> {
     private userRepository: UserRepository;
+    private folderRepository: FolderRepository;
     private readonly MAX_STORAGE = 5 * 1024 * 1024 * 1024; // 5GB
 
     constructor() {
         super(new FileMetadataRepository());
         this.userRepository = new UserRepository();
+        this.folderRepository = new FolderRepository();
     }
 
     /**
@@ -83,11 +85,11 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             }
 
             if (user.totalStorageUsed + data.fileSize > this.MAX_STORAGE) {
-                throw new ServiceError('Storage limit exceeded. Upgrade your plan or delete some files.', 403);
+                throw new ServiceError('Storage limit exceeded. Delete some files.', 403);
             }
 
             // Initiate Google Drive resumable upload session
-            const uploadStreamId = await initiateUpload(data.originalFileName, data.fileSize, {
+            const { sessionId, sessionUrl } = await initiateUpload(data.originalFileName, data.fileSize, {
                 ownerId: userId,
                 encryptedSymmetricKey: data.encryptedSymmetricKey,
                 encapsulatedKey: data.encapsulatedKey
@@ -103,11 +105,12 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 encryptedSymmetricKey: data.encryptedSymmetricKey,
                 encapsulatedKey: data.encapsulatedKey,
                 mimeType: data.mimeType,
-                uploadStreamId,
+                uploadStreamId: sessionId,
+                uploadSessionUrl: sessionUrl,
+                uploadOffset: 0,
                 status: 'pending'
             } as Partial<IFileMetadata>);
 
-            logger.info(`Vault upload initiated: ${data.originalFileName} by User ${userId}`);
 
             await this.logAction(userId, 'FILE_UPLOAD', 'SUCCESS', req, {
                 fileName: data.originalFileName,
@@ -140,7 +143,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             }
 
             const fileRecord = await this.repository.findByIdAndStream(fileId, userId);
-            if (!fileRecord || !fileRecord.uploadStreamId) {
+            if (!fileRecord || !fileRecord.uploadSessionUrl) {
                 throw new ServiceError('File not found or session invalid', 404);
             }
 
@@ -161,7 +164,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
 
             // Append chunk to Google Drive upload session
             const { complete, receivedSize } = await appendChunk(
-                fileRecord.uploadStreamId,
+                fileRecord.uploadSessionUrl,
                 chunk,
                 chunkLength,
                 rangeStart,
@@ -169,9 +172,15 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 totalSize
             );
 
+            // Update offset in DB
+            if (receivedSize > (fileRecord.uploadOffset || 0)) {
+                fileRecord.uploadOffset = receivedSize;
+                await fileRecord.save();
+            }
+
             if (complete) {
                 // Finalize the upload
-                const googleDriveFileId = await finalizeUpload(fileRecord.uploadStreamId);
+                const googleDriveFileId = await finalizeUpload(fileRecord.uploadSessionUrl, totalSize);
                 await this.repository.completeUpload(fileId, googleDriveFileId);
 
                 // Update user storage usage
@@ -179,7 +188,6 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                     $inc: { totalStorageUsed: fileRecord.fileSize }
                 });
 
-                logger.info(`Vault upload completed: ${fileId} -> Google Drive ${googleDriveFileId}`);
                 return { complete: true, googleDriveFileId };
             }
 
@@ -201,26 +209,11 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
         try {
             let fileRecord = await this.repository.findByIdAndOwner(fileId, userId);
 
-            // If not owner, check if file is in a shared folder
-            if (!fileRecord) {
-                const potentialFile = await this.repository.findById(fileId);
-                if (potentialFile && potentialFile.folderId) {
-                    const isShared = await SharedFolder.findOne({
-                        folderId: potentialFile.folderId,
-                        sharedWith: userId
-                    });
-                    if (isShared && isShared.permissions.includes('DOWNLOAD')) {
-                        fileRecord = potentialFile;
-                    }
-                }
-            }
-
             if (!fileRecord || !fileRecord.googleDriveFileId) {
-                throw new ServiceError('File not found or not ready', 404);
+                throw new ServiceError('File not found or access denied', 404);
             }
 
             const stream = await getFileStream(fileRecord.googleDriveFileId);
-            logger.info(`Vault download started: ${fileRecord.originalFileName} (${fileId})`);
 
             return { stream, file: fileRecord };
         } catch (error) {
@@ -264,41 +257,21 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 }
 
                 const isOwner = folder.ownerId.toString() === userId;
-                let hasAccess = isOwner;
-
-                if (!hasAccess) {
-                    // Check direct share
-                    const directShare = await SharedFolder.findOne({ folderId, sharedWith: userId });
-                    if (directShare) {
-                        hasAccess = true;
-                    } else {
-                        // Check ancestors
-                        let current = folder;
-                        while (current.parentId) {
-                            const ancestorShare = await SharedFolder.findOne({
-                                folderId: current.parentId,
-                                sharedWith: userId
-                            });
-                            if (ancestorShare) {
-                                hasAccess = true;
-                                break;
-                            }
-                            const parent = await Folder.findById(current.parentId);
-                            if (!parent) break;
-                            current = parent;
-                        }
-                    }
-                }
-
-                if (!hasAccess) {
+                if (!isOwner) {
                     throw new ServiceError('Access denied to this folder', 403);
                 }
 
-                // Fetch files owned by the folder's owner
-                return await this.repository.findByFolderAndFolderOwner(
-                    folderId,
-                    folder.ownerId.toString()
-                );
+                // Fetch files owned by the folder's owner OR the current user (if they added files to shared folder)
+                // Use a direct repository find with $or condition instead of restrictive helper
+                return await this.repository.findMany({
+                    folderId: { $eq: folderId },
+                    $or: [
+                        { ownerId: { $eq: folder.ownerId.toString() } }, // Owned by folder owner
+                        { ownerId: { $eq: userId } }                     // Owned by current user (me)
+                    ]
+                } as any, {
+                    sort: { createdAt: -1 }
+                });
             }
 
             // Root level files or Global Search
@@ -347,7 +320,6 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 });
             }
 
-            logger.info(`Vault file deleted: ${fileRecord.fileName} (${fileId}) by User ${userId}`);
 
             await this.logAction(userId, 'FILE_DELETE', 'SUCCESS', req, {
                 fileName: fileRecord.originalFileName,
@@ -384,6 +356,13 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
         options: { limit: number; cursor?: string; search?: string }
     ): Promise<{ items: IFileMetadata[]; nextCursor: string | null }> {
         try {
+            if (folderId && folderId !== 'null') {
+                if (!mongoose.isValidObjectId(folderId)) {
+                    logger.warn(`Invalid folderId format in getUserFilesPaginated: ${folderId}`);
+                    throw new ServiceError('Invalid folder ID format', 400);
+                }
+            }
+
             // Root level files - user's own files
             return await this.repository.findByOwnerAndFolderPaginated(
                 userId,
@@ -394,8 +373,14 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                     search: options.search
                 }
             );
-        } catch (error) {
+        } catch (error: any) {
             if (error instanceof ServiceError) throw error;
+
+            if (error.name === 'CastError' || error.kind === 'ObjectId') {
+                logger.warn(`CastError in getUserFilesPaginated: ${error.message}`);
+                throw new ServiceError('Invalid ID format', 400);
+            }
+
             logger.error('Get files paginated error:', error);
             throw new ServiceError('Failed to get files', 500);
         }

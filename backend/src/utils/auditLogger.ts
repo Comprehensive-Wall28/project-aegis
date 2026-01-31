@@ -19,7 +19,8 @@ function getAuditLogModel() {
  * Extracts the client IP address from the request.
  * Handles proxied requests (X-Forwarded-For) and direct connections.
  */
-export function getClientIp(req: Request): string {
+export function getClientIp(req?: Request): string {
+    if (!req || !req.headers) return 'unknown';
     // Check for forwarded header first (common in production behind load balancers)
     const forwarded = req.headers['x-forwarded-for'];
     if (forwarded) {
@@ -32,27 +33,7 @@ export function getClientIp(req: Request): string {
     return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
-/**
- * Computes a SHA-256 hash for integrity verification of the audit log entry.
- * This allows verification that the log entry has not been tampered with.
- */
-function computeRecordHash(
-    userId: string,
-    action: AuditAction,
-    status: AuditStatus,
-    timestamp: Date,
-    metadata: Record<string, any>
-): string {
-    const data = JSON.stringify({
-        userId,
-        action,
-        status,
-        timestamp: timestamp.toISOString(),
-        metadata
-    });
 
-    return crypto.createHash('sha256').update(data).digest('hex');
-}
 
 /**
  * Creates an audit log entry for security-sensitive actions.
@@ -69,15 +50,12 @@ export async function logAuditEvent(
     userId: string,
     action: AuditAction,
     status: AuditStatus,
-    req: Request,
+    req?: Request,
     metadata: Record<string, any> = {}
 ): Promise<void> {
     try {
         const timestamp = new Date();
         const ipAddress = getClientIp(req);
-
-        // Compute integrity hash
-        const recordHash = computeRecordHash(userId, action, status, timestamp, metadata);
 
         // Create the audit log entry
         const AuditLog = getAuditLogModel();
@@ -87,11 +65,9 @@ export async function logAuditEvent(
             status,
             ipAddress,
             metadata,
-            recordHash,
             timestamp
         });
 
-        logger.info(`Audit: ${action} ${status} for user ${userId} from ${ipAddress}`);
     } catch (error) {
         // Log the error but don't throw - audit logging should not break the main flow
         logger.error(`Failed to create audit log: ${error}`);
@@ -105,7 +81,7 @@ export async function logAuditEvent(
 export async function logFailedAuth(
     identifier: string,
     action: 'LOGIN_FAILED' | 'REGISTER',
-    req: Request,
+    req?: Request,
     metadata: Record<string, any> = {}
 ): Promise<void> {
     try {
@@ -115,15 +91,6 @@ export async function logFailedAuth(
         // Create a hash of the identifier for privacy (don't store raw email)
         const identifierHash = crypto.createHash('sha256').update(identifier).digest('hex').slice(0, 24);
 
-        // Compute integrity hash
-        const recordHash = crypto.createHash('sha256').update(JSON.stringify({
-            identifier: identifierHash,
-            action,
-            status: 'FAILURE',
-            timestamp: timestamp.toISOString(),
-            metadata
-        })).digest('hex');
-
         // Store failed attempt in AuditLog
         const AuditLog = getAuditLogModel();
         await AuditLog.create({
@@ -132,7 +99,6 @@ export async function logFailedAuth(
             status: 'FAILURE',
             ipAddress,
             metadata: { ...metadata, attemptedIdentifier: identifier.substring(0, 3) + '***' },
-            recordHash,
             timestamp
         });
 

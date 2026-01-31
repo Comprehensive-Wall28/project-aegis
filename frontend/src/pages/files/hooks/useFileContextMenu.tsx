@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { useContextMenu, CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/ContextMenu';
+import { useContextMenu } from '@/components/useContextMenu';
+import { CreateFolderIcon, RenameIcon, DeleteIcon } from '@/components/vault/contextMenuIcons';
 import {
     Folder as FolderIcon,
     FolderOpen as FolderOpenIcon,
@@ -19,7 +20,7 @@ interface UseFileContextMenuProps {
     selectedIds: Set<string>;
     setFilesToMove: (ids: string[]) => void;
     setMoveToFolderDialog: (open: boolean) => void;
-    setShareDialog: (state: { open: boolean; item: FileMetadata | Folder | null; type: 'file' | 'folder' }) => void;
+    setShareDialog: (state: { open: boolean; item: FileMetadata | null; type: 'file' }) => void;
     setNewFolderName: (name: string) => void;
     setRenameFolderDialog: (state: { open: boolean; folder: Folder | null }) => void;
     setColorPickerFolderId: (id: string | null) => void;
@@ -116,12 +117,7 @@ export function useFileContextMenu({
                         }
                     }
                 },
-                {
-                    label: 'Share', icon: <ShareIcon fontSize="small" />, onClick: () => {
-                        const folder = folders.find(f => f._id === target?.id);
-                        if (folder) setShareDialog({ open: true, item: folder, type: 'folder' });
-                    }
-                },
+
                 {
                     label: 'Change Color', icon: <PaletteIcon fontSize="small" />, onClick: () => {
                         if (target?.id) {

@@ -23,13 +23,11 @@ export const FolderDialog: React.FC<FolderDialogProps> = ({
     initialValue = '',
     onConfirm
 }) => {
-    const [value, setValue] = useState(initialValue);
+    const [value, setValue] = useState<string>(initialValue);
 
     useEffect(() => {
-        if (open) {
-            setValue(initialValue);
-        }
-    }, [open, initialValue]);
+        setValue(initialValue);
+    }, [initialValue]);
 
     const handleConfirm = async () => {
         if (!value.trim()) return;

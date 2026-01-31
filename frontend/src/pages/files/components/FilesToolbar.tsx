@@ -1,3 +1,4 @@
+import React from 'react';
 import { Box, TextField, InputAdornment, Button, useTheme, alpha, Stack } from '@mui/material';
 import { StorageIndicator } from '@/components/vault/StorageIndicator';
 import {
@@ -23,11 +24,25 @@ export function FilesToolbar({
     onSelectAll,
 }: FilesToolbarProps) {
     const theme = useTheme();
+    const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     return (
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, flexWrap: 'wrap', alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between', gap: 2 }}>
             <TextField
-                placeholder="Search files..."
+                inputRef={searchInputRef}
+                placeholder="Search files (CTRL+F)..."
                 size="small"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
@@ -58,6 +73,7 @@ export function FilesToolbar({
                     <Button
                         size="small"
                         onClick={onSelectAll}
+                        aria-label={selectedCount === totalCount ? "Deselect all files" : "Select all files"}
                         startIcon={
                             selectedCount === totalCount ? <CheckSquareIcon color="primary" /> :
                                 selectedCount > 0 ? <XSquareIcon /> : <SquareIcon />

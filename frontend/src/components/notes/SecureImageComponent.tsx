@@ -65,10 +65,10 @@ export const SecureImageComponent: React.FC<NodeViewProps> = ({ node, updateAttr
                     // Add to cache for others
                     blobCache.set(id, url);
                 }
-            } catch (err: any) {
+            } catch (err) {
                 console.error('Failed to load secure image:', err);
                 if (isMounted.current) {
-                    setError(err.message || 'Failed to decrypt image');
+                    setError((err instanceof Error ? err.message : String(err)) || 'Failed to decrypt image');
                 }
             } finally {
                 if (isMounted.current) {

@@ -53,6 +53,10 @@ interface TaskState {
     ) => Promise<void>;
 }
 
+import { queryClient } from '../api/queryClient';
+
+// ... existing code ...
+
 export const useTaskStore = create<TaskState>((set, get) => ({
     tasks: [],
     isLoading: false,
@@ -63,10 +67,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         try {
             const encryptedTasks = await taskService.getTasks(filters);
             if (decryptFn) {
-                // @ts-ignore - Handle new return type with failedTaskIds
                 const result = await decryptFn(encryptedTasks);
 
-                if (result && typeof result === 'object' && 'tasks' in result) {
+                if (Array.isArray(result)) {
+                    set({ tasks: result, isLoading: false });
+                } else if (result && typeof result === 'object' && 'tasks' in result) {
                     set({
                         tasks: result.tasks,
                         isLoading: false,
@@ -75,14 +80,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                             : null
                     });
                 } else {
-                    // Fallback for older fn
-                    set({ tasks: result as unknown as DecryptedTask[], isLoading: false });
+                    // unexpected result shape
+                    set({ tasks: [], isLoading: false, error: 'Failed to decrypt tasks: Invalid return format' });
                 }
             } else {
-                set({ tasks: encryptedTasks as unknown as DecryptedTask[], isLoading: false });
+                set({
+                    tasks: [],
+                    isLoading: false,
+                    error: 'Decryption function not provided'
+                });
             }
-        } catch (error: any) {
-            set({ error: error.message || 'Failed to fetch tasks', isLoading: false });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to fetch tasks';
+            set({ error: errorMessage, isLoading: false });
         }
     },
 
@@ -94,8 +104,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             set(state => ({
                 tasks: [...state.tasks, decryptedTask]
             }));
-        } catch (error: any) {
-            set({ error: error.message || 'Failed to add task' });
+
+            // Invalidate dashboard activity to show new task instantly
+            queryClient.invalidateQueries({ queryKey: ['dashboardActivity'] });
+            queryClient.invalidateQueries({ queryKey: ['decryptedDashboardTasks'] });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to add task';
+            set({ error: errorMessage });
             throw error;
         }
     },
@@ -108,8 +123,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             set(state => ({
                 tasks: state.tasks.map(t => t._id === id ? decryptedTask : t)
             }));
-        } catch (error: any) {
-            set({ error: error.message || 'Failed to update task' });
+
+            // Invalidate dashboard activity to reflect updates (e.g. status change)
+            queryClient.invalidateQueries({ queryKey: ['dashboardActivity'] });
+            queryClient.invalidateQueries({ queryKey: ['decryptedDashboardTasks'] });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to update task';
+            set({ error: errorMessage });
             throw error;
         }
     },
@@ -121,8 +141,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             set(state => ({
                 tasks: state.tasks.filter(t => t._id !== id)
             }));
-        } catch (error: any) {
-            set({ error: error.message || 'Failed to delete task' });
+
+            // Invalidate dashboard to remove deleted task
+            queryClient.invalidateQueries({ queryKey: ['dashboardActivity'] });
+            queryClient.invalidateQueries({ queryKey: ['decryptedDashboardTasks'] });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete task';
+            set({ error: errorMessage });
             throw error;
         }
     },
@@ -148,9 +173,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
         try {
             await taskService.reorderTasks(updates);
-        } catch (error: any) {
+
+            // Invalidate dashboard to reflect new order
+            queryClient.invalidateQueries({ queryKey: ['dashboardActivity'] });
+            queryClient.invalidateQueries({ queryKey: ['decryptedDashboardTasks'] });
+        } catch (error) {
             // Rollback on error
-            set({ tasks: originalTasks, error: error.message || 'Failed to reorder tasks' });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to reorder tasks';
+            set({ tasks: originalTasks, error: errorMessage });
             throw error;
         }
     },
@@ -177,16 +207,24 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             const encryptedTasks = await taskService.getUpcomingTasks(limit);
             if (decryptFn) {
                 const result = await decryptFn(encryptedTasks);
-                const decrypted = 'tasks' in result ? result.tasks : result as unknown as DecryptedTask[];
+                // Type guard to handle both return types
+                let decrypted: DecryptedTask[];
+                if (Array.isArray(result)) {
+                    decrypted = result;
+                } else if (result && 'tasks' in result) {
+                    decrypted = result.tasks;
+                } else {
+                    decrypted = [];
+                }
 
-                // Merge upcoming tasks into store (don't replace all tasks)
+                // Merge upcoming tasks into store (update existing or add new)
                 set(state => {
-                    const existingIds = new Set(state.tasks.map(t => t._id));
-                    const newTasks = decrypted.filter(t => !existingIds.has(t._id));
-                    return { tasks: [...state.tasks, ...newTasks] };
+                    const taskMap = new Map(state.tasks.map(t => [t._id, t]));
+                    decrypted.forEach(t => taskMap.set(t._id, t));
+                    return { tasks: Array.from(taskMap.values()) };
                 });
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error('[TaskStore] Failed to fetch upcoming tasks:', error);
         }
     }

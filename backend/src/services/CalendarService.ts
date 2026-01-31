@@ -73,7 +73,6 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
                 mentions: data.mentions || []
             } as any);
 
-            logger.info(`Calendar event created for user ${userId}`);
 
             await this.logAction(userId, 'CALENDAR_EVENT_CREATE', 'SUCCESS', req, {
                 eventId: event._id.toString()
@@ -110,7 +109,6 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
                 throw new ServiceError('Event not found', 404);
             }
 
-            logger.info(`Calendar event updated for user ${userId}`);
 
             await this.logAction(userId, 'CALENDAR_EVENT_UPDATE', 'SUCCESS', req, {
                 eventId
@@ -135,7 +133,6 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
                 throw new ServiceError('Event not found', 404);
             }
 
-            logger.info(`Calendar event deleted for user ${userId}`);
 
             await this.logAction(userId, 'CALENDAR_EVENT_DELETE', 'SUCCESS', req, {
                 eventId

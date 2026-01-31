@@ -108,21 +108,42 @@ export class NoteFolderRepository extends BaseRepository<INoteFolder> {
     }
 
     /**
-     * Get all descendant folder IDs (for cascading operations)
+     * Get all descendant folder IDs (optimized with $graphLookup)
      */
     async getDescendantIds(userId: string, folderId: string): Promise<string[]> {
-        const descendants: string[] = [];
-        const queue = [folderId];
-
-        while (queue.length > 0) {
-            const currentId = queue.shift()!;
-            const children = await this.findByParentId(userId, currentId);
-            for (const child of children) {
-                descendants.push(child._id.toString());
-                queue.push(child._id.toString());
-            }
+        interface AggregationResult {
+            _id: mongoose.Types.ObjectId;
+            descendantIds?: mongoose.Types.ObjectId[];
         }
 
-        return descendants;
+        const results = await this.model.aggregate<AggregationResult>([
+            {
+                $match: {
+                    _id: new mongoose.Types.ObjectId(folderId),
+                    userId: new mongoose.Types.ObjectId(userId)
+                }
+            },
+            {
+                $graphLookup: {
+                    from: 'notefolders',
+                    startWith: '$_id',
+                    connectFromField: '_id',
+                    connectToField: 'parentId',
+                    as: 'descendants',
+                    maxDepth: 10 // Prevent infinite recursion safety valve
+                }
+            },
+            {
+                $project: {
+                    descendantIds: '$descendants._id'
+                }
+            }
+        ]);
+
+        if (results.length === 0 || !results[0].descendantIds) {
+            return [];
+        }
+
+        return results[0].descendantIds.map(id => id.toString());
     }
 }

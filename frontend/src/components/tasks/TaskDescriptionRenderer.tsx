@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, type ElementType } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Link, Typography, alpha, Box, Popover, useTheme, Chip, Divider } from '@mui/material';
 import {
@@ -7,21 +7,24 @@ import {
     LocationOn as LocationIcon,
     Schedule as TimeIcon,
 } from '@mui/icons-material';
-import { getFileIconInfo } from '@/pages/files/utils';
+import { getFileIconInfo, isPreviewable } from '@/pages/files/utils';
 import { useTaskStore } from '@/stores/useTaskStore';
 import { useCalendarStore } from '@/stores/useCalendarStore';
+import vaultService, { type FileMetadata } from '@/services/vaultService';
+import PDFPreviewOverlay from '@/components/vault/PDFPreviewOverlay';
+import ImagePreviewOverlay from '@/components/vault/ImagePreviewOverlay';
 import dayjs from 'dayjs';
 
 interface TaskDescriptionRendererProps {
     text: string;
     variant?: 'body1' | 'body2' | 'caption';
-    sx?: any;
+    sx?: Record<string, unknown>;
 }
 
 // Entity types and their prefixes/regex groups
-const MENTION_REGEX = /\[([@#~])(.*?)\]\((aegis-\w+):\/\/([\w-\/]+)\)/g;
+const MENTION_REGEX = /\[([@#~])(.*?)\]\((aegis-\w+):\/\/([\w-/]+)\)/g;
 
-const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: string, anchorEl: HTMLElement | null, onClose: () => void }) => {
+const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string; id: string; anchorEl: HTMLElement | null; onClose: () => void }) => {
     const theme = useTheme();
     const { tasks } = useTaskStore();
     const { events } = useCalendarStore();
@@ -76,7 +79,7 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
 
                 <Divider sx={{ mb: 1.5, opacity: 0.5 }} />
 
-                {type === 'aegis-task' ? (
+                {type === 'aegis-task' && 'status' in data ? (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Typography variant="caption" color="text.secondary">Status</Typography>
@@ -93,7 +96,7 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
                                 }}
                             />
                         </Box>
-                        {data.dueDate && (
+                        {'dueDate' in data && data.dueDate && (
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Typography variant="caption" color="text.secondary">Due Date</Typography>
                                 <Typography variant="caption" sx={{ fontWeight: 600 }}>
@@ -108,14 +111,14 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
                             <TimeIcon sx={{ fontSize: 14, mt: 0.3, color: 'text.secondary' }} />
                             <Box>
                                 <Typography variant="caption" sx={{ display: 'block', fontWeight: 600 }}>
-                                    {dayjs(data.startDate).format('MMM D, h:mm A')}
+                                    {dayjs('startDate' in data && data.startDate ? data.startDate : '').format('MMM D, h:mm A')}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                    Ends {dayjs(data.endDate).format('h:mm A')}
+                                    Ends {dayjs('endDate' in data && data.endDate ? data.endDate : '').format('h:mm A')}
                                 </Typography>
                             </Box>
                         </Box>
-                        {data.location && (
+                        {'location' in data && data.location && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <LocationIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
                                 <Typography variant="caption" sx={{ fontWeight: 500 }}>{data.location}</Typography>
@@ -130,8 +133,10 @@ const MentionHoverCard = ({ type, id, anchorEl, onClose }: { type: string, id: s
 
 export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDescriptionRendererProps) => {
     const theme = useTheme();
-    const [hoverEntity, setHoverEntity] = useState<{ type: string, id: string, anchorEl: HTMLElement | null } | null>(null);
-    const hoverTimeout = useRef<any>(null);
+    const [hoverEntity, setHoverEntity] = useState<{ type: string; id: string; anchorEl: HTMLElement | null } | null>(null);
+    const [previewFile, setPreviewFile] = useState<FileMetadata | null>(null);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     if (!text) return null;
 
@@ -152,16 +157,34 @@ export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDes
         setHoverEntity(null);
     };
 
+    const handleFileClick = async (e: React.MouseEvent, type: string, path: string, label: string) => {
+        if (type !== 'aegis-file' || !isPreviewable(label)) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const pathParts = path.split('/');
+        const fileId = pathParts[1] || pathParts[0];
+
+        try {
+            const fileData = await vaultService.getFile(fileId);
+            setPreviewFile(fileData);
+            setIsPreviewOpen(true);
+        } catch (err) {
+            console.error('Failed to fetch file metadata for preview:', err);
+        }
+    };
+
     while ((match = MENTION_REGEX.exec(text)) !== null) {
         if (match.index > lastIndex) {
             parts.push(text.substring(lastIndex, match.index));
         }
 
-        const [_fullMatch, prefix, label, type, path] = match;
+        const [, prefix, label, type, path] = match;
 
         let iconColor = theme.palette.primary.main;
         let targetPath = '';
-        let EntityIcon: any = TaskIcon;
+        let EntityIcon: ElementType = TaskIcon;
         let entityId = path;
 
         if (type === 'aegis-file') {
@@ -188,7 +211,7 @@ export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDes
                 key={match.index}
                 component={RouterLink}
                 to={targetPath}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => handleFileClick(e, type, path, label)}
                 onMouseEnter={(e) => handleMouseEnter(e, type, entityId)}
                 onMouseLeave={handleMouseLeave}
                 sx={{
@@ -244,6 +267,23 @@ export const TaskDescriptionRenderer = ({ text, variant = 'body2', sx }: TaskDes
                     anchorEl={hoverEntity.anchorEl}
                     onClose={() => setHoverEntity(null)}
                 />
+            )}
+
+            {previewFile && isPreviewOpen && (
+                previewFile.originalFileName.toLowerCase().endsWith('.pdf') ? (
+                    <PDFPreviewOverlay
+                        isOpen={isPreviewOpen}
+                        onClose={() => setIsPreviewOpen(false)}
+                        file={previewFile}
+                    />
+                ) : (
+                    <ImagePreviewOverlay
+                        isOpen={isPreviewOpen}
+                        onClose={() => setIsPreviewOpen(false)}
+                        files={[previewFile]}
+                        initialFileId={previewFile._id}
+                    />
+                )
             )}
         </>
     );

@@ -43,7 +43,6 @@ export class AuditService extends BaseService<IAuditLog, AuditLogRepository> {
 
             const hasMore = clampedOffset + logs.length < total;
 
-            logger.info(`Fetched ${logs.length} audit logs for user ${userId}`);
 
             return {
                 logs,
@@ -61,9 +60,9 @@ export class AuditService extends BaseService<IAuditLog, AuditLogRepository> {
     /**
      * Get recent activity for dashboard widget
      */
-    async getRecentActivity(userId: string): Promise<{ logs: IAuditLog[] }> {
+    async getRecentActivity(userId: string, limit: number = 3): Promise<{ logs: IAuditLog[] }> {
         try {
-            const logs = await this.repository.getRecentActivity(userId, 3);
+            const logs = await this.repository.getRecentActivity(userId, limit);
             return { logs };
         } catch (error) {
             logger.error('Get recent activity error:', error);

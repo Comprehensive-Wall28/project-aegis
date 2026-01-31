@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { extractMentionedIds } from '@/utils/mentionUtils';
+import type { DecryptedTask } from '@/stores/useTaskStore';
 import {
     Box,
     Typography,
@@ -57,7 +58,7 @@ export function TasksPage() {
 
     const [sortMode, setSortMode] = useState<'manual' | 'priority' | 'date'>(() => {
         const saved = localStorage.getItem('kanban_sort_mode');
-        return (saved as any) || 'manual';
+        return (saved === 'manual' || saved === 'priority' || saved === 'date') ? saved : 'manual';
     });
     const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -95,9 +96,6 @@ export function TasksPage() {
 
     const { encryptTaskData, decryptTaskData, generateRecordHash } = useTaskEncryption();
 
-    const [dialogOpen, setDialogOpen] = useState(false);
-    const [previewOpen, setPreviewOpen] = useState(false);
-    const [selectedTask, setSelectedTask] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [deleteStatus, setDeleteStatus] = useState<'idle' | 'deleting' | 'success' | 'error'>('idle');
 
@@ -109,74 +107,71 @@ export function TasksPage() {
 
     const [searchParams, setSearchParams] = useSearchParams();
 
-    const toggleTaskParam = useCallback((key: 'task' | 'edit' | 'new', value: string | null) => {
+    const urlTaskId = searchParams.get('task');
+    const urlEditId = searchParams.get('edit');
+    const urlNewStatus = searchParams.get('new') as 'todo' | 'in_progress' | 'done' | null;
+
+    const dialogOpen = !!urlEditId || !!urlNewStatus;
+    const previewOpen = !!urlTaskId && !dialogOpen;
+
+    // Derived type for task state (full task or status template)
+    type TaskState = DecryptedTask | { status: 'todo' | 'in_progress' | 'done'; _id?: undefined; _tempId?: number; title?: string; description?: string; notes?: string; priority?: 'high' | 'medium' | 'low'; dueDate?: string };
+
+    const intentTask = useMemo<TaskState | null>(() => {
+        if (urlEditId) {
+            return tasks.find(t => t._id === urlEditId) || null;
+        } else if (urlNewStatus) {
+            return { status: urlNewStatus, _tempId: Date.now() };
+        } else if (urlTaskId) {
+            return tasks.find(t => t._id === urlTaskId) || null;
+        }
+        return null;
+    }, [urlEditId, urlNewStatus, urlTaskId, tasks]);
+
+    // PRESERVE state during closing transition to prevent "flicker"
+    const [stickyTask, setStickyTask] = useState<TaskState | null>(null);
+    if (intentTask && intentTask !== stickyTask) {
+        setStickyTask(intentTask);
+    }
+
+    const selectedTask = intentTask || stickyTask;
+
+    const updateTaskParams = useCallback((updates: Record<string, string | null>) => {
         setSearchParams(prev => {
             const next = new URLSearchParams(prev);
-            if (value === null) {
-                next.delete(key);
-            } else {
-                // Ensure mutual exclusivity for task-related params to avoid UI clutter
-                if (key === 'task') { next.delete('edit'); next.delete('new'); }
-                if (key === 'edit') { next.delete('task'); next.delete('new'); }
-                if (key === 'new') { next.delete('task'); next.delete('edit'); }
-                next.set(key, value);
-            }
+            Object.entries(updates).forEach(([key, value]) => {
+                if (value === null) {
+                    next.delete(key);
+                } else {
+                    // Mutual exclusivity for core task views
+                    if (['task', 'edit', 'new'].includes(key)) {
+                        ['task', 'edit', 'new'].forEach(k => { if (k !== key) next.delete(k); });
+                    }
+                    next.set(key, value);
+                }
+            });
             return next;
-        });
+        }, { replace: true });
     }, [setSearchParams]);
-
-    // Sync state FROM URL
-    useEffect(() => {
-        const urlTaskId = searchParams.get('task');
-        const urlEditId = searchParams.get('edit');
-        const urlNewStatus = searchParams.get('new') as any;
-
-        if (urlEditId) {
-            const task = tasks.find(t => t._id === urlEditId);
-            if (task && (selectedTask?._id !== urlEditId || !dialogOpen)) {
-                setSelectedTask(task);
-                setDialogOpen(true);
-                setPreviewOpen(false);
-            }
-        } else if (urlNewStatus) {
-            if (!dialogOpen || selectedTask?._id || selectedTask?.status !== urlNewStatus) {
-                setSelectedTask({ status: urlNewStatus, _tempId: Date.now() });
-                setDialogOpen(true);
-                setPreviewOpen(false);
-            }
-        } else if (urlTaskId) {
-            const task = tasks.find(t => t._id === urlTaskId);
-            if (task && (selectedTask?._id !== urlTaskId || !previewOpen)) {
-                setSelectedTask(task);
-                setPreviewOpen(true);
-                setDialogOpen(false);
-            }
-        } else if (dialogOpen || previewOpen) {
-            setDialogOpen(false);
-            setPreviewOpen(false);
-            setSelectedTask(null);
-        }
-    }, [searchParams, tasks, dialogOpen, previewOpen, selectedTask?._id, selectedTask?.status]);
 
     const showSnackbar = (message: string, severity: SnackbarState['severity']) => {
         setSnackbar({ open: true, message, severity });
     };
 
     const handleAddTask = useCallback((status: 'todo' | 'in_progress' | 'done' = 'todo') => {
-        toggleTaskParam('new', status);
-    }, [toggleTaskParam]);
+        updateTaskParams({ new: status });
+    }, [updateTaskParams]);
 
-    const handleTaskClick = useCallback((task: any) => {
-        toggleTaskParam('task', task._id);
-    }, [toggleTaskParam]);
+    const handleTaskClick = useCallback((task: { _id?: string; id?: string }) => {
+        updateTaskParams({ task: task._id || task.id || '' });
+    }, [updateTaskParams]);
 
-    const handleEditFromPreview = useCallback((task: any) => {
-        toggleTaskParam('edit', task._id);
-    }, [toggleTaskParam]);
+    const handleEditFromPreview = useCallback((task: { _id?: string; id?: string }) => {
+        updateTaskParams({ edit: task._id || task.id || '' });
+    }, [updateTaskParams]);
 
     const handleDialogSubmit = useCallback(async (data: TaskDialogData) => {
         if (pqcEngineStatus !== 'operational') {
-            showSnackbar('PQC Engine must be operational', 'warning');
             return;
         }
 
@@ -213,7 +208,6 @@ export function TasksPage() {
                     decryptTaskData,
                     mentions
                 );
-                showSnackbar('Task updated securely', 'success');
             } else {
                 // Create new task
                 await addTask(
@@ -227,13 +221,12 @@ export function TasksPage() {
                     decryptTaskData,
                     mentions
                 );
-                showSnackbar('Task created with PQC encryption', 'success');
             }
 
-            toggleTaskParam('edit', null);
-            toggleTaskParam('new', null);
-        } catch (error: any) {
-            showSnackbar(error.message || 'Operation failed', 'error');
+            updateTaskParams({ edit: null, new: null });
+        } catch (error: unknown) {
+            const message = (error instanceof Error) ? error.message : 'Operation failed';
+            showSnackbar(message, 'error');
         } finally {
             setIsSaving(false);
         }
@@ -251,11 +244,11 @@ export function TasksPage() {
                 setDeleteStatus('idle');
             }, 2000);
 
-            toggleTaskParam('task', null);
-            toggleTaskParam('edit', null);
-        } catch (error: any) {
+            updateTaskParams({ task: null, edit: null });
+        } catch (error: unknown) {
             setDeleteStatus('error');
-            showSnackbar(error.message || 'Failed to delete task', 'error');
+            const message = (error instanceof Error) ? error.message : 'Failed to delete task';
+            showSnackbar(message, 'error');
 
             // Revert status to idle after delay
             setTimeout(() => {
@@ -266,12 +259,13 @@ export function TasksPage() {
         }
     }, [deleteTask]);
 
-    const handleTaskMove = useCallback(async (updates: { id: string; status: any; order: number }[]) => {
+    const handleTaskMove = useCallback(async (updates: { id: string; status: 'todo' | 'in_progress' | 'done'; order: number }[]) => {
         try {
             // reorderTasks in taskStore handles optimistic update and backend sync
             await reorderTasks(updates);
-        } catch (error: any) {
-            showSnackbar(error.message || 'Failed to sync reorder', 'error');
+        } catch (error: unknown) {
+            const message = (error instanceof Error) ? error.message : 'Failed to sync reorder';
+            showSnackbar(message, 'error');
         }
     }, [reorderTasks]);
 
@@ -461,7 +455,7 @@ export function TasksPage() {
                         tasks={filteredTasks}
                         onTaskClick={handleTaskClick}
                         onAddTask={handleAddTask}
-                        onTaskMove={handleTaskMove}
+                        onTaskMove={(updates) => handleTaskMove(updates as { id: string; status: 'todo' | 'in_progress' | 'done'; order: number }[])}
                         onDeleteTask={handleDeleteTask}
                         sortMode={sortMode}
                         isDragDisabled={!!searchTerm.trim()}
@@ -473,23 +467,20 @@ export function TasksPage() {
             {/* Task Dialog */}
             <TaskDialog
                 open={dialogOpen}
-                onClose={() => {
-                    toggleTaskParam('edit', null);
-                    toggleTaskParam('new', null);
-                }}
+                onClose={() => updateTaskParams({ edit: null, new: null })}
                 onSubmit={handleDialogSubmit}
                 onDelete={handleDeleteTask}
-                task={selectedTask}
+                task={selectedTask as DecryptedTask}
                 isSaving={isSaving}
             />
 
             {/* Task Preview Dialog */}
             <TaskPreviewDialog
                 open={previewOpen}
-                onClose={() => toggleTaskParam('task', null)}
+                onClose={() => updateTaskParams({ task: null })}
                 onEdit={handleEditFromPreview}
                 onDelete={handleDeleteTask}
-                task={selectedTask}
+                task={selectedTask as DecryptedTask}
             />
 
             {/* Snackbar */}

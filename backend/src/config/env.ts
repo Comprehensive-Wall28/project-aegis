@@ -1,8 +1,8 @@
-import dotenv from 'dotenv';
+
 import logger from '../utils/logger';
 
 // Load environment variables
-dotenv.config();
+
 
 /**
  * Validates that all required environment variables are present in production.
@@ -43,15 +43,14 @@ export const config = {
     clientOrigin: getEnv('CLIENT_ORIGIN', true, 'http://localhost:5173'),
     rpId: getEnv('RP_ID', true, 'localhost'),
 
-    // Rate Limiting
-    apiRateLimit: parseInt(getEnv('API_RATE_LIMIT', false, '500'), 10),
-    authRateLimit: parseInt(getEnv('AUTH_RATE_LIMIT', false, '50'), 10),
-
     // Google Drive / API
     googleClientId: getEnv('GOOGLE_CLIENT_ID', false, ''),
     googleClientSecret: getEnv('GOOGLE_CLIENT_SECRET', false, ''),
     googleRefreshToken: getEnv('GOOGLE_REFRESH_TOKEN', false, ''),
     googleDriveFolderId: getEnv('GOOGLE_DRIVE_FOLDER_ID', false, ''),
+
+    // CSRF
+    csrfSecret: getEnv('CSRF_SECRET', true),
 };
 
 /**
@@ -66,6 +65,7 @@ export const validateConfig = () => {
         if (!process.env.MONGO_URI) missing.push('MONGO_URI');
         if (!process.env.CLIENT_ORIGIN) missing.push('CLIENT_ORIGIN');
         if (!process.env.RP_ID) missing.push('RP_ID');
+        if (!process.env.CSRF_SECRET) missing.push('CSRF_SECRET');
     }
 
     if (missing.length > 0) {

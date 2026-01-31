@@ -75,11 +75,11 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         super(new UserRepository());
     }
 
-    private generateToken(id: string, username: string): string {
+    private async generateToken(id: string, username: string): Promise<string> {
         const jwtToken = jwt.sign({ id, username }, config.jwtSecret, {
             expiresIn: '365d'
         });
-        return encryptToken(jwtToken);
+        return await encryptToken(jwtToken);
     }
 
     private formatUserResponse(user: IUser): UserResponse {
@@ -135,7 +135,6 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 passwordHashVersion
             } as any);
 
-            logger.info(`User registered: ${user._id}`);
             await this.logAction(user._id.toString(), 'REGISTER', 'SUCCESS', req, {
                 username: user.username,
                 email: user.email
@@ -184,7 +183,6 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
                 if (verified) {
                     // Success! Migrate to version 2
-                    logger.info(`Migrating user ${user.email} to password hash version 2`);
                     const newPasswordHash = await argon2.hash(argon2Hash);
                     await this.repository.updateById(user._id.toString(), {
                         $set: {
@@ -204,7 +202,6 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('Invalid credentials', 401);
             }
 
-            logger.info(`Password verified for: ${user.email}`);
 
             // Check if 2FA required
             if (user.webauthnCredentials && user.webauthnCredentials.length > 0) {
@@ -227,10 +224,9 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
             // No 2FA, complete login
-            const token = this.generateToken(user._id.toString(), user.username);
+            const token = await this.generateToken(user._id.toString(), user.username);
             setCookie(token);
 
-            logger.info(`User logged in: ${user.email}`);
             await this.logAction(user._id.toString(), 'LOGIN', 'SUCCESS', req, {
                 email: user.email,
                 userAgent: req.headers['user-agent']
@@ -361,7 +357,6 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 throw new ServiceError('User not found', 404);
             }
 
-            logger.info(`Profile updated for user: ${updatedUser._id}`);
             await this.logAction(userId, 'PROFILE_UPDATE', 'SUCCESS', req, {
                 updatedFields: Object.keys(updateFields)
             });
@@ -531,7 +526,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             user.currentChallenge = undefined;
             await user.save();
 
-            const token = this.generateToken(user._id.toString(), user.username);
+            const token = await this.generateToken(user._id.toString(), user.username);
             setCookie(token);
 
             await this.logAction(user._id.toString(), 'PASSKEY_LOGIN', 'SUCCESS', req, {
@@ -616,7 +611,6 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
             await this.repository.removeWebAuthnCredential(userId, credentialID);
 
-            logger.info(`Passkey removed for user: ${user._id}`);
             await this.logAction(userId, 'PASSKEY_REMOVE', 'SUCCESS', req, { credentialID });
 
             return user.webauthnCredentials.length - 1;

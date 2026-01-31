@@ -11,6 +11,7 @@ import {
     deleteLink,
     createCollection,
     deleteCollection,
+    updateCollection,
     reorderCollections,
     moveLink,
     markLinkViewed,
@@ -22,11 +23,13 @@ import {
     getReaderContent,
     getAnnotations,
     createAnnotation,
-    deleteAnnotation
+    deleteAnnotation,
+    leaveRoom,
+    deleteRoom
 } from '../controllers/socialController';
 import { proxyImage } from '../controllers/linkPreviewController';
 import { protect } from '../middleware/authMiddleware';
-import { csrfProtection } from '../middleware/csrfMiddleware';
+import { csrfProtection } from '../middleware/customCsrf';
 
 const router = Router();
 
@@ -39,6 +42,8 @@ router.get('/rooms', protect, csrfProtection, getUserRooms);
 router.post('/rooms', protect, csrfProtection, createRoom);
 router.post('/rooms/:roomId/invite', protect, csrfProtection, createInvite);
 router.post('/rooms/join', protect, csrfProtection, joinRoom);
+router.post('/rooms/:roomId/leave', protect, csrfProtection, leaveRoom);
+router.delete('/rooms/:roomId', protect, csrfProtection, deleteRoom);
 router.post('/rooms/:roomId/links', protect, csrfProtection, postLink);
 router.post('/rooms/:roomId/collections', protect, csrfProtection, createCollection);
 router.get('/rooms/:roomId', protect, csrfProtection, getRoomContent);
@@ -46,8 +51,9 @@ router.get('/rooms/:roomId/collections/:collectionId/links', protect, csrfProtec
 router.get('/rooms/:roomId/search', protect, csrfProtection, searchRoomLinks);
 router.delete('/links/:linkId', protect, csrfProtection, deleteLink);
 router.delete('/collections/:collectionId', protect, csrfProtection, deleteCollection);
-router.patch('/rooms/:roomId/collections/reorder', protect, csrfProtection, reorderCollections);
-router.patch('/links/:linkId/move', protect, csrfProtection, moveLink);
+router.patch('/collections/:collectionId', protect, csrfProtection, updateCollection);
+router.patch('/rooms/:roomId/collections/order', protect, csrfProtection, reorderCollections);
+router.patch('/links/:linkId', protect, csrfProtection, moveLink);
 router.post('/links/:linkId/view', protect, csrfProtection, markLinkViewed);
 router.delete('/links/:linkId/view', protect, csrfProtection, unmarkLinkViewed);
 router.get('/links/:linkId/comments', protect, csrfProtection, getComments);
