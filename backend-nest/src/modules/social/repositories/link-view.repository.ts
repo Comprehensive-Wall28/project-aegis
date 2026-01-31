@@ -14,7 +14,7 @@ export class LinkViewRepository {
   constructor(
     @InjectModel(LinkView.name, 'audit')
     private readonly linkViewModel: Model<LinkView>,
-  ) {}
+  ) { }
 
   /**
    * Find viewed link IDs for a user within a set of links
@@ -29,6 +29,16 @@ export class LinkViewRepository {
       .lean()
       .exec();
     return views.map((v) => v.linkId.toString());
+  }
+
+  /**
+   * Find multiple views matching a filter
+   */
+  async findMany(filter: any, options: any = {}): Promise<any> {
+    let query: any = this.linkViewModel.find(filter);
+    if (options.select) query = query.select(options.select);
+    if (options.lean) query = query.lean();
+    return query.exec();
   }
 
   /**

@@ -11,14 +11,14 @@ This file tracks the migration of Social, Folder, and Vault modules from the old
     - [x] `leaveRoom` (POST /social/rooms/:roomId/leave)
     - [x] `deleteRoom` (DELETE /social/rooms/:roomId)
     - [x] `postLink` (POST /social/rooms/:roomId/links) ✨ NEW
-    - [ ] `createCollection` (POST /social/rooms/:roomId/collections)
-    - [ ] `getRoomContent` (GET /social/rooms/:roomId)
+    - [x] `createCollection` (POST /social/rooms/:roomId/collections)
+    - [x] `getRoomContent` (GET /social/rooms/:roomId)
     - [x] `getCollectionLinks` (GET /social/rooms/:roomId/collections/:collectionId/links) ✨ NEW
     - [x] `searchRoomLinks` (GET /social/rooms/:roomId/search) ✨ NEW
     - [x] `deleteLink` (DELETE /social/links/:linkId) ✨ NEW
-    - [ ] `deleteCollection` (DELETE /social/collections/:collectionId)
-    - [ ] `updateCollection` (PATCH /social/collections/:collectionId)
-    - [ ] `reorderCollections` (PATCH /social/rooms/:roomId/collections/reorder)
+    - [x] `deleteCollection` (DELETE /collections/:collectionId)
+    - [x] `updateCollection` (PATCH /collections/:collectionId)
+    - [x] `reorderCollections` (PATCH /social/rooms/:roomId/collections/reorder)
     - [ ] `moveLink` (PATCH /social/links/:linkId/move)
     - [x] `markLinkViewed` (POST /social/links/:linkId/view) ✨ NEW
     - [x] `unmarkLinkViewed` (DELETE /social/links/:linkId/view) ✨ NEW

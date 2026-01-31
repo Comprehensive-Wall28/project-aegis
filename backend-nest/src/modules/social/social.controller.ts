@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Req, Query, Res } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Delete, UseGuards, Req, Query, Res } from '@nestjs/common';
 import { SocialService } from './social.service';
 import { LinkService } from './link.service';
 import { ImageProxyService } from './image-proxy.service';
 import { CreateRoomDto, JoinRoomDto, RoomResponseDto } from './dto/room.dto';
+import { CreateCollectionDto, UpdateCollectionDto, ReorderCollectionsDto } from './dto/collection.dto';
 import { PostLinkDto, CursorQueryDto, SearchQueryDto, ProxyImageQueryDto } from './dto/link.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -102,6 +103,16 @@ export class SocialController {
         return { message: 'Successfully deleted room' };
     }
 
+    @Get('rooms/:roomId')
+    @UseGuards(JwtAuthGuard)
+    async getRoomContent(
+        @CurrentUser() user: any,
+        @Param('roomId') roomId: string,
+        @Query('collectionId') collectionId?: string,
+    ) {
+        return this.socialService.getRoomContent(user.id, roomId, collectionId);
+    }
+
     // ===== Link Management Endpoints =====
 
     @Post('rooms/:roomId/links')
@@ -176,6 +187,53 @@ export class SocialController {
     ) {
         const limit = query.limit ? parseInt(query.limit, 10) : 50;
         return this.linkService.searchRoomLinks(user.id, roomId, query.q, limit);
+    }
+
+    // ===== Collection Management Endpoints =====
+
+    @Post('rooms/:roomId/collections')
+    @UseGuards(JwtAuthGuard)
+    async createCollection(
+        @CurrentUser() user: any,
+        @Param('roomId') roomId: string,
+        @Body() createCollectionDto: CreateCollectionDto,
+        @Req() req: FastifyRequest,
+    ) {
+        return this.socialService.createCollection(user.id, roomId, createCollectionDto, req);
+    }
+
+    @Delete('collections/:collectionId')
+    @UseGuards(JwtAuthGuard)
+    async deleteCollection(
+        @CurrentUser() user: any,
+        @Param('collectionId') collectionId: string,
+        @Req() req: FastifyRequest,
+    ) {
+        await this.socialService.deleteCollection(user.id, collectionId, req);
+        return { message: 'Collection deleted successfully' };
+    }
+
+    @Patch('collections/:collectionId')
+    @UseGuards(JwtAuthGuard)
+    async updateCollection(
+        @CurrentUser() user: any,
+        @Param('collectionId') collectionId: string,
+        @Body() updateCollectionDto: UpdateCollectionDto,
+        @Req() req: FastifyRequest,
+    ) {
+        return this.socialService.updateCollection(user.id, collectionId, updateCollectionDto.name, req);
+    }
+
+    @Patch('rooms/:roomId/collections/reorder')
+    @UseGuards(JwtAuthGuard)
+    async reorderCollections(
+        @CurrentUser() user: any,
+        @Param('roomId') roomId: string,
+        @Body() reorderDto: ReorderCollectionsDto,
+        @Req() req: FastifyRequest,
+    ) {
+        await this.socialService.reorderCollections(user.id, roomId, reorderDto.collectionIds, req);
+        return { message: 'Collections reordered successfully' };
     }
 
     @Get('proxy-image')
