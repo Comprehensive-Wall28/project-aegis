@@ -11,6 +11,10 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: ./backend-nest
+
     services:
       mongo:
         image: mongo:6
@@ -25,6 +29,7 @@ jobs:
       with:
         node-version: 24
         cache: 'npm'
+        cache-dependency-path: backend-nest/package-lock.json
 
     - name: Install dependencies
       run: npm ci

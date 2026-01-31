@@ -1,20 +1,18 @@
 # NestJS Migration TODO
 
-## Next Session: Phase 5 - Deployment & CI/CD
+## Next Session: Phase 5 - Deployment & Cutover
 
-- [ ] **Verify Docker Build** (Requires Docker environment)
-    - Run `docker build -t aegis-nest .`
-    - Verify Playwright browser installation in container
-- [ ] **Configure CI/CD**
-    - Set up GitHub Actions or GitLab CI
-    - Ensure E2E tests run in CI
-- [ ] **Parallel Running Validation**
-    - deploy to staging
-    - verify data consistency
-- [ ] **Full Cutover**
-    - switch DNS/Routing
+### Priority 1: Docker Verification
+> [!IMPORTANT]
+> The `docker` command was not available in the agent environment. Manual verification is required.
+- [ ] **Run Local Build**: `docker build -t aegis-nest .`
+- [ ] **Verify Container**: Ensure Playwright browser installs correctly during build.
 
-## Notes
-- `Dockerfile` has been updated with Playwright support (Node lts-slim)
-- E2E tests for Calendar and Folders are passing
-- Performance load test passed (~5600 RPS)
+### Priority 2: Deployment
+- [ ] **Push to Staging**: Trigger the new CI/CD pipeline by pushing to `backend/nest`.
+- [ ] **Parallel Running**: Deploy alongside existing backend and verify 1:1 parity.
+- [ ] **Cutover**: Switch DNS/Routing to new instance.
+
+### Status
+- **CI/CD**: Configured in `.github/workflows/ci.yml` (Triggers on `main` and `backend/**`)
+- **Tests**: All Passing (Unit, Integration, E2E)
