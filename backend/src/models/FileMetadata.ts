@@ -19,7 +19,7 @@ export interface IFileMetadata extends Document {
 }
 
 const FileMetadataSchema: Schema = new Schema({
-    ownerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    ownerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     folderId: { type: Schema.Types.ObjectId, ref: 'Folder', default: null },
     googleDriveFileId: { type: String }, // Google Drive file reference
     uploadStreamId: { type: String }, // Temporary session ID during upload progress
@@ -33,6 +33,8 @@ const FileMetadataSchema: Schema = new Schema({
     mimeType: { type: String, required: true },
     status: { type: String, enum: ['pending', 'uploading', 'completed', 'failed'], default: 'pending' }
 }, { timestamps: true });
+
+FileMetadataSchema.index({ ownerId: 1, folderId: 1 });
 
 export default mongoose.model<IFileMetadata>('FileMetadata', FileMetadataSchema);
 

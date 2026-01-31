@@ -14,6 +14,6 @@ const LinkCommentSchema: Schema = new Schema({
 }, { timestamps: true });
 
 // Index for efficient lookup of comments by link
-LinkCommentSchema.index({ linkId: 1, createdAt: 1 });
+LinkCommentSchema.index({ linkId: 1, createdAt: -1 });
 
 export default mongoose.model<ILinkComment>('LinkComment', LinkCommentSchema);

@@ -24,6 +24,13 @@ const SharedLinkSchema: Schema = new Schema({
     allowedEmails: { type: [String], default: [] }
 }, { timestamps: true });
 
+// Basic indexes
+SharedLinkSchema.index({ resourceId: 1 });
+SharedLinkSchema.index({ creatorId: 1 });
+
+// TTL index for automatic expiration
+SharedLinkSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 // Virtual to help population
 SharedLinkSchema.virtual('resourceModel').get(function (this: ISharedLink) {
     return this.resourceType === 'file' ? 'FileMetadata' : 'Folder';

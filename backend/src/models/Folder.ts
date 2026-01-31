@@ -21,6 +21,6 @@ const FolderSchema: Schema = new Schema({
 }, { timestamps: true });
 
 // Compound index for efficient folder queries
-FolderSchema.index({ ownerId: 1, parentId: 1 });
+FolderSchema.index({ ownerId: 1, parentId: 1, name: 1 });
 
 export default mongoose.model<IFolder>('Folder', FolderSchema);

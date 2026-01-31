@@ -276,7 +276,7 @@ backend/src/
 | AI-4 | **[HIGH]** Split `socialController` into domain controllers | 4 | 2 Days | ⬜ To Do |
 | AI-5 | **[HIGH]** Consolidate Duplicate Models & Upload Logic | 7 | 3 Days | ⬜ To Do |
 | AI-6 | **[HIGH]** Fix Unbounded Queries & GridFS DoS Vector | 8 | 2 Days | ✅ Complete |
-| AI-7 | **[MED]** Add Missing Indexes & Fix Non-Atomic Deletes | 3, 5 | 1 Day | ⬜ To Do |
+| AI-7 | **[MED]** Add Missing Indexes & Fix Non-Atomic Deletes | 3, 5 | 1 Day | 🟡 Partial |
 | AI-8 | **[MED]** Refactor Synchronous Auth & Crypto Operations | 6 | 2 Days | ✅ Complete |
 
 
