@@ -27,7 +27,7 @@
 - [x] **Note Module** (Notes, Schema, Service, Controller)
 
 ### Phase 3: Complex Features
-- [ ] Vault module (GridFS)
+- [x] Vault module (GridFS + Google Drive)
 - [ ] Scraper module (Embedded)
 - [ ] WebSocket gateway
 - [ ] Google Drive OAuth

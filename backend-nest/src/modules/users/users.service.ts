@@ -26,6 +26,10 @@ export class UsersService {
         return this.usersRepository.findByEmail(email);
     }
 
+    async updateStorageUsage(userId: string, bytes: number): Promise<void> {
+        await this.usersRepository.updateById(userId, { $inc: { totalStorageUsed: bytes } });
+    }
+
     async findByUsername(username: string): Promise<UserDocument | null> {
         return this.usersRepository.findByUsername(username);
     }

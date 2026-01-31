@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FoldersService } from './folders.service';
 import { FolderRepository } from './folders.repository';
+import { VaultService } from '../vault/vault.service';
 import { Types } from 'mongoose';
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 
@@ -18,11 +19,16 @@ describe('FoldersService', () => {
     let service: FoldersService;
     let repository: any;
 
+    const mockVaultService = {
+        countFiles: jest.fn().mockResolvedValue(0),
+    };
+
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 FoldersService,
                 { provide: FolderRepository, useFactory: mockFolderRepository },
+                { provide: VaultService, useValue: mockVaultService },
             ],
         }).compile();
 

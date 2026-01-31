@@ -38,6 +38,30 @@ export class GridFsService {
     }
 
     /**
+     * Upload a stream to GridFS
+     */
+    async uploadStream(
+        stream: Readable,
+        filename: string,
+        metadata?: Record<string, any>,
+    ): Promise<ObjectId> {
+        return new Promise((resolve, reject) => {
+            const uploadStream = this.bucket.openUploadStream(filename, { metadata });
+
+            uploadStream.on('finish', () => {
+                resolve(uploadStream.id);
+            });
+
+            uploadStream.on('error', (error) => {
+                this.logger.error(`GridFS upload error: ${error.message}`, error.stack);
+                reject(error);
+            });
+
+            stream.pipe(uploadStream);
+        });
+    }
+
+    /**
      * Download a file from GridFS to a buffer
      */
     async downloadToBuffer(fileId: ObjectId): Promise<Buffer> {

@@ -1,6 +1,6 @@
-
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { ServiceError } from '../../../common/services/base.service';
 
 @Schema({ timestamps: true })
 export class User {
@@ -15,6 +15,12 @@ export class User {
 
     @Prop({ required: true })
     passwordHash!: string;
+
+    @Prop({ default: false })
+    isEmailVerified!: boolean;
+
+    @Prop({ default: 0 })
+    totalStorageUsed!: number;
 
     @Prop({ default: 2 })
     passwordHashVersion!: number;

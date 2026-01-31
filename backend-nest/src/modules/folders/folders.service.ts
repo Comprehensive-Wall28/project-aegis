@@ -1,14 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { Folder, FolderDocument } from './schemas/folder.schema';
 import { CreateFolderDto, UpdateFolderDto } from './dto/folder.dto';
-import { BaseService } from '../../common/services/base.service';
+import { BaseService, ServiceError } from '../../common/services/base.service';
 import { FolderRepository } from './folders.repository';
+import { VaultService } from '../vault/vault.service';
 
 @Injectable()
 export class FoldersService extends BaseService<FolderDocument, FolderRepository> {
     constructor(
         private readonly folderRepository: FolderRepository,
+        @Inject(forwardRef(() => VaultService)) private readonly vaultService: VaultService,
     ) {
         super(folderRepository);
     }
@@ -129,6 +131,31 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
         return updated;
     }
 
+    async findById(id: string): Promise<FolderDocument> {
+        const folder = await this.folderRepository.findById(id);
+        if (!folder) {
+            throw new ServiceError('Folder not found', 404);
+        }
+        return folder;
+    }
+
+    async checkAccess(userId: string, folderId: string): Promise<boolean> {
+        try {
+            const folder = await this.folderRepository.findById(folderId);
+            if (!folder) return false;
+
+            // Check ownership
+            if (folder.ownerId.toString() === userId) return true;
+
+            // Check explicitly shared
+            // Note: Assuming SharedFolder check logic would be here or in repository
+            // For now, implementing basic ownership check
+            return false;
+        } catch (e) {
+            return false;
+        }
+    }
+
     async deleteFolder(userId: string, folderId: string): Promise<void> {
         const folder = await this.folderRepository.findOne({ _id: folderId, ownerId: userId });
         if (!folder) throw new NotFoundException('Folder not found');
@@ -139,7 +166,11 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
             throw new BadRequestException('Cannot delete folder with subfolders');
         }
 
-        // TODO: Check for files (Phase 3 - Vault Module)
+        // Check for files (Phase 3 - Vault Module)
+        const fileCount = await this.vaultService.countFiles(userId, folderId);
+        if (fileCount > 0) {
+            throw new BadRequestException('Cannot delete folder containing files');
+        }
 
         await this.folderRepository.deleteById(folderId);
     }
