@@ -6,7 +6,7 @@ import { SystemStatusBar } from './SystemStatusBar';
 import { motion } from 'framer-motion';
 import type { PanInfo } from 'framer-motion';
 import { Box, alpha, useTheme, Paper, Snackbar, Alert } from '@mui/material';
-import { refreshCsrfToken } from '@/services/api';
+// import { refreshCsrfToken } from '@/services/api';
 import UploadManager from '@/components/vault/UploadManager';
 import { useSocialStore, importRoomKeyFromBase64 } from '@/stores/useSocialStore';
 
@@ -88,10 +88,7 @@ export function DashboardLayout() {
         };
     }, [backgroundImage, downloadAndDecrypt]);
 
-    // Fetch CSRF token when dashboard loads
-    useEffect(() => {
-        refreshCsrfToken();
-    }, []);
+
 
     // Reset window scroll and lock overflow via data-attribute (more performant than direct style injection)
     useEffect(() => {

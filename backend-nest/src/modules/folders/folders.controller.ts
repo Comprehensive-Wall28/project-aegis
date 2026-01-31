@@ -11,26 +11,26 @@ export class FoldersController {
 
     @Get()
     getFolders(@Request() req: any, @Query('parentId') parentId?: string) {
-        return this.foldersService.getFolders(req.user.userId, parentId);
+        return this.foldersService.getFolders(req.user._id.toString(), parentId);
     }
 
     @Get(':id')
     getFolder(@Request() req: any, @Param('id') id: string) {
-        return this.foldersService.getFolder(req.user.userId, id);
+        return this.foldersService.getFolder(req.user._id.toString(), id);
     }
 
     @Post()
     create(@Request() req: any, @Body() createFolderDto: CreateFolderDto) {
-        return this.foldersService.createFolder(req.user.userId, createFolderDto);
+        return this.foldersService.createFolder(req.user._id.toString(), createFolderDto);
     }
 
     @Patch(':id')
     update(@Request() req: any, @Param('id') id: string, @Body() updateFolderDto: UpdateFolderDto) {
-        return this.foldersService.updateFolder(req.user.userId, id, updateFolderDto);
+        return this.foldersService.updateFolder(req.user._id.toString(), id, updateFolderDto);
     }
 
     @Delete(':id')
     remove(@Request() req: any, @Param('id') id: string) {
-        return this.foldersService.deleteFolder(req.user.userId, id);
+        return this.foldersService.deleteFolder(req.user._id.toString(), id);
     }
 }

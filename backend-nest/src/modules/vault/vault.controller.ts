@@ -24,7 +24,7 @@ export class VaultController {
         @CurrentUser() user: any,
         @Body() body: UploadInitDto
     ) {
-        return this.vaultService.initiateUpload(user.userId, body);
+        return this.vaultService.initiateUpload(user._id.toString(), body);
     }
 
     @Post('upload/chunk')
@@ -54,7 +54,7 @@ export class VaultController {
 
         // In Fastify, req.raw is the node request stream
         return this.vaultService.uploadChunk(
-            user.userId,
+            user._id.toString(),
             fileId,
             req.raw, // Pass readable stream
             chunkLength,
@@ -96,7 +96,7 @@ export class VaultController {
         }
 
         if (fileSaved && fileId && gridFsId) {
-            await this.vaultService.completeGridFsUpload(user.userId, fileId, new Types.ObjectId(gridFsId));
+            await this.vaultService.completeGridFsUpload(user._id.toString(), fileId, new Types.ObjectId(gridFsId));
             return { success: true };
         } else if (fileSaved && !fileId) {
             // Metadata missing - strictly speaking we should delete the orphan file in GridFS here
@@ -112,7 +112,7 @@ export class VaultController {
         @CurrentUser() user: any,
         @Query('folderId') folderId?: string
     ) {
-        return this.vaultService.listFiles(user.userId, folderId);
+        return this.vaultService.listFiles(user._id.toString(), folderId);
     }
 
     @Get('download/:id')
@@ -121,7 +121,7 @@ export class VaultController {
         @Param('id') id: string,
         @Res() res: FastifyReply
     ) {
-        const { stream, mimeType, fileName } = await this.vaultService.getDownloadStream(user.userId, id);
+        const { stream, mimeType, fileName } = await this.vaultService.getDownloadStream(user._id.toString(), id);
 
         res.header('Content-Type', mimeType);
         res.header('Content-Disposition', `attachment; filename="${fileName}"`);
@@ -134,6 +134,10 @@ export class VaultController {
         @CurrentUser() user: any,
         @Param('id') id: string
     ) {
-        return this.vaultService.deleteFile(user.userId, id);
+        return this.vaultService.deleteFile(user._id.toString(), id);
+    }
+    @Get('storage-stats')
+    async getStorageStats(@CurrentUser() user: any) {
+        return this.vaultService.getStorageStats(user._id.toString());
     }
 }

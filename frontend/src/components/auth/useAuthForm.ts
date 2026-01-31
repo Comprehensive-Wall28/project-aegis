@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import authService from '@/services/authService';
 import { useSessionStore } from '@/stores/sessionStore';
 import { storeSeed } from '@/lib/cryptoUtils';
-import { refreshCsrfToken } from '@/services/api';
+// import { refreshCsrfToken } from '@/services/api';
 
 export function useAuthForm(open: boolean, initialMode: 'login' | 'register', onClose: () => void) {
     const navigate = useNavigate();
@@ -79,7 +79,7 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
                     storeSeed(response.pqcSeed);
                     initializeQuantumKeys(response.pqcSeed);
                 }
-                await refreshCsrfToken();
+                // await refreshCsrfToken();
                 onClose();
                 navigate('/dashboard');
             }
@@ -111,7 +111,7 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
                     storeSeed(response.pqcSeed);
                     initializeQuantumKeys(response.pqcSeed);
                 }
-                await refreshCsrfToken();
+                // await refreshCsrfToken();
                 onClose();
                 navigate('/dashboard');
             }

@@ -230,7 +230,7 @@ export class VaultService {
     /**
      * List files
      */
-    async listFiles(userId: string, folderId?: string): Promise<VaultFile[]> {
+    async listFiles(userId: string, folderId?: string): Promise<{ items: VaultFile[]; nextCursor: string | null }> {
         const query: any = { ownerId: userId };
 
         if (folderId && folderId !== 'root') {
@@ -239,10 +239,25 @@ export class VaultService {
             query.folderId = null;
         }
 
-        return this.vaultFileModel.find(query).sort({ createdAt: -1 }).exec();
+        const items = await this.vaultFileModel.find(query).sort({ createdAt: -1 }).exec();
+
+        return {
+            items,
+            nextCursor: null // Pagination not yet fully implemented on backend, but structure required by frontend
+        };
     }
 
     async countFiles(userId: string, folderId: string): Promise<number> {
         return this.vaultFileModel.countDocuments({ ownerId: userId, folderId }).exec();
+    }
+    async getStorageStats(userId: string): Promise<{ used: number; total: number; limit: number }> {
+        const user = await this.usersService.findById(userId);
+        if (!user) throw new NotFoundException('User not found');
+
+        return {
+            used: user.totalStorageUsed,
+            total: user.totalStorageUsed, // Legacy frontend might use 'total' as 'used' or similar, strict adherence to interface needed
+            limit: this.MAX_STORAGE
+        };
     }
 }

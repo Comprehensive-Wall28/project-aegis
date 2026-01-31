@@ -2,11 +2,12 @@ import { Navbar } from "@/components/layout/Navbar"
 import { Hero } from "@/components/marketing/Hero"
 import { Features } from "@/components/marketing/Features"
 import { useEffect } from "react"
-import { refreshCsrfToken } from "./services/api"
+// import { refreshCsrfToken } from "./services/api"
 
 function App() {
   useEffect(() => {
-    refreshCsrfToken();
+    // Initial auth check or setup can happen here
+    // refreshCsrfToken() call removed as we use stateless/SameSite logic now
   }, []);
 
   return (

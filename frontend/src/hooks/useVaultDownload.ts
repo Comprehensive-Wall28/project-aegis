@@ -39,11 +39,7 @@ const decryptChunkCtr = async (encryptedChunk: Uint8Array, vaultCtrKey: CryptoKe
     );
 };
 
-// Get CSRF token from cookie
-const getCsrfToken = (): string | null => {
-    const match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
-    return match ? match[2] : null;
-};
+
 
 /**
  * Standalone function to fetch and decrypt a file from the vault.
@@ -93,11 +89,8 @@ export const fetchAndDecryptFile = async (
 
 
     // 2. Initiate streaming download using fetch
-    const csrfToken = getCsrfToken();
+    // CSRF handled by cookies automatically (same-site)
     const headers: HeadersInit = {};
-    if (csrfToken) {
-        headers['X-XSRF-TOKEN'] = csrfToken;
-    }
 
     const finalUrl = downloadUrl || `${API_URL}/vault/download/${file._id}`;
 

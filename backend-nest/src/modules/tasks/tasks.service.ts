@@ -75,4 +75,8 @@ export class TasksService extends BaseService<TaskDocument, TaskRepository> {
     async findUpcoming(userId: string, limit: number = 10): Promise<Task[]> {
         return this.taskRepository.findUpcoming(userId, limit);
     }
+
+    async getUpcomingTasks(userId: string, limit: number = 10): Promise<Task[]> {
+        return this.findUpcoming(userId, limit);
+    }
 }

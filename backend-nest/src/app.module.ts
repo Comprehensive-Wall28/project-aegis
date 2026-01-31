@@ -18,6 +18,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { NotesModule } from './modules/notes/notes.module';
 import { SocialModule } from './modules/social/social.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
+import { ActivityModule } from './modules/activity/activity.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     NotesModule,
     SocialModule,
     WebsocketModule,
+    ActivityModule,
   ],
   controllers: [AppController],
   providers: [

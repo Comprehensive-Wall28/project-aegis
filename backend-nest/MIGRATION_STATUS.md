@@ -34,6 +34,7 @@
 - [x] Scraper module (Embedded)
 - [x] WebSocket gateway
 - [x] Google Drive OAuth
+- [x] **Activity Module** (Dashboard & Audit Logs)
 
 ### Phase 4: Testing
 - [x] Unit tests (80% coverage)
@@ -52,3 +53,8 @@
 - [x] CI/CD configured
 - [x] Parallel running validated
 - [ ] Full cutover
+
+### Phase 5.1: Regression Fixes
+- [x] Fix `legacyHash` validation on login
+- [x] Implement `/api/auth/csrf-token`
+- [x] Implement `/api/activity/dashboard`
