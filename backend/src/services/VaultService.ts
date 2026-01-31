@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { BaseService, ServiceError } from './base/BaseService';
 import { FileMetadataRepository } from '../repositories/FileMetadataRepository';
 import { UserRepository } from '../repositories/UserRepository';
+import { FolderRepository } from '../repositories/FolderRepository';
 import { IFileMetadata } from '../models/FileMetadata';
 import Folder from '../models/Folder';
 import SharedFolder from '../models/SharedFolder';
@@ -43,11 +44,13 @@ export interface ChunkUploadResult {
  */
 export class VaultService extends BaseService<IFileMetadata, FileMetadataRepository> {
     private userRepository: UserRepository;
+    private folderRepository: FolderRepository;
     private readonly MAX_STORAGE = 5 * 1024 * 1024 * 1024; // 5GB
 
     constructor() {
         super(new FileMetadataRepository());
         this.userRepository = new UserRepository();
+        this.folderRepository = new FolderRepository();
     }
 
     /**
@@ -277,20 +280,17 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                     if (directShare) {
                         hasAccess = true;
                     } else {
-                        // Check ancestors
-                        let current = folder;
-                        while (current.parentId) {
-                            const ancestorShare = await SharedFolder.findOne({
-                                folderId: current.parentId,
-                                sharedWith: userId
-                            });
-                            if (ancestorShare) {
-                                hasAccess = true;
-                                break;
-                            }
-                            const parent = await Folder.findById(current.parentId);
-                            if (!parent) break;
-                            current = parent;
+                        // Check ancestors (optimized)
+                        const ancestors = await this.folderRepository.getAncestors(folderId);
+                        const ancestorIds = ancestors.map(a => a._id);
+
+                        const ancestorShare = await SharedFolder.findOne({
+                            folderId: { $in: ancestorIds },
+                            sharedWith: userId
+                        });
+
+                        if (ancestorShare) {
+                            hasAccess = true;
                         }
                     }
                 }
@@ -299,11 +299,17 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                     throw new ServiceError('Access denied to this folder', 403);
                 }
 
-                // Fetch files owned by the folder's owner
-                return await this.repository.findByFolderAndFolderOwner(
-                    folderId,
-                    folder.ownerId.toString()
-                );
+                // Fetch files owned by the folder's owner OR the current user (if they added files to shared folder)
+                // Use a direct repository find with $or condition instead of restrictive helper
+                return await this.repository.findMany({
+                    folderId: { $eq: folderId },
+                    $or: [
+                        { ownerId: { $eq: folder.ownerId.toString() } }, // Owned by folder owner
+                        { ownerId: { $eq: userId } }                     // Owned by current user (me)
+                    ]
+                } as any, {
+                    sort: { createdAt: -1 }
+                });
             }
 
             // Root level files or Global Search

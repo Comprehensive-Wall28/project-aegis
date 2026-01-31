@@ -271,11 +271,11 @@ backend/src/
 | ID | Issue | Phase | Effort | Status |
 |----|-------|-------|--------|--------|
 | AI-1 | **[CRITICAL]** Refactor Upload Services to be Stateless (Redis/DB) | 2, 6 | 5 Days | ✅ Complete |
-| AI-2 | **[HIGH]** Fix N+1 Recursive Loops in Services & Repos (GraphLookup) | 2, 3 | 3 Days | ⬜ To Do |
+| AI-2 | **[HIGH]** Fix N+1 Recursive Loops in Services & Repos (GraphLookup) | 2, 3 | 3 Days | ✅ Complete |
 | AI-3 | **[HIGH]** Implement Global Rate Limiting & Validation Middleware | 4, 6 | 2 Days | ⬜ To Do |
 | AI-4 | **[HIGH]** Split `socialController` into domain controllers | 4 | 2 Days | ⬜ To Do |
 | AI-5 | **[HIGH]** Consolidate Duplicate Models & Upload Logic | 7 | 3 Days | ⬜ To Do |
-| AI-6 | **[HIGH]** Fix Unbounded Queries & GridFS DoS Vector | 8 | 2 Days | ⬜ To Do |
+| AI-6 | **[HIGH]** Fix Unbounded Queries & GridFS DoS Vector | 8 | 2 Days | ✅ Complete |
 | AI-7 | **[MED]** Add Missing Indexes & Fix Non-Atomic Deletes | 3, 5 | 1 Day | ⬜ To Do |
 | AI-8 | **[MED]** Refactor Synchronous Auth & Crypto Operations | 6 | 2 Days | ⬜ To Do |
 

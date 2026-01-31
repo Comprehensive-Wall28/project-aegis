@@ -23,10 +23,15 @@ export class SharedFolderRepository extends BaseRepository<ISharedFolder> {
     /**
      * Find all folders shared with a user
      */
-    async findSharedWithUser(userId: string): Promise<ISharedFolder[]> {
+    /**
+     * Find all folders shared with a user
+     */
+    async findSharedWithUser(userId: string, skip: number = 0, limit: number = 100): Promise<ISharedFolder[]> {
         return this.model.find({ sharedWith: userId })
             .populate('folderId')
             .populate('sharedBy', 'username email')
+            .skip(skip)
+            .limit(limit)
             .exec();
     }
 }

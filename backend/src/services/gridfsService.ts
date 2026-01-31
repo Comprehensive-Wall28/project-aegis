@@ -308,10 +308,26 @@ export const uploadBuffer = async (
  * Download a file from GridFS to a buffer.
  * Useful for small files like notes.
  * @param fileId - The GridFS file ID
+ * @param maxSize - Maximum allowed size in bytes (default: 10MB)
  * @returns The file content as a Buffer
  */
-export const downloadToBuffer = async (fileId: any): Promise<Buffer> => {
-    const stream = getFileStream(fileId);
+export const downloadToBuffer = async (fileId: any, maxSize: number = 10 * 1024 * 1024): Promise<Buffer> => {
+    const gridBucket = getBucket();
+    const idString = fileId.toString();
+    const id = new mongoose.mongo.ObjectId(idString);
+
+    // Check file size first
+    const files = await gridBucket.find({ _id: id }).toArray();
+    if (!files || files.length === 0) {
+        throw new Error(`File not found: ${idString}`);
+    }
+
+    const file = files[0];
+    if (file.length > maxSize) {
+        throw new Error(`File too large for buffer download: ${file.length} bytes (max: ${maxSize})`);
+    }
+
+    const stream = gridBucket.openDownloadStream(id);
     const chunks: Buffer[] = [];
 
     return new Promise((resolve, reject) => {
