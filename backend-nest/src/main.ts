@@ -37,5 +37,20 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
   const logger = app.get(Logger);
   logger.log(`Application is running on: ${await app.getUrl()}`);
+
+  // Force shutdown if graceful shutdown fails/hangs
+  const shutdown = async (signal: string) => {
+    logger.log(`Received ${signal}. Shutting down gracefully...`);
+    setTimeout(() => {
+      logger.error('Could not close connections in time, forcefully shutting down');
+      process.exit(1);
+    }, 10000); // 10s timeout
+
+    await app.close();
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 bootstrap();
