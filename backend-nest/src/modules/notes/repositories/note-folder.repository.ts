@@ -11,19 +11,23 @@ export class NoteFolderRepository extends BaseRepository<NoteFolderDocument> {
     }
 
     async findByUserId(userId: string): Promise<NoteFolderDocument[]> {
-        return this.model.find({ userId }).sort({ name: 1 }).exec();
+        return this.findMany({ userId }, { sort: { name: 1 } });
     }
 
     async existsWithName(userId: string, name: string, parentId?: string | null, excludeId?: string): Promise<boolean> {
-        const query: any = { userId, name };
+        const query: any = {
+            userId: new this.model.base.Types.ObjectId(userId),
+            name
+        };
+
         if (parentId) {
-            query.parentId = parentId;
+            query.parentId = new this.model.base.Types.ObjectId(parentId);
         } else {
             query.parentId = null;
         }
 
         if (excludeId) {
-            query._id = { $ne: excludeId };
+            query._id = { $ne: new this.model.base.Types.ObjectId(excludeId) };
         }
 
         return Boolean(await this.model.exists(query));

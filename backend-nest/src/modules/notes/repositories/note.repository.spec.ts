@@ -2,11 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { NoteRepository } from './note.repository';
 import { Note } from '../schemas/note.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 describe('NoteRepository', () => {
     let repository: NoteRepository;
     let model: Model<any>;
+    const userId = new Types.ObjectId().toString();
+    const folderId = new Types.ObjectId().toString();
 
     const mockNoteModel = {
         find: jest.fn(),
@@ -33,8 +35,10 @@ describe('NoteRepository', () => {
                 sort: jest.fn().mockReturnThis(),
                 exec: jest.fn().mockResolvedValue([]),
             });
-            await repository.findByUserId('u');
-            expect(mockNoteModel.find).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u' }));
+            await repository.findByUserId(userId);
+            expect(mockNoteModel.find).toHaveBeenCalledWith(expect.objectContaining({
+                userId: new Types.ObjectId(userId)
+            }));
         });
     });
 
@@ -43,9 +47,11 @@ describe('NoteRepository', () => {
             mockNoteModel.distinct.mockReturnValue({
                 exec: jest.fn().mockResolvedValue(['tag']),
             });
-            const result = await repository.getUniqueTags('u');
+            const result = await repository.getUniqueTags(userId);
             expect(result).toEqual(['tag']);
-            expect(mockNoteModel.distinct).toHaveBeenCalledWith('tags', { userId: 'u' });
+            expect(mockNoteModel.distinct).toHaveBeenCalledWith('tags', {
+                userId: new Types.ObjectId(userId)
+            });
         });
     });
 
@@ -54,9 +60,12 @@ describe('NoteRepository', () => {
             mockNoteModel.updateMany.mockReturnValue({
                 exec: jest.fn().mockResolvedValue({}),
             });
-            await repository.moveNotesToRoot('u', 'f');
+            await repository.moveNotesToRoot(userId, folderId);
             expect(mockNoteModel.updateMany).toHaveBeenCalledWith(
-                { userId: 'u', noteFolderId: 'f' },
+                {
+                    userId: new Types.ObjectId(userId),
+                    noteFolderId: new Types.ObjectId(folderId)
+                },
                 { $set: { noteFolderId: null } }
             );
         });

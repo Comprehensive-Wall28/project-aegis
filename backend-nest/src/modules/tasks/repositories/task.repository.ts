@@ -11,11 +11,11 @@ export class TaskRepository extends BaseRepository<TaskDocument> {
     }
 
     async findByUserId(userId: string, filter?: any): Promise<TaskDocument[]> {
-        return this.model.find({ userId, ...filter }).sort({ status: 1, order: 1 }).exec();
+        return this.findMany({ userId, ...filter }, { sort: { status: 1, order: 1 } });
     }
 
     async getMaxOrderInColumn(userId: string, status: string): Promise<number> {
-        const task = await this.model.findOne({ userId, status }).sort({ order: -1 }).exec();
+        const task = await this.findOne({ userId, status }, { sort: { order: -1 } });
         return task ? task.order : 0;
     }
 
@@ -27,7 +27,7 @@ export class TaskRepository extends BaseRepository<TaskDocument> {
                 const updateData: any = { order };
                 if (status) updateData.status = status;
 
-                await this.model.updateOne({ _id: id, userId }, { $set: updateData }, { session });
+                await this.updateOne({ _id: id, userId }, { $set: updateData }, { session } as any);
             }
             await session.commitTransaction();
         } catch (err) {
@@ -39,13 +39,13 @@ export class TaskRepository extends BaseRepository<TaskDocument> {
     }
 
     async findUpcoming(userId: string, limit: number): Promise<TaskDocument[]> {
-        return this.model.find({
+        return this.findMany({
             userId,
             status: { $ne: 'done' },
             dueDate: { $exists: true, $ne: null }
-        })
-            .sort({ dueDate: 1 })
-            .limit(limit)
-            .exec();
+        }, {
+            sort: { dueDate: 1 },
+            limit
+        });
     }
 }

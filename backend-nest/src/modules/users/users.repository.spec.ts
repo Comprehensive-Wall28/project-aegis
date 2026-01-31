@@ -68,7 +68,7 @@ describe('UsersRepository', () => {
             expect(mockUserModel.exists).toHaveBeenCalledWith(
                 expect.objectContaining({
                     username: 'user',
-                    _id: { $ne: validId }
+                    _id: { $ne: new Types.ObjectId(validId) }
                 })
             );
         });

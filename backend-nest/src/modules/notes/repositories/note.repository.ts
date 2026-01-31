@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BaseRepository } from '../../../common/repositories/base.repository';
+import { QuerySanitizer } from '../../../common/repositories/QuerySanitizer';
 import { Note, NoteDocument } from '../schemas/note.schema';
 
 @Injectable()
@@ -11,22 +12,23 @@ export class NoteRepository extends BaseRepository<NoteDocument> {
     }
 
     async findByUserId(userId: string, filters?: any): Promise<NoteDocument[]> {
-        const query = { userId, ...filters };
-        return this.model.find(query).sort({ updatedAt: -1 }).exec();
+        return this.findMany({ userId, ...filters }, { sort: { updatedAt: -1 } });
     }
 
     async findMentionsOf(userId: string, entityId: string): Promise<NoteDocument[]> {
-        return this.model.find({ userId, linkedEntityIds: entityId }).exec();
+        return this.findMany({ userId, linkedEntityIds: { $in: [entityId] } } as any);
     }
 
     async getUniqueTags(userId: string): Promise<string[]> {
-        return this.model.distinct('tags', { userId }).exec();
+        // BaseRepository doesn't have distinct yet, but QuerySanitizer can be used manually
+        const sanitizedFilter = QuerySanitizer.sanitizeQuery({ userId });
+        return this.model.distinct('tags', sanitizedFilter as any).exec();
     }
 
     async moveNotesToRoot(userId: string, folderId: string): Promise<void> {
-        await this.model.updateMany(
+        await this.updateMany(
             { userId, noteFolderId: folderId },
             { $set: { noteFolderId: null } }
-        ).exec();
+        );
     }
 }

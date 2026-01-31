@@ -31,14 +31,14 @@ describe('QuerySanitizer', () => {
             const id = new mongoose.Types.ObjectId().toString();
             const query = { _id: id };
             const result = QuerySanitizer.sanitizeQuery(query);
-            expect(result._id).toEqual({ $eq: id });
+            expect(result._id).toEqual(new mongoose.Types.ObjectId(id));
         });
 
         it('should handle special _id sanitization with $ne', () => {
             const id = new mongoose.Types.ObjectId().toString();
             const query = { _id: { $ne: id } };
             const result = QuerySanitizer.sanitizeQuery(query);
-            expect(result._id).toEqual({ $ne: id });
+            expect(result._id).toEqual({ $ne: new mongoose.Types.ObjectId(id) });
         });
 
         it('should recursive sanitize nested objects', () => {

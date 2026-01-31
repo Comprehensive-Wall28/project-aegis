@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { NoteFolderRepository } from './repositories/note-folder.repository';
 import { NoteRepository } from './repositories/note.repository';
 import { CreateFolderDTO } from './dto/note.dto';
@@ -21,9 +22,9 @@ export class NoteFolderService {
         }
 
         return this.folderRepository.create({
-            userId: userId as any,
+            userId: new Types.ObjectId(userId) as any,
             name,
-            parentId: parentId as any,
+            parentId: parentId ? new Types.ObjectId(parentId) as any : null,
             color
         });
     }
@@ -64,7 +65,7 @@ export class NoteFolderService {
 
     async remove(id: string, userId: string): Promise<void> {
         // Check existence
-        const folder = await this.findOne(id, userId);
+        await this.findOne(id, userId);
 
         // Get all descendant IDs
         const descendants = await this.folderRepository.getDescendantIds(userId, id);
@@ -76,13 +77,6 @@ export class NoteFolderService {
         }
 
         // Delete folders
-        // We can delete one by one or bulk. Bulk is better but BaseRepo doesn't have bulkDelete easily accessible without loop or complex filter.
-        // Loop for now.
-        // Delete validation is done by findOne above, assuming ownership holds for descendants (it should).
-        // Actually getDescendantIds verifies userId too implicitly via aggregation match? No, needs robust check.
-        // But since we are deleting, we can just deleteMany with { _id: { $in: allIds }, userId }
-        // BaseRepository doesn't expose deleteMany with raw query easily, so let's use deleteById/One
-
         for (const folderId of allIds) {
             await this.folderRepository.deleteOne({ _id: folderId, userId });
         }

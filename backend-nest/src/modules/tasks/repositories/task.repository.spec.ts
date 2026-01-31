@@ -2,11 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { TaskRepository } from './task.repository';
 import { Task } from '../schemas/task.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 describe('TaskRepository', () => {
     let repository: TaskRepository;
     let model: Model<any>;
+    const userId = new Types.ObjectId().toString();
 
     const mockTaskModel = {
         find: jest.fn(),
@@ -37,13 +38,14 @@ describe('TaskRepository', () => {
 
     describe('findByUserId', () => {
         it('should call find with userId and sort', async () => {
-            const userId = 'uid';
             mockTaskModel.find.mockReturnValue({
                 sort: jest.fn().mockReturnThis(),
                 exec: jest.fn().mockResolvedValue([]),
             });
             await repository.findByUserId(userId);
-            expect(mockTaskModel.find).toHaveBeenCalledWith(expect.objectContaining({ userId }));
+            expect(mockTaskModel.find).toHaveBeenCalledWith(expect.objectContaining({
+                userId: new Types.ObjectId(userId)
+            }));
         });
     });
 
@@ -53,7 +55,7 @@ describe('TaskRepository', () => {
                 sort: jest.fn().mockReturnThis(),
                 exec: jest.fn().mockResolvedValue(null),
             });
-            const result = await repository.getMaxOrderInColumn('u', 's');
+            const result = await repository.getMaxOrderInColumn(userId, 's');
             expect(result).toBe(0);
         });
 
@@ -62,7 +64,7 @@ describe('TaskRepository', () => {
                 sort: jest.fn().mockReturnThis(),
                 exec: jest.fn().mockResolvedValue({ order: 5 }),
             });
-            const result = await repository.getMaxOrderInColumn('u', 's');
+            const result = await repository.getMaxOrderInColumn(userId, 's');
             expect(result).toBe(5);
         });
     });
@@ -74,9 +76,9 @@ describe('TaskRepository', () => {
                 limit: jest.fn().mockReturnThis(),
                 exec: jest.fn().mockResolvedValue([]),
             });
-            await repository.findUpcoming('u', 5);
+            await repository.findUpcoming(userId, 5);
             expect(mockTaskModel.find).toHaveBeenCalledWith(expect.objectContaining({
-                userId: 'u',
+                userId: new Types.ObjectId(userId),
                 status: { $ne: 'done' },
             }));
         });
