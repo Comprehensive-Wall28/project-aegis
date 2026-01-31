@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { FoldersService } from './folders.service';
-import { CreateFolderDto, UpdateFolderDto } from './dto/folder.dto';
+import { CreateFolderDto, UpdateFolderDto, MoveFilesDto } from './dto/folder.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { User } from '../users/schemas/user.schema';
 
@@ -14,6 +14,15 @@ export class FoldersController {
         return this.foldersService.getFolders(req.user._id.toString(), parentId);
     }
 
+    @Put('move-files')
+    async moveFiles(@Request() req: any, @Body() moveFilesDto: MoveFilesDto) {
+        const modifiedCount = await this.foldersService.moveFiles(req.user._id.toString(), moveFilesDto);
+        return {
+            message: `Moved ${modifiedCount} file(s)`,
+            modifiedCount
+        };
+    }
+
     @Get(':id')
     getFolder(@Request() req: any, @Param('id') id: string) {
         return this.foldersService.getFolder(req.user._id.toString(), id);
@@ -24,13 +33,14 @@ export class FoldersController {
         return this.foldersService.createFolder(req.user._id.toString(), createFolderDto);
     }
 
-    @Patch(':id')
+    @Put(':id')
     update(@Request() req: any, @Param('id') id: string, @Body() updateFolderDto: UpdateFolderDto) {
         return this.foldersService.updateFolder(req.user._id.toString(), id, updateFolderDto);
     }
 
     @Delete(':id')
-    remove(@Request() req: any, @Param('id') id: string) {
-        return this.foldersService.deleteFolder(req.user._id.toString(), id);
+    async remove(@Request() req: any, @Param('id') id: string) {
+        await this.foldersService.deleteFolder(req.user._id.toString(), id);
+        return { message: 'Folder deleted successfully' };
     }
 }

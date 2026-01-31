@@ -5,6 +5,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { FoldersService } from './folders.service';
 import { FolderRepository } from './folders.repository';
 import { Folder, FolderSchema } from './schemas/folder.schema';
+import { SharedFolder, SharedFolderSchema } from './schemas/shared-folder.schema';
 import { Connection, Types } from 'mongoose';
 import { VaultService } from '../vault/vault.service';
 
@@ -31,7 +32,10 @@ describe('FoldersModule (Integration)', () => {
                 }),
                 MongooseModule.forRoot(uri),
                 // Manually import the Feature for proper Model injection
-                MongooseModule.forFeature([{ name: Folder.name, schema: FolderSchema }]),
+                MongooseModule.forFeature([
+                    { name: Folder.name, schema: FolderSchema },
+                    { name: SharedFolder.name, schema: SharedFolderSchema }
+                ]),
             ],
             providers: [
                 FoldersService,
@@ -39,7 +43,8 @@ describe('FoldersModule (Integration)', () => {
                 {
                     provide: VaultService,
                     useValue: {
-                        countFiles: jest.fn().mockResolvedValue(0)
+                        countFiles: jest.fn().mockResolvedValue(0),
+                        bulkMoveFiles: jest.fn().mockResolvedValue(1)
                     }
                 }
             ]
@@ -130,6 +135,6 @@ describe('FoldersModule (Integration)', () => {
         } as any);
 
         await expect(foldersService.deleteFolder(userId.toHexString(), (root as any)._id.toString()))
-            .rejects.toThrow('Cannot delete folder with subfolders');
+            .rejects.toThrow('Cannot delete folder with subfolders. Delete subfolders first.');
     });
 });

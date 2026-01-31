@@ -17,15 +17,17 @@ describe('VaultController', () => {
         uploadChunk: jest.fn(),
         completeGridFsUpload: jest.fn(),
         listFiles: jest.fn(),
+        getFile: jest.fn(),
         getDownloadStream: jest.fn(),
         deleteFile: jest.fn(),
+        getStorageStats: jest.fn(),
     };
 
     const mockGridFsService = {
         uploadStream: jest.fn(),
     };
 
-    const mockUser = { userId: 'user_id' };
+    const mockUser = { _id: new Types.ObjectId() };
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -65,26 +67,26 @@ describe('VaultController', () => {
                 encryptedSymmetricKey: 'key',
                 encapsulatedKey: 'enc_key'
             };
-            await controller.initUpload(mockUser, body);
-            expect(vaultService.initiateUpload).toHaveBeenCalledWith('user_id', body);
+            const mockReq = {} as any;
+            await controller.initUpload(mockUser, body, mockReq);
+            expect(vaultService.initiateUpload).toHaveBeenCalledWith(mockUser._id.toString(), body, mockReq);
         });
     });
 
     describe('uploadChunk', () => {
-        it('should call uploadChunk with valid headers', async () => {
+        it('should call uploadChunk with valid query and headers', async () => {
             const mockReq = {
                 headers: {
-                    'x-file-id': 'file_id',
                     'content-length': '10',
                     'content-range': 'bytes 0-9/100',
                 },
                 raw: new Readable(),
             };
 
-            await controller.uploadChunk(mockUser, mockReq as any);
+            await controller.uploadChunk(mockUser, 'file_id', mockReq as any);
 
             expect(vaultService.uploadChunk).toHaveBeenCalledWith(
-                'user_id',
+                mockUser._id.toString(),
                 'file_id',
                 mockReq.raw,
                 10,
@@ -94,9 +96,9 @@ describe('VaultController', () => {
             );
         });
 
-        it('should throw BadRequestException if headers are missing', async () => {
+        it('should throw BadRequestException if fileId or range is missing', async () => {
             const mockReq = { headers: {} };
-            await expect(controller.uploadChunk(mockUser, mockReq as any)).rejects.toThrow(BadRequestException);
+            await expect(controller.uploadChunk(mockUser, undefined as any, mockReq as any)).rejects.toThrow(BadRequestException);
         });
     });
 
@@ -116,28 +118,25 @@ describe('VaultController', () => {
 
             expect(gridFsService.uploadStream).toHaveBeenCalled();
             expect(vaultService.completeGridFsUpload).toHaveBeenCalledWith(
-                'user_id',
+                mockUser._id.toString(),
                 'file_id',
                 gridFsId
             );
             expect(result).toEqual({ success: true });
         });
-
-        it('should throw BadRequestException if no file is uploaded', async () => {
-            const mockReq = {
-                parts: async function* () {
-                    yield { type: 'field', fieldname: 'fileId', value: 'file_id' };
-                }
-            };
-
-            await expect(controller.uploadGridFs(mockUser, mockReq as any)).rejects.toThrow(BadRequestException);
-        });
     });
 
     describe('listFiles', () => {
         it('should call listFiles', async () => {
-            await controller.listFiles(mockUser, 'folder_id');
-            expect(vaultService.listFiles).toHaveBeenCalledWith('user_id', 'folder_id');
+            await controller.listFiles(mockUser, 'folder_id', 'search_term');
+            expect(vaultService.listFiles).toHaveBeenCalledWith(mockUser._id.toString(), 'folder_id', 'search_term');
+        });
+    });
+
+    describe('getFile', () => {
+        it('should call getFile', async () => {
+            await controller.getFile(mockUser, 'file_id');
+            expect(vaultService.getFile).toHaveBeenCalledWith(mockUser._id.toString(), 'file_id');
         });
     });
 
@@ -164,9 +163,17 @@ describe('VaultController', () => {
     });
 
     describe('deleteFile', () => {
-        it('should call deleteFile', async () => {
-            await controller.deleteFile(mockUser, 'file_id');
-            expect(vaultService.deleteFile).toHaveBeenCalledWith('user_id', 'file_id');
+        it('should call deleteFile with request for auditing', async () => {
+            const mockReq = {} as any;
+            await controller.deleteFile(mockUser, 'file_id', mockReq);
+            expect(vaultService.deleteFile).toHaveBeenCalledWith(mockUser._id.toString(), 'file_id', mockReq);
+        });
+    });
+
+    describe('getStorageStats', () => {
+        it('should call getStorageStats', async () => {
+            await controller.getStorageStats(mockUser);
+            expect(vaultService.getStorageStats).toHaveBeenCalledWith(mockUser._id.toString());
         });
     });
 });

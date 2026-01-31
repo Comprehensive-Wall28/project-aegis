@@ -24,3 +24,26 @@ export class UpdateFolderDto {
     @IsOptional()
     color?: string;
 }
+
+export class MoveFilesUpdateDto {
+    @IsString()
+    @IsNotEmpty()
+    fileId!: string;
+
+    @IsString()
+    @IsNotEmpty()
+    encryptedKey!: string;
+
+    @IsString()
+    @IsNotEmpty()
+    encapsulatedKey!: string;
+}
+
+export class MoveFilesDto {
+    @IsNotEmpty()
+    updates!: MoveFilesUpdateDto[];
+
+    @IsString()
+    @IsOptional()
+    folderId?: string;
+}

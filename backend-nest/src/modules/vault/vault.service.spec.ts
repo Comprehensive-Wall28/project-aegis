@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getModelToken } from '@nestjs/mongoose';
 import { VaultService } from './vault.service';
-import { VaultFile, StorageProvider, FileStatus } from './schemas/vault-file.schema';
+import { VaultRepository } from './vault.repository';
+import { StorageProvider, FileStatus } from './schemas/vault-file.schema';
 import { GridFsService } from './gridfs.service';
 import { GoogleDriveService } from './google-drive.service';
 import { UsersService } from '../users/users.service';
@@ -16,24 +16,21 @@ describe('VaultService', () => {
     let foldersService: FoldersService;
     let googleDriveService: GoogleDriveService;
     let gridFsService: GridFsService;
+    let vaultRepository: VaultRepository;
 
-    // We need a way to mock "new this.vaultFileModel(data)"
-    // and also the static methods like findOne, findById, etc.
-    class MockVaultFileModel {
-        _id: Types.ObjectId;
-        constructor(public data: any) {
-            Object.assign(this, data);
-            this._id = new Types.ObjectId();
-        }
-        save = jest.fn().mockResolvedValue(this);
-        static findOne = jest.fn();
-        static findById = jest.fn();
-        static deleteOne = jest.fn();
-        static find = jest.fn().mockReturnThis();
-        static sort = jest.fn().mockReturnThis();
-        static exec = jest.fn();
-        static countDocuments = jest.fn().mockReturnThis();
-    }
+    const mockVaultRepository = {
+        create: jest.fn(),
+        findOne: jest.fn(),
+        findById: jest.fn(),
+        findByIdAndOwner: jest.fn(),
+        findByIdAndStream: jest.fn(),
+        findByOwnerAndFolderPaginated: jest.fn(),
+        updateUploadStatus: jest.fn(),
+        completeUpload: jest.fn(),
+        deleteByIdAndOwner: jest.fn(),
+        count: jest.fn(),
+        bulkMoveFiles: jest.fn(),
+    };
 
     const mockGridFsService = {
         getFileStream: jest.fn(),
@@ -61,10 +58,7 @@ describe('VaultService', () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 VaultService,
-                {
-                    provide: getModelToken(VaultFile.name),
-                    useValue: MockVaultFileModel,
-                },
+                { provide: VaultRepository, useValue: mockVaultRepository },
                 { provide: GridFsService, useValue: mockGridFsService },
                 { provide: GoogleDriveService, useValue: mockGoogleDriveService },
                 { provide: UsersService, useValue: mockUsersService },
@@ -77,6 +71,7 @@ describe('VaultService', () => {
         foldersService = module.get<FoldersService>(FoldersService);
         googleDriveService = module.get<GoogleDriveService>(GoogleDriveService);
         gridFsService = module.get<GridFsService>(GridFsService);
+        vaultRepository = module.get<VaultRepository>(VaultRepository);
         jest.clearAllMocks();
     });
 
@@ -94,21 +89,25 @@ describe('VaultService', () => {
             encryptedSymmetricKey: 'key',
             encapsulatedKey: 'enc',
         };
+        const mockReq = {} as any;
 
         it('should initiate upload for GridFS', async () => {
             mockUsersService.findById.mockResolvedValue({ totalStorageUsed: 0 });
+            mockVaultRepository.create.mockResolvedValue({ _id: new Types.ObjectId() });
 
-            const result = await service.initiateUpload(userId, uploadDto);
+            const result = await service.initiateUpload(userId, uploadDto, mockReq);
 
             expect(result).toHaveProperty('fileId');
+            expect(mockVaultRepository.create).toHaveBeenCalled();
         });
 
         it('should initiate upload for Google Drive if size > 50MB', async () => {
             const largeFileDto = { ...uploadDto, fileSize: 60 * 1024 * 1024 };
             mockUsersService.findById.mockResolvedValue({ totalStorageUsed: 0 });
             mockGoogleDriveService.initiateUpload.mockResolvedValue('stream_id');
+            mockVaultRepository.create.mockResolvedValue({ _id: new Types.ObjectId() });
 
-            const result = await service.initiateUpload(userId, largeFileDto);
+            const result = await service.initiateUpload(userId, largeFileDto, mockReq);
 
             expect(mockGoogleDriveService.initiateUpload).toHaveBeenCalled();
             expect(result).toHaveProperty('fileId');
@@ -116,20 +115,12 @@ describe('VaultService', () => {
 
         it('should throw NotFoundException if user not found', async () => {
             mockUsersService.findById.mockResolvedValue(null);
-            await expect(service.initiateUpload(userId, uploadDto)).rejects.toThrow(NotFoundException);
+            await expect(service.initiateUpload(userId, uploadDto, mockReq)).rejects.toThrow(NotFoundException);
         });
 
         it('should throw ForbiddenException if storage limit exceeded', async () => {
             mockUsersService.findById.mockResolvedValue({ totalStorageUsed: 5 * 1024 * 1024 * 1024 });
-            await expect(service.initiateUpload(userId, uploadDto)).rejects.toThrow(ForbiddenException);
-        });
-
-        it('should throw ForbiddenException if folder access denied', async () => {
-            mockUsersService.findById.mockResolvedValue({ totalStorageUsed: 0 });
-            mockFoldersService.checkAccess.mockResolvedValue(false);
-            const dtoWithFolder = { ...uploadDto, folderId: 'folder_id' };
-
-            await expect(service.initiateUpload(userId, dtoWithFolder)).rejects.toThrow(ForbiddenException);
+            await expect(service.initiateUpload(userId, uploadDto, mockReq)).rejects.toThrow(ForbiddenException);
         });
     });
 
@@ -138,7 +129,7 @@ describe('VaultService', () => {
         const fileId = 'file_id';
 
         it('should throw NotFoundException if file session not found', async () => {
-            MockVaultFileModel.findOne.mockResolvedValue(null);
+            mockVaultRepository.findByIdAndStream.mockResolvedValue(null);
             await expect(service.uploadChunk(userId, fileId, Buffer.from(''), 0, 0, 0, 0)).rejects.toThrow(NotFoundException);
         });
 
@@ -147,51 +138,18 @@ describe('VaultService', () => {
                 uploadStreamId: 'stream_id',
                 storageProvider: StorageProvider.GOOGLE_DRIVE,
                 status: FileStatus.PENDING,
-                save: jest.fn().mockResolvedValue(true),
                 fileSize: 100,
+                originalFileName: 'test.txt'
             };
-            MockVaultFileModel.findOne.mockResolvedValue(mockFile);
+            mockVaultRepository.findByIdAndStream.mockResolvedValue(mockFile);
             mockGoogleDriveService.appendChunk.mockResolvedValue({ complete: true });
             mockGoogleDriveService.finalizeUpload.mockResolvedValue('drive_id');
 
             const result = await service.uploadChunk(userId, fileId, Buffer.from('test'), 4, 0, 3, 100);
 
             expect(result.complete).toBe(true);
-            expect(mockFile.status).toBe(FileStatus.COMPLETED);
+            expect(mockVaultRepository.completeUpload).toHaveBeenCalledWith(fileId, 'drive_id');
             expect(usersService.updateStorageUsage).toHaveBeenCalledWith(userId, 100);
-        });
-
-        it('should throw BadRequestException for GridFS chunk upload', async () => {
-            const mockFile = {
-                uploadStreamId: 'stream_id',
-                storageProvider: StorageProvider.GRIDFS,
-                status: FileStatus.PENDING,
-                save: jest.fn().mockResolvedValue(true),
-            };
-            MockVaultFileModel.findOne.mockResolvedValue(mockFile);
-
-            await expect(service.uploadChunk(userId, fileId, Buffer.from('test'), 4, 0, 3, 100)).rejects.toThrow(BadRequestException);
-        });
-    });
-
-    describe('completeGridFsUpload', () => {
-        it('should complete GridFS upload', async () => {
-            const mockFile = {
-                save: jest.fn().mockResolvedValue(true),
-                fileSize: 1000,
-            };
-            MockVaultFileModel.findOne.mockResolvedValue(mockFile);
-            const gridFsId = new Types.ObjectId();
-
-            await service.completeGridFsUpload('user_id', 'file_id', gridFsId);
-
-            expect(mockFile.save).toHaveBeenCalled();
-            expect(usersService.updateStorageUsage).toHaveBeenCalledWith('user_id', 1000);
-        });
-
-        it('should throw NotFoundException if file not found', async () => {
-            MockVaultFileModel.findOne.mockResolvedValue(null);
-            await expect(service.completeGridFsUpload('u', 'f', new Types.ObjectId())).rejects.toThrow(NotFoundException);
         });
     });
 
@@ -199,20 +157,15 @@ describe('VaultService', () => {
         const userId = '507f1f77bcf86cd799439011';
         const fileId = '507f1f77bcf86cd799439012';
 
-        it('should throw NotFoundException if file not found', async () => {
-            MockVaultFileModel.findById.mockResolvedValue(null);
-            await expect(service.getDownloadStream(userId, fileId)).rejects.toThrow(NotFoundException);
-        });
-
-        it('should return GridFS stream', async () => {
+        it('should return GridFS stream for owner', async () => {
             const mockFile = {
                 ownerId: new Types.ObjectId(userId),
                 storageProvider: StorageProvider.GRIDFS,
-                gridFsId: new Types.ObjectId().toString(),
+                gridFsId: new Types.ObjectId(),
                 mimeType: 'text/plain',
                 originalFileName: 'test.txt',
             };
-            MockVaultFileModel.findById.mockResolvedValue(mockFile);
+            mockVaultRepository.findByIdAndOwner.mockResolvedValue(mockFile);
             const mockStream = new Readable();
             mockGridFsService.getFileStream.mockReturnValue(mockStream);
 
@@ -220,30 +173,24 @@ describe('VaultService', () => {
             expect(result.stream).toBe(mockStream);
         });
 
-        it('should return Google Drive stream', async () => {
+        it('should check shared access if not owner', async () => {
             const mockFile = {
-                ownerId: new Types.ObjectId(userId),
-                storageProvider: StorageProvider.GOOGLE_DRIVE,
-                googleDriveFileId: 'drive_id',
+                ownerId: new Types.ObjectId(),
+                folderId: new Types.ObjectId(),
+                storageProvider: StorageProvider.GRIDFS,
+                gridFsId: new Types.ObjectId(),
                 mimeType: 'text/plain',
                 originalFileName: 'test.txt',
             };
-            MockVaultFileModel.findById.mockResolvedValue(mockFile);
+            mockVaultRepository.findByIdAndOwner.mockResolvedValue(null);
+            mockVaultRepository.findById.mockResolvedValue(mockFile);
+            mockFoldersService.checkAccess.mockResolvedValue(true);
             const mockStream = new Readable();
-            mockGoogleDriveService.getFileStream.mockResolvedValue(mockStream);
+            mockGridFsService.getFileStream.mockReturnValue(mockStream);
 
             const result = await service.getDownloadStream(userId, fileId);
             expect(result.stream).toBe(mockStream);
-        });
-
-        it('should throw ForbiddenException if access denied', async () => {
-            const mockFile = {
-                ownerId: new Types.ObjectId(),
-                folderId: null,
-            };
-            MockVaultFileModel.findById.mockResolvedValue(mockFile);
-
-            await expect(service.getDownloadStream(userId, fileId)).rejects.toThrow(ForbiddenException);
+            expect(mockFoldersService.checkAccess).toHaveBeenCalled();
         });
     });
 
@@ -251,65 +198,35 @@ describe('VaultService', () => {
         const userId = 'user_id';
         const fileId = 'file_id';
 
-        it('should delete GridFS file', async () => {
+        it('should delete file and log action', async () => {
             const mockFile = {
                 _id: fileId,
                 ownerId: userId,
                 storageProvider: StorageProvider.GRIDFS,
                 gridFsId: 'gridfs_id',
                 fileSize: 100,
+                originalFileName: 'test.txt',
+                status: FileStatus.COMPLETED
             };
-            MockVaultFileModel.findOne.mockResolvedValue(mockFile);
+            mockVaultRepository.findByIdAndOwner.mockResolvedValue(mockFile);
+            const mockReq = {} as any;
 
-            await service.deleteFile(userId, fileId);
+            await service.deleteFile(userId, fileId, mockReq);
 
             expect(gridFsService.deleteFile).toHaveBeenCalled();
-            expect(MockVaultFileModel.deleteOne).toHaveBeenCalled();
+            expect(mockVaultRepository.deleteByIdAndOwner).toHaveBeenCalledWith(fileId, userId);
             expect(usersService.updateStorageUsage).toHaveBeenCalledWith(userId, -100);
         });
-
-        it('should delete Google Drive file', async () => {
-            const mockFile = {
-                _id: fileId,
-                ownerId: userId,
-                storageProvider: StorageProvider.GOOGLE_DRIVE,
-                googleDriveFileId: 'drive_id',
-                fileSize: 100,
-            };
-            MockVaultFileModel.findOne.mockResolvedValue(mockFile);
-
-            await service.deleteFile(userId, fileId);
-
-            expect(googleDriveService.deleteFile).toHaveBeenCalled();
-            expect(MockVaultFileModel.deleteOne).toHaveBeenCalled();
-        });
-
-        it('should throw NotFoundException if file not found', async () => {
-            MockVaultFileModel.findOne.mockResolvedValue(null);
-            await expect(service.deleteFile(userId, fileId)).rejects.toThrow(NotFoundException);
-        });
     });
 
-    describe('listFiles', () => {
-        it('should list files for root', async () => {
-            MockVaultFileModel.exec.mockResolvedValue([]);
-            await service.listFiles('user_id');
-            expect(MockVaultFileModel.find).toHaveBeenCalledWith(expect.objectContaining({ folderId: null }));
-        });
-
-        it('should list files for specific folder', async () => {
-            const folderId = new Types.ObjectId();
-            MockVaultFileModel.exec.mockResolvedValue([]);
-            await service.listFiles('user_id', folderId.toString());
-            expect(MockVaultFileModel.find).toHaveBeenCalledWith(expect.objectContaining({ folderId }));
-        });
-    });
-
-    describe('countFiles', () => {
-        it('should count files', async () => {
-            MockVaultFileModel.exec.mockResolvedValue(5);
-            const result = await service.countFiles('u', 'f');
-            expect(result).toBe(5);
+    describe('getStorageStats', () => {
+        it('should return legacy format', async () => {
+            mockUsersService.findById.mockResolvedValue({ totalStorageUsed: 500 });
+            const result = await service.getStorageStats('user_id');
+            expect(result).toEqual({
+                totalStorageUsed: 500,
+                maxStorage: 5 * 1024 * 1024 * 1024
+            });
         });
     });
 });

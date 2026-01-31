@@ -31,7 +31,9 @@ export enum AuditAction {
     LOGIN = 'LOGIN',
     LOGOUT = 'LOGOUT',
     VIEW = 'VIEW',
-    DOWNLOAD = 'DOWNLOAD'
+    DOWNLOAD = 'DOWNLOAD',
+    FILE_UPLOAD = 'FILE_UPLOAD',
+    FILE_DELETE = 'FILE_DELETE'
 }
 
 export enum AuditStatus {
@@ -111,7 +113,7 @@ export abstract class BaseService<
         req: FastifyRequest | Record<string, any>, // Allow generic object for flexibility
         details: Record<string, unknown> = {}
     ): void {
-        // TODO: Implement actual AuditLogService injection and usage once Audit module is migrated.
+        // Implement actual AuditLogService injection and usage once Audit module is migrated.
         // For now, we log to stdout for debugging
         this.logger.log(`AUDIT [${action}] User=${userId} Status=${status}`, details);
     }

@@ -4,6 +4,8 @@ import { FolderRepository } from './folders.repository';
 import { VaultService } from '../vault/vault.service';
 import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Types } from 'mongoose';
+import { getModelToken } from '@nestjs/mongoose';
+import { SharedFolder } from './schemas/shared-folder.schema';
 
 describe('FoldersService', () => {
     let service: FoldersService;
@@ -20,8 +22,16 @@ describe('FoldersService', () => {
         deleteById: jest.fn(),
     };
 
+    const mockSharedFolderModel = {
+        find: jest.fn().mockReturnThis(),
+        findOne: jest.fn().mockReturnThis(),
+        populate: jest.fn().mockReturnThis(),
+        exec: jest.fn(),
+    };
+
     const mockVaultService = {
         countFiles: jest.fn(),
+        bulkMoveFiles: jest.fn(),
     };
 
     beforeEach(async () => {
@@ -29,6 +39,7 @@ describe('FoldersService', () => {
             providers: [
                 FoldersService,
                 { provide: FolderRepository, useValue: mockFolderRepository },
+                { provide: getModelToken(SharedFolder.name), useValue: mockSharedFolderModel },
                 { provide: VaultService, useValue: mockVaultService },
             ],
         }).compile();
@@ -46,8 +57,12 @@ describe('FoldersService', () => {
     describe('getFolders', () => {
         const userId = new Types.ObjectId().toString();
 
-        it('should return root folders', async () => {
+        it('should return root folders including shared ones', async () => {
             mockFolderRepository.findMany.mockResolvedValue([]);
+            (mockSharedFolderModel.find as jest.Mock).mockReturnValue({
+                populate: jest.fn().mockResolvedValue([]),
+            });
+
             const result = await service.getFolders(userId);
             expect(result).toEqual([]);
             expect(mockFolderRepository.findMany).toHaveBeenCalledWith(expect.objectContaining({ parentId: null }));
@@ -62,14 +77,21 @@ describe('FoldersService', () => {
             await expect(service.getFolders(userId, new Types.ObjectId().toString())).rejects.toThrow(NotFoundException);
         });
 
-        it('should throw Forbidden if user is not owner', async () => {
-            mockFolderRepository.findById.mockResolvedValue({ ownerId: new Types.ObjectId() });
-            await expect(service.getFolders(userId, new Types.ObjectId().toString())).rejects.toThrow(ForbiddenException);
+        it('should return subfolders if user is owner', async () => {
+            const parentId = new Types.ObjectId().toString();
+            mockFolderRepository.findById.mockResolvedValue({
+                ownerId: new Types.ObjectId(userId),
+                _id: parentId
+            });
+            mockFolderRepository.findMany.mockResolvedValue([]);
+
+            const result = await service.getFolders(userId, parentId);
+            expect(result).toEqual([]);
         });
     });
 
     describe('deleteFolder', () => {
-        const userId = 'uid';
+        const userId = new Types.ObjectId().toString();
         const folderId = new Types.ObjectId().toString();
 
         it('should delete folder if empty', async () => {
@@ -85,20 +107,20 @@ describe('FoldersService', () => {
         it('should throw BadRequest if it has subfolders', async () => {
             mockFolderRepository.findOne.mockResolvedValue({ _id: folderId, ownerId: userId });
             mockFolderRepository.count.mockResolvedValue(1);
-            await expect(service.deleteFolder(userId, folderId)).rejects.toThrow('Cannot delete folder with subfolders');
+            await expect(service.deleteFolder(userId, folderId)).rejects.toThrow('Cannot delete folder with subfolders. Delete subfolders first.');
         });
 
         it('should throw BadRequest if it has files', async () => {
             mockFolderRepository.findOne.mockResolvedValue({ _id: folderId, ownerId: userId });
             mockFolderRepository.count.mockResolvedValue(0);
             mockVaultService.countFiles.mockResolvedValue(1);
-            await expect(service.deleteFolder(userId, folderId)).rejects.toThrow('Cannot delete folder containing files');
+            await expect(service.deleteFolder(userId, folderId)).rejects.toThrow('Cannot delete folder with files. Move or delete files first.');
         });
     });
 
     describe('getFolder', () => {
         it('should build path correctly', async () => {
-            const userId = 'u';
+            const userId = new Types.ObjectId().toString();
             const rootId = new Types.ObjectId();
             const childId = new Types.ObjectId();
 
@@ -112,6 +134,22 @@ describe('FoldersService', () => {
 
             expect(result.path).toHaveLength(1);
             expect(result.path[0].name).toBe('Root');
+        });
+    });
+
+    describe('moveFiles', () => {
+        it('should call VaultService.bulkMoveFiles', async () => {
+            const userId = new Types.ObjectId().toString();
+            const folderId = new Types.ObjectId().toString();
+            const updates = [{ fileId: new Types.ObjectId().toString(), encryptedKey: 'k', encapsulatedKey: 'e' }];
+
+            mockFolderRepository.findById.mockResolvedValue({ ownerId: new Types.ObjectId(userId) });
+            mockVaultService.bulkMoveFiles.mockResolvedValue(1);
+
+            const result = await service.moveFiles(userId, { updates, folderId });
+
+            expect(result).toBe(1);
+            expect(mockVaultService.bulkMoveFiles).toHaveBeenCalledWith(userId, updates, folderId);
         });
     });
 });

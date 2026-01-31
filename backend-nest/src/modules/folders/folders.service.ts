@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
-import { Types } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
 import { Folder, FolderDocument } from './schemas/folder.schema';
-import { CreateFolderDto, UpdateFolderDto } from './dto/folder.dto';
+import { SharedFolder, SharedFolderDocument } from './schemas/shared-folder.schema';
+import { CreateFolderDto, UpdateFolderDto, MoveFilesDto } from './dto/folder.dto';
 import { BaseService, ServiceError } from '../../common/services/base.service';
 import { FolderRepository } from './folders.repository';
 import { VaultService } from '../vault/vault.service';
@@ -10,6 +12,7 @@ import { VaultService } from '../vault/vault.service';
 export class FoldersService extends BaseService<FolderDocument, FolderRepository> {
     constructor(
         private readonly folderRepository: FolderRepository,
+        @InjectModel(SharedFolder.name) private readonly sharedFolderModel: Model<SharedFolderDocument>,
         @Inject(forwardRef(() => VaultService)) private readonly vaultService: VaultService,
     ) {
         super(folderRepository);
@@ -17,39 +20,73 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
 
     /**
      * Get folders for a user in a specific parent folder (or root)
-     * TODO: Add shared folders logic (Phase 4)
      */
     async getFolders(userId: string, parentId?: string): Promise<any[]> {
-        if (!parentId || parentId === 'null') {
-            // Root folders
+        // Normalize parentId
+        let normalizedParentId: string | null = null;
+        if (parentId && parentId !== 'null' && parentId !== '') {
+            normalizedParentId = parentId;
+        }
+
+        if (normalizedParentId === null) {
+            // Root level: owned folders + shared folders
             const ownedFolders = await this.folderRepository.findMany({
                 ownerId: new Types.ObjectId(userId),
                 parentId: null,
             });
 
-            // TODO: Fetch shared folders (Phase 4)
-            return ownedFolders;
+            const sharedFolderEntries = await this.sharedFolderModel.find({ sharedWith: new Types.ObjectId(userId) })
+                .populate('folderId');
+
+            const sharedFolders = sharedFolderEntries
+                .filter(sf => sf.folderId)
+                .map(sf => {
+                    const f = sf.folderId as any;
+                    return {
+                        ...f.toObject(),
+                        isSharedWithMe: true,
+                        encryptedSharedKey: sf.encryptedSharedKey,
+                        permissions: sf.permissions
+                    };
+                });
+
+            return [...ownedFolders, ...sharedFolders];
         }
 
-        if (!Types.ObjectId.isValid(parentId)) {
-            throw new BadRequestException('Invalid parent folder ID');
+        // Validate normalizedParentId before usage
+        if (!Types.ObjectId.isValid(normalizedParentId)) {
+            throw new BadRequestException('Invalid folder ID format');
         }
 
-        const parent = await this.folderRepository.findById(parentId);
-        if (!parent) {
+        const parentFolder = await this.folderRepository.findById(normalizedParentId);
+        if (!parentFolder) {
             throw new NotFoundException('Parent folder not found');
         }
 
-        // Check access
-        if (parent.ownerId.toString() !== userId) {
-            // TODO: Check shared access (Phase 4)
+        const isOwner = parentFolder.ownerId.toString() === userId;
+        let hasAccess = isOwner;
+
+        if (!hasAccess) {
+            hasAccess = await this.checkSharedAccess(normalizedParentId, userId, parentFolder);
+        }
+
+        if (!hasAccess) {
             throw new ForbiddenException('Access denied');
         }
 
+        // Fetch subfolders owned by folder's owner
         const subfolders = await this.folderRepository.findMany({
-            parentId: new Types.ObjectId(parentId),
-            ownerId: new Types.ObjectId(userId), // Only own subfolders for now
+            parentId: new Types.ObjectId(normalizedParentId),
+            ownerId: parentFolder.ownerId,
         });
+
+        // Mark as shared if not owner
+        if (!isOwner) {
+            return subfolders.map(f => ({
+                ...f.toObject(),
+                isSharedWithMe: true
+            }));
+        }
 
         return subfolders;
     }
@@ -62,13 +99,34 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
             throw new BadRequestException('Invalid folder ID');
         }
 
-        const folder = await this.folderRepository.findOne({
+        let folder = await this.folderRepository.findOne({
             _id: folderId,
-            ownerId: userId // Strict ownership check for now
+            ownerId: userId
         });
 
         if (!folder) {
-            // TODO: Check shared access (Phase 4)
+            // Check direct shared access
+            const isShared = await this.sharedFolderModel.findOne({
+                folderId: new Types.ObjectId(folderId),
+                sharedWith: new Types.ObjectId(userId)
+            });
+            if (isShared) {
+                folder = await this.folderRepository.findById(folderId);
+            }
+        }
+
+        if (!folder) {
+            // Check ancestor shared access
+            const targetFolder = await this.folderRepository.findById(folderId);
+            if (targetFolder) {
+                const hasAccess = await this.checkSharedAccess(folderId, userId, targetFolder);
+                if (hasAccess) {
+                    folder = targetFolder;
+                }
+            }
+        }
+
+        if (!folder) {
             throw new NotFoundException('Folder not found or access denied');
         }
 
@@ -147,10 +205,8 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
             // Check ownership
             if (folder.ownerId.toString() === userId) return true;
 
-            // Check explicitly shared
-            // Note: Assuming SharedFolder check logic would be here or in repository
-            // For now, implementing basic ownership check
-            return false;
+            // Check shared access
+            return await this.checkSharedAccess(folderId, userId, folder);
         } catch (e) {
             return false;
         }
@@ -163,15 +219,78 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
         // Check for subfolders
         const subcount = await this.folderRepository.count({ parentId: folderId });
         if (subcount > 0) {
-            throw new BadRequestException('Cannot delete folder with subfolders');
+            throw new BadRequestException('Cannot delete folder with subfolders. Delete subfolders first.');
         }
 
-        // Check for files (Phase 3 - Vault Module)
+        // Check for files
         const fileCount = await this.vaultService.countFiles(userId, folderId);
         if (fileCount > 0) {
-            throw new BadRequestException('Cannot delete folder containing files');
+            throw new BadRequestException('Cannot delete folder with files. Move or delete files first.');
         }
 
         await this.folderRepository.deleteById(folderId);
+    }
+
+    /**
+     * Move files to a folder
+     */
+    async moveFiles(userId: string, moveFilesDto: MoveFilesDto): Promise<number> {
+        const { updates, folderId } = moveFilesDto;
+
+        if (!updates || !Array.isArray(updates) || updates.length === 0) {
+            throw new BadRequestException('File updates are required');
+        }
+
+        // Normalize folderId
+        let normalizedFolderId: string | null = null;
+        if (folderId && folderId !== '' && folderId !== 'root') {
+            normalizedFolderId = folderId;
+
+            // Validate folder exists and user has access
+            const hasAccess = await this.checkAccess(userId, normalizedFolderId);
+            if (!hasAccess) {
+                throw new NotFoundException('Target folder not found or access denied');
+            }
+        }
+
+        // Perform bulk move via VaultService
+        return this.vaultService.bulkMoveFiles(userId, updates, normalizedFolderId);
+    }
+
+    /**
+     * Check if user has shared access to a folder (direct or ancestor)
+     */
+    private async checkSharedAccess(
+        folderId: string,
+        userId: string,
+        folder: FolderDocument
+    ): Promise<boolean> {
+        // Check direct share
+        const directShare = await this.sharedFolderModel.findOne({
+            folderId: new Types.ObjectId(folderId),
+            sharedWith: new Types.ObjectId(userId)
+        });
+        if (directShare) {
+            return true;
+        }
+
+        // Check ancestors
+        let current = folder;
+        let depth = 0;
+        while (current.parentId && depth < 20) {
+            const ancestorShare = await this.sharedFolderModel.findOne({
+                folderId: current.parentId,
+                sharedWith: new Types.ObjectId(userId)
+            });
+            if (ancestorShare) {
+                return true;
+            }
+            const parent = await this.folderRepository.findById(current.parentId.toString());
+            if (!parent) break;
+            current = parent;
+            depth++;
+        }
+
+        return false;
     }
 }
