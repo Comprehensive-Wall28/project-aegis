@@ -33,17 +33,55 @@ export class GoogleDriveService {
         const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
         const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET');
         const refreshToken = this.configService.get<string>('GOOGLE_REFRESH_TOKEN');
+        const redirectUri = this.configService.get<string>('GOOGLE_REDIRECT_URI');
 
-        if (!clientId || !clientSecret || !refreshToken) {
-            throw new Error('Missing OAuth2 credentials: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN are required');
+        if (!clientId || !clientSecret) {
+            throw new Error('Missing OAuth2 credentials: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required');
         }
 
-        this.oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-        this.oauth2Client.setCredentials({ refresh_token: refreshToken });
+        this.oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+
+        if (refreshToken) {
+            this.oauth2Client.setCredentials({ refresh_token: refreshToken });
+        }
 
         this.driveClient = google.drive({ version: 'v3', auth: this.oauth2Client });
         this.logger.log('Google Drive client initialized with OAuth2');
         return this.driveClient;
+    }
+
+    /**
+     * Generate the Google authorization URL
+     */
+    getAuthUrl(): string {
+        this.initializeClient();
+        if (!this.oauth2Client) throw new Error('OAuth2 client not initialized');
+
+        return this.oauth2Client.generateAuthUrl({
+            access_type: 'offline', // Required for refresh token
+            scope: ['https://www.googleapis.com/auth/drive.file'],
+            prompt: 'consent' // Force consent to ensure refresh token is returned
+        });
+    }
+
+    /**
+     * Exchange authorization code for tokens
+     */
+    async exchangeCode(code: string): Promise<any> {
+        this.initializeClient();
+        if (!this.oauth2Client) throw new Error('OAuth2 client not initialized');
+
+        const { tokens } = await this.oauth2Client.getToken(code);
+        this.oauth2Client.setCredentials(tokens);
+
+        if (tokens.refresh_token) {
+            this.logger.log('Successfully retrieved Google Refresh Token. Please update your GOOGLE_REFRESH_TOKEN environment variable.');
+            // We log it so the admin can copy it to .env
+            // In a more automated system, we'd save this to a database or KV store.
+            this.logger.debug(`Refresh Token: ${tokens.refresh_token}`);
+        }
+
+        return tokens;
     }
 
     private getFolderId(): string {

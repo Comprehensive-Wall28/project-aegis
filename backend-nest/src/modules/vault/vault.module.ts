@@ -5,6 +5,7 @@ import { GridFsService } from './gridfs.service';
 import { GoogleDriveService } from './google-drive.service';
 import { VaultService } from './vault.service';
 import { VaultController } from './vault.controller';
+import { GoogleDriveController } from './google-drive.controller';
 import { VaultFile, VaultFileSchema } from './schemas/vault-file.schema';
 import { UsersModule } from '../users/users.module';
 import { FoldersModule } from '../folders/folders.module';
@@ -17,7 +18,7 @@ import { FoldersModule } from '../folders/folders.module';
         UsersModule,
         FoldersModule
     ],
-    controllers: [VaultController],
+    controllers: [VaultController, GoogleDriveController],
     providers: [GridFsService, GoogleDriveService, VaultService],
     exports: [VaultService, GridFsService],
 })

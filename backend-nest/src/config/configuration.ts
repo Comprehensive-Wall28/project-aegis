@@ -64,6 +64,10 @@ export class EnvironmentVariables {
     @IsString()
     @IsOptional()
     GOOGLE_DRIVE_FOLDER_ID!: string;
+
+    @IsString()
+    @IsOptional()
+    GOOGLE_REDIRECT_URI!: string;
 }
 
 export function validate(config: Record<string, unknown>) {
