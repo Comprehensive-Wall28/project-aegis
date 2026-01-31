@@ -23,9 +23,8 @@
 - [x] **Folder Module** (Vault Structure, Schema, Service, Controller)
 - [x] **Calendar Module** (Events, Schema, Service, Controller)
 - [x] **GPA Module** (Courses, Schema, Service, Controller)
-- [ ] **Task Module** (Tasks, Schema, Service, Controller)
-- [ ] Calendar module
-- [ ] GPA module
+- [x] **Task Module** (Tasks, Schema, Service, Controller)
+- [x] **Note Module** (Notes, Schema, Service, Controller)
 
 ### Phase 3: Complex Features
 - [ ] Vault module (GridFS)

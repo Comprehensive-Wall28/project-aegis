@@ -13,6 +13,9 @@ import { UsersModule } from './modules/users/users.module';
 import { FoldersModule } from './modules/folders/folders.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { GpaModule } from './modules/gpa/gpa.module';
+import { VaultModule } from './modules/vault/vault.module';
+import { TasksModule } from './modules/tasks/tasks.module';
+import { NotesModule } from './modules/notes/notes.module';
 
 @Module({
   imports: [
@@ -51,6 +54,9 @@ import { GpaModule } from './modules/gpa/gpa.module';
     FoldersModule,
     CalendarModule,
     GpaModule,
+    VaultModule,
+    TasksModule,
+    NotesModule,
   ],
   controllers: [AppController],
   providers: [
