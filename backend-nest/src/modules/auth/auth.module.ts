@@ -7,6 +7,8 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { AuditService } from '../../common/services/audit.service';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
     imports: [
@@ -20,9 +22,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
                 signOptions: { expiresIn: '365d' },
             }),
         }),
+        MongooseModule.forRoot(
+            process.env.SECONDARY_MONGODB_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/aegis',
+            { connectionName: 'secondary' }
+        ),
     ],
     controllers: [AuthController],
-    providers: [AuthService, JwtStrategy],
+    providers: [AuthService, JwtStrategy, AuditService],
     exports: [AuthService]
 })
 export class AuthModule { }

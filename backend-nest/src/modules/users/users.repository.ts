@@ -19,6 +19,15 @@ export class UsersRepository extends BaseRepository<UserDocument> {
         return this.findOne({ username: username.trim() });
     }
 
+    async findByEmailOrUsername(email: string, username: string): Promise<UserDocument | null> {
+        return this.findOne({
+            $or: [
+                { email: email.toLowerCase().trim() },
+                { username: username.trim() }
+            ]
+        });
+    }
+
     async isEmailTaken(email: string, excludeUserId?: string): Promise<boolean> {
         const query: any = { email: email.toLowerCase().trim() };
         if (excludeUserId) {
@@ -43,8 +52,16 @@ export class UsersRepository extends BaseRepository<UserDocument> {
     }
 
     async updatePasswordHash(userId: string, hash: string | undefined): Promise<void> {
-        await this.updateById(userId, {
-            $set: { passwordHash: hash }
-        } as any);
+        if (hash === undefined) {
+            // Remove password hash
+            await this.updateById(userId, {
+                $unset: { passwordHash: '' }
+            } as any);
+        } else {
+            // Set password hash
+            await this.updateById(userId, {
+                $set: { passwordHash: hash }
+            } as any);
+        }
     }
 }

@@ -9,6 +9,10 @@ const apiClient = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    // Enable automatic CSRF token handling
+    // Axios will automatically read XSRF-TOKEN cookie and send it in X-XSRF-TOKEN header
+    xsrfCookieName: 'XSRF-TOKEN',
+    xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
 export default apiClient;

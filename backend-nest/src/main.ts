@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
+import { initCryptoUtils } from './common/utils/cryptoUtils';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -12,16 +13,38 @@ async function bootstrap() {
     { bufferLogs: true } // Buffer logs until custom logger is attached
   );
 
+  // Get config service once for all configuration
+  const configService = app.get(ConfigService);
+  
+  // Register cookie parser
   await app.register(require('@fastify/cookie'), {
-    secret: process.env.COOKIE_SECRET
+    secret: configService.get<string>('COOKIE_SECRET') || process.env.COOKIE_SECRET
+  });
+
+  // Register CSRF protection
+  await app.register(require('@fastify/csrf-protection'), {
+    cookieOpts: { 
+      signed: false,
+      httpOnly: false, // Frontend needs to read XSRF-TOKEN cookie
+      sameSite: configService.get<string>('NODE_ENV') === 'production' ? 'none' : 'lax',
+      secure: configService.get<string>('NODE_ENV') === 'production',
+    },
+    sessionPlugin: '@fastify/cookie',
+    cookieKey: 'XSRF-TOKEN', // Cookie name that frontend reads
+    getToken: (req: any) => {
+      // Check for token in header (sent by frontend)
+      return req.headers['x-xsrf-token'] || req.headers['x-csrf-token'];
+    },
   });
 
   app.useLogger(app.get(Logger));
 
+  // Initialize crypto utils with config service
+  initCryptoUtils(configService);
+
   // MATCHING OLD BACKEND PREFIX
   app.setGlobalPrefix('api');
 
-  const configService = app.get(ConfigService);
   const clientOrigin = configService.get<string>('CLIENT_ORIGIN') || 'http://localhost:5173';
 
   app.enableCors({
