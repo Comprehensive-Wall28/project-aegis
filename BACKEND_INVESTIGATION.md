@@ -178,8 +178,8 @@ backend/src/
 |------|-------|----------|---------------|
 | `utils/scraper.ts` | Hardcoded User Agents list (gets stale) | 🟢 Low | Fetch latest UAs from an external source or use a library like `user-agents`. |
 | `utils/scraper.ts` | Synchronous `fs.readFileSync` at module level | 🟢 Low | Move `readabilityScript` loading to an async init function or `await` it. |
-| `utils/cryptoUtils.ts` | `decryptToken` uses synchronous crypto repeatedly | 🟡 Medium | Verify performance impact; consider async version if high throughput needed (though `createDecipheriv` is fast). |
-| `middleware/authMiddleware.ts` | Synchronous decryption & JWT verify on every request | 🟡 Medium | Potential CPU bottleneck under high load. Consider caching verification results or session-based approach. |
+| `utils/cryptoUtils.ts` | `decryptToken` uses synchronous crypto repeatedly | ✅ Complete | Refactored to async. |
+| `middleware/authMiddleware.ts` | Synchronous decryption & JWT verify on every request | ✅ Complete | Fixed in Phase 5.2. Using async decryption and promisified JWT verify. |
 | `middleware/rateLimiter.ts` | Uses in-memory store (default) | 🟠 High | Switch to Redis store (`rate-limit-redis`) for persistence and cluster support. |
 | `utils/SocketManager.ts` | `init` method not idempotent | 🟢 Low | Add check `if (this.io) return;` at start of `init`. |
 | `utils/auditLogger.ts` | Swallows errors implicitly (no fallback logging) | 🟢 Low | Ensure critical audit failures are at least logged to stderr/monitoring. |
@@ -260,8 +260,8 @@ backend/src/
    - `AuthService.updateProfile`: High complexity.
 
 ### 🟢 Low (P3)
-1. **Maintenance**: Hardcoded User Agents, synchronous file reads in `scraper.ts`.
-2. **Consistency**: Mixed REST/RPC route naming, manual query parsing.
+1. **Maintenance**: ✅ Hardcoded User Agents, synchronous file reads in `scraper.ts`.
+2. **Consistency**: ✅ Mixed REST/RPC route naming, manual query parsing.
 3. **Minor**: Missing indexes on secondary lookup fields.
 
 ---
@@ -277,7 +277,7 @@ backend/src/
 | AI-5 | **[HIGH]** Consolidate Duplicate Models & Upload Logic | 7 | 3 Days | ⬜ To Do |
 | AI-6 | **[HIGH]** Fix Unbounded Queries & GridFS DoS Vector | 8 | 2 Days | ✅ Complete |
 | AI-7 | **[MED]** Add Missing Indexes & Fix Non-Atomic Deletes | 3, 5 | 1 Day | ⬜ To Do |
-| AI-8 | **[MED]** Refactor Synchronous Auth & Crypto Operations | 6 | 2 Days | ⬜ To Do |
+| AI-8 | **[MED]** Refactor Synchronous Auth & Crypto Operations | 6 | 2 Days | ✅ Complete |
 
 
 ## Notes

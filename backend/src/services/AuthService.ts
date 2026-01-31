@@ -75,11 +75,11 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         super(new UserRepository());
     }
 
-    private generateToken(id: string, username: string): string {
+    private async generateToken(id: string, username: string): Promise<string> {
         const jwtToken = jwt.sign({ id, username }, config.jwtSecret, {
             expiresIn: '365d'
         });
-        return encryptToken(jwtToken);
+        return await encryptToken(jwtToken);
     }
 
     private formatUserResponse(user: IUser): UserResponse {
@@ -224,7 +224,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
             // No 2FA, complete login
-            const token = this.generateToken(user._id.toString(), user.username);
+            const token = await this.generateToken(user._id.toString(), user.username);
             setCookie(token);
 
             await this.logAction(user._id.toString(), 'LOGIN', 'SUCCESS', req, {
@@ -526,7 +526,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             user.currentChallenge = undefined;
             await user.save();
 
-            const token = this.generateToken(user._id.toString(), user.username);
+            const token = await this.generateToken(user._id.toString(), user.username);
             setCookie(token);
 
             await this.logAction(user._id.toString(), 'PASSKEY_LOGIN', 'SUCCESS', req, {

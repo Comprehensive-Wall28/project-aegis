@@ -1,14 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { promisify } from 'util';
 import logger from '../utils/logger';
 import { decryptToken } from '../utils/cryptoUtils';
 import { config } from '../config/env';
+
+const verifyJwt = promisify(jwt.verify) as any;
 
 interface AuthRequest extends Request {
     user?: any;
 }
 
-export const protect = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
     let token: string | undefined;
 
     // Check for token in Authorization header (Bearer <token>)
@@ -26,8 +29,8 @@ export const protect = (req: AuthRequest, res: Response, next: NextFunction) => 
     }
 
     try {
-        const decryptedToken = decryptToken(token);
-        const decoded = jwt.verify(decryptedToken, config.jwtSecret);
+        const decryptedToken = await decryptToken(token);
+        const decoded = await verifyJwt(decryptedToken, config.jwtSecret);
         req.user = decoded;
         next();
     } catch (error) {
