@@ -18,7 +18,6 @@ import shareRoutes from './routes/shareRoutes';
 import publicRoutes from './routes/publicRoutes';
 import mentionRoutes from './routes/mentionRoutes';
 import activityRoutes from './routes/activityRoutes';
-import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 import { config, validateConfig } from './config/env';
 
@@ -64,8 +63,6 @@ app.use(cookieParser());
 
 // CSRF Protection is applied per-route via middleware/customCsrf.ts
 // Login/register are excluded to prevent race conditions on fresh page loads.
-app.use('/api/', apiLimiter);
-app.use('/api/auth', authLimiter); // Stricter limit for auth
 
 app.use('/api/auth', authRoutes);
 app.use('/api/vault', vaultRoutes);

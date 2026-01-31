@@ -19,7 +19,6 @@ import { csrfProtection, csrfTokenCookie } from '../middleware/customCsrf';
 const router = express.Router();
 
 // Public routes - NO CSRF protection (prevents race condition on fresh page loads)
-// These are protected by rate limiting instead
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 
