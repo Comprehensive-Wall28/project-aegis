@@ -1,5 +1,6 @@
 # Stage 1: Build
-FROM node:lts-slim AS build
+# Stage 1: Build
+FROM node:24-slim AS build
 WORKDIR /usr/src/app
 COPY package*.json ./
 # Skip chromium download (we install system deps later)
@@ -9,7 +10,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Production
-FROM node:lts-slim
+FROM node:24-slim
 WORKDIR /usr/src/app
 COPY package*.json ./
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true

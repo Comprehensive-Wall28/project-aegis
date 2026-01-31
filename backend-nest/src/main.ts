@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
@@ -19,6 +20,16 @@ async function bootstrap() {
 
   // MATCHING OLD BACKEND PREFIX
   app.setGlobalPrefix('api');
+
+  const configService = app.get(ConfigService);
+  const clientOrigin = configService.get<string>('CLIENT_ORIGIN') || 'http://localhost:5173';
+
+  app.enableCors({
+    origin: clientOrigin,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-xsrf-token', 'x-csrf-token'],
+  });
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,

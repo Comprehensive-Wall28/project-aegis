@@ -9,4 +9,8 @@ export class LoginDto {
     @IsString()
     @IsNotEmpty()
     argon2Hash!: string;
+
+    @IsString()
+    @IsOptional()
+    legacyHash?: string;
 }

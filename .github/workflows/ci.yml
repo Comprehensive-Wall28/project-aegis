@@ -45,9 +45,16 @@ jobs:
       env:
         MONGO_URI: mongodb://localhost:27017/aegis_test
         AUDIT_MONGO_URI: mongodb://localhost:27017/aegis_audit_test
+        JWT_SECRET: "test_secret_key_12345"
+        NODE_ENV: "test"
 
     - name: Run E2E Tests
       run: npm run test:e2e
       env:
         MONGO_URI: mongodb://localhost:27017/aegis_e2e
         AUDIT_MONGO_URI: mongodb://localhost:27017/aegis_audit_e2e
+        JWT_SECRET: "test_secret_key_12345"
+        CLIENT_ORIGIN: "http://localhost:3000"
+        RP_ID: "localhost"
+        CSRF_SECRET: "csrf_test_secret"
+        NODE_ENV: "test"
