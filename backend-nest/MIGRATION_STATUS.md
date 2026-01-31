@@ -32,7 +32,7 @@
   - [x] Implement Vault Controller (Upload/Download/List)
     - [x] Verify encryption/decryption logic
 - [x] Scraper module (Embedded)
-- [ ] WebSocket gateway
+- [x] WebSocket gateway
 - [ ] Google Drive OAuth
 
 ### Phase 4: Testing

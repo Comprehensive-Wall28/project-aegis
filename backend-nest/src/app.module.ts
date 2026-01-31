@@ -17,6 +17,7 @@ import { VaultModule } from './modules/vault/vault.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { NotesModule } from './modules/notes/notes.module';
 import { SocialModule } from './modules/social/social.module';
+import { WebsocketModule } from './modules/websocket/websocket.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { SocialModule } from './modules/social/social.module';
     TasksModule,
     NotesModule,
     SocialModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [
