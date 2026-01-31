@@ -1,6 +1,6 @@
 # NestJS Migration Status
 
-## Current Phase: 2 - Core Services
+## Current Phase: 3 - Complex Features
 ## Last Updated: 2026-01-31
 
 ### Phase 0: Preparation
@@ -31,7 +31,7 @@
   - [x] Implement GridFS Service (Streaming)
   - [x] Implement Vault Controller (Upload/Download/List)
     - [x] Verify encryption/decryption logic
-- [ ] Scraper module (Embedded)
+- [x] Scraper module (Embedded)
 - [ ] WebSocket gateway
 - [ ] Google Drive OAuth
 

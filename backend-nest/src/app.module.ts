@@ -16,6 +16,7 @@ import { GpaModule } from './modules/gpa/gpa.module';
 import { VaultModule } from './modules/vault/vault.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { NotesModule } from './modules/notes/notes.module';
+import { SocialModule } from './modules/social/social.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { NotesModule } from './modules/notes/notes.module';
     VaultModule,
     TasksModule,
     NotesModule,
+    SocialModule,
   ],
   controllers: [AppController],
   providers: [

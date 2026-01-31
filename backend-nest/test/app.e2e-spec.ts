@@ -1,6 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+
+jest.mock('p-queue', () => {
+  return jest.fn().mockImplementation(() => {
+    return {
+      add: jest.fn().mockImplementation((fn) => fn()),
+      on: jest.fn(),
+      size: 0,
+      pending: 0,
+    };
+  });
+});
+
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
 
