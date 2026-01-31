@@ -10,6 +10,9 @@ import { AppService } from './app.service';
 
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { FoldersModule } from './modules/folders/folders.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
+import { GpaModule } from './modules/gpa/gpa.module';
 
 @Module({
   imports: [
@@ -43,6 +46,11 @@ import { UsersModule } from './modules/users/users.module';
       },
     }),
     DatabaseModule,
+    AuthModule,
+    UsersModule,
+    FoldersModule,
+    CalendarModule,
+    GpaModule,
   ],
   controllers: [AppController],
   providers: [

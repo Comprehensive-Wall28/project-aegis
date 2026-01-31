@@ -36,6 +36,9 @@ export class User {
         backgroundBlur?: number;
         backgroundOpacity?: number;
     };
+
+    @Prop({ default: 'NORMAL', enum: ['NORMAL', 'GERMAN'] })
+    gpaSystem!: string;
 }
 
 export type UserDocument = User & Document;

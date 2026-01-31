@@ -19,10 +19,11 @@
 - [x] Config module
 
 ### Phase 2: Core Services
-- [x] Auth module (Login, Register, JWT, PQC - NO WebAuthn)
-- [ ] Task module
-- [ ] Note module
-- [ ] Folder module
+- [x] **Auth Module** (User, Login, Registration, JWT)
+- [x] **Folder Module** (Vault Structure, Schema, Service, Controller)
+- [x] **Calendar Module** (Events, Schema, Service, Controller)
+- [x] **GPA Module** (Courses, Schema, Service, Controller)
+- [ ] **Task Module** (Tasks, Schema, Service, Controller)
 - [ ] Calendar module
 - [ ] GPA module
 
