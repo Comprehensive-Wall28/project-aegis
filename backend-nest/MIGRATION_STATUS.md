@@ -19,7 +19,7 @@
 - [x] Config module
 
 ### Phase 2: Core Services
-- [ ] Auth module (Login, Register, JWT, PQC - NO WebAuthn)
+- [x] Auth module (Login, Register, JWT, PQC - NO WebAuthn)
 - [ ] Task module
 - [ ] Note module
 - [ ] Folder module

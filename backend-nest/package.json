@@ -1,6 +1,6 @@
 {
   "name": "aegis-nest-backend",
-  "version": "0.0.1-alpha",
+  "version": "0.0.2-alpha.1",
   "description": "",
   "author": "Fady Osama - [Comprehensive-Wall28]",
   "private": true,
@@ -79,6 +79,7 @@
     "@nestjs/testing": "^11.1.12",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.19.7",
+    "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.3",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
