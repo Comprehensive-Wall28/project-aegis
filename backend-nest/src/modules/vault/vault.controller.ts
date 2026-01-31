@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Req, Res, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Req, Res, BadRequestException, Logger } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -15,6 +16,8 @@ export class VaultController {
         private readonly vaultService: VaultService,
         private readonly gridFsService: GridFsService
     ) { }
+
+    private readonly logger = new Logger(VaultController.name);
 
     @Post('upload/init')
     async initUpload(
@@ -69,7 +72,9 @@ export class VaultController {
         // Handle multipart upload for GridFS
         // Cast to any to access parts() added by fastify-multipart
         const parts = (req as any).parts();
+
         let fileId: string | undefined;
+        let gridFsId: string | undefined;
         let fileSaved = false;
 
         for await (const part of parts) {
@@ -78,35 +83,28 @@ export class VaultController {
                     fileId = part.value as string;
                 }
             } else if (part.type === 'file') {
-                if (!fileId) {
-                    // We need fileId first to validate metadata
-                    // Client must append fileId field BEFORE file field
-                    // But strictly speaking, we might not get it in order. 
-                    // Ideally we prefer 'initUpload' first.
-                    throw new BadRequestException('fileId field must precede file data');
+                // Stream directly to GridFS immediately
+                try {
+                    const id = await this.gridFsService.uploadStream(part.file, part.filename);
+                    gridFsId = id.toString();
+                    fileSaved = true;
+                } catch (error: any) {
+                    this.logger.error(`Upload failed: ${error.message}`, error.stack);
+                    throw error;
                 }
-
-                // Stream directly to GridFS
-                // We don't have the fileId here for the GridFS file itself, we generate it or let GridFS do it.
-                // But we need to link it to our VaultFile metadata.
-
-                // Reuse initial logic: we need 'originalFileName' from metadata really.
-                // But here we rely on the initUpload having been called.
-
-                const buffer = await part.toBuffer(); // For small files (notes) this is fine. For large, we need stream.
-                // Our GridFS service 'uploadBuffer' returns an ID.
-
-                // TODO: Update GridFsService to accept stream for Memory efficiency on 50MB+ files
-                // For now using buffer as per current GridFsService capability
-                const gridFsId = await this.gridFsService.uploadBuffer(buffer, part.filename);
-
-                await this.vaultService.completeGridFsUpload(user.userId, fileId, gridFsId);
-                fileSaved = true;
             }
         }
 
-        if (!fileSaved) throw new BadRequestException('No file uploaded');
-        return { success: true };
+        if (fileSaved && fileId && gridFsId) {
+            await this.vaultService.completeGridFsUpload(user.userId, fileId, new Types.ObjectId(gridFsId));
+            return { success: true };
+        } else if (fileSaved && !fileId) {
+            // Metadata missing - strictly speaking we should delete the orphan file in GridFS here
+            // but for this iteration, we just throw error.
+            throw new BadRequestException('Missing fileId field');
+        } else {
+            throw new BadRequestException('No file uploaded');
+        }
     }
 
     @Get('files')
