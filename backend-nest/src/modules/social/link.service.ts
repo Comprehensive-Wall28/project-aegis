@@ -28,7 +28,7 @@ export class LinkService {
     private readonly scraperService: ScraperService,
     private readonly websocketGateway: WebsocketGateway,
     private readonly auditService: AuditService,
-  ) {}
+  ) { }
 
   /**
    * Post a new link to a collection
@@ -186,9 +186,9 @@ export class LinkService {
 
     const cursor = beforeCursor
       ? {
-          createdAt: new Date(beforeCursor.createdAt),
-          id: beforeCursor.id,
-        }
+        createdAt: new Date(beforeCursor.createdAt),
+        id: beforeCursor.id,
+      }
       : undefined;
 
     const { links, totalCount } = await this.linkPostRepo.findByCollectionCursor(
@@ -254,6 +254,49 @@ export class LinkService {
       viewedLinkIds,
       commentCounts,
     };
+  }
+
+  /**
+   * Move a link to a different collection in the same room
+   */
+  async moveLink(userId: string, linkId: string, collectionId: string, req?: any): Promise<LinkPost> {
+    if (!collectionId) {
+      throw new BadRequestException('Target collection ID is required');
+    }
+
+    const { link, roomId, room } = await this.linkAccessHelper.verifyLinkAccess(linkId, userId);
+
+    const targetCollection = await this.collectionRepo.findById(collectionId);
+    if (!targetCollection) {
+      throw new NotFoundException('Target collection not found');
+    }
+
+    if (targetCollection.roomId.toString() !== roomId) {
+      throw new BadRequestException('Cannot move link to a different room');
+    }
+
+    const updated = await this.linkPostRepo.updateCollection(linkId, collectionId);
+    if (!updated) {
+      throw new NotFoundException('Link not found during move');
+    }
+
+    await (updated as any).populate('userId', 'username');
+
+    this.websocketGateway.broadcastToRoom(roomId, 'LINK_MOVED', {
+      linkId,
+      oldCollectionId: link.collectionId.toString(),
+      newCollectionId: collectionId,
+      link: updated,
+    });
+
+    await this.auditService.logAuditEvent(userId, 'LINK_MOVE', 'SUCCESS', req, {
+      linkId,
+      oldCollectionId: link.collectionId.toString(),
+      newCollectionId: collectionId,
+      roomId,
+    });
+
+    return updated;
   }
 
   /**

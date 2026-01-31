@@ -1,10 +1,12 @@
 import { Controller, Get, Post, Patch, Body, Param, Delete, UseGuards, Req, Query, Res } from '@nestjs/common';
 import { SocialService } from './social.service';
 import { LinkService } from './link.service';
+import { CommentService } from './comment.service';
 import { ImageProxyService } from './image-proxy.service';
 import { CreateRoomDto, JoinRoomDto, RoomResponseDto } from './dto/room.dto';
 import { CreateCollectionDto, UpdateCollectionDto, ReorderCollectionsDto } from './dto/collection.dto';
-import { PostLinkDto, CursorQueryDto, SearchQueryDto, ProxyImageQueryDto } from './dto/link.dto';
+import { PostLinkDto, MoveLinkDto, CursorQueryDto, SearchQueryDto, ProxyImageQueryDto } from './dto/link.dto';
+import { CreateCommentDto } from './dto/comment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FastifyRequest, FastifyReply } from 'fastify';
@@ -14,6 +16,7 @@ export class SocialController {
     constructor(
         private readonly socialService: SocialService,
         private readonly linkService: LinkService,
+        private readonly commentService: CommentService,
         private readonly imageProxyService: ImageProxyService,
     ) { }
 
@@ -126,6 +129,17 @@ export class SocialController {
         return this.linkService.postLink(user.id, roomId, postLinkDto, req);
     }
 
+    @Patch('links/:linkId/move')
+    @UseGuards(JwtAuthGuard)
+    async moveLink(
+        @CurrentUser() user: any,
+        @Param('linkId') linkId: string,
+        @Body() moveLinkDto: MoveLinkDto,
+        @Req() req: FastifyRequest,
+    ) {
+        return this.linkService.moveLink(user.id, linkId, moveLinkDto.collectionId, req);
+    }
+
     @Delete('links/:linkId')
     @UseGuards(JwtAuthGuard)
     async deleteLink(
@@ -234,6 +248,47 @@ export class SocialController {
     ) {
         await this.socialService.reorderCollections(user.id, roomId, reorderDto.collectionIds, req);
         return { message: 'Collections reordered successfully' };
+    }
+
+    // ===== Comment Management Endpoints =====
+
+    @Get('links/:linkId/comments')
+    @UseGuards(JwtAuthGuard)
+    async getComments(
+        @CurrentUser() user: any,
+        @Param('linkId') linkId: string,
+        @Query() query: CursorQueryDto,
+    ) {
+        const limit = query.limit ? parseInt(query.limit, 10) : 20;
+        return this.commentService.getComments(
+            user.id,
+            linkId,
+            limit,
+            query.cursorCreatedAt,
+            query.cursorId
+        );
+    }
+
+    @Post('links/:linkId/comments')
+    @UseGuards(JwtAuthGuard)
+    async postComment(
+        @CurrentUser() user: any,
+        @Param('linkId') linkId: string,
+        @Body() createCommentDto: CreateCommentDto,
+        @Req() req: FastifyRequest,
+    ) {
+        return this.commentService.postComment(user.id, linkId, createCommentDto, req);
+    }
+
+    @Delete('comments/:commentId')
+    @UseGuards(JwtAuthGuard)
+    async deleteComment(
+        @CurrentUser() user: any,
+        @Param('commentId') commentId: string,
+        @Req() req: FastifyRequest,
+    ) {
+        await this.commentService.deleteComment(user.id, commentId, req);
+        return { message: 'Comment deleted successfully' };
     }
 
     @Get('proxy-image')

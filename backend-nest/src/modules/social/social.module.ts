@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SocialService } from './social.service';
 import { LinkService } from './link.service';
+import { CommentService } from './comment.service';
 import { ImageProxyService } from './image-proxy.service';
 import { SocialController } from './social.controller';
 import { ScraperService } from './scraper.service';
@@ -46,6 +47,7 @@ import { GridFsService } from '../vault/gridfs.service';
     providers: [
         SocialService,
         LinkService,
+        CommentService,
         ImageProxyService,
         ScraperService,
         SocialRepository,
@@ -63,6 +65,6 @@ import { GridFsService } from '../vault/gridfs.service';
         SocialController,
         ScraperController,
     ],
-    exports: [SocialService, LinkService, ScraperService],
+    exports: [SocialService, LinkService, CommentService, ScraperService],
 })
 export class SocialModule { }

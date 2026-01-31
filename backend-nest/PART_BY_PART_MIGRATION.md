@@ -19,12 +19,12 @@ This file tracks the migration of Social, Folder, and Vault modules from the old
     - [x] `deleteCollection` (DELETE /collections/:collectionId)
     - [x] `updateCollection` (PATCH /collections/:collectionId)
     - [x] `reorderCollections` (PATCH /social/rooms/:roomId/collections/reorder)
-    - [ ] `moveLink` (PATCH /social/links/:linkId/move)
+    - [x] `moveLink` (PATCH /social/links/:linkId/move)
     - [x] `markLinkViewed` (POST /social/links/:linkId/view) ✨ NEW
     - [x] `unmarkLinkViewed` (DELETE /social/links/:linkId/view) ✨ NEW
-    - [ ] `getComments` (GET /social/links/:linkId/comments)
-    - [ ] `postComment` (POST /social/links/:linkId/comments)
-    - [ ] `deleteComment` (DELETE /social/comments/:commentId)
+    - [x] `getComments` (GET /social/links/:linkId/comments)
+    - [x] `postComment` (POST /social/links/:linkId/comments)
+    - [x] `deleteComment` (DELETE /social/comments/:commentId)
 - [x] **Routes: /api/social/invite/**
     - [x] `getInviteInfo` (GET /social/invite/:inviteCode)
 - [x] **Routes: /api/social/proxy-image** ✨ NEW
