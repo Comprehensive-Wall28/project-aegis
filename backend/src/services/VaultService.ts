@@ -87,7 +87,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             }
 
             // Initiate Google Drive resumable upload session
-            const uploadStreamId = await initiateUpload(data.originalFileName, data.fileSize, {
+            const { sessionId, sessionUrl } = await initiateUpload(data.originalFileName, data.fileSize, {
                 ownerId: userId,
                 encryptedSymmetricKey: data.encryptedSymmetricKey,
                 encapsulatedKey: data.encapsulatedKey
@@ -103,7 +103,9 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 encryptedSymmetricKey: data.encryptedSymmetricKey,
                 encapsulatedKey: data.encapsulatedKey,
                 mimeType: data.mimeType,
-                uploadStreamId,
+                uploadStreamId: sessionId,
+                uploadSessionUrl: sessionUrl,
+                uploadOffset: 0,
                 status: 'pending'
             } as Partial<IFileMetadata>);
 
@@ -139,7 +141,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
             }
 
             const fileRecord = await this.repository.findByIdAndStream(fileId, userId);
-            if (!fileRecord || !fileRecord.uploadStreamId) {
+            if (!fileRecord || !fileRecord.uploadSessionUrl) {
                 throw new ServiceError('File not found or session invalid', 404);
             }
 
@@ -160,7 +162,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
 
             // Append chunk to Google Drive upload session
             const { complete, receivedSize } = await appendChunk(
-                fileRecord.uploadStreamId,
+                fileRecord.uploadSessionUrl,
                 chunk,
                 chunkLength,
                 rangeStart,
@@ -168,9 +170,15 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 totalSize
             );
 
+            // Update offset in DB
+            if (receivedSize > (fileRecord.uploadOffset || 0)) {
+                fileRecord.uploadOffset = receivedSize;
+                await fileRecord.save();
+            }
+
             if (complete) {
                 // Finalize the upload
-                const googleDriveFileId = await finalizeUpload(fileRecord.uploadStreamId);
+                const googleDriveFileId = await finalizeUpload(fileRecord.uploadSessionUrl, totalSize);
                 await this.repository.completeUpload(fileId, googleDriveFileId);
 
                 // Update user storage usage

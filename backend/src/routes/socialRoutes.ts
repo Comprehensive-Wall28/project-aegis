@@ -29,7 +29,7 @@ import {
 } from '../controllers/socialController';
 import { proxyImage } from '../controllers/linkPreviewController';
 import { protect } from '../middleware/authMiddleware';
-import { csrfProtection } from '../middleware/csrfMiddleware';
+import { csrfProtection } from '../middleware/customCsrf';
 
 const router = Router();
 

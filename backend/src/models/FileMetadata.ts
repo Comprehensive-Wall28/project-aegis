@@ -5,6 +5,8 @@ export interface IFileMetadata extends Document {
     folderId?: mongoose.Types.ObjectId; // null = root level
     googleDriveFileId?: string; // Google Drive file reference, populated after upload success
     uploadStreamId?: string; // Temporary session ID during upload progress
+    uploadSessionUrl?: string; // Google Drive resumable session URL
+    uploadOffset?: number; // Confirmed bytes uploaded
     fileName: string; // Encrypted filename
     originalFileName: string; // Original filename for display and download
     fileSize: number;
@@ -20,7 +22,9 @@ const FileMetadataSchema: Schema = new Schema({
     ownerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     folderId: { type: Schema.Types.ObjectId, ref: 'Folder', default: null },
     googleDriveFileId: { type: String }, // Google Drive file reference
-    uploadStreamId: { type: String }, // Temporary session ID during upload
+    uploadStreamId: { type: String }, // Temporary session ID during upload progress
+    uploadSessionUrl: { type: String }, // Google Drive resumable session URL
+    uploadOffset: { type: Number, default: 0 }, // Confirmed bytes uploaded
     fileName: { type: String, required: true },
     originalFileName: { type: String, required: true }, // Original filename
     fileSize: { type: Number, required: true },

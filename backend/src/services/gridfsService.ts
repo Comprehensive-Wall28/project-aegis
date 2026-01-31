@@ -15,9 +15,34 @@ interface UploadSession {
     receivedSize: number;
     finishedPromise: Promise<any>;
     error: Error | null;
+    lastUpdated: number;
 }
 
 const activeStreams: Map<string, UploadSession> = new Map();
+
+/**
+ * Clean up stale upload sessions that haven't received data in a while
+ * @param maxAgeMs Maximum age in milliseconds (default: 1 hour)
+ */
+export const cleanupStaleUploads = (maxAgeMs: number = 3600000): number => {
+    const now = Date.now();
+    let cleaned = 0;
+
+    for (const [id, session] of activeStreams.entries()) {
+        if (now - session.lastUpdated > maxAgeMs) {
+            // Destroy stream and remove
+            session.passthrough.destroy(new Error('Upload session timed out'));
+            activeStreams.delete(id);
+            cleaned++;
+        }
+    }
+
+    if (cleaned > 0) {
+        logger.info(`Cleaned up ${cleaned} stale GridFS upload sessions`);
+    }
+
+    return cleaned;
+};
 
 /**
  * Initialize GridFS bucket. Must be called after MongoDB connection is established.
@@ -85,7 +110,8 @@ export const initiateUpload = (fileName: string, metadata?: Record<string, any>)
         totalSize: 0,
         receivedSize: 0,
         finishedPromise,
-        error: null
+        error: null,
+        lastUpdated: Date.now()
     };
 
     // Handle passthrough errors
@@ -126,6 +152,7 @@ export const appendChunk = async (
     }
 
     session.totalSize = totalSize;
+    session.lastUpdated = Date.now();
     // session.receivedSize += chunk.length; // This doesn't work for streams
 
     // Write chunk with backpressure handling

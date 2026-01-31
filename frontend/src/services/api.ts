@@ -19,7 +19,11 @@ apiClient.interceptors.request.use((config) => {
     // Manually parse XSRF-TOKEN from document.cookie
     const match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
     if (match) {
-        config.headers['X-XSRF-TOKEN'] = match[2];
+        // Ensure we decode the cookie value (express res.cookie defaults to encoding)
+        const token = decodeURIComponent(match[2]);
+        if (config.headers) {
+            config.headers['X-XSRF-TOKEN'] = token;
+        }
     }
     return config;
 });

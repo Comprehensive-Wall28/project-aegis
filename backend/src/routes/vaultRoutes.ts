@@ -1,7 +1,7 @@
 import express from 'express';
 import { uploadInit, getUserFiles, getFile, downloadFile, uploadChunk, deleteUserFile, getStorageStats } from '../controllers/vaultController';
 import { protect } from '../middleware/authMiddleware';
-import { csrfProtection } from '../middleware/csrfMiddleware';
+import { csrfProtection } from '../middleware/customCsrf';
 
 const router = express.Router();
 
