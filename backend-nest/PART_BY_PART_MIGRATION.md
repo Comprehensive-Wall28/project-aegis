@@ -10,30 +10,31 @@ This file tracks the migration of Social, Folder, and Vault modules from the old
     - [x] `joinRoom` (POST /social/rooms/join)
     - [x] `leaveRoom` (POST /social/rooms/:roomId/leave)
     - [x] `deleteRoom` (DELETE /social/rooms/:roomId)
-    - [ ] `postLink` (POST /social/rooms/:roomId/links)
+    - [x] `postLink` (POST /social/rooms/:roomId/links) ✨ NEW
     - [ ] `createCollection` (POST /social/rooms/:roomId/collections)
     - [ ] `getRoomContent` (GET /social/rooms/:roomId)
-    - [ ] `getCollectionLinks` (GET /social/rooms/:roomId/collections/:collectionId/links)
-    - [ ] `searchRoomLinks` (GET /social/rooms/:roomId/search)
-    - [ ] `deleteLink` (DELETE /social/links/:linkId)
+    - [x] `getCollectionLinks` (GET /social/rooms/:roomId/collections/:collectionId/links) ✨ NEW
+    - [x] `searchRoomLinks` (GET /social/rooms/:roomId/search) ✨ NEW
+    - [x] `deleteLink` (DELETE /social/links/:linkId) ✨ NEW
     - [ ] `deleteCollection` (DELETE /social/collections/:collectionId)
     - [ ] `updateCollection` (PATCH /social/collections/:collectionId)
     - [ ] `reorderCollections` (PATCH /social/rooms/:roomId/collections/reorder)
     - [ ] `moveLink` (PATCH /social/links/:linkId/move)
-    - [ ] `markLinkViewed` (POST /social/links/:linkId/view)
-    - [ ] `unmarkLinkViewed` (DELETE /social/links/:linkId/view)
+    - [x] `markLinkViewed` (POST /social/links/:linkId/view) ✨ NEW
+    - [x] `unmarkLinkViewed` (DELETE /social/links/:linkId/view) ✨ NEW
     - [ ] `getComments` (GET /social/links/:linkId/comments)
     - [ ] `postComment` (POST /social/links/:linkId/comments)
     - [ ] `deleteComment` (DELETE /social/comments/:commentId)
 - [x] **Routes: /api/social/invite/**
     - [x] `getInviteInfo` (GET /social/invite/:inviteCode)
-- [ ] **Routes: /api/social/proxy-image**
-    - [ ] `proxyImage` (GET /social/proxy-image)
+- [x] **Routes: /api/social/proxy-image** ✨ NEW
+    - [x] `proxyImage` (GET /social/proxy-image) ✨ NEW
 - [ ] **Reader Mode**
     - [ ] `getReaderContent` (GET /social/links/:linkId/reader)
     - [ ] `getAnnotations` (GET /social/links/:linkId/annotations)
     - [ ] `createAnnotation` (POST /social/links/:linkId/annotations)
     - [ ] `deleteAnnotation` (DELETE /social/annotations/:annotationId)
+
 
 ## Phase 2: Folder Module
 - [x] **Routes: /api/folders/**

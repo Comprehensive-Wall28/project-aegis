@@ -4,13 +4,16 @@
         "json",
         "ts"
     ],
-    "rootDir": "../src",
+    "rootDir": "..",
     "testEnvironment": "node",
     "testRegex": ".integration.spec.ts$",
     "transform": {
         "^.+\\.(t|j)s$": "ts-jest"
     },
+    "transformIgnorePatterns": [
+        "node_modules/(?!(p-queue|p-timeout|eventemitter3)/)"
+    ],
     "moduleNameMapper": {
-        "^src/(.*)$": "<rootDir>/$1"
+        "^src/(.*)$": "<rootDir>/src/$1"
     }
 }

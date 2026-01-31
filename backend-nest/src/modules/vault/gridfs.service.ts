@@ -6,11 +6,30 @@ import { Readable, PassThrough } from 'stream';
 
 @Injectable()
 export class GridFsService {
-    private bucket: GridFSBucket;
+    private buckets: Map<string, GridFSBucket> = new Map();
     private readonly logger = new Logger(GridFsService.name);
 
     constructor(@InjectConnection() private readonly connection: Connection) {
-        this.bucket = new GridFSBucket(this.connection.db as any, { bucketName: 'vault' });
+        // Initialize default vault bucket
+        this.getBucket('vault');
+    }
+
+    /**
+     * Get or create a GridFS bucket
+     */
+    private getBucket(bucketName: string): GridFSBucket {
+        if (!this.buckets.has(bucketName)) {
+            const bucket = new GridFSBucket(this.connection.db as any, { bucketName });
+            this.buckets.set(bucketName, bucket);
+        }
+        return this.buckets.get(bucketName)!;
+    }
+
+    /**
+     * Get the default vault bucket (for backward compatibility)
+     */
+    private get bucket(): GridFSBucket {
+        return this.getBucket('vault');
     }
 
     /**
@@ -94,5 +113,81 @@ export class GridFsService {
      */
     async deleteFile(fileId: ObjectId): Promise<void> {
         await this.bucket.delete(fileId);
+    }
+
+    /**
+     * Upload a stream to a specific bucket with stream forking
+     * Returns two PassThrough streams: one for client, one for caching
+     */
+    uploadWithFork(
+        sourceStream: Readable,
+        filename: string,
+        bucketName: string = 'vault',
+        metadata?: Record<string, any>,
+    ): { clientStream: PassThrough; fileId: Promise<ObjectId> } {
+        const bucket = this.getBucket(bucketName);
+        const uploadStream = bucket.openUploadStream(filename, { metadata });
+        
+        const clientStream = new PassThrough();
+        const cacheStream = new PassThrough();
+
+        // Fork the source stream to both client and GridFS
+        sourceStream.pipe(clientStream);
+        sourceStream.pipe(cacheStream);
+        cacheStream.pipe(uploadStream);
+
+        const fileId = new Promise<ObjectId>((resolve, reject) => {
+            uploadStream.on('finish', () => {
+                resolve(uploadStream.id);
+            });
+            uploadStream.on('error', (error) => {
+                this.logger.error(`GridFS upload error: ${error.message}`, error.stack);
+                reject(error);
+            });
+        });
+
+        return { clientStream, fileId };
+    }
+
+    /**
+     * Get a file stream from a specific bucket
+     */
+    getFileStreamFromBucket(fileId: ObjectId, bucketName: string = 'vault'): Readable {
+        const bucket = this.getBucket(bucketName);
+        return bucket.openDownloadStream(fileId);
+    }
+
+    /**
+     * Upload a buffer to a specific bucket
+     */
+    async uploadBufferToBucket(
+        buffer: Buffer,
+        filename: string,
+        bucketName: string = 'vault',
+        metadata?: Record<string, any>,
+    ): Promise<ObjectId> {
+        const bucket = this.getBucket(bucketName);
+        return new Promise((resolve, reject) => {
+            const uploadStream = bucket.openUploadStream(filename, { metadata });
+
+            uploadStream.on('finish', () => {
+                resolve(uploadStream.id);
+            });
+
+            uploadStream.on('error', (error) => {
+                this.logger.error(`GridFS upload error: ${error.message}`, error.stack);
+                reject(error);
+            });
+
+            uploadStream.end(buffer);
+        });
+    }
+
+    /**
+     * Delete a file from a specific bucket
+     */
+    async deleteFileFromBucket(fileId: ObjectId, bucketName: string = 'vault'): Promise<void> {
+        const bucket = this.getBucket(bucketName);
+        await bucket.delete(fileId);
     }
 }

@@ -76,7 +76,7 @@ export class AuditService {
     private readonly logger = new Logger(AuditService.name);
 
     constructor(
-        @InjectConnection('secondary') private readonly secondaryConnection: Connection,
+        @InjectConnection('audit') private readonly secondaryConnection: Connection,
     ) {}
 
     /**

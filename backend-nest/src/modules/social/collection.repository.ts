@@ -14,6 +14,14 @@ export class CollectionRepository extends BaseRepository<CollectionDocument> {
         return this.collectionModel.find({ roomId: roomId as any }).sort({ order: 1 }).exec();
     }
 
+    async findDefaultLinksCollection(roomId: string): Promise<CollectionDocument | null> {
+        return this.collectionModel.findOne({ roomId: roomId as any, type: 'links', name: '' }).exec();
+    }
+
+    async findByIdAndRoom(collectionId: string, roomId: string): Promise<CollectionDocument | null> {
+        return this.collectionModel.findOne({ _id: collectionId, roomId: roomId as any }).exec();
+    }
+
     async deleteByRoom(roomId: string): Promise<void> {
         await this.collectionModel.deleteMany({ roomId: roomId as any }).exec();
     }

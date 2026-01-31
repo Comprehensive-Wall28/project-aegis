@@ -22,10 +22,15 @@ import { MongooseModule } from '@nestjs/mongoose';
                 signOptions: { expiresIn: '365d' },
             }),
         }),
-        MongooseModule.forRoot(
-            process.env.SECONDARY_MONGODB_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/aegis',
-            { connectionName: 'secondary' }
-        ),
+        MongooseModule.forRootAsync({
+            connectionName: 'secondary',
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => ({
+                uri: configService.get<string>('MONGO_URI_SECONDARY') ||
+                    configService.get<string>('MONGO_URI'),
+            }),
+        }),
     ],
     controllers: [AuthController],
     providers: [AuthService, JwtStrategy, AuditService],
