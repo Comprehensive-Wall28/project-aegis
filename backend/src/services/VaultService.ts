@@ -7,7 +7,6 @@ import { UserRepository } from '../repositories/UserRepository';
 import { FolderRepository } from '../repositories/FolderRepository';
 import { IFileMetadata } from '../models/FileMetadata';
 import Folder from '../models/Folder';
-import SharedFolder from '../models/SharedFolder';
 import {
     initiateUpload,
     appendChunk,
@@ -210,22 +209,8 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
         try {
             let fileRecord = await this.repository.findByIdAndOwner(fileId, userId);
 
-            // If not owner, check if file is in a shared folder
-            if (!fileRecord) {
-                const potentialFile = await this.repository.findById(fileId);
-                if (potentialFile && potentialFile.folderId) {
-                    const isShared = await SharedFolder.findOne({
-                        folderId: potentialFile.folderId,
-                        sharedWith: userId
-                    });
-                    if (isShared && isShared.permissions.includes('DOWNLOAD')) {
-                        fileRecord = potentialFile;
-                    }
-                }
-            }
-
             if (!fileRecord || !fileRecord.googleDriveFileId) {
-                throw new ServiceError('File not found or not ready', 404);
+                throw new ServiceError('File not found or access denied', 404);
             }
 
             const stream = await getFileStream(fileRecord.googleDriveFileId);
@@ -272,30 +257,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 }
 
                 const isOwner = folder.ownerId.toString() === userId;
-                let hasAccess = isOwner;
-
-                if (!hasAccess) {
-                    // Check direct share
-                    const directShare = await SharedFolder.findOne({ folderId, sharedWith: userId });
-                    if (directShare) {
-                        hasAccess = true;
-                    } else {
-                        // Check ancestors (optimized)
-                        const ancestors = await this.folderRepository.getAncestors(folderId);
-                        const ancestorIds = ancestors.map(a => a._id);
-
-                        const ancestorShare = await SharedFolder.findOne({
-                            folderId: { $in: ancestorIds },
-                            sharedWith: userId
-                        });
-
-                        if (ancestorShare) {
-                            hasAccess = true;
-                        }
-                    }
-                }
-
-                if (!hasAccess) {
+                if (!isOwner) {
                     throw new ServiceError('Access denied to this folder', 403);
                 }
 

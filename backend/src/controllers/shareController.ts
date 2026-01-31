@@ -10,13 +10,7 @@ interface AuthRequest extends Request {
 // Service instance
 const shareService = new ShareService();
 
-/**
- * Invite a user to a shared folder.
- */
-export const invite = withAuth(async (req: AuthRequest, res: Response) => {
-    const result = await shareService.inviteToFolder(req.user!.id, req.body, req);
-    res.status(201).json(result);
-});
+
 
 /**
  * Invite a user to a shared file.
@@ -26,21 +20,9 @@ export const inviteFile = withAuth(async (req: AuthRequest, res: Response) => {
     res.status(201).json(result);
 });
 
-/**
- * Get folders shared with the current user.
- */
-export const getSharedWithMe = withAuth(async (req: AuthRequest, res: Response) => {
-    const result = await shareService.getSharedWithMe(req.user!.id);
-    res.status(200).json(result);
-});
 
-/**
- * Get the encrypted shared key for a specific folder.
- */
-export const getSharedFolderKey = withAuth(async (req: AuthRequest, res: Response) => {
-    const result = await shareService.getSharedFolderKey(req.user!.id, req.params.folderId as string);
-    res.json(result);
-});
+
+
 
 /**
  * Get the encrypted shared key for a specific file.

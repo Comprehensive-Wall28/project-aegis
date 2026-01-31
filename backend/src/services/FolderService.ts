@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 import { FolderRepository } from '../repositories/FolderRepository';
 import { FileMetadataRepository } from '../repositories/FileMetadataRepository';
 import { IFolder } from '../models/Folder';
-import SharedFolder from '../models/SharedFolder';
 import Folder from '../models/Folder';
 import logger from '../utils/logger';
 
@@ -47,25 +46,9 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             }
 
             if (normalizedParentId === null) {
-                // Root level: owned folders + shared folders
+                // Root level: owned folders only (shared folders removed)
                 const ownedFolders = await this.repository.findByOwnerAndParent(userId, null);
-
-                const sharedFolderEntries = await SharedFolder.find({ sharedWith: userId })
-                    .populate('folderId');
-
-                const sharedFolders = sharedFolderEntries
-                    .filter(sf => sf.folderId)
-                    .map(sf => {
-                        const f = sf.folderId as any;
-                        return {
-                            ...f.toObject(),
-                            isSharedWithMe: true,
-                            encryptedSharedKey: sf.encryptedSharedKey,
-                            permissions: sf.permissions
-                        };
-                    });
-
-                return [...ownedFolders, ...sharedFolders];
+                return ownedFolders;
             }
 
             // Validate normalizedParentId before usage
@@ -79,15 +62,8 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             if (!parentFolder) {
                 throw new ServiceError('Parent folder not found', 404);
             }
-
             const isOwner = parentFolder.ownerId.toString() === userId;
-            let hasAccess = isOwner;
-
-            if (!hasAccess) {
-                hasAccess = await this.checkSharedAccess(normalizedParentId, userId, parentFolder);
-            }
-
-            if (!hasAccess) {
+            if (!isOwner) {
                 throw new ServiceError('Access denied', 403);
             }
 
@@ -96,14 +72,6 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
                 normalizedParentId,
                 parentFolder.ownerId.toString()
             );
-
-            // Mark as shared if not owner
-            if (!isOwner) {
-                return subfolders.map(f => ({
-                    ...f.toObject(),
-                    isSharedWithMe: true
-                }));
-            }
 
             return subfolders;
         } catch (error: any) {
@@ -130,29 +98,6 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             }
 
             let folder = await this.repository.findByIdAndOwner(folderId, userId);
-
-            if (!folder) {
-                // Check shared access
-                const isShared = await SharedFolder.findOne({
-                    folderId: { $eq: folderId },
-                    sharedWith: { $eq: userId }
-                });
-                if (isShared) {
-                    folder = await this.repository.findById(folderId);
-                }
-            }
-
-            if (!folder) {
-                // Check ancestor shared access (if not directly shared)
-                // This covers the case where we are accessing a subfolder of a shared folder
-                const targetFolder = await Folder.findById(folderId);
-                if (targetFolder) {
-                    const hasAccess = await this.checkSharedAccess(folderId, userId, targetFolder);
-                    if (hasAccess) {
-                        folder = targetFolder;
-                    }
-                }
-            }
 
             if (!folder) {
                 throw new ServiceError('Folder not found or access denied', 404);
@@ -328,38 +273,5 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
         }
     }
 
-    /**
-     * Check if user has shared access to a folder (direct or ancestor)
-     */
-    private async checkSharedAccess(
-        folderId: string,
-        userId: string,
-        folder: IFolder
-    ): Promise<boolean> {
-        // Check direct share
-        const directShare = await SharedFolder.findOne({
-            folderId,
-            sharedWith: userId
-        });
-        if (directShare) {
-            return true;
-        }
 
-        // Check ancestors
-        let current = folder;
-        while (current.parentId) {
-            const ancestorShare = await SharedFolder.findOne({
-                folderId: current.parentId,
-                sharedWith: userId
-            });
-            if (ancestorShare) {
-                return true;
-            }
-            const parent = await Folder.findById(current.parentId);
-            if (!parent) break;
-            current = parent;
-        }
-
-        return false;
-    }
 }
