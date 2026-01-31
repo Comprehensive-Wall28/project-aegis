@@ -95,7 +95,7 @@ export class QuerySanitizer {
             }
 
             // Handle ID fields specially
-            if (key === '_id' || key === 'userId' || key === 'noteFolderId' || key === 'parentId') {
+            if (key === '_id' || key === 'userId' || key === 'noteFolderId' || key === 'parentId' || key === 'ownerId') {
                 if (typeof value === 'string') {
                     const sanitizedId = this.sanitizeObjectId(value);
                     if (sanitizedId) {
