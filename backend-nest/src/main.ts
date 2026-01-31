@@ -11,6 +11,10 @@ async function bootstrap() {
     { bufferLogs: true } // Buffer logs until custom logger is attached
   );
 
+  await app.register(require('@fastify/cookie'), {
+    secret: process.env.COOKIE_SECRET
+  });
+
   app.useLogger(app.get(Logger));
 
   // MATCHING OLD BACKEND PREFIX

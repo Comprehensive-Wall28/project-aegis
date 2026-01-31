@@ -39,6 +39,12 @@
 - [x] Unit tests (80% coverage)
 - [x] Integration tests (All modules covered)
 - [/] E2E tests (Core flows passing)
+  - [x] Base E2E (App, Vault, Social, GDrive, WebSocket)
+  - [x] **Auth E2E** (Login, Register, Me)
+  - [x] **Tasks E2E** (CRUD)
+  - [x] **Notes E2E** (CRUD + GridFS)
+  - [ ] Calendar E2E
+  - [ ] Folders E2E
 - [ ] Performance validation
 
 ### Phase 5: Deployment

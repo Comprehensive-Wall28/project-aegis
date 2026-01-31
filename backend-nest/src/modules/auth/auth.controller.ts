@@ -1,5 +1,5 @@
 
-import { Controller, Post, Body, Res, Get, UseGuards, Request, Put, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Res, Get, UseGuards, Request, Put, HttpStatus, HttpCode } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
 import '@fastify/cookie';
 import { AuthService } from './auth.service';
@@ -24,6 +24,7 @@ export class AuthController {
     }
 
     @Post('login')
+    @HttpCode(HttpStatus.OK)
     async login(
         @Body() loginDto: LoginDto,
         @Res({ passthrough: true }) res: FastifyReply
@@ -34,6 +35,7 @@ export class AuthController {
     }
 
     @Post('logout')
+    @HttpCode(HttpStatus.OK)
     async logout(@Res({ passthrough: true }) res: FastifyReply) {
         res.clearCookie('token', { path: '/' });
         return { message: 'Logged out successfully' };
