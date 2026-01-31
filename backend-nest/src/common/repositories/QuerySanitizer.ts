@@ -108,6 +108,11 @@ export class QuerySanitizer {
                         if (sanitizedId) {
                             sanitized[key] = { $eq: sanitizedId };
                         }
+                    } else if ('$ne' in idObj && typeof idObj.$ne === 'string') {
+                        const sanitizedId = this.sanitizeObjectId(idObj.$ne);
+                        if (sanitizedId) {
+                            sanitized[key] = { $ne: sanitizedId };
+                        }
                     } else if ('$in' in idObj && Array.isArray(idObj.$in)) {
                         const validIds = idObj.$in
                             .filter((id): id is string => typeof id === 'string')

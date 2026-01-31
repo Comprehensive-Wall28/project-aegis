@@ -99,4 +99,23 @@ describe('AuthService', () => {
             })).rejects.toThrow('Invalid credentials');
         });
     });
+
+    describe('updateProfile', () => {
+        it('should update user profile', async () => {
+            const updateDto = { username: 'newname' };
+            (usersService.updateProfile as jest.Mock) = jest.fn().mockResolvedValue({ ...mockUser, username: 'newname' });
+
+            const result = await service.updateProfile('userid', updateDto);
+            expect(result.username).toBe('newname');
+        });
+    });
+
+    describe('getMe', () => {
+        it('should return the current user', async () => {
+            (usersService.findById as jest.Mock) = jest.fn().mockResolvedValue(mockUser);
+
+            const result = await service.getMe('userid');
+            expect(result).toEqual(mockUser);
+        });
+    });
 });

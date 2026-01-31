@@ -1,6 +1,6 @@
 {
   "name": "aegis-nest-backend",
-  "version": "0.0.3-alpha-5",
+  "version": "0.0.4-alpha-1",
   "description": "",
   "author": "Fady Osama - [Comprehensive-Wall28]",
   "private": true,
@@ -112,6 +112,10 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "coverageReporters": [
+      "text",
+      "text-summary"
+    ]
   }
 }
