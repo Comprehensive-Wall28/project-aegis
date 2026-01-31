@@ -43,12 +43,12 @@
   - [x] **Auth E2E** (Login, Register, Me)
   - [x] **Tasks E2E** (CRUD)
   - [x] **Notes E2E** (CRUD + GridFS)
-  - [ ] Calendar E2E
-  - [ ] Folders E2E
+  - [x] Calendar E2E
+  - [x] Folders E2E
 - [x] Performance validation (Comprehensive)
 
 ### Phase 5: Deployment
 - [x] Dockerfile updated (Browser support)
-- [ ] CI/CD configured
+- [x] CI/CD configured
 - [ ] Parallel running validated
 - [ ] Full cutover

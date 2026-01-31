@@ -1,0 +1,48 @@
+
+name: CI
+
+on:
+  push:
+    branches: [ main, 'backend/**' ]
+  pull_request:
+    branches: [ main, 'backend/**' ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js 24
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build
+
+    - name: Run Unit Tests
+      run: npm run test
+
+    - name: Run Integration Tests
+      run: npm run test:integration
+      env:
+        MONGO_URI: mongodb://localhost:27017/aegis_test
+        AUDIT_MONGO_URI: mongodb://localhost:27017/aegis_audit_test
+
+    - name: Run E2E Tests
+      run: npm run test:e2e
+      env:
+        MONGO_URI: mongodb://localhost:27017/aegis_e2e
+        AUDIT_MONGO_URI: mongodb://localhost:27017/aegis_audit_e2e
