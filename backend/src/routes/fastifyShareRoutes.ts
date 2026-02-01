@@ -14,7 +14,7 @@ export async function shareRoutes(app: FastifyInstance) {
 
     app.post('/invite', { preHandler: authCsrf, handler: inviteFile });
     app.get('/files/:fileId/key', { preHandler: authCsrf, handler: getSharedFileKey });
-    app.post('/links', { preHandler: authCsrf, handler: createLink });
-    app.get('/links', { preHandler: authCsrf, handler: getMyLinks });
-    app.delete('/links/:id', { preHandler: authCsrf, handler: revokeLink });
+    app.post('/link', { preHandler: authCsrf, handler: createLink });
+    app.get('/my-links', { preHandler: authCsrf, handler: getMyLinks });
+    app.delete('/link/:id', { preHandler: authCsrf, handler: revokeLink });
 }

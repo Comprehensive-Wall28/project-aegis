@@ -6,6 +6,6 @@ import {
 
 export async function publicRoutes(app: FastifyInstance) {
     // Public routes - no auth required
-    app.get('/:token', getLinkMetadata);
-    app.get('/:token/download', downloadSharedFile);
+    app.get('/share/:token', getLinkMetadata);
+    app.get('/share/:token/download', downloadSharedFile);
 }
