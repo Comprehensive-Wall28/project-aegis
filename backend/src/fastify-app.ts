@@ -5,6 +5,8 @@ import cookie from '@fastify/cookie';
 import './config/initDatabase'; // Initialize DB first
 import { config, validateConfig } from './config/env';
 import logger from './utils/logger';
+import { registerErrorHandler } from './middleware/fastifyErrorHandler';
+import { registerPerformanceHooks } from './middleware/performanceMonitoring';
 
 // Validate config on startup
 validateConfig();
@@ -58,11 +60,21 @@ export async function buildApp(): Promise<FastifyInstance> {
         },
     });
 
+
+
     // Register cookie parser
     await app.register(cookie, {
         secret: config.jwtSecret, // For signing cookies if needed
         parseOptions: {}, // Optional: configure cookie parsing
     });
+
+    // Register global error handler
+    registerErrorHandler(app);
+
+    // Register performance monitoring (dev only)
+    if (config.nodeEnv !== 'production') {
+        registerPerformanceHooks(app);
+    }
 
     // Health check endpoint
     app.get('/health', async (request, reply) => {
