@@ -28,6 +28,18 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
+// Handle messages from the main thread (e.g., logout cleanup)
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'CLEAR_CACHE') {
+        event.waitUntil(
+            caches.delete(CACHE_NAME).then(() => {
+                // Re-create empty cache with core assets
+                return caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS));
+            })
+        );
+    }
+});
+
 self.addEventListener('fetch', (event) => {
     // Only cache GET requests
     if (event.request.method !== 'GET') return;

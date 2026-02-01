@@ -24,6 +24,7 @@ export interface IUser extends Document {
     preferences: IUserPreferences;
     webauthnCredentials: IWebAuthnCredential[];
     passwordHashVersion: number;
+    tokenVersion: number;
     currentChallenge?: string;
     totalStorageUsed: number;
 }
@@ -44,6 +45,11 @@ const UserSchema: Schema = new Schema({
     passwordHashVersion: {
         type: Number,
         default: 1 // 1: SHA-256 (Legacy), 2: Argon2 (New)
+    },
+
+    tokenVersion: {
+        type: Number,
+        default: 0 // Incremented on logout to invalidate all existing tokens
     },
 
     gpaSystem: { type: String, enum: ['NORMAL', 'GERMAN'], default: 'NORMAL' },

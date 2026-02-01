@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
-import authService from '@/services/authService';
-import { clearStoredSeed } from '@/lib/cryptoUtils';
+import performLogoutCleanup from '@/utils/logoutCleanup';
 import {
     Person as UserIcon,
     Logout as LogOutIcon,
@@ -34,7 +33,7 @@ interface TopHeaderProps {
 
 export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
     const navigate = useNavigate();
-    const { user, clearSession } = useSessionStore();
+    const { user } = useSessionStore();
     const { theme: currentTheme } = useThemeStore();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
@@ -49,9 +48,7 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
     };
 
     const handleLogout = async () => {
-        await authService.logout();
-        clearStoredSeed();
-        clearSession();
+        await performLogoutCleanup();
         navigate('/');
         handleCloseMenu();
     };

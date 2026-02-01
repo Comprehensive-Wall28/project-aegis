@@ -39,6 +39,9 @@ interface UploadState {
     // Derived values (computed at runtime in components or via helpers)
     getActiveUploads: () => UploadItem[];
     getGlobalState: () => GlobalUploadState;
+
+    // Reset store to initial state (for logout)
+    reset: () => void;
 }
 
 // Helper functions (defined in cryptoUtils)
@@ -325,5 +328,17 @@ export const useUploadStore = create<UploadState>((set, get) => ({
         }
 
         return { status: 'idle', progress: 0 };
+    },
+
+    /**
+     * Reset the store to its initial state.
+     * Called during logout to clear user data.
+     */
+    reset: () => {
+        set({
+            uploads: new Map(),
+            activeCount: 0,
+            processing: false
+        });
     }
 }));

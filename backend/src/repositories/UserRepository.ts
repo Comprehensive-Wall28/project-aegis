@@ -105,6 +105,14 @@ export class UserRepository extends BaseRepository<IUser> {
     }
 
     /**
+     * Increment token version to invalidate all existing tokens for a user.
+     * Called on logout to ensure old tokens can't be reused.
+     */
+    async incrementTokenVersion(userId: string): Promise<IUser | null> {
+        return this.updateById(userId, { $inc: { tokenVersion: 1 } } as any);
+    }
+
+    /**
      * Find user for sharing (public key only)
      */
     async findForSharing(email: string): Promise<Pick<IUser, 'username' | 'pqcPublicKey'> | null> {

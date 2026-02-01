@@ -4,6 +4,7 @@ import authService from '@/services/authService';
 import { useSessionStore } from '@/stores/sessionStore';
 import { storeSeed } from '@/lib/cryptoUtils';
 import { refreshCsrfToken } from '@/services/api';
+import { clearAllStores, clearAllCaches } from '@/utils/logoutCleanup';
 
 export function useAuthForm(open: boolean, initialMode: 'login' | 'register', onClose: () => void) {
     const navigate = useNavigate();
@@ -74,6 +75,11 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
                     return;
                 }
 
+                // CRITICAL: Clear any existing user data before setting new user
+                // This ensures no stale data from a previous session persists
+                clearAllStores();
+                clearAllCaches();
+
                 setUser({ _id: response._id, email: response.email, username: response.username });
                 if (response.pqcSeed) {
                     storeSeed(response.pqcSeed);
@@ -106,6 +112,11 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
             const response = await authService.loginWithPasskey(email, password);
 
             if (response._id) {
+                // CRITICAL: Clear any existing user data before setting new user
+                // This ensures no stale data from a previous session persists
+                clearAllStores();
+                clearAllCaches();
+
                 setUser({ _id: response._id, email: response.email, username: response.username });
                 if (response.pqcSeed) {
                     storeSeed(response.pqcSeed);

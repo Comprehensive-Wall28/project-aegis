@@ -75,8 +75,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         super(new UserRepository());
     }
 
-    private async generateToken(id: string, username: string): Promise<string> {
-        const jwtToken = jwt.sign({ id, username }, config.jwtSecret, {
+    private async generateToken(id: string, username: string, tokenVersion: number): Promise<string> {
+        const jwtToken = jwt.sign({ id, username, tokenVersion }, config.jwtSecret, {
             expiresIn: '365d'
         });
         return await encryptToken(jwtToken);
@@ -224,7 +224,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
             // No 2FA, complete login
-            const token = await this.generateToken(user._id.toString(), user.username);
+            const token = await this.generateToken(user._id.toString(), user.username, user.tokenVersion || 0);
             setCookie(token);
 
             await this.logAction(user._id.toString(), 'LOGIN', 'SUCCESS', req, {
@@ -371,6 +371,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
     async logout(userId: string | undefined, req: Request): Promise<void> {
         if (userId) {
+            // Increment tokenVersion to invalidate all existing tokens for this user
+            await this.repository.incrementTokenVersion(userId);
             await this.logAction(userId, 'LOGOUT', 'SUCCESS', req, {});
         }
     }
@@ -526,7 +528,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             user.currentChallenge = undefined;
             await user.save();
 
-            const token = await this.generateToken(user._id.toString(), user.username);
+            const token = await this.generateToken(user._id.toString(), user.username, user.tokenVersion || 0);
             setCookie(token);
 
             await this.logAction(user._id.toString(), 'PASSKEY_LOGIN', 'SUCCESS', req, {

@@ -18,6 +18,7 @@ const setCookie = (res: Response) => (token: string) => {
         secure: config.nodeEnv === 'production',
         sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
         maxAge: 365 * 24 * 60 * 60 * 1000,
+        path: '/',
         partitioned: config.nodeEnv === 'production'
     } as any);
 };
@@ -75,6 +76,7 @@ export const logoutUser = catchAsync(async (req: AuthRequest, res: Response) => 
         secure: config.nodeEnv === 'production',
         sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
         expires: new Date(0),
+        path: '/',
         partitioned: config.nodeEnv === 'production'
     } as any);
     res.json({ message: 'Logged out successfully' });

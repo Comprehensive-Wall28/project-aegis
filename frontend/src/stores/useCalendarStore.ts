@@ -23,6 +23,8 @@ interface CalendarState {
     addEvent: (event: CalendarEventInput, decryptFn: (event: EncryptedCalendarEvent) => Promise<DecryptedCalendarEvent>, mentions?: string[]) => Promise<void>;
     updateEvent: (id: string, updates: Partial<CalendarEventInput>, decryptFn: (event: EncryptedCalendarEvent) => Promise<DecryptedCalendarEvent>, mentions?: string[]) => Promise<void>;
     deleteEvent: (id: string) => Promise<void>;
+    // Reset store to initial state (for logout)
+    reset: () => void;
 }
 
 export const useCalendarStore = create<CalendarState>((set) => ({
@@ -89,5 +91,17 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             const errorMessage = error instanceof Error ? error.message : 'Failed to delete event';
             set({ error: errorMessage, isLoading: false });
         }
+    },
+
+    /**
+     * Reset the store to its initial state.
+     * Called during logout to clear user data.
+     */
+    reset: () => {
+        set({
+            events: [],
+            isLoading: false,
+            error: null
+        });
     }
 }));

@@ -30,8 +30,8 @@ router.get('/me', protect, csrfProtection, getMe);
 router.put('/me', protect, csrfProtection, updateMe);
 router.get('/discovery/:email', protect, csrfProtection, discoverUser);
 
-// Logout - no CSRF (cookie might be stale, and logout is low-risk)
-router.post('/logout', logoutUser);
+// Logout - protected to get user ID for token invalidation, no CSRF (cookie might be stale)
+router.post('/logout', protect, logoutUser);
 
 // WebAuthn routes
 router.post('/webauthn/register-options', protect, csrfProtection, getRegistrationOptions);

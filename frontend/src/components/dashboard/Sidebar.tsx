@@ -30,11 +30,9 @@ import {
 } from '@mui/material';
 import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { AegisLogo } from '@/components/AegisLogo';
-import authService from '@/services/authService';
-import { clearStoredSeed } from '@/lib/cryptoUtils';
+import performLogoutCleanup from '@/utils/logoutCleanup';
 
 const navItems = [
     { name: 'Vault', href: '/dashboard', icon: VaultIcon },
@@ -67,13 +65,10 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
     const theme = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
-    const { clearSession } = useSessionStore();
     const { theme: currentTheme, toggleTheme } = useThemeStore();
 
     const handleLogout = async () => {
-        await authService.logout();
-        clearStoredSeed();
-        clearSession();
+        await performLogoutCleanup();
         navigate('/');
     };
 

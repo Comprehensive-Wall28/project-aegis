@@ -25,11 +25,10 @@ import {
     Divider
 } from '@mui/material';
 import { AegisLogo } from '@/components/AegisLogo';
-import authService from '@/services/authService';
+import performLogoutCleanup from '@/utils/logoutCleanup';
 
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
-import { clearStoredSeed } from '@/lib/cryptoUtils';
 import { AuthDialog } from '@/components/auth/AuthDialog';
 import { useAuthModalStore } from '@/stores/authModalStore';
 
@@ -37,7 +36,7 @@ export function Navbar() {
     const theme = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, clearSession } = useSessionStore();
+    const { user } = useSessionStore();
     const { theme: currentTheme, toggleTheme } = useThemeStore();
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -74,9 +73,7 @@ export function Navbar() {
     }, [location.state, location.pathname, navigate, openModal]);
 
     const handleLogout = async () => {
-        await authService.logout();
-        clearStoredSeed();
-        clearSession();
+        await performLogoutCleanup();
     };
 
     const openAuth = (mode: 'login' | 'register') => {
