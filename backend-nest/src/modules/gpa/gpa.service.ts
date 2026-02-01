@@ -2,15 +2,17 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { Types } from 'mongoose';
 import { Course, CourseDocument } from './schemas/course.schema';
 import { CreateCourseDto } from './dto/gpa.dto';
-import { BaseService, AuditAction, AuditStatus } from '../../common/services/base.service';
+import { BaseService } from '../../common/services/base.service';
 import { GpaRepository } from './gpa.repository';
 import { UsersService } from '../users/users.service';
+import { AuditService, AuditAction } from '../../common/services/audit.service';
 
 @Injectable()
 export class GpaService extends BaseService<CourseDocument, GpaRepository> {
     constructor(
         private readonly gpaRepository: GpaRepository,
         private readonly usersService: UsersService,
+        private readonly auditService: AuditService,
     ) {
         super(gpaRepository);
     }
@@ -25,15 +27,15 @@ export class GpaService extends BaseService<CourseDocument, GpaRepository> {
             ...createDto,
         } as any);
 
-        this.logAction(userId, AuditAction.CREATE, AuditStatus.SUCCESS, req, { courseId: course._id });
+        this.auditService.logAuditEvent(userId, 'COURSE_CREATE', 'SUCCESS', req, { courseId: course._id });
         return course;
     }
 
     async deleteCourse(userId: string, courseId: string, req: any): Promise<void> {
-        const deleted = await this.gpaRepository.deleteOne({ _id: courseId, userId: userId });
+        const deleted = await this.gpaRepository.deleteByIdAndUser(courseId, userId);
         if (!deleted) throw new NotFoundException('Course not found');
 
-        this.logAction(userId, AuditAction.DELETE, AuditStatus.SUCCESS, req, { courseId });
+        this.auditService.logAuditEvent(userId, 'COURSE_DELETE', 'SUCCESS', req, { courseId });
     }
 
     async getPreferences(userId: string): Promise<{ gpaSystem: string }> {
@@ -53,7 +55,23 @@ export class GpaService extends BaseService<CourseDocument, GpaRepository> {
 
         await this.usersService.updateProfile(userId, { gpaSystem });
 
-        this.logAction(userId, AuditAction.UPDATE, AuditStatus.SUCCESS, req, { gpaSystem });
+        this.auditService.logAuditEvent(userId, 'PREFERENCES_UPDATE', 'SUCCESS', req, { gpaSystem });
         return { gpaSystem };
+    }
+
+    async getUnmigratedCourses(userId: string): Promise<Course[]> {
+        return this.gpaRepository.findUnmigrated(userId);
+    }
+
+    async migrateCourse(userId: string, courseId: string, createDto: CreateCourseDto): Promise<Course> {
+        const updated = await this.gpaRepository.migrateToEncrypted(
+            courseId,
+            userId,
+            createDto.encryptedData,
+            createDto.encapsulatedKey,
+            createDto.encryptedSymmetricKey
+        );
+        if (!updated) throw new NotFoundException('Course not found');
+        return updated;
     }
 }

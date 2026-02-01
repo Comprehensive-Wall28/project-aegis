@@ -86,13 +86,16 @@
   - ⬜ Recurring events
 
 ### 1.6 GPA Module
-- ⬜ **gpaController.ts** → **gpa.controller.ts**
-  - ⬜ `GET /courses` - getCourses() / findAll()
-  - ⬜ `POST /courses` - createCourse() / create()
-  - ⬜ `PUT /courses/:id` - updateCourse() / update()
-  - ⬜ `DELETE /courses/:id` - deleteCourse() / remove()
-  - ⬜ `GET /calculate` - calculateGPA() / calculate()
-  - ⬜ GPA calculation logic match
+- ✅ **gpaController.ts** → **gpa.controller.ts**
+  - ✅ `GET /courses` - getCourses() / findAll()
+  - ✅ `POST /courses` - createCourse() / create()
+  - ❌ `PUT /courses/:id` - updateCourse() (N/A - Not in Express)
+  - ✅ `DELETE /courses/:id` - deleteCourse() / remove()
+  - ❌ `GET /calculate` - calculateGPA() (N/A - Not in Express)
+  - ✅ `GET /courses/unmigrated` - getUnmigratedCourses()
+  - ✅ `PUT /courses/:id/migrate` - migrateCourse()
+  - ✅ `GET /preferences` - getPreferences()
+  - ✅ `PUT /preferences` - updatePreferences()
 
 ### 1.7 Vault Module
 - ⬜ **vaultController.ts** → **vault.controller.ts**
@@ -198,9 +201,10 @@
   - ✅ Date range queries
   - ⬜ Recurring events
 
-- ⬜ **GPAService**
-  - ⬜ Course CRUD
-  - ⬜ GPA calculation algorithm
+- ✅ **GPAService**
+  - ✅ Course CRUD
+  - ✅ Migration logic (Unmigrated/Migrate)
+  - ✅ Audit logging
 
 - ⬜ **VaultService**
   - ⬜ File upload/download
@@ -230,7 +234,7 @@
 - ⬜ **NoteFolderRepository** → note-folder.repository.ts
 - ⬜ **FolderRepository** → folders.repository.ts
 - ✅ **CalendarEventRepository** → calendar.repository.ts
-- ⬜ **CourseRepository** → gpa.repository.ts
+- ✅ **CourseRepository** → gpa.repository.ts
 - ⬜ **FileMetadataRepository** → vault.repository.ts
 - ✅ **UserRepository** → users.repository.ts
 - ⬜ **AuditLogRepository** → (via schema)
@@ -264,7 +268,7 @@
 | CachedImage | cached-image.schema | ⬜ |
 | CalendarEvent | calendar-event.schema | ✅ |
 | Collection | collection.schema | ⬜ |
-| Course | course.schema | ⬜ |
+| Course | course.schema | ✅ |
 | FileMetadata | vault-file.schema | ⬜ |
 | Folder | folder.schema | ⬜ |
 | LinkComment | link-comment.schema | ⬜ |
@@ -369,6 +373,7 @@ Track which sections were verified and by whom:
 | 2026-02-01 | Users Module | Agent | ✅ | Verified User Schema & Repository. Validated AuthService integration. |
 | 2026-02-01 | Folders Module | Agent | ✅ | Implemented Audit logging. Verified generic parity. |
 | 2026-02-01 | Calendar Module | Agent | ✅ | Implemented Pagination, CSRF, Audit logging & Repository methods. |
+| 2026-02-01 | GPA Module | Agent | ✅ | Implemented Migration endpoints, Audit logging, & Repository methods. Fixed Method mismatches. |
 
 ---
 
