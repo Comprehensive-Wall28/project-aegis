@@ -5,14 +5,18 @@ import { NoteRepository } from './repositories/note.repository';
 import { CreateFolderDTO } from './dto/note.dto';
 import { NoteFolder } from './schemas/note-folder.schema';
 
+import { AuditService } from '../../common/services/audit.service';
+import { Request } from 'express';
+
 @Injectable()
 export class NoteFolderService {
     constructor(
         private readonly folderRepository: NoteFolderRepository,
-        private readonly noteRepository: NoteRepository
+        private readonly noteRepository: NoteRepository,
+        private readonly auditService: AuditService
     ) { }
 
-    async create(userId: string, createDto: CreateFolderDTO): Promise<NoteFolder> {
+    async create(userId: string, createDto: CreateFolderDTO, req?: Request): Promise<NoteFolder> {
         const { name, parentId, color } = createDto;
 
         // Check for duplicate name at same level
@@ -21,12 +25,22 @@ export class NoteFolderService {
             throw new ConflictException('A folder with this name already exists');
         }
 
-        return this.folderRepository.create({
+        const folder = await this.folderRepository.create({
             userId: new Types.ObjectId(userId) as any,
             name,
             parentId: parentId ? new Types.ObjectId(parentId) as any : null,
             color
         });
+
+        await this.auditService.logAuditEvent(
+            userId,
+            'NOTE_FOLDER_CREATE',
+            'SUCCESS',
+            req,
+            { folderId: folder._id }
+        );
+
+        return folder;
     }
 
     async findAll(userId: string): Promise<NoteFolder[]> {
@@ -39,7 +53,7 @@ export class NoteFolderService {
         return folder;
     }
 
-    async update(id: string, userId: string, updateDto: { name?: string; parentId?: string; color?: string }): Promise<NoteFolder> {
+    async update(id: string, userId: string, updateDto: { name?: string; parentId?: string; color?: string }, req?: Request): Promise<NoteFolder> {
         // Check duplicate if name is changing
         if (updateDto.name) {
             // Need to know current parentId if not changing, to check duplicates correctly
@@ -60,10 +74,19 @@ export class NoteFolderService {
             { returnNew: true }
         );
         if (!updated) throw new NotFoundException('Folder not found');
+
+        await this.auditService.logAuditEvent(
+            userId,
+            'NOTE_FOLDER_UPDATE',
+            'SUCCESS',
+            req,
+            { folderId: updated._id }
+        );
+
         return updated;
     }
 
-    async remove(id: string, userId: string): Promise<void> {
+    async remove(id: string, userId: string, req?: Request): Promise<void> {
         // Check existence
         await this.findOne(id, userId);
 
@@ -80,5 +103,13 @@ export class NoteFolderService {
         for (const folderId of allIds) {
             await this.folderRepository.deleteOne({ _id: folderId, userId });
         }
+
+        await this.auditService.logAuditEvent(
+            userId,
+            'NOTE_FOLDER_DELETE',
+            'SUCCESS',
+            req,
+            { folderId: id, descendantCount: descendants.length }
+        );
     }
 }

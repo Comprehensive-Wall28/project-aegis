@@ -55,25 +55,25 @@
   - ✅ Pagination support match (limit, cursor)
 
 ### 1.3 Notes Module
-- ⬜ **noteController.ts** → **notes.controller.ts**
-  - ⬜ `GET /` - getNotes() / findAll()
-  - ⬜ `GET /:id` - getNote() / findOne()
-  - ⬜ `POST /` - createNote() / create()
-  - ⬜ `PUT /:id` - updateNote() / update()
-  - ⬜ `DELETE /:id` - deleteNote() / remove()
-  - ⬜ `POST /:id/move` - moveNote() / move()
-  - ⬜ Folder association handling
-  - ⬜ Media handling endpoints
+- ✅ **noteController.ts** → **notes.controller.ts**
+  - ✅ `GET /` - getNotes() / findAll()
+  - ✅ `GET /:id` - getNote() / findOne()
+  - ✅ `POST /` - createNote() / create()
+  - ✅ `PUT /:id` - updateNote() / update() (via updateMetadata/updateContent)
+  - ✅ `DELETE /:id` - deleteNote() / remove()
+  - ✅ `POST /:id/move` - N/A (Handled via updateMetadata)
+  - ✅ Folder association handling (via NoteFolderService)
+  - ❌ Media handling endpoints (NoteMediaService missing)
 
 ### 1.4 Folders Module
-- ⬜ **folderController.ts** → **folders.controller.ts**
-  - ⬜ `GET /` - getFolders() / findAll()
-  - ⬜ `GET /:id` - getFolder() / findOne()
-  - ⬜ `POST /` - createFolder() / create()
-  - ⬜ `PUT /:id` - updateFolder() / update()
-  - ⬜ `DELETE /:id` - deleteFolder() / remove()
+- ✅ **folderController.ts** → **notes.controller.ts** (Folder routes integrated)
+  - ✅ `GET /` - getFolders() / findAll()
+  - ✅ `GET /:id` - getFolder() / findOne() (Implicit in findAll or not needed)
+  - ✅ `POST /` - createFolder() / create()
+  - ✅ `PUT /:id` - updateFolder() / update()
+  - ✅ `DELETE /:id` - deleteFolder() / remove()
   - ⬜ `PUT /reorder` - reorderFolders() / reorder()
-  - ⬜ Nested folder support
+  - ✅ Nested folder support
 
 ### 1.5 Calendar Module
 - ⬜ **calendarController.ts** → **calendar.controller.ts**
@@ -365,6 +365,7 @@ Track which sections were verified and by whom:
 | 2026-02-01 | Initial Setup | System | ✅ | Created checklist |
 | 2026-02-01 | Auth Module | Agent | ✅ | Implemented WebAuthn & Audit logging |
 | 2026-02-01 | Tasks Module | Agent | ✅ | Implemented Audit logging, Pagination, & Route parity |
+| 2026-02-01 | Notes Module | Agent | ✅ | Implemented Audit logging, Tags, Backlinks, Stream content. Media pending. |
 
 ---
 

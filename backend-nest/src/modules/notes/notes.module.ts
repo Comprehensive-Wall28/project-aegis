@@ -8,6 +8,7 @@ import { NoteFolder, NoteFolderSchema } from './schemas/note-folder.schema';
 import { NoteRepository } from './repositories/note.repository';
 import { NoteFolderRepository } from './repositories/note-folder.repository';
 import { VaultModule } from '../vault/vault.module';
+import { AuditService } from '../../common/services/audit.service';
 
 @Module({
     imports: [
@@ -22,7 +23,9 @@ import { VaultModule } from '../vault/vault.module';
         NotesService,
         NoteFolderService,
         NoteRepository,
-        NoteFolderRepository
+        NoteRepository,
+        NoteFolderRepository,
+        AuditService
     ],
     exports: [NotesService, NoteFolderService],
 })

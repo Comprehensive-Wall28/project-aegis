@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Readable } from 'stream';
 import { NoteRepository } from './repositories/note.repository';
 import { GridFsService } from '../vault/gridfs.service';
 import { CreateNoteDTO, UpdateNoteContentDTO, UpdateNoteMetadataDTO } from './dto/note.dto';
+import { AuditService } from '../../common/services/audit.service';
+import { Request } from 'express';
 import { Note } from './schemas/note.schema';
 import { Types } from 'mongoose';
 
@@ -11,10 +14,11 @@ export class NotesService {
 
     constructor(
         private readonly noteRepository: NoteRepository,
-        private readonly gridFsService: GridFsService
+        private readonly gridFsService: GridFsService,
+        private readonly auditService: AuditService
     ) { }
 
-    async create(userId: string, createDto: CreateNoteDTO): Promise<Note> {
+    async create(userId: string, createDto: CreateNoteDTO, req?: Request): Promise<Note> {
         // Upload encrypted content to GridFS
         const contentBuffer = Buffer.from(createDto.encryptedContent, 'base64');
         const gridFsFileId = await this.gridFsService.uploadBuffer(
@@ -37,6 +41,14 @@ export class NotesService {
             recordHash: createDto.recordHash
         });
 
+        await this.auditService.logAuditEvent(
+            userId,
+            'NOTE_CREATE',
+            'SUCCESS',
+            req,
+            { noteId: note._id }
+        );
+
         return note;
     }
 
@@ -56,7 +68,21 @@ export class NotesService {
         return { buffer, note };
     }
 
-    async updateMetadata(id: string, userId: string, updateDto: UpdateNoteMetadataDTO): Promise<Note> {
+    async getContentStream(id: string, userId: string): Promise<{ stream: Readable; note: Note }> {
+        const note = await this.findOne(id, userId);
+        const stream = this.gridFsService.getFileStream(note.gridFsFileId);
+        return { stream, note };
+    }
+
+    async getUserTags(userId: string): Promise<string[]> {
+        return this.noteRepository.getUniqueTags(userId);
+    }
+
+    async getBacklinks(entityId: string, userId: string): Promise<Note[]> {
+        return this.noteRepository.findMentionsOf(userId, entityId);
+    }
+
+    async updateMetadata(id: string, userId: string, updateDto: UpdateNoteMetadataDTO, req?: Request): Promise<Note> {
         const updateData: any = { ...updateDto };
         // Handle null folderId explicitly if needed
         if (updateDto.noteFolderId === null) {
@@ -69,10 +95,19 @@ export class NotesService {
             { returnNew: true }
         );
         if (!updated) throw new NotFoundException('Note not found');
+
+        await this.auditService.logAuditEvent(
+            userId,
+            'NOTE_UPDATE_METADATA',
+            'SUCCESS',
+            req,
+            { noteId: id }
+        );
+
         return updated;
     }
 
-    async updateContent(id: string, userId: string, updateDto: UpdateNoteContentDTO): Promise<Note> {
+    async updateContent(id: string, userId: string, updateDto: UpdateNoteContentDTO, req?: Request): Promise<Note> {
         const note = await this.findOne(id, userId);
         const oldFileId = note.gridFsFileId;
 
@@ -109,10 +144,18 @@ export class NotesService {
             this.logger.warn(`Failed to cleanup old GridFS file ${oldFileId}: ${err.message}`)
         );
 
+        await this.auditService.logAuditEvent(
+            userId,
+            'NOTE_UPDATE_CONTENT',
+            'SUCCESS',
+            req,
+            { noteId: id }
+        );
+
         return updated;
     }
 
-    async remove(id: string, userId: string): Promise<void> {
+    async remove(id: string, userId: string, req?: Request): Promise<void> {
         const note = await this.findOne(id, userId);
 
         await this.noteRepository.deleteOne({ _id: id, userId });
@@ -120,6 +163,14 @@ export class NotesService {
         // Cleanup GridFS
         await this.gridFsService.deleteFile(note.gridFsFileId).catch(err =>
             this.logger.warn(`Failed to delete GridFS file ${note.gridFsFileId}: ${err.message}`)
+        );
+
+        await this.auditService.logAuditEvent(
+            userId,
+            'NOTE_DELETE',
+            'SUCCESS',
+            req,
+            { noteId: id }
         );
     }
 }
