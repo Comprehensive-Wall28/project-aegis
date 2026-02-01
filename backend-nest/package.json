@@ -18,7 +18,11 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:integration": "jest --config ./test/jest-integration.json --runInBand"
+    "test:integration": "jest --config ./test/jest-integration.json --runInBand",
+    "parity:check": "ts-node scripts/parity-checker/index.ts",
+    "parity:check:json": "ts-node scripts/parity-checker/index.ts --json",
+    "parity:check:html": "ts-node scripts/parity-checker/index.ts --html",
+    "parity:check:module": "ts-node scripts/parity-checker/index.ts --module"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
