@@ -38,8 +38,11 @@ export class ExpressParser {
       middleware: [],
     };
 
+    // Parse app.ts to get route mount points
+    const routeMappings = await this.parseAppMappings();
+
     // Parse routes
-    data.routes = await this.parseRoutes(moduleFilter);
+    data.routes = await this.parseRoutes(routeMappings, moduleFilter);
 
     // Parse controllers
     data.controllers = await this.parseControllers(moduleFilter);
@@ -62,7 +65,7 @@ export class ExpressParser {
     return data;
   }
 
-  private async parseRoutes(moduleFilter?: string): Promise<RouteInfo[]> {
+  private async parseRoutes(routeMappings: Record<string, string>, moduleFilter?: string): Promise<RouteInfo[]> {
     const routes: RouteInfo[] = [];
     const routesDir = path.join(this.basePath, 'routes');
 
@@ -79,21 +82,56 @@ export class ExpressParser {
 
       const filePath = path.join(routesDir, file);
       const content = fs.readFileSync(filePath, 'utf-8');
-      const fileRoutes = this.extractRoutesFromFile(content, file);
+
+      // Use mapped prefix or fallback to filename-based module name
+      const fileNameOnly = file.replace('.ts', '');
+      const prefix = routeMappings[fileNameOnly] || `/api/${fileNameOnly.replace('Routes', '').toLowerCase()}`;
+
+      const fileRoutes = this.extractRoutesFromFile(content, file, prefix);
       routes.push(...fileRoutes);
     }
 
     return routes;
   }
 
-  private extractRoutesFromFile(content: string, fileName: string): RouteInfo[] {
+  private async parseAppMappings(): Promise<Record<string, string>> {
+    const mappings: Record<string, string> = {};
+    const appPath = path.join(this.basePath, 'app.ts');
+
+    if (!fs.existsSync(appPath)) {
+      return mappings;
+    }
+
+    const content = fs.readFileSync(appPath, 'utf-8');
+
+    // Extract imports like: import mentionRoutes from './routes/mentionRoutes';
+    const importPattern = /import\s+(\w+)\s+from\s+['"`]\.\/routes\/(\w+)['"`]/g;
+    const imports: Record<string, string> = {};
+    let match;
+    while ((match = importPattern.exec(content)) !== null) {
+      imports[match[1]] = match[2];
+    }
+
+    // Extract app.use('/api/mentions', mentionRoutes);
+    const usePattern = /app\.use\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(\w+)\s*\)/g;
+    while ((match = usePattern.exec(content)) !== null) {
+      const [, prefix, routerVar] = match;
+      const fileName = imports[routerVar];
+      if (fileName) {
+        mappings[fileName] = prefix;
+      }
+    }
+
+    return mappings;
+  }
+
+  private extractRoutesFromFile(content: string, fileName: string, prefix: string): RouteInfo[] {
     const routes: RouteInfo[] = [];
 
-    // Extract route prefix from router.use or the file name
-    const prefixMatch = content.match(/router\s*=.*Router\(\)/);
     const moduleName = fileName.replace('Routes.ts', '').toLowerCase();
 
     // Check for global middleware
+    // ... (rest of method remains same, but using the passed prefix)
     const hasProtect = content.includes('router.use(protect)') || content.includes('protect,');
     const hasCsrf =
       content.includes('router.use(csrfProtection)') || content.includes('csrfProtection,');
@@ -122,7 +160,7 @@ export class ExpressParser {
         routes.push({
           method: method.toUpperCase() as RouteInfo['method'],
           path: routePath,
-          fullPath: `/api/${moduleName}${routePath === '/' ? '' : routePath}`,
+          fullPath: `${prefix}${routePath === '/' ? '' : routePath}`,
           handlerName,
           controllerName: `${moduleName}Controller`,
           fileName,
@@ -472,35 +510,35 @@ export class ExpressParser {
 
     // Extract fields from schema definition
     const fields: FieldInfo[] = [];
-    
+
     // Find the Schema definition - need to handle balanced braces
     const schemaStart = content.search(/(?:new\s+)?Schema\s*\(\s*\{/);
-    
+
     if (schemaStart !== -1) {
       // Find the opening brace of the schema object
       const braceStart = content.indexOf('{', schemaStart);
       const schemaBlock = this.extractBalancedBraces(content.substring(braceStart));
-      
+
       if (schemaBlock) {
         // Remove the outer braces
         const innerBlock = schemaBlock.slice(1, -1);
-        
+
         // Parse field definitions more carefully
         // We'll iterate through looking for top-level field: value patterns
         this.parseSchemaFields(innerBlock, fields);
       }
     }
-    
+
     // Also try to extract from interface definitions for additional type info
     const interfaceMatch = content.match(/interface\s+I\w+\s+extends\s+Document\s*\{([\s\S]*?)\}/);
     if (interfaceMatch && fields.length === 0) {
       const interfaceBlock = interfaceMatch[1];
       const propRegex = /(\w+)(\?)?:\s*([^;\n]+)/g;
-      
+
       let propMatch;
       while ((propMatch = propRegex.exec(interfaceBlock)) !== null) {
         const [, propName, optional, propType] = propMatch;
-        
+
         // Skip if already found in schema
         if (!fields.find(f => f.name === propName)) {
           fields.push({
@@ -518,7 +556,7 @@ export class ExpressParser {
     if (indexMatches) {
       indexes.push(...indexMatches);
     }
-    
+
     // Also match .index() on the schema variable
     const varIndexMatches = content.match(/\w+Schema\.index\s*\(\s*\{[^}]+\}/g);
     if (varIndexMatches) {
@@ -533,7 +571,7 @@ export class ExpressParser {
       virtuals: [],
     };
   }
-  
+
   /**
    * Parse schema fields from the inner block of a Schema({ ... })
    */
@@ -541,35 +579,35 @@ export class ExpressParser {
     // Track position and depth to find top-level field definitions
     let pos = 0;
     const len = block.length;
-    
+
     while (pos < len) {
       // Skip whitespace and commas
       while (pos < len && /[\s,]/.test(block[pos])) pos++;
       if (pos >= len) break;
-      
+
       // Skip comments
       if (block.substring(pos, pos + 2) === '//') {
         pos = block.indexOf('\n', pos);
         if (pos === -1) break;
         continue;
       }
-      
+
       // Look for field name
       const fieldMatch = block.substring(pos).match(/^(\w+)\s*:/);
       if (!fieldMatch) {
         pos++;
         continue;
       }
-      
+
       const fieldName = fieldMatch[1];
       pos += fieldMatch[0].length;
-      
+
       // Skip whitespace after colon
       while (pos < len && /\s/.test(block[pos])) pos++;
-      
+
       // Skip schema property keywords that aren't actual field names
-      if (['type', 'required', 'default', 'ref', 'enum', 'index', 'unique', 'min', 'max', 
-           'minlength', 'maxlength', 'trim', 'lowercase', 'validate', 'get', 'set'].includes(fieldName)) {
+      if (['type', 'required', 'default', 'ref', 'enum', 'index', 'unique', 'min', 'max',
+        'minlength', 'maxlength', 'trim', 'lowercase', 'validate', 'get', 'set'].includes(fieldName)) {
         // Skip the value
         if (block[pos] === '{' || block[pos] === '[') {
           const extracted = this.extractBalancedBraces(block.substring(pos));
@@ -580,7 +618,7 @@ export class ExpressParser {
         }
         continue;
       }
-      
+
       // Extract the field value (could be { ... }, [ ... ], or simple value)
       let fieldValue = '';
       if (block[pos] === '{') {
@@ -600,7 +638,7 @@ export class ExpressParser {
           pos += valueEnd;
         }
       }
-      
+
       // Parse the field value
       if (fieldValue.startsWith('{')) {
         const typeMatch = fieldValue.match(/type\s*:\s*(?:Schema\.Types\.)?(\w+)(?:\.\w+)?/);
@@ -608,7 +646,7 @@ export class ExpressParser {
         const refMatch = fieldValue.match(/ref\s*:\s*['"`](\w+)['"`]/);
         const enumMatch = fieldValue.match(/enum\s*:\s*\[([^\]]+)\]/);
         const defaultMatch = fieldValue.match(/default\s*:\s*([^,}\]]+)/);
-        
+
         fields.push({
           name: fieldName,
           type: typeMatch ? typeMatch[1] : 'unknown',
@@ -635,7 +673,7 @@ export class ExpressParser {
       }
     }
   }
-  
+
   /**
    * Extract content within balanced braces starting from the beginning of str
    */
@@ -645,15 +683,15 @@ export class ExpressParser {
       if (braceIdx === -1) return null;
       str = str.substring(braceIdx);
     }
-    
+
     let depth = 0;
     let inString = false;
     let stringChar = '';
-    
+
     for (let i = 0; i < str.length; i++) {
       const char = str[i];
       const prevChar = i > 0 ? str[i - 1] : '';
-      
+
       // Handle string literals
       if ((char === '"' || char === "'" || char === '`') && prevChar !== '\\') {
         if (!inString) {
@@ -664,9 +702,9 @@ export class ExpressParser {
         }
         continue;
       }
-      
+
       if (inString) continue;
-      
+
       if (char === '{' || char === '[') {
         depth++;
       } else if (char === '}' || char === ']') {
@@ -676,7 +714,7 @@ export class ExpressParser {
         }
       }
     }
-    
+
     return null;
   }
 

@@ -23,10 +23,9 @@ import { AuditService } from '../../common/services/audit.service';
     NotesService,
     NoteFolderService,
     NoteRepository,
-    NoteRepository,
     NoteFolderRepository,
     AuditService,
   ],
-  exports: [NotesService, NoteFolderService],
+  exports: [NotesService, NoteFolderService, NoteRepository],
 })
-export class NotesModule {}
+export class NotesModule { }

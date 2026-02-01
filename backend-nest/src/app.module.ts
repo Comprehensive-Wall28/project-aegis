@@ -20,6 +20,7 @@ import { SocialModule } from './modules/social/social.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { ShareModule } from './modules/share/share.module';
+import { MentionModule } from './modules/mention/mention.module';
 
 @Module({
   imports: [
@@ -40,11 +41,11 @@ import { ShareModule } from './modules/share/share.module';
             transport: isProd
               ? undefined
               : {
-                  target: 'pino-pretty',
-                  options: {
-                    singleLine: true,
-                  },
+                target: 'pino-pretty',
+                options: {
+                  singleLine: true,
                 },
+              },
             // Redact sensitive headers/body fields
             redact: [
               'req.headers.authorization',
@@ -70,6 +71,7 @@ import { ShareModule } from './modules/share/share.module';
     WebsocketModule,
     ActivityModule,
     ShareModule,
+    MentionModule,
   ],
   controllers: [AppController],
   providers: [
@@ -80,4 +82,4 @@ import { ShareModule } from './modules/share/share.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

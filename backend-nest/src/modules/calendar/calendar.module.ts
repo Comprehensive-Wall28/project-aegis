@@ -16,6 +16,6 @@ import { CalendarRepository } from './calendar.repository';
   ],
   controllers: [CalendarController],
   providers: [CalendarService, CalendarRepository],
-  exports: [CalendarService],
+  exports: [CalendarService, CalendarRepository],
 })
-export class CalendarModule {}
+export class CalendarModule { }

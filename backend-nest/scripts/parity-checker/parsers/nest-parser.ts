@@ -251,8 +251,8 @@ export class NestParser {
     const controllerName = classMatch ? classMatch[1] : fileName.replace('.ts', '');
 
     // Check for class-level guards
-    const hasClassAuth = content.includes('@UseGuards(JwtAuthGuard)') || content.includes("@UseGuards(AuthGuard('jwt'))");
-    const hasClassCsrf = content.includes('@UseGuards(CsrfGuard)');
+    const hasClassAuth = /@UseGuards\([^)]*JwtAuthGuard[^)]*\)/.test(content) || /@UseGuards\([^)]*AuthGuard\(['"`]jwt['"`]\)[^)]*\)/.test(content);
+    const hasClassCsrf = /@UseGuards\([^)]*CsrfGuard[^)]*\)/.test(content);
 
     // Extract route methods
     const methodPatterns = [
@@ -273,16 +273,16 @@ export class NestParser {
         // Check for method-level guards
         const contextStart = Math.max(0, match.index - 200);
         const methodContext = content.substring(contextStart, match.index + 300);
-        const methodHasAuth = methodContext.includes('@UseGuards(JwtAuthGuard)') || hasClassAuth;
-        const methodHasCsrf = methodContext.includes('@UseGuards(CsrfGuard)') || hasClassCsrf;
+        const methodHasAuth = /@UseGuards\([^)]*JwtAuthGuard[^)]*\)/.test(methodContext) || hasClassAuth;
+        const methodHasCsrf = /@UseGuards\([^)]*CsrfGuard[^)]*\)/.test(methodContext) || hasClassCsrf;
 
         // Extract guards from context
         const guardsMatch = methodContext.match(/@UseGuards\(([^)]+)\)/g);
         const guards = guardsMatch
           ? guardsMatch.flatMap((g) => {
-              const inner = g.match(/@UseGuards\(([^)]+)\)/);
-              return inner ? inner[1].split(',').map((s) => s.trim()) : [];
-            })
+            const inner = g.match(/@UseGuards\(([^)]+)\)/);
+            return inner ? inner[1].split(',').map((s) => s.trim()) : [];
+          })
           : [];
 
         // Extract path parameters
@@ -541,43 +541,43 @@ export class NestParser {
 
     // Extract fields with @Prop decorator
     const fields: FieldInfo[] = [];
-    
+
     // More robust pattern that handles:
     // 1. Multiline @Prop({ ... }) with nested braces
     // 2. Both ! and ? after field name
     // 3. Array decorators like @Prop([...])
     // 4. Simple @Prop() without options
-    
+
     // Find all @Prop occurrences and extract field info
     const propRegex = /@Prop\s*\(/g;
     let propMatch;
-    
+
     while ((propMatch = propRegex.exec(content)) !== null) {
       const startIdx = propMatch.index;
-      
+
       // Find the matching closing paren for @Prop(...)
       const afterProp = content.substring(startIdx + propMatch[0].length);
       const propEndIdx = this.findMatchingParen(afterProp, '(', ')');
-      
+
       if (propEndIdx === -1) continue;
-      
+
       const propOptions = afterProp.substring(0, propEndIdx);
       const afterOptions = content.substring(startIdx + propMatch[0].length + propEndIdx + 1);
-      
+
       // Extract field name and type after @Prop(...)
       // Pattern: fieldName!: Type or fieldName?: Type or fieldName: Type
       const fieldMatch = afterOptions.match(/^\s*(\w+)\s*([!?])?\s*:\s*([^;]+)/);
-      
+
       if (fieldMatch) {
         const [, fieldName, modifier, fieldType] = fieldMatch;
-        
+
         // Parse options to get required, ref, enum
         const required = modifier === '!' || propOptions.includes('required: true') || propOptions.includes('required:true');
         const isOptional = modifier === '?';
         const refMatch = propOptions.match(/ref\s*:\s*['"`](\w+)['"`]/);
         const enumMatch = propOptions.match(/enum\s*:\s*(\[[^\]]+\]|['"`][^'"`]+['"`]|\w+)/);
         const defaultMatch = propOptions.match(/default\s*:\s*([^,}\]]+)/);
-        
+
         fields.push({
           name: fieldName,
           type: fieldType.trim().replace(/;$/, ''),
@@ -595,7 +595,7 @@ export class NestParser {
     if (indexMatches) {
       indexes.push(...indexMatches);
     }
-    
+
     // Also extract SchemaFactory indexes
     const schemaIndexMatches = content.match(/Schema\.index\s*\(\s*\{[^}]+\}/g);
     if (schemaIndexMatches) {
@@ -610,7 +610,7 @@ export class NestParser {
       virtuals: [],
     };
   }
-  
+
   /**
    * Find the matching closing bracket/paren, handling nested brackets
    */
@@ -618,11 +618,11 @@ export class NestParser {
     let depth = 1;
     let inString = false;
     let stringChar = '';
-    
+
     for (let i = 0; i < str.length; i++) {
       const char = str[i];
       const prevChar = i > 0 ? str[i - 1] : '';
-      
+
       // Handle string literals
       if ((char === '"' || char === "'" || char === '`') && prevChar !== '\\') {
         if (!inString) {
@@ -633,9 +633,9 @@ export class NestParser {
         }
         continue;
       }
-      
+
       if (inString) continue;
-      
+
       if (char === open || (open === '(' && char === '[') || (open === '(' && char === '{')) {
         depth++;
       } else if (char === close || (close === ')' && char === ']') || (close === ')' && char === '}')) {
@@ -645,7 +645,7 @@ export class NestParser {
         }
       }
     }
-    
+
     return -1;
   }
 

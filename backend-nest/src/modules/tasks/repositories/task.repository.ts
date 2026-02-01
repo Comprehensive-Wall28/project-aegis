@@ -62,4 +62,14 @@ export class TaskRepository extends BaseRepository<TaskDocument> {
       },
     );
   }
+
+  async findMentionsOf(
+    userId: string,
+    targetId: string,
+  ): Promise<TaskDocument[]> {
+    return this.findMany({
+      userId,
+      mentions: { $in: [targetId] },
+    } as any);
+  }
 }
