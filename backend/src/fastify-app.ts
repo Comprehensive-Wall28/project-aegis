@@ -14,7 +14,7 @@ validateConfig();
 export async function buildApp(): Promise<FastifyInstance> {
     const app = Fastify({
         logger: {
-            level: config.nodeEnv === 'production' ? 'info' : 'debug',
+            level: config.nodeEnv === 'production' ? 'warn' : 'debug',
             transport: config.nodeEnv !== 'production' ? {
                 target: 'pino-pretty',
                 options: {
@@ -156,6 +156,6 @@ export async function buildApp(): Promise<FastifyInstance> {
         await instance.register(mentionRoutes);
     }, { prefix: '/api/mentions' });
 
-    logger.info('Fastify app configured successfully');
+    console.log('✅ Fastify app configured successfully');
     return app;
 }

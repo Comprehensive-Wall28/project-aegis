@@ -55,7 +55,7 @@ export class DatabaseManager {
         }
 
         connection.on('connected', () => {
-            logger.info(`MongoDB Connected (${name}): ${connection.host}`);
+            console.log(`✅ MongoDB Connected (${name}): ${connection.host}`);
         });
 
         connection.on('error', (err) => {

@@ -54,7 +54,8 @@
     "playwright": "^1.58.1",
     "socket.io": "^4.8.3",
     "typescript": "^5.9.3",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "winston-transport": "^4.9.0"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",

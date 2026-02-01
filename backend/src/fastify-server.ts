@@ -24,9 +24,10 @@ async function start() {
             host: '0.0.0.0', // Critical for Docker - binds to all interfaces
         });
 
-        logger.info(`🚀 Fastify server running on port ${config.port} in ${config.nodeEnv} mode`);
-        logger.info(`📡 Socket.IO initialized`);
-        logger.info(`🔗 CORS allowed origins: ${allowedOrigins.join(', ')}`);
+        // Use console.log for startup messages to ensure they appear in production
+        console.log(`🚀 Fastify server running on port ${config.port} in ${config.nodeEnv} mode`);
+        console.log(`📡 Socket.IO initialized`);
+        console.log(`🔗 CORS allowed origins: ${allowedOrigins.join(', ')}`);
     } catch (err) {
         logger.error('Failed to start Fastify server:', err);
         process.exit(1);
@@ -35,18 +36,18 @@ async function start() {
 
 // Graceful shutdown
 const gracefulShutdown = async (signal: string) => {
-    logger.info(`\n${signal} received. Shutting down gracefully...`);
+    console.log(`\n${signal} received. Shutting down gracefully...`);
 
     try {
         const app = await buildApp();
         await app.close();
-        logger.info('Fastify server closed');
+        console.log('Fastify server closed');
 
         // Close Socket.IO
         const io = SocketManager.getIO();
         if (io) {
             io.close(() => {
-                logger.info('Socket.IO connections closed');
+                console.log('Socket.IO connections closed');
                 process.exit(0);
             });
         } else {

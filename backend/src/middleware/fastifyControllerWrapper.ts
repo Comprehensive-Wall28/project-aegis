@@ -11,14 +11,27 @@ export const catchAsync = (fn: FastifyHandler): FastifyHandler => {
         try {
             await fn(request, reply);
         } catch (error: any) {
-            logger.error('Controller error:', {
-                method: request.method,
-                url: request.url,
-                error: error.message,
-                stack: error.stack,
-            });
-
             const statusCode = error.statusCode || error.status || 500;
+            
+            // Only log server errors (5xx) with full stack traces
+            // Client errors (4xx) are expected and don't need error-level logging
+            if (statusCode >= 500) {
+                logger.error('Server error:', {
+                    method: request.method,
+                    url: request.url,
+                    error: error.message,
+                    stack: error.stack,
+                });
+            } else if (statusCode >= 400) {
+                // Log client errors at debug level (won't show in production)
+                logger.debug('Client error:', {
+                    method: request.method,
+                    url: request.url,
+                    statusCode,
+                    error: error.message,
+                });
+            }
+
             reply.status(statusCode).send({
                 message: error.message || 'Server error',
                 code: error.code,
@@ -44,15 +57,29 @@ export const withAuth = (fn: AuthHandler): AuthHandler => {
         try {
             await fn(request, reply);
         } catch (error: any) {
-            logger.error('Auth controller error:', {
-                method: request.method,
-                url: request.url,
-                userId: request.user?.id,
-                error: error.message,
-                stack: error.stack,
-            });
-
             const statusCode = error.statusCode || error.status || 500;
+            
+            // Only log server errors (5xx) with full stack traces
+            // Client errors (4xx) are expected and don't need error-level logging
+            if (statusCode >= 500) {
+                logger.error('Auth server error:', {
+                    method: request.method,
+                    url: request.url,
+                    userId: request.user?.id,
+                    error: error.message,
+                    stack: error.stack,
+                });
+            } else if (statusCode >= 400) {
+                // Log client errors at debug level (won't show in production)
+                logger.debug('Auth client error:', {
+                    method: request.method,
+                    url: request.url,
+                    userId: request.user?.id,
+                    statusCode,
+                    error: error.message,
+                });
+            }
+
             reply.status(statusCode).send({
                 message: error.message || 'Server error',
                 code: error.code,
