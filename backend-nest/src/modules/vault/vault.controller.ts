@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, Res, BadRequestException, Logger } from '@nestjs/common';
+import { CsrfGuard } from '../../common/guards/csrf.guard';
 import { Types } from 'mongoose';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -9,7 +10,7 @@ import { UploadInitDto } from './dto/upload-init.dto';
 import { GridFsService } from './gridfs.service';
 
 @Controller('vault')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CsrfGuard)
 export class VaultController {
     constructor(
         private readonly vaultService: VaultService,
@@ -102,9 +103,11 @@ export class VaultController {
     async listFiles(
         @CurrentUser() user: any,
         @Query('folderId') folderId?: string,
-        @Query('search') search?: string
+        @Query('search') search?: string,
+        @Query('limit') limit?: number,
+        @Query('cursor') cursor?: string
     ) {
-        return this.vaultService.listFiles(user._id.toString(), folderId, search);
+        return this.vaultService.listFiles(user._id.toString(), folderId, search, limit, cursor);
     }
 
     @Get('files/:id')

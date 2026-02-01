@@ -98,14 +98,14 @@
   - ✅ `PUT /preferences` - updatePreferences()
 
 ### 1.7 Vault Module
-- ⬜ **vaultController.ts** → **vault.controller.ts**
-  - ⬜ `GET /files` - getFiles() / findAll()
-  - ⬜ `GET /files/:id` - getFile() / findOne()
-  - ⬜ `POST /upload` - uploadFile() / upload()
-  - ⬜ `GET /download/:id` - downloadFile() / download()
-  - ⬜ `DELETE /files/:id` - deleteFile() / remove()
-  - ⬜ GridFS streaming match
-  - ⬜ File encryption match
+- ✅ **vaultController.ts** → **vault.controller.ts**
+  - ✅ `GET /files` - getFiles() / findAll()
+  - ✅ `GET /files/:id` - getFile() / findOne()
+  - ✅ `POST /upload` - uploadFile() / upload()
+  - ✅ `GET /download/:id` - downloadFile() / download()
+  - ✅ `DELETE /files/:id` - deleteFile() / remove()
+  - ✅ GridFS streaming match
+  - ✅ File encryption match
 
 ### 1.8 Social Module
 - ⬜ **socialController.ts** → **social.controller.ts**
@@ -206,10 +206,10 @@
   - ✅ Migration logic (Unmigrated/Migrate)
   - ✅ Audit logging
 
-- ⬜ **VaultService**
-  - ⬜ File upload/download
-  - ⬜ Encryption/decryption
-  - ⬜ GridFS integration
+- ✅ **VaultService**
+  - ✅ File upload/download
+  - ✅ Encryption/decryption
+  - ✅ GridFS integration
 
 ### 2.2 Social Services
 - ⬜ **RoomService** → **social.service.ts**
@@ -235,7 +235,7 @@
 - ⬜ **FolderRepository** → folders.repository.ts
 - ✅ **CalendarEventRepository** → calendar.repository.ts
 - ✅ **CourseRepository** → gpa.repository.ts
-- ⬜ **FileMetadataRepository** → vault.repository.ts
+- ✅ **FileMetadataRepository** → vault.repository.ts
 - ✅ **UserRepository** → users.repository.ts
 - ⬜ **AuditLogRepository** → (via schema)
 - ⬜ **CollectionRepository** → collection.repository.ts
@@ -269,7 +269,7 @@
 | CalendarEvent | calendar-event.schema | ✅ |
 | Collection | collection.schema | ⬜ |
 | Course | course.schema | ✅ |
-| FileMetadata | vault-file.schema | ⬜ |
+| FileMetadata | vault-file.schema | ✅ |
 | Folder | folder.schema | ⬜ |
 | LinkComment | link-comment.schema | ⬜ |
 | LinkMetadata | link-metadata.schema | ⬜ |
@@ -349,9 +349,9 @@ Check each mutation method has corresponding audit logging in NestJS:
 - ✅ deleteEvent → CALENDAR_DELETE
 
 #### Vault
-- ⬜ uploadFile → FILE_UPLOAD
-- ⬜ deleteFile → FILE_DELETE
-- ⬜ downloadFile → FILE_DOWNLOAD
+- ✅ uploadFile → FILE_UPLOAD
+- ✅ deleteFile → FILE_DELETE
+- ✅ downloadFile → MATCH (None)
 
 #### Auth
 - ✅ login → AUTH_LOGIN
@@ -374,6 +374,7 @@ Track which sections were verified and by whom:
 | 2026-02-01 | Folders Module | Agent | ✅ | Implemented Audit logging. Verified generic parity. |
 | 2026-02-01 | Calendar Module | Agent | ✅ | Implemented Pagination, CSRF, Audit logging & Repository methods. |
 | 2026-02-01 | GPA Module | Agent | ✅ | Implemented Migration endpoints, Audit logging, & Repository methods. Fixed Method mismatches. |
+| 2026-02-01 | Vault Module | Agent | ✅ | Implemented CsrfGuard, Pagination. Verified parity. Supports GridFS. |
 
 ---
 

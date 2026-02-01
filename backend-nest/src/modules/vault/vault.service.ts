@@ -239,9 +239,16 @@ export class VaultService extends BaseService<VaultFileDocument, VaultRepository
     /**
      * List files
      */
-    async listFiles(userId: string, folderId?: string, search?: string): Promise<{ items: VaultFile[]; nextCursor: string | null }> {
+    async listFiles(
+        userId: string,
+        folderId?: string,
+        search?: string,
+        limit?: number,
+        cursor?: string
+    ): Promise<{ items: VaultFile[]; nextCursor: string | null }> {
         const result = await this.vaultRepository.findByOwnerAndFolderPaginated(userId, folderId || null, {
-            limit: 100,
+            limit: Math.min(limit || 20, 100),
+            cursor,
             search
         });
 
