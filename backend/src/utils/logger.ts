@@ -3,6 +3,7 @@ import MongoDBTransport from './MongoDBTransport';
 
 const transports: winston.transport[] = [
     new winston.transports.Console({
+        level: 'warn', // Only warn and error to console (info goes to DB only)
         format: process.env.NODE_ENV === 'production'
             ? winston.format.json() // JSON for Render/Prod
             : winston.format.simple() // Readable for Dev

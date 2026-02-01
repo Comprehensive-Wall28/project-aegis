@@ -26,7 +26,6 @@ import { LineChart, BarChart, PieChart } from '@mui/x-charts';
 import {
     Activity,
     Clock,
-    Zap,
     TrendingUp,
     AlertTriangle,
     ArrowLeft,
@@ -36,7 +35,8 @@ import {
     Gauge,
 } from 'lucide-react';
 import { DashboardCard } from '@/components/common/DashboardCard';
-import adminService from '@/services/adminService';
+import { LogDetailOverlay } from '@/components/admin/LogDetailOverlay';
+import adminService, { type SystemLog } from '@/services/adminService';
 import dayjs from 'dayjs';
 
 const containerVariants: Variants = {
@@ -82,11 +82,11 @@ function StatCard({
         <DashboardCard>
             <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
                 <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Typography 
-                        variant="body2" 
-                        color="text.secondary" 
-                        sx={{ 
-                            mb: 0.5, 
+                    <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                            mb: 0.5,
                             fontSize: { xs: '11px', sm: '13px' },
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
@@ -95,10 +95,10 @@ function StatCard({
                     >
                         {title}
                     </Typography>
-                    <Typography 
-                        variant="h4" 
-                        sx={{ 
-                            fontWeight: 700, 
+                    <Typography
+                        variant="h4"
+                        sx={{
+                            fontWeight: 700,
                             color: 'text.primary',
                             fontSize: { xs: '1.25rem', sm: '1.75rem' },
                         }}
@@ -159,6 +159,10 @@ export function PerformancePage() {
     // Time range state
     const [hours, setHours] = useState<number>(24);
 
+    // Log overlay state
+    const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+    const [overlayOpen, setOverlayOpen] = useState(false);
+
     // Performance stats query
     const {
         data: stats,
@@ -202,10 +206,21 @@ export function PerformancePage() {
         refetchStats();
     }, [refetchStats]);
 
+    // Handle log click
+    const handleLogClick = useCallback(async (id: string) => {
+        try {
+            const log = await adminService.getLogById(id);
+            setSelectedLog(log);
+            setOverlayOpen(true);
+        } catch (error) {
+            console.error('Failed to fetch log details:', error);
+        }
+    }, []);
+
     // Chart data preparation - Response Time Trends
     const trendChartData = useMemo(() => {
         if (!trends?.length) return { xAxis: [], avgDuration: [], p95Duration: [], requestCount: [] };
-        
+
         return {
             xAxis: trends.map((t) => dayjs(t.timestamp).format('HH:mm')),
             avgDuration: trends.map((t) => t.avgDuration),
@@ -246,9 +261,9 @@ export function PerformancePage() {
                 {/* Header */}
                 <motion.div variants={itemVariants}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 } }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, flex: { xs: '1 1 auto', md: '0 1 auto' } }}>
                             <Tooltip title="Back to Logs">
-                                <IconButton 
+                                <IconButton
                                     onClick={() => navigate('/administration')}
                                     sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}
                                 >
@@ -277,7 +292,7 @@ export function PerformancePage() {
                                 </Typography>
                             </Box>
                         </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: { xs: 'auto', sm: 0 }, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-end', sm: 'flex-start' } }}>
                             <TextField
                                 select
                                 size="small"
@@ -303,7 +318,7 @@ export function PerformancePage() {
                 {/* Stats Cards - Row 1 */}
                 <motion.div variants={itemVariants}>
                     <Grid container spacing={2}>
-                        <Grid size={{ xs: 6, sm: 3 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             {statsLoading ? (
                                 <Skeleton variant="rounded" height={120} sx={{ borderRadius: '24px' }} />
                             ) : (
@@ -316,7 +331,7 @@ export function PerformancePage() {
                                 />
                             )}
                         </Grid>
-                        <Grid size={{ xs: 6, sm: 3 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             {statsLoading ? (
                                 <Skeleton variant="rounded" height={120} sx={{ borderRadius: '24px' }} />
                             ) : (
@@ -328,7 +343,7 @@ export function PerformancePage() {
                                 />
                             )}
                         </Grid>
-                        <Grid size={{ xs: 6, sm: 3 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             {statsLoading ? (
                                 <Skeleton variant="rounded" height={120} sx={{ borderRadius: '24px' }} />
                             ) : (
@@ -340,7 +355,7 @@ export function PerformancePage() {
                                 />
                             )}
                         </Grid>
-                        <Grid size={{ xs: 6, sm: 3 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             {statsLoading ? (
                                 <Skeleton variant="rounded" height={120} sx={{ borderRadius: '24px' }} />
                             ) : (
@@ -358,77 +373,86 @@ export function PerformancePage() {
                 {/* Stats Cards - Row 2 (Percentiles) */}
                 <motion.div variants={itemVariants}>
                     <Grid container spacing={2}>
-                        <Grid size={{ xs: 4, sm: 2 }}>
-                            {statsLoading ? (
-                                <Skeleton variant="rounded" height={100} sx={{ borderRadius: '24px' }} />
-                            ) : (
-                                <StatCard
-                                    title="P50"
-                                    value={formatDuration(stats?.p50Duration || 0)}
-                                    icon={Zap}
-                                    color={theme.palette.success.main}
-                                />
-                            )}
+                        {/* Latency Distribution Card */}
+                        <Grid size={{ xs: 12, md: 8 }}>
+                            <DashboardCard>
+                                <Box sx={{ mb: 2 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                                        Latency Distribution
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '12px' }}>
+                                        Response time percentiles
+                                    </Typography>
+                                </Box>
+                                <Grid container spacing={2}>
+                                    <Grid size={{ xs: 6, sm: 3 }}>
+                                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.05) }}>
+                                            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>P50</Typography>
+                                            <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                                                {formatDuration(stats?.p50Duration || 0)}
+                                            </Typography>
+                                        </Box>
+                                    </Grid>
+                                    <Grid size={{ xs: 6, sm: 3 }}>
+                                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.warning.main, 0.05) }}>
+                                            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>P90</Typography>
+                                            <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.warning.main }}>
+                                                {formatDuration(stats?.p90Duration || 0)}
+                                            </Typography>
+                                        </Box>
+                                    </Grid>
+                                    <Grid size={{ xs: 6, sm: 3 }}>
+                                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.05) }}>
+                                            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>P99</Typography>
+                                            <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
+                                                {formatDuration(stats?.p99Duration || 0)}
+                                            </Typography>
+                                        </Box>
+                                    </Grid>
+                                    <Grid size={{ xs: 6, sm: 3 }}>
+                                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.1) }}>
+                                            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>Max</Typography>
+                                            <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
+                                                {formatDuration(stats?.maxDuration || 0)}
+                                            </Typography>
+                                        </Box>
+                                    </Grid>
+                                </Grid>
+                            </DashboardCard>
                         </Grid>
-                        <Grid size={{ xs: 4, sm: 2 }}>
-                            {statsLoading ? (
-                                <Skeleton variant="rounded" height={100} sx={{ borderRadius: '24px' }} />
-                            ) : (
-                                <StatCard
-                                    title="P90"
-                                    value={formatDuration(stats?.p90Duration || 0)}
-                                    icon={Zap}
-                                    color={theme.palette.warning.main}
-                                />
-                            )}
-                        </Grid>
-                        <Grid size={{ xs: 4, sm: 2 }}>
-                            {statsLoading ? (
-                                <Skeleton variant="rounded" height={100} sx={{ borderRadius: '24px' }} />
-                            ) : (
-                                <StatCard
-                                    title="P99"
-                                    value={formatDuration(stats?.p99Duration || 0)}
-                                    icon={Zap}
-                                    color={theme.palette.error.main}
-                                />
-                            )}
-                        </Grid>
-                        <Grid size={{ xs: 4, sm: 2 }}>
-                            {statsLoading ? (
-                                <Skeleton variant="rounded" height={100} sx={{ borderRadius: '24px' }} />
-                            ) : (
-                                <StatCard
-                                    title="Max"
-                                    value={formatDuration(stats?.maxDuration || 0)}
-                                    icon={TrendingUp}
-                                    color={theme.palette.error.main}
-                                />
-                            )}
-                        </Grid>
-                        <Grid size={{ xs: 4, sm: 2 }}>
-                            {statsLoading ? (
-                                <Skeleton variant="rounded" height={100} sx={{ borderRadius: '24px' }} />
-                            ) : (
-                                <StatCard
-                                    title="Avg Request"
-                                    value={formatBytes(stats?.avgRequestSize || 0)}
-                                    icon={Server}
-                                    color={theme.palette.info.main}
-                                />
-                            )}
-                        </Grid>
-                        <Grid size={{ xs: 4, sm: 2 }}>
-                            {statsLoading ? (
-                                <Skeleton variant="rounded" height={100} sx={{ borderRadius: '24px' }} />
-                            ) : (
-                                <StatCard
-                                    title="Avg Memory"
-                                    value={formatBytes(stats?.avgMemoryUsage || 0)}
-                                    icon={Database}
-                                    color={theme.palette.secondary.main}
-                                />
-                            )}
+
+                        {/* System Resources Card */}
+                        <Grid size={{ xs: 12, md: 4 }}>
+                            <DashboardCard>
+                                <Box sx={{ mb: 2 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                                        System Resources
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '12px' }}>
+                                        Average usage per request
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.05) }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                            <Server size={20} color={theme.palette.info.main} />
+                                            <Typography variant="body2" fontWeight={500}>Request Size</Typography>
+                                        </Box>
+                                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                            {formatBytes(stats?.avgRequestSize || 0)}
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.secondary.main, 0.05) }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                            <Database size={20} color={theme.palette.secondary.main} />
+                                            <Typography variant="body2" fontWeight={500}>Memory</Typography>
+                                        </Box>
+                                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                            {formatBytes(stats?.avgMemoryUsage || 0)}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            </DashboardCard>
                         </Grid>
                     </Grid>
                 </motion.div>
@@ -571,7 +595,7 @@ export function PerformancePage() {
                                 Response times by API endpoint
                             </Typography>
                         </Box>
-                        
+
                         {endpointsLoading ? (
                             <Box sx={{ px: 2, pb: 2 }}>
                                 {[...Array(5)].map((_, i) => (
@@ -579,8 +603,8 @@ export function PerformancePage() {
                                 ))}
                             </Box>
                         ) : (
-                            <TableContainer>
-                                <Table size="small">
+                            <TableContainer sx={{ overflowX: 'auto' }}>
+                                <Table size="small" sx={{ minWidth: 650 }}>
                                     <TableHead>
                                         <TableRow>
                                             <TableCell sx={{ fontWeight: 600 }}>Endpoint</TableCell>
@@ -596,31 +620,31 @@ export function PerformancePage() {
                                             <TableRow key={`${endpoint.method}-${endpoint.url}`} hover>
                                                 <TableCell>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                        <Chip 
-                                                            label={endpoint.method} 
-                                                            size="small" 
-                                                            sx={{ 
+                                                        <Chip
+                                                            label={endpoint.method}
+                                                            size="small"
+                                                            sx={{
                                                                 fontSize: '10px',
                                                                 height: 20,
                                                                 bgcolor: alpha(
                                                                     endpoint.method === 'GET' ? theme.palette.success.main :
-                                                                    endpoint.method === 'POST' ? theme.palette.primary.main :
-                                                                    endpoint.method === 'PUT' ? theme.palette.warning.main :
-                                                                    endpoint.method === 'DELETE' ? theme.palette.error.main :
-                                                                    theme.palette.grey[500],
+                                                                        endpoint.method === 'POST' ? theme.palette.primary.main :
+                                                                            endpoint.method === 'PUT' ? theme.palette.warning.main :
+                                                                                endpoint.method === 'DELETE' ? theme.palette.error.main :
+                                                                                    theme.palette.grey[500],
                                                                     0.1
                                                                 ),
                                                                 color: endpoint.method === 'GET' ? theme.palette.success.main :
                                                                     endpoint.method === 'POST' ? theme.palette.primary.main :
-                                                                    endpoint.method === 'PUT' ? theme.palette.warning.main :
-                                                                    endpoint.method === 'DELETE' ? theme.palette.error.main :
-                                                                    theme.palette.grey[500],
+                                                                        endpoint.method === 'PUT' ? theme.palette.warning.main :
+                                                                            endpoint.method === 'DELETE' ? theme.palette.error.main :
+                                                                                theme.palette.grey[500],
                                                             }}
                                                         />
-                                                        <Typography 
-                                                            variant="body2" 
-                                                            sx={{ 
-                                                                fontFamily: 'monospace', 
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                                fontFamily: 'monospace',
                                                                 fontSize: '12px',
                                                                 maxWidth: { xs: 150, sm: 300 },
                                                                 overflow: 'hidden',
@@ -636,12 +660,12 @@ export function PerformancePage() {
                                                     <Typography variant="body2">{endpoint.count.toLocaleString()}</Typography>
                                                 </TableCell>
                                                 <TableCell align="right">
-                                                    <Typography 
-                                                        variant="body2" 
-                                                        sx={{ 
-                                                            color: endpoint.avgDuration > 500 ? theme.palette.warning.main : 
-                                                                   endpoint.avgDuration > 1000 ? theme.palette.error.main : 
-                                                                   theme.palette.text.primary 
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            color: endpoint.avgDuration > 500 ? theme.palette.warning.main :
+                                                                endpoint.avgDuration > 1000 ? theme.palette.error.main :
+                                                                    theme.palette.text.primary
                                                         }}
                                                     >
                                                         {formatDuration(endpoint.avgDuration)}
@@ -660,13 +684,13 @@ export function PerformancePage() {
                                                         sx={{
                                                             bgcolor: alpha(
                                                                 endpoint.errorRate > 5 ? theme.palette.error.main :
-                                                                endpoint.errorRate > 1 ? theme.palette.warning.main :
-                                                                theme.palette.success.main,
+                                                                    endpoint.errorRate > 1 ? theme.palette.warning.main :
+                                                                        theme.palette.success.main,
                                                                 0.1
                                                             ),
                                                             color: endpoint.errorRate > 5 ? theme.palette.error.main :
-                                                                   endpoint.errorRate > 1 ? theme.palette.warning.main :
-                                                                   theme.palette.success.main,
+                                                                endpoint.errorRate > 1 ? theme.palette.warning.main :
+                                                                    theme.palette.success.main,
                                                             fontSize: '11px',
                                                             height: 22,
                                                         }}
@@ -699,7 +723,7 @@ export function PerformancePage() {
                                 Top slowest API calls in the selected time range
                             </Typography>
                         </Box>
-                        
+
                         {slowestLoading ? (
                             <Box sx={{ px: 2, pb: 2 }}>
                                 {[...Array(5)].map((_, i) => (
@@ -707,8 +731,8 @@ export function PerformancePage() {
                                 ))}
                             </Box>
                         ) : (
-                            <TableContainer>
-                                <Table size="small">
+                            <TableContainer sx={{ overflowX: 'auto' }}>
+                                <Table size="small" sx={{ minWidth: 500 }}>
                                     <TableHead>
                                         <TableRow>
                                             <TableCell sx={{ fontWeight: 600 }}>Endpoint</TableCell>
@@ -719,18 +743,23 @@ export function PerformancePage() {
                                     </TableHead>
                                     <TableBody>
                                         {slowest?.map((req) => (
-                                            <TableRow key={req._id} hover>
+                                            <TableRow
+                                                key={req._id}
+                                                hover
+                                                onClick={() => handleLogClick(req._id)}
+                                                sx={{ cursor: 'pointer' }}
+                                            >
                                                 <TableCell>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                        <Chip 
-                                                            label={req.method} 
-                                                            size="small" 
+                                                        <Chip
+                                                            label={req.method}
+                                                            size="small"
                                                             sx={{ fontSize: '10px', height: 20 }}
                                                         />
-                                                        <Typography 
-                                                            variant="body2" 
-                                                            sx={{ 
-                                                                fontFamily: 'monospace', 
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                                fontFamily: 'monospace',
                                                                 fontSize: '12px',
                                                                 maxWidth: { xs: 150, sm: 300 },
                                                                 overflow: 'hidden',
@@ -743,13 +772,13 @@ export function PerformancePage() {
                                                     </Box>
                                                 </TableCell>
                                                 <TableCell align="right">
-                                                    <Typography 
-                                                        variant="body2" 
-                                                        sx={{ 
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
                                                             fontWeight: 600,
-                                                            color: req.duration > 5000 ? theme.palette.error.main : 
-                                                                   req.duration > 2000 ? theme.palette.warning.main : 
-                                                                   theme.palette.text.primary 
+                                                            color: req.duration > 5000 ? theme.palette.error.main :
+                                                                req.duration > 2000 ? theme.palette.warning.main :
+                                                                    theme.palette.text.primary
                                                         }}
                                                     >
                                                         {formatDuration(req.duration)}
@@ -762,13 +791,13 @@ export function PerformancePage() {
                                                         sx={{
                                                             bgcolor: alpha(
                                                                 req.statusCode >= 500 ? theme.palette.error.main :
-                                                                req.statusCode >= 400 ? theme.palette.warning.main :
-                                                                theme.palette.success.main,
+                                                                    req.statusCode >= 400 ? theme.palette.warning.main :
+                                                                        theme.palette.success.main,
                                                                 0.1
                                                             ),
                                                             color: req.statusCode >= 500 ? theme.palette.error.main :
-                                                                   req.statusCode >= 400 ? theme.palette.warning.main :
-                                                                   theme.palette.success.main,
+                                                                req.statusCode >= 400 ? theme.palette.warning.main :
+                                                                    theme.palette.success.main,
                                                             fontSize: '11px',
                                                         }}
                                                     />
@@ -794,6 +823,12 @@ export function PerformancePage() {
                     </DashboardCard>
                 </motion.div>
             </Box>
+
+            <LogDetailOverlay
+                log={selectedLog}
+                open={overlayOpen}
+                onClose={() => setOverlayOpen(false)}
+            />
         </motion.div>
     );
 }
