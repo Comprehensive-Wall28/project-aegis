@@ -14,37 +14,24 @@ export class CalendarService extends BaseService<CalendarEventDocument, Calendar
     }
 
     async getEvents(userId: string, start?: string, end?: string): Promise<CalendarEvent[]> {
-        const filter: any = { userId: new Types.ObjectId(userId) };
+        const startDate = start ? new Date(start) : undefined;
+        const endDate = end ? new Date(end) : undefined;
+        return this.calendarRepository.findByUserAndDateRange(userId, startDate, endDate);
+    }
 
-        if (start || end) {
-            filter.startDate = {};
-            if (start) filter.startDate.$gte = new Date(start);
-            // Note: Logic allows overlap or simple start check. Using simplest range check.
-            // Actually usually events are fetched if they overlap the range [start, end]
-            // Legacy implementation uses findByUserAndDateRange repository method.
-            // Here we construct usage of findMany.
-
-            // If end is provided, we want events that START before end and END after start?
-            // Or just filter by startDate? Legacy logic was:
-            // if (startDate && endDate) { query.where('startDate').gte(startDate).lt(endDate); }
-            // Let's stick to what legacy seemingly did based on variable names.
-        }
-
-        // Better date logic:
-        if (start || end) {
-            const dateFilter: any = {};
-            if (start) dateFilter.$gte = new Date(start);
-            if (end) dateFilter.$lte = new Date(end);
-
-            // This assumes we are filtering by startDate only. 
-            // Real calendar apps check for overlaps. 
-            // However, I will implement simple startDate range as likely sufficient for matching legacy request parameters.
-            if (Object.keys(dateFilter).length > 0) {
-                filter.startDate = dateFilter;
+    async getPaginatedEvents(
+        userId: string,
+        options: { limit: number; cursor?: string }
+    ): Promise<{ items: CalendarEvent[]; nextCursor: string | null }> {
+        return this.calendarRepository.findPaginated(
+            { userId: new Types.ObjectId(userId) },
+            {
+                limit: Math.min(options.limit || 50, 100),
+                cursor: options.cursor,
+                sortField: '_id',
+                sortOrder: -1 // Most recent first
             }
-        }
-
-        return this.calendarRepository.findMany(filter);
+        );
     }
 
     async createEvent(userId: string, createDto: CreateCalendarEventDto, req: any): Promise<CalendarEvent> {
@@ -55,30 +42,26 @@ export class CalendarService extends BaseService<CalendarEventDocument, Calendar
             endDate: new Date(createDto.endDate),
         } as any);
 
-        this.logAction(userId, AuditAction.CREATE, AuditStatus.SUCCESS, req, { eventId: event._id });
+        this.logAction(userId, AuditAction.CALENDAR_CREATE, AuditStatus.SUCCESS, req, { eventId: event._id });
         return event;
     }
 
     async updateEvent(userId: string, eventId: string, updateDto: UpdateCalendarEventDto, req: any): Promise<CalendarEvent> {
-        const event = await this.calendarRepository.findOne({ _id: eventId, userId: userId });
-        if (!event) throw new NotFoundException('Event not found');
-
         const update: any = { ...updateDto };
         if (updateDto.startDate) update.startDate = new Date(updateDto.startDate);
         if (updateDto.endDate) update.endDate = new Date(updateDto.endDate);
 
-        const updated = await this.calendarRepository.updateById(eventId, update);
+        const updated = await this.calendarRepository.updateByIdAndUser(eventId, userId, update);
         if (!updated) throw new NotFoundException('Event not found');
 
-        this.logAction(userId, AuditAction.UPDATE, AuditStatus.SUCCESS, req, { eventId });
+        this.logAction(userId, AuditAction.CALENDAR_UPDATE, AuditStatus.SUCCESS, req, { eventId });
         return updated;
     }
 
     async deleteEvent(userId: string, eventId: string, req: any): Promise<void> {
-        const event = await this.calendarRepository.findOne({ _id: eventId, userId: userId });
-        if (!event) throw new NotFoundException('Event not found');
+        const deleted = await this.calendarRepository.deleteByIdAndUser(eventId, userId);
+        if (!deleted) throw new NotFoundException('Event not found');
 
-        await this.calendarRepository.deleteById(eventId);
-        this.logAction(userId, AuditAction.DELETE, AuditStatus.SUCCESS, req, { eventId });
+        this.logAction(userId, AuditAction.CALENDAR_DELETE, AuditStatus.SUCCESS, req, { eventId });
     }
 }

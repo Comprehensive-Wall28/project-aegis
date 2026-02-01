@@ -76,13 +76,13 @@
   - ✅ Nested folder support
 
 ### 1.5 Calendar Module
-- ⬜ **calendarController.ts** → **calendar.controller.ts**
-  - ⬜ `GET /` - getEvents() / findAll()
-  - ⬜ `GET /:id` - getEvent() / findOne()
-  - ⬜ `POST /` - createEvent() / create()
-  - ⬜ `PUT /:id` - updateEvent() / update()
-  - ⬜ `DELETE /:id` - deleteEvent() / remove()
-  - ⬜ Date range filtering
+- ✅ **calendarController.ts** → **calendar.controller.ts**
+  - ✅ `GET /` - getEvents() / findAll()
+  - ✅ `GET /:id` - getEvent() / findOne()
+  - ✅ `POST /` - createEvent() / create()
+  - ✅ `PUT /:id` - updateEvent() / update()
+  - ✅ `DELETE /:id` - deleteEvent() / remove()
+  - ✅ Date range filtering
   - ⬜ Recurring events
 
 ### 1.6 GPA Module
@@ -193,9 +193,9 @@
   - ⬜ Permission cascading
   - ⬜ Audit logging
 
-- ⬜ **CalendarService**
-  - ⬜ CRUD operations
-  - ⬜ Date range queries
+- ✅ **CalendarService**
+  - ✅ CRUD operations
+  - ✅ Date range queries
   - ⬜ Recurring events
 
 - ⬜ **GPAService**
@@ -229,7 +229,7 @@
 - ⬜ **NoteRepository** → note.repository.ts
 - ⬜ **NoteFolderRepository** → note-folder.repository.ts
 - ⬜ **FolderRepository** → folders.repository.ts
-- ⬜ **CalendarEventRepository** → calendar.repository.ts
+- ✅ **CalendarEventRepository** → calendar.repository.ts
 - ⬜ **CourseRepository** → gpa.repository.ts
 - ⬜ **FileMetadataRepository** → vault.repository.ts
 - ✅ **UserRepository** → users.repository.ts
@@ -262,7 +262,7 @@
 |--------------|---------------|--------|
 | AuditLog | audit-log.schema | ⬜ |
 | CachedImage | cached-image.schema | ⬜ |
-| CalendarEvent | calendar-event.schema | ⬜ |
+| CalendarEvent | calendar-event.schema | ✅ |
 | Collection | collection.schema | ⬜ |
 | Course | course.schema | ⬜ |
 | FileMetadata | vault-file.schema | ⬜ |
@@ -340,9 +340,9 @@ Check each mutation method has corresponding audit logging in NestJS:
 - ✅ deleteFolder → FOLDER_DELETE
 
 #### Calendar
-- ⬜ createEvent → CALENDAR_CREATE
-- ⬜ updateEvent → CALENDAR_UPDATE
-- ⬜ deleteEvent → CALENDAR_DELETE
+- ✅ createEvent → CALENDAR_CREATE
+- ✅ updateEvent → CALENDAR_UPDATE
+- ✅ deleteEvent → CALENDAR_DELETE
 
 #### Vault
 - ⬜ uploadFile → FILE_UPLOAD
@@ -368,6 +368,7 @@ Track which sections were verified and by whom:
 | 2026-02-01 | Notes Module | Agent | ✅ | Implemented Audit logging, Tags, Backlinks, Stream content. Media pending. |
 | 2026-02-01 | Users Module | Agent | ✅ | Verified User Schema & Repository. Validated AuthService integration. |
 | 2026-02-01 | Folders Module | Agent | ✅ | Implemented Audit logging. Verified generic parity. |
+| 2026-02-01 | Calendar Module | Agent | ✅ | Implemented Pagination, CSRF, Audit logging & Repository methods. |
 
 ---
 
