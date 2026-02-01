@@ -1,4 +1,4 @@
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { BaseService, ServiceError } from '../base/BaseService';
 import { CollectionRepository } from '../../repositories/CollectionRepository';
 import { RoomRepository } from '../../repositories/RoomRepository';
@@ -26,7 +26,7 @@ export class CollectionService extends BaseService<ICollection, CollectionReposi
         userId: string,
         roomId: string,
         data: CreateCollectionDTO,
-        req: Request
+        req: any
     ): Promise<ICollection> {
         try {
             if (!data.name) {
@@ -65,7 +65,7 @@ export class CollectionService extends BaseService<ICollection, CollectionReposi
         }
     }
 
-    async deleteCollection(userId: string, collectionId: string, req: Request): Promise<void> {
+    async deleteCollection(userId: string, collectionId: string, req: any): Promise<void> {
         try {
             const collection = await this.repository.findById(collectionId);
             if (!collection) {
@@ -105,7 +105,7 @@ export class CollectionService extends BaseService<ICollection, CollectionReposi
         }
     }
 
-    async reorderCollections(userId: string, roomId: string, collectionIds: string[], req: Request): Promise<void> {
+    async reorderCollections(userId: string, roomId: string, collectionIds: string[], req: any): Promise<void> {
         try {
             const room = await this.roomRepo.findByIdAndMember(roomId, userId);
             if (!room) {
@@ -136,7 +136,7 @@ export class CollectionService extends BaseService<ICollection, CollectionReposi
         }
     }
 
-    async updateCollection(userId: string, collectionId: string, name: string, req: Request): Promise<ICollection> {
+    async updateCollection(userId: string, collectionId: string, name: string, req: any): Promise<ICollection> {
         try {
             if (!name) {
                 throw new ServiceError('Collection name is required', 400);

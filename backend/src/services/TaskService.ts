@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { BaseService, ServiceError } from './base/BaseService';
 import { TaskRepository } from '../repositories/TaskRepository';
 import { ITask } from '../models/Task';
@@ -90,7 +90,7 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
     async createTask(
         userId: string,
         data: CreateTaskDTO,
-        req: Request
+        req: any
     ): Promise<ITask> {
         try {
             // Validate required fields
@@ -153,7 +153,7 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
         userId: string,
         taskId: string,
         data: UpdateTaskDTO,
-        req: Request
+        req: any
     ): Promise<ITask> {
         try {
             const validatedId = this.validateId(taskId, 'task ID');
@@ -217,7 +217,7 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
     async deleteTask(
         userId: string,
         taskId: string,
-        req: Request
+        req: any
     ): Promise<void> {
         try {
             const validatedId = this.validateId(taskId, 'task ID');
@@ -243,7 +243,7 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
     async reorderTasks(
         userId: string,
         updates: ReorderDTO[],
-        req: Request
+        req: any
     ): Promise<void> {
         try {
             if (!Array.isArray(updates)) {

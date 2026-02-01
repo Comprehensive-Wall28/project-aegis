@@ -1,4 +1,4 @@
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import crypto from 'crypto';
 import { AuditAction, AuditStatus, AuditLogSchema, IAuditLog } from '../models/AuditLog';
 import { DatabaseManager } from '../config/DatabaseManager';
@@ -19,7 +19,7 @@ function getAuditLogModel() {
  * Extracts the client IP address from the request.
  * Handles proxied requests (X-Forwarded-For) and direct connections.
  */
-export function getClientIp(req?: Request): string {
+export function getClientIp(req?: any): string {
     if (!req || !req.headers) return 'unknown';
     // Check for forwarded header first (common in production behind load balancers)
     const forwarded = req.headers['x-forwarded-for'];
@@ -50,7 +50,7 @@ export async function logAuditEvent(
     userId: string,
     action: AuditAction,
     status: AuditStatus,
-    req?: Request,
+    req?: any,
     metadata: Record<string, any> = {}
 ): Promise<void> {
     try {
@@ -81,7 +81,7 @@ export async function logAuditEvent(
 export async function logFailedAuth(
     identifier: string,
     action: 'LOGIN_FAILED' | 'REGISTER',
-    req?: Request,
+    req?: any,
     metadata: Record<string, any> = {}
 ): Promise<void> {
     try {

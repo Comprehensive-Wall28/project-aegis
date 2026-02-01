@@ -51,5 +51,5 @@ RUN chown -R node:node /usr/src/app
 # Switch to the non-root 'node' user
 USER node
 
-# Start the server using node directly (more efficient than npm start)
-CMD [ "node", "dist/server.js" ]
+# Start the Fastify server
+CMD [ "node", "dist/fastify-server.js" ]

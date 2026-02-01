@@ -1,4 +1,4 @@
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { Readable } from 'stream';
 import mongoose from 'mongoose';
 import { BaseService, ServiceError } from './base/BaseService';
@@ -58,7 +58,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
     async initUpload(
         userId: string,
         data: UploadInitDTO,
-        req: Request
+        req: any
     ): Promise<{ fileId: string }> {
         try {
             // Validate required fields
@@ -296,7 +296,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
     async deleteFile(
         userId: string,
         fileId: string,
-        req: Request
+        req: any
     ): Promise<void> {
         try {
             const fileRecord = await this.repository.findByIdAndOwner(fileId, userId);

@@ -1,4 +1,4 @@
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { Readable } from 'stream';
 import mongoose from 'mongoose';
 import { BaseService, ServiceError } from './base/BaseService';
@@ -33,7 +33,7 @@ export class NoteMediaService extends BaseService<INoteMedia, any> {
     async initUpload(
         userId: string,
         data: NoteMediaUploadInitDTO,
-        req: Request
+        req: any
     ): Promise<{ mediaId: string }> {
         try {
             // 1. Initiate GridFS upload session

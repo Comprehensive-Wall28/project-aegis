@@ -1,4 +1,4 @@
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { BaseService, ServiceError } from './base/BaseService';
 import { CourseRepository } from '../repositories/CourseRepository';
 import { UserRepository } from '../repositories/UserRepository';
@@ -40,7 +40,7 @@ export class GPAService extends BaseService<ICourse, CourseRepository> {
     /**
      * Create a new course
      */
-    async createCourse(userId: string, data: CreateCourseDTO, req: Request): Promise<ICourse> {
+    async createCourse(userId: string, data: CreateCourseDTO, req: any): Promise<ICourse> {
         try {
             if (!data.encryptedData || !data.encapsulatedKey || !data.encryptedSymmetricKey) {
                 throw new ServiceError(
@@ -72,7 +72,7 @@ export class GPAService extends BaseService<ICourse, CourseRepository> {
     /**
      * Delete a course
      */
-    async deleteCourse(userId: string, courseId: string, req: Request): Promise<void> {
+    async deleteCourse(userId: string, courseId: string, req: any): Promise<void> {
         try {
             const deleted = await this.repository.deleteByIdAndUser(courseId, userId);
 
@@ -110,7 +110,7 @@ export class GPAService extends BaseService<ICourse, CourseRepository> {
     async updatePreferences(
         userId: string,
         gpaSystem: string,
-        req: Request
+        req: any
     ): Promise<{ gpaSystem: string }> {
         try {
             const normalizedGpaSystem = String(gpaSystem);

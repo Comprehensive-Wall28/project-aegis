@@ -4,7 +4,8 @@ import { RepositoryError, RepositoryErrorCode } from '../../repositories/base/ty
 import logger from '../../utils/logger';
 import { logAuditEvent } from '../../utils/auditLogger';
 import { AuditAction, AuditStatus } from '../../models/AuditLog';
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
+
 
 /**
  * ServiceError for consistent error handling in service layer
@@ -91,7 +92,7 @@ export abstract class BaseService<
         userId: string,
         action: AuditAction,
         status: AuditStatus,
-        req: Request,
+        req: any,
         details: Record<string, unknown> = {}
     ): void {
         // Fire-and-forget: don't await, just catch errors

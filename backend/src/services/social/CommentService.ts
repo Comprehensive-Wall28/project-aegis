@@ -1,4 +1,4 @@
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { BaseService, ServiceError } from '../base/BaseService';
 import { LinkCommentRepository } from '../../repositories/LinkCommentRepository';
 import { verifyLinkAccess } from './accessHelpers';
@@ -46,7 +46,7 @@ export class CommentService extends BaseService<any, LinkCommentRepository> {
         userId: string,
         linkId: string,
         content: string,
-        req: Request
+        req: any
     ) {
         try {
             if (!content) {
@@ -81,7 +81,7 @@ export class CommentService extends BaseService<any, LinkCommentRepository> {
     async deleteComment(
         userId: string,
         commentId: string,
-        req: Request
+        req: any
     ) {
         try {
             const comment = await this.repository.findById(commentId);

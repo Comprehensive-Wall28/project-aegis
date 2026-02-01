@@ -1,4 +1,4 @@
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { BaseService, ServiceError } from './base/BaseService';
 import { CalendarEventRepository } from '../repositories/CalendarEventRepository';
 import { ICalendarEvent } from '../models/CalendarEvent';
@@ -52,7 +52,7 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
     async createEvent(
         userId: string,
         data: CreateCalendarEventDTO,
-        req: Request
+        req: any
     ): Promise<ICalendarEvent> {
         try {
             if (!data.encryptedData || !data.encapsulatedKey || !data.encryptedSymmetricKey ||
@@ -93,7 +93,7 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
         userId: string,
         eventId: string,
         data: Partial<CreateCalendarEventDTO>,
-        req: Request
+        req: any
     ): Promise<ICalendarEvent> {
         try {
             const updateData: any = { ...data };
@@ -125,7 +125,7 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
     /**
      * Delete a calendar event
      */
-    async deleteEvent(userId: string, eventId: string, req: Request): Promise<void> {
+    async deleteEvent(userId: string, eventId: string, req: any): Promise<void> {
         try {
             const deleted = await this.repository.deleteByIdAndUser(eventId, userId);
 

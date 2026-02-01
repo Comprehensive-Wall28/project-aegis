@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { BaseService, ServiceError } from './base/BaseService';
 import { SharedFileRepository } from '../repositories/SharedFileRepository';
 import { SharedLinkRepository } from '../repositories/SharedLinkRepository';
@@ -43,7 +43,7 @@ export class ShareService {
     /**
      * Invite a user to a shared file
      */
-    async inviteToFile(userId: string, data: InviteDTO, req: Request): Promise<ISharedFile> {
+    async inviteToFile(userId: string, data: InviteDTO, req: any): Promise<ISharedFile> {
         try {
             if (!data.id || !data.email || !data.encryptedSharedKey) {
                 throw new ServiceError('Missing required fields', 400);

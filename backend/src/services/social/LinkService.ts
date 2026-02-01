@@ -1,4 +1,4 @@
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { BaseService, ServiceError } from '../base/BaseService';
 import { LinkPostRepository } from '../../repositories/LinkPostRepository';
 import { RoomRepository } from '../../repositories/RoomRepository';
@@ -136,7 +136,7 @@ export class LinkService extends BaseService<ILinkPost, LinkPostRepository> {
         userId: string,
         roomId: string,
         data: PostLinkDTO,
-        req: Request
+        req: any
     ): Promise<ILinkPost> {
         try {
             if (!data.url) {
@@ -207,7 +207,7 @@ export class LinkService extends BaseService<ILinkPost, LinkPostRepository> {
         }
     }
 
-    async deleteLink(userId: string, linkId: string, req: Request): Promise<void> {
+    async deleteLink(userId: string, linkId: string, req: any): Promise<void> {
         try {
             const { link, roomId, room } = await verifyLinkAccess(linkId, userId);
 
@@ -270,7 +270,7 @@ export class LinkService extends BaseService<ILinkPost, LinkPostRepository> {
         }
     }
 
-    async moveLink(userId: string, linkId: string, collectionId: string, req: Request): Promise<ILinkPost> {
+    async moveLink(userId: string, linkId: string, collectionId: string, req: any): Promise<ILinkPost> {
         try {
             if (!collectionId) {
                 throw new ServiceError('Target collection ID is required', 400);

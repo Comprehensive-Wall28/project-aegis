@@ -1,4 +1,4 @@
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { BaseService, ServiceError } from '../base/BaseService';
 import { ReaderAnnotationRepository } from '../../repositories/ReaderAnnotationRepository';
 import { ReaderContentCacheRepository } from '../../repositories/ReaderContentCacheRepository';
@@ -76,7 +76,7 @@ export class ReaderService extends BaseService<any, ReaderAnnotationRepository> 
         paragraphId: string,
         highlightText: string,
         encryptedContent: string,
-        req: Request
+        req: any
     ): Promise<IReaderAnnotation> {
         try {
             if (!paragraphId || !highlightText || !encryptedContent) {
@@ -114,7 +114,7 @@ export class ReaderService extends BaseService<any, ReaderAnnotationRepository> 
         }
     }
 
-    async deleteAnnotation(userId: string, annotationId: string, req: Request): Promise<void> {
+    async deleteAnnotation(userId: string, annotationId: string, req: any): Promise<void> {
         try {
             const annotation = await this.repository.findById(annotationId);
             if (!annotation) {

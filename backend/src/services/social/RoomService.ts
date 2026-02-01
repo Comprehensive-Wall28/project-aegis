@@ -1,4 +1,4 @@
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { randomBytes } from 'crypto';
 import { BaseService, ServiceError } from '../base/BaseService';
 import { RoomRepository } from '../../repositories/RoomRepository';
@@ -53,7 +53,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
         this.readerAnnotationRepo = new ReaderAnnotationRepository();
     }
 
-    async createRoom(userId: string, data: CreateRoomDTO, req: Request): Promise<IRoom> {
+    async createRoom(userId: string, data: CreateRoomDTO, req: any): Promise<IRoom> {
         try {
             if (!data.name || !data.encryptedRoomKey) {
                 throw new ServiceError('Missing required fields: name, encryptedRoomKey', 400);
@@ -111,7 +111,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
         }
     }
 
-    async createInvite(userId: string, roomId: string, req: Request): Promise<string> {
+    async createInvite(userId: string, roomId: string, req: any): Promise<string> {
         try {
             const room = await this.repository.findByIdAndMember(roomId, userId);
             if (!room) {
@@ -163,7 +163,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
         userId: string,
         inviteCode: string,
         encryptedRoomKey: string,
-        req: Request
+        req: any
     ): Promise<string> {
         try {
             if (!inviteCode || !encryptedRoomKey) {
@@ -292,7 +292,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
         }
     }
 
-    async leaveRoom(userId: string, roomId: string, req: Request): Promise<void> {
+    async leaveRoom(userId: string, roomId: string, req: any): Promise<void> {
         try {
             const room = await this.repository.findByIdAndMember(roomId, userId);
             if (!room) {
@@ -319,7 +319,7 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
         }
     }
 
-    async deleteRoom(userId: string, roomId: string, req: Request): Promise<void> {
+    async deleteRoom(userId: string, roomId: string, req: any): Promise<void> {
         try {
             const room = await this.repository.findByIdAndMember(roomId, userId);
             if (!room) {

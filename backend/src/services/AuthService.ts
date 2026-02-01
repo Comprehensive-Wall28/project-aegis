@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+// import { Request, Response } from 'express'; // Removed for Fastify migration
+
 import * as crypto from 'crypto';
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
@@ -106,7 +107,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
     // ============== Registration & Login ==============
 
-    async register(data: RegisterDTO, req: Request): Promise<UserResponse> {
+    async register(data: RegisterDTO, req: any): Promise<UserResponse> {
         try {
             if (!data.username || !data.email || !data.pqcPublicKey || !data.argon2Hash) {
                 throw new ServiceError('Missing required fields', 400);
@@ -150,7 +151,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
     async login(
         data: LoginDTO,
-        req: Request,
+        req: any,
         setCookie: (token: string) => void
     ): Promise<UserResponse | { status: '2FA_REQUIRED'; options: any }> {
         try {
@@ -273,7 +274,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         }
     }
 
-    async updateProfile(userId: string, data: UpdateProfileDTO, req: Request): Promise<UserResponse> {
+    async updateProfile(userId: string, data: UpdateProfileDTO, req: any): Promise<UserResponse> {
         try {
             const updateFields: any = {};
 
@@ -369,7 +370,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         }
     }
 
-    async logout(userId: string | undefined, req: Request): Promise<void> {
+    async logout(userId: string | undefined, req: any): Promise<void> {
         if (userId) {
             await this.logAction(userId, 'LOGOUT', 'SUCCESS', req, {});
         }
@@ -410,7 +411,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         }
     }
 
-    async verifyRegistration(userId: string, body: any, req: Request): Promise<boolean> {
+    async verifyRegistration(userId: string, body: any, req: any): Promise<boolean> {
         try {
             const user = await this.repository.findById(userId);
             if (!user || !user.currentChallenge) {
@@ -485,7 +486,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
     async verifyAuthentication(
         email: string,
         body: any,
-        req: Request,
+        req: any,
         setCookie: (token: string) => void
     ): Promise<UserResponse> {
         try {
@@ -543,7 +544,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
     // ============== Password & Passkey Management ==============
 
-    async removePassword(userId: string, req: Request): Promise<void> {
+    async removePassword(userId: string, req: any): Promise<void> {
         try {
             const user = await this.repository.findById(userId);
             if (!user) {
@@ -563,7 +564,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         }
     }
 
-    async setPassword(userId: string, argon2Hash: string, req: Request): Promise<void> {
+    async setPassword(userId: string, argon2Hash: string, req: any): Promise<void> {
         try {
             if (!argon2Hash) {
                 throw new ServiceError('Missing argon2Hash', 400);
@@ -593,7 +594,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         }
     }
 
-    async removePasskey(userId: string, credentialID: string, req: Request): Promise<number> {
+    async removePasskey(userId: string, credentialID: string, req: any): Promise<number> {
         try {
             if (!credentialID || typeof credentialID !== 'string') {
                 throw new ServiceError('Missing or invalid credentialID', 400);

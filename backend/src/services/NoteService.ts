@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Request } from 'express';
+// import { Request } from 'express'; // Removed for Fastify migration
 import { Readable } from 'stream';
 import { BaseService, ServiceError } from './base/BaseService';
 import { NoteRepository } from '../repositories/NoteRepository';
@@ -157,7 +157,7 @@ export class NoteService extends BaseService<INote, NoteRepository> {
     async createNote(
         userId: string,
         data: CreateNoteDTO,
-        req: Request
+        req: any
     ): Promise<INote> {
         try {
             // Validate required fields
@@ -219,7 +219,7 @@ export class NoteService extends BaseService<INote, NoteRepository> {
         userId: string,
         noteId: string,
         data: UpdateNoteMetadataDTO,
-        req: Request
+        req: any
     ): Promise<INote> {
         try {
             const validatedId = this.validateId(noteId, 'note ID');
@@ -272,7 +272,7 @@ export class NoteService extends BaseService<INote, NoteRepository> {
         userId: string,
         noteId: string,
         data: UpdateNoteContentDTO,
-        req: Request
+        req: any
     ): Promise<INote> {
         try {
             const validatedId = this.validateId(noteId, 'note ID');
@@ -340,7 +340,7 @@ export class NoteService extends BaseService<INote, NoteRepository> {
     async deleteNote(
         userId: string,
         noteId: string,
-        req: Request
+        req: any
     ): Promise<void> {
         try {
             const validatedId = this.validateId(noteId, 'note ID');
@@ -433,7 +433,7 @@ export class NoteService extends BaseService<INote, NoteRepository> {
     async createFolder(
         userId: string,
         data: { name: string; parentId?: string; color?: string },
-        req: Request
+        req: any
     ): Promise<INoteFolder> {
         try {
             if (!data.name || data.name.trim().length === 0) {
@@ -474,7 +474,7 @@ export class NoteService extends BaseService<INote, NoteRepository> {
         userId: string,
         folderId: string,
         data: { name?: string; parentId?: string | null; color?: string },
-        req: Request
+        req: any
     ): Promise<INoteFolder> {
         try {
             const validatedId = this.validateId(folderId, 'folder ID');
@@ -535,7 +535,7 @@ export class NoteService extends BaseService<INote, NoteRepository> {
     async deleteFolder(
         userId: string,
         folderId: string,
-        req: Request
+        req: any
     ): Promise<void> {
         try {
             const validatedId = this.validateId(folderId, 'folder ID');

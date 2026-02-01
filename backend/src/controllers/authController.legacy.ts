@@ -1,18 +1,21 @@
-import { Request, Response } from 'express';
+// import { Request, Response } from 'express';
 import { AuthService } from '../services';
 import logger from '../utils/logger';
 import { config } from '../config/env';
 import { catchAsync, withAuth } from '../middleware/controllerWrapper';
 
-interface AuthRequest extends Request {
+interface AuthRequest extends Promise<any> {
     user?: { id: string; username: string };
+    body: any;
+    params: any;
+    query: any;
 }
 
 // Service instance
 const authService = new AuthService();
 
 // Cookie helper
-const setCookie = (res: Response) => (token: string) => {
+const setCookie = (res: any) => (token: string) => {
     res.cookie('token', token, {
         httpOnly: true,
         secure: config.nodeEnv === 'production',
@@ -24,12 +27,12 @@ const setCookie = (res: Response) => (token: string) => {
 
 // ============== Registration & Login ==============
 
-export const registerUser = catchAsync(async (req: Request, res: Response) => {
+export const registerUser = catchAsync(async (req: any, res: any) => {
     const result = await authService.register(req.body, req);
     res.status(201).json({ ...result, message: 'User registered successfully' });
 });
 
-export const loginUser = catchAsync(async (req: Request, res: Response) => {
+export const loginUser = catchAsync(async (req: any, res: any) => {
     if (req.body.email) {
         req.body.email = req.body.email.toLowerCase().trim();
     }
@@ -52,7 +55,7 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
     res.json({ ...result, message: 'Login successful' });
 });
 
-export const getMe = withAuth(async (req: AuthRequest, res: Response) => {
+export const getMe = withAuth(async (req: AuthRequest, res: any) => {
     const result = await authService.getMe(req.user!.id);
     res.json(result);
 });
@@ -80,7 +83,7 @@ export const logoutUser = catchAsync(async (req: AuthRequest, res: Response) => 
     res.json({ message: 'Logged out successfully' });
 });
 
-export const getCsrfToken = (req: Request, res: Response) => {
+export const getCsrfToken = (req: any, res: any) => {
     res.json({ csrfToken: res.locals.csrfToken });
 };
 

@@ -1,0 +1,150 @@
+nohup: ignoring input
+info: Fastify app configured successfully {"service":"aegis-backend","timestamp":"2026-02-01T16:49:15.160Z"}
+info: 🚀 Fastify server running on port 5000 in development mode {"service":"aegis-backend","timestamp":"2026-02-01T16:49:15.167Z"}
+info: 📡 Socket.IO initialized {"service":"aegis-backend","timestamp":"2026-02-01T16:49:15.167Z"}
+info: 🔗 CORS allowed origins: http://localhost:4173, http://localhost:3000, http://localhost:5173 {"service":"aegis-backend","timestamp":"2026-02-01T16:49:15.167Z"}
+[16:49:15 UTC] [32mINFO[39m: [36mServer listening at http://127.0.0.1:5000[39m
+[16:49:15 UTC] [32mINFO[39m: [36mServer listening at http://192.168.0.3:5000[39m
+info: MongoDB Connected (primary): ac-1etadif-shard-00-02.eudu4cl.mongodb.net {"service":"aegis-backend","timestamp":"2026-02-01T16:49:15.844Z"}
+info: MongoDB Connected (secondary): ac-gjiexuj-shard-00-00.0djyrfc.mongodb.net {"service":"aegis-backend","timestamp":"2026-02-01T16:49:16.038Z"}
+error: Controller error: {"error":"Missing required fields","method":"POST","service":"aegis-backend","stack":"ServiceError: Missing required fields\n    at AuthService.register (/var/home/comprehensive-wall28/codium/aegis/backend/dist/services/AuthService.js:56:23)\n    at /var/home/comprehensive-wall28/codium/aegis/backend/dist/controllers/fastifyAuthController.js:8:38\n    at Object.<anonymous> (/var/home/comprehensive-wall28/codium/aegis/backend/dist/middleware/fastifyControllerWrapper.js:15:19)\n    at preHandlerCallbackInner (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:168:24)\n    at preHandlerCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:134:5)\n    at validationCompleted (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:124:5)\n    at preValidationCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:101:5)\n    at handler (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:78:7)\n    at onDone (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/content-type-parser.js:229:5)\n    at AsyncResource.runInAsyncScope (node:async_hooks:213:14)","timestamp":"2026-02-01T16:49:31.571Z","url":"/api/auth/register"}
+[16:49:31 UTC] [32mINFO[39m: [36mincoming request[39m
+    [35mreqId[39m: "req-1"
+    [35mreq[39m: {
+      "method": "POST",
+      "url": "/api/auth/register",
+      "host": "localhost:5000",
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 54610
+    }
+[16:49:31 UTC] [32mINFO[39m: [36mrequest completed[39m
+    [35mreqId[39m: "req-1"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 7.681333001703024
+error: Controller error: {"error":"Missing credentials","method":"POST","service":"aegis-backend","stack":"ServiceError: Missing credentials\n    at AuthService.login (/var/home/comprehensive-wall28/codium/aegis/backend/dist/services/AuthService.js:93:23)\n    at /var/home/comprehensive-wall28/codium/aegis/backend/dist/controllers/fastifyAuthController.js:15:38\n    at Object.<anonymous> (/var/home/comprehensive-wall28/codium/aegis/backend/dist/middleware/fastifyControllerWrapper.js:15:19)\n    at preHandlerCallbackInner (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:168:24)\n    at preHandlerCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:134:5)\n    at validationCompleted (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:124:5)\n    at preValidationCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:101:5)\n    at handler (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:78:7)\n    at onDone (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/content-type-parser.js:229:5)\n    at AsyncResource.runInAsyncScope (node:async_hooks:213:14)","timestamp":"2026-02-01T16:49:35.618Z","url":"/api/auth/login"}
+[16:49:35 UTC] [32mINFO[39m: [36mincoming request[39m
+    [35mreqId[39m: "req-2"
+    [35mreq[39m: {
+      "method": "POST",
+      "url": "/api/auth/login",
+      "host": "localhost:5000",
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 54622
+    }
+[16:49:35 UTC] [32mINFO[39m: [36mrequest completed[39m
+    [35mreqId[39m: "req-2"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 1.427206002175808
+error: Controller error: {"error":"Missing required fields","method":"POST","service":"aegis-backend","stack":"ServiceError: Missing required fields\n    at AuthService.register (/var/home/comprehensive-wall28/codium/aegis/backend/dist/services/AuthService.js:56:23)\n    at /var/home/comprehensive-wall28/codium/aegis/backend/dist/controllers/fastifyAuthController.js:8:38\n    at Object.<anonymous> (/var/home/comprehensive-wall28/codium/aegis/backend/dist/middleware/fastifyControllerWrapper.js:15:19)\n    at preHandlerCallbackInner (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:168:24)\n    at preHandlerCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:134:5)\n    at validationCompleted (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:124:5)\n    at preValidationCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:101:5)\n    at handler (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:78:7)\n    at onDone (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/content-type-parser.js:229:5)\n    at AsyncResource.runInAsyncScope (node:async_hooks:213:14)","timestamp":"2026-02-01T16:49:50.157Z","url":"/api/auth/register"}
+[16:49:50 UTC] [32mINFO[39m: [36mincoming request[39m
+    [35mreqId[39m: "req-3"
+    [35mreq[39m: {
+      "method": "POST",
+      "url": "/api/auth/register",
+      "host": "localhost:5000",
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 50506
+    }
+[16:49:50 UTC] [32mINFO[39m: [36mrequest completed[39m
+    [35mreqId[39m: "req-3"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 0.9767969995737076
+error: Controller error: {"error":"Missing required fields","method":"POST","service":"aegis-backend","stack":"ServiceError: Missing required fields\n    at AuthService.register (/var/home/comprehensive-wall28/codium/aegis/backend/dist/services/AuthService.js:56:23)\n    at /var/home/comprehensive-wall28/codium/aegis/backend/dist/controllers/fastifyAuthController.js:8:38\n    at Object.<anonymous> (/var/home/comprehensive-wall28/codium/aegis/backend/dist/middleware/fastifyControllerWrapper.js:15:19)\n    at preHandlerCallbackInner (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:168:24)\n    at preHandlerCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:134:5)\n    at validationCompleted (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:124:5)\n    at preValidationCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:101:5)\n    at handler (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:78:7)\n    at onDone (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/content-type-parser.js:229:5)\n    at AsyncResource.runInAsyncScope (node:async_hooks:213:14)","timestamp":"2026-02-01T16:50:05.068Z","url":"/api/auth/register"}
+[16:50:05 UTC] [32mINFO[39m: [36mincoming request[39m
+    [35mreqId[39m: "req-4"
+    [35mreq[39m: {
+      "method": "POST",
+      "url": "/api/auth/register",
+      "host": "localhost:5000",
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 47454
+    }
+[16:50:05 UTC] [32mINFO[39m: [36mrequest completed[39m
+    [35mreqId[39m: "req-4"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 0.6222530007362366
+error: Controller error: {"error":"Missing required fields","method":"POST","service":"aegis-backend","stack":"ServiceError: Missing required fields\n    at AuthService.register (/var/home/comprehensive-wall28/codium/aegis/backend/dist/services/AuthService.js:56:23)\n    at /var/home/comprehensive-wall28/codium/aegis/backend/dist/controllers/fastifyAuthController.js:8:38\n    at Object.<anonymous> (/var/home/comprehensive-wall28/codium/aegis/backend/dist/middleware/fastifyControllerWrapper.js:15:19)\n    at preHandlerCallbackInner (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:168:24)\n    at preHandlerCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:134:5)\n    at validationCompleted (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:124:5)\n    at preValidationCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:101:5)\n    at handler (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:78:7)\n    at onDone (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/content-type-parser.js:229:5)\n    at AsyncResource.runInAsyncScope (node:async_hooks:213:14)","timestamp":"2026-02-01T16:50:36.186Z","url":"/api/auth/register"}
+[16:50:36 UTC] [32mINFO[39m: [36mincoming request[39m
+    [35mreqId[39m: "req-5"
+    [35mreq[39m: {
+      "method": "POST",
+      "url": "/api/auth/register",
+      "host": "localhost:5000",
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 43066
+    }
+[16:50:36 UTC] [32mINFO[39m: [36mrequest completed[39m
+    [35mreqId[39m: "req-5"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 0.7363139986991882
+error: Controller error: {"error":"Missing required fields","method":"POST","service":"aegis-backend","stack":"ServiceError: Missing required fields\n    at AuthService.register (/var/home/comprehensive-wall28/codium/aegis/backend/dist/services/AuthService.js:56:23)\n    at /var/home/comprehensive-wall28/codium/aegis/backend/dist/controllers/fastifyAuthController.js:8:38\n    at Object.<anonymous> (/var/home/comprehensive-wall28/codium/aegis/backend/dist/middleware/fastifyControllerWrapper.js:15:19)\n    at preHandlerCallbackInner (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:168:24)\n    at preHandlerCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:134:5)\n    at validationCompleted (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:124:5)\n    at preValidationCallback (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:101:5)\n    at handler (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/handle-request.js:78:7)\n    at onDone (/var/home/comprehensive-wall28/codium/aegis/backend/node_modules/fastify/lib/content-type-parser.js:229:5)\n    at AsyncResource.runInAsyncScope (node:async_hooks:213:14)","timestamp":"2026-02-01T16:50:52.367Z","url":"/api/auth/register"}
+[16:50:52 UTC] [32mINFO[39m: [36mincoming request[39m
+    [35mreqId[39m: "req-6"
+    [35mreq[39m: {
+      "method": "POST",
+      "url": "/api/auth/register",
+      "host": "localhost:5000",
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 57512
+    }
+[16:50:52 UTC] [32mINFO[39m: [36mrequest completed[39m
+    [35mreqId[39m: "req-6"
+    [35mres[39m: {
+      "statusCode": 400
+    }
+    [35mresponseTime[39m: 0.8811580017209053
+[16:51:10 UTC] [32mINFO[39m: [36mincoming request[39m
+    [35mreqId[39m: "req-7"
+    [35mreq[39m: {
+      "method": "POST",
+      "url": "/api/auth/register",
+      "host": "localhost:5000",
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 41366
+    }
+[16:51:10 UTC] [32mINFO[39m: [36mrequest completed[39m
+    [35mreqId[39m: "req-7"
+    [35mres[39m: {
+      "statusCode": 201
+    }
+    [35mresponseTime[39m: 162.49382700026035
+[16:51:14 UTC] [32mINFO[39m: [36mincoming request[39m
+    [35mreqId[39m: "req-8"
+    [35mreq[39m: {
+      "method": "POST",
+      "url": "/api/auth/login",
+      "host": "localhost:5000",
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 41382
+    }
+[16:51:14 UTC] [32mINFO[39m: [36mrequest completed[39m
+    [35mreqId[39m: "req-8"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 126.14826999977231
+[16:51:25 UTC] [32mINFO[39m: [36mincoming request[39m
+    [35mreqId[39m: "req-9"
+    [35mreq[39m: {
+      "method": "GET",
+      "url": "/api/auth/me",
+      "host": "localhost:5000",
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 37764
+    }
+[16:51:25 UTC] [32mINFO[39m: [36mrequest completed[39m
+    [35mreqId[39m: "req-9"
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 50.05231999978423
