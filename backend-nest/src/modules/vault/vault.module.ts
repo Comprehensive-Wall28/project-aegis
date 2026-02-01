@@ -21,6 +21,6 @@ import { VaultRepository } from './vault.repository';
     ],
     controllers: [VaultController, GoogleDriveController],
     providers: [GridFsService, GoogleDriveService, VaultService, VaultRepository],
-    exports: [VaultService, GridFsService, VaultRepository],
+    exports: [VaultService, GridFsService, VaultRepository, GoogleDriveService],
 })
 export class VaultModule { }

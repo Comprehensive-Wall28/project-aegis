@@ -472,33 +472,57 @@ export class ExpressParser {
 
     // Extract fields from schema definition
     const fields: FieldInfo[] = [];
-    const fieldPattern = /(\w+)\s*:\s*\{([^}]+)\}/g;
-
-    let match;
-    while ((match = fieldPattern.exec(content)) !== null) {
-      const [, fieldName, fieldDef] = match;
-
-      if (['type', 'required', 'default', 'ref', 'enum'].some((k) => fieldDef.includes(k))) {
-        const typeMatch = fieldDef.match(/type\s*:\s*(\w+)/);
-        const requiredMatch = fieldDef.match(/required\s*:\s*(true|false)/);
-        const refMatch = fieldDef.match(/ref\s*:\s*['"`](\w+)['"`]/);
-        const enumMatch = fieldDef.match(/enum\s*:\s*\[([^\]]+)\]/);
-
-        fields.push({
-          name: fieldName,
-          type: typeMatch ? typeMatch[1] : 'unknown',
-          required: requiredMatch ? requiredMatch[1] === 'true' : false,
-          ref: refMatch ? refMatch[1] : undefined,
-          enum: enumMatch ? enumMatch[1].split(',').map((e) => e.trim().replace(/['"`]/g, '')) : undefined,
-        });
+    
+    // Find the Schema definition - need to handle balanced braces
+    const schemaStart = content.search(/(?:new\s+)?Schema\s*\(\s*\{/);
+    
+    if (schemaStart !== -1) {
+      // Find the opening brace of the schema object
+      const braceStart = content.indexOf('{', schemaStart);
+      const schemaBlock = this.extractBalancedBraces(content.substring(braceStart));
+      
+      if (schemaBlock) {
+        // Remove the outer braces
+        const innerBlock = schemaBlock.slice(1, -1);
+        
+        // Parse field definitions more carefully
+        // We'll iterate through looking for top-level field: value patterns
+        this.parseSchemaFields(innerBlock, fields);
+      }
+    }
+    
+    // Also try to extract from interface definitions for additional type info
+    const interfaceMatch = content.match(/interface\s+I\w+\s+extends\s+Document\s*\{([\s\S]*?)\}/);
+    if (interfaceMatch && fields.length === 0) {
+      const interfaceBlock = interfaceMatch[1];
+      const propRegex = /(\w+)(\?)?:\s*([^;\n]+)/g;
+      
+      let propMatch;
+      while ((propMatch = propRegex.exec(interfaceBlock)) !== null) {
+        const [, propName, optional, propType] = propMatch;
+        
+        // Skip if already found in schema
+        if (!fields.find(f => f.name === propName)) {
+          fields.push({
+            name: propName,
+            type: propType.trim(),
+            required: !optional,
+          });
+        }
       }
     }
 
     // Extract indexes
     const indexes: string[] = [];
-    const indexMatch = content.match(/\.index\(\{([^}]+)\}/g);
-    if (indexMatch) {
-      indexes.push(...indexMatch);
+    const indexMatches = content.match(/Schema\.index\s*\(\s*\{[^}]+\}/g);
+    if (indexMatches) {
+      indexes.push(...indexMatches);
+    }
+    
+    // Also match .index() on the schema variable
+    const varIndexMatches = content.match(/\w+Schema\.index\s*\(\s*\{[^}]+\}/g);
+    if (varIndexMatches) {
+      indexes.push(...varIndexMatches);
     }
 
     return {
@@ -508,6 +532,152 @@ export class ExpressParser {
       indexes,
       virtuals: [],
     };
+  }
+  
+  /**
+   * Parse schema fields from the inner block of a Schema({ ... })
+   */
+  private parseSchemaFields(block: string, fields: FieldInfo[]): void {
+    // Track position and depth to find top-level field definitions
+    let pos = 0;
+    const len = block.length;
+    
+    while (pos < len) {
+      // Skip whitespace and commas
+      while (pos < len && /[\s,]/.test(block[pos])) pos++;
+      if (pos >= len) break;
+      
+      // Skip comments
+      if (block.substring(pos, pos + 2) === '//') {
+        pos = block.indexOf('\n', pos);
+        if (pos === -1) break;
+        continue;
+      }
+      
+      // Look for field name
+      const fieldMatch = block.substring(pos).match(/^(\w+)\s*:/);
+      if (!fieldMatch) {
+        pos++;
+        continue;
+      }
+      
+      const fieldName = fieldMatch[1];
+      pos += fieldMatch[0].length;
+      
+      // Skip whitespace after colon
+      while (pos < len && /\s/.test(block[pos])) pos++;
+      
+      // Skip schema property keywords that aren't actual field names
+      if (['type', 'required', 'default', 'ref', 'enum', 'index', 'unique', 'min', 'max', 
+           'minlength', 'maxlength', 'trim', 'lowercase', 'validate', 'get', 'set'].includes(fieldName)) {
+        // Skip the value
+        if (block[pos] === '{' || block[pos] === '[') {
+          const extracted = this.extractBalancedBraces(block.substring(pos));
+          pos += extracted ? extracted.length : 1;
+        } else {
+          // Skip to next comma or end
+          while (pos < len && block[pos] !== ',' && block[pos] !== '}') pos++;
+        }
+        continue;
+      }
+      
+      // Extract the field value (could be { ... }, [ ... ], or simple value)
+      let fieldValue = '';
+      if (block[pos] === '{') {
+        fieldValue = this.extractBalancedBraces(block.substring(pos)) || '';
+        pos += fieldValue.length;
+      } else if (block[pos] === '[') {
+        fieldValue = this.extractBalancedBraces(block.substring(pos)) || '';
+        pos += fieldValue.length;
+      } else {
+        // Simple value - read until comma or end
+        const valueEnd = block.substring(pos).search(/[,}\n]/);
+        if (valueEnd === -1) {
+          fieldValue = block.substring(pos);
+          pos = len;
+        } else {
+          fieldValue = block.substring(pos, pos + valueEnd);
+          pos += valueEnd;
+        }
+      }
+      
+      // Parse the field value
+      if (fieldValue.startsWith('{')) {
+        const typeMatch = fieldValue.match(/type\s*:\s*(?:Schema\.Types\.)?(\w+)(?:\.\w+)?/);
+        const requiredMatch = fieldValue.match(/required\s*:\s*(true|false)/);
+        const refMatch = fieldValue.match(/ref\s*:\s*['"`](\w+)['"`]/);
+        const enumMatch = fieldValue.match(/enum\s*:\s*\[([^\]]+)\]/);
+        const defaultMatch = fieldValue.match(/default\s*:\s*([^,}\]]+)/);
+        
+        fields.push({
+          name: fieldName,
+          type: typeMatch ? typeMatch[1] : 'unknown',
+          required: requiredMatch ? requiredMatch[1] === 'true' : false,
+          ref: refMatch ? refMatch[1] : undefined,
+          enum: enumMatch ? enumMatch[1].split(',').map((e) => e.trim().replace(/['"`]/g, '')) : undefined,
+          default: defaultMatch ? defaultMatch[1].trim() : undefined,
+        });
+      } else if (fieldValue.startsWith('[')) {
+        // Array type definition
+        const innerType = fieldValue.match(/\[\s*(\w+)\s*\]/);
+        fields.push({
+          name: fieldName,
+          type: innerType ? `${innerType[1]}[]` : 'Array',
+          required: false,
+        });
+      } else {
+        // Simple type reference
+        fields.push({
+          name: fieldName,
+          type: fieldValue.trim(),
+          required: false,
+        });
+      }
+    }
+  }
+  
+  /**
+   * Extract content within balanced braces starting from the beginning of str
+   */
+  private extractBalancedBraces(str: string): string | null {
+    if (!str.startsWith('{')) {
+      const braceIdx = str.indexOf('{');
+      if (braceIdx === -1) return null;
+      str = str.substring(braceIdx);
+    }
+    
+    let depth = 0;
+    let inString = false;
+    let stringChar = '';
+    
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      const prevChar = i > 0 ? str[i - 1] : '';
+      
+      // Handle string literals
+      if ((char === '"' || char === "'" || char === '`') && prevChar !== '\\') {
+        if (!inString) {
+          inString = true;
+          stringChar = char;
+        } else if (char === stringChar) {
+          inString = false;
+        }
+        continue;
+      }
+      
+      if (inString) continue;
+      
+      if (char === '{' || char === '[') {
+        depth++;
+      } else if (char === '}' || char === ']') {
+        depth--;
+        if (depth === 0) {
+          return str.substring(0, i + 1);
+        }
+      }
+    }
+    
+    return null;
   }
 
   private async parseUtils(): Promise<UtilInfo[]> {

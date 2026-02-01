@@ -10,6 +10,7 @@ import { CreateCommentDto } from './dto/comment.dto';
 import { CreateAnnotationDto } from './dto/reader.dto';
 import { ReaderService } from './reader.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CsrfGuard } from '../../common/guards/csrf.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FastifyRequest, FastifyReply } from 'fastify';
 
@@ -24,13 +25,13 @@ export class SocialController {
     ) { }
 
     @Get('rooms')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async getUserRooms(@CurrentUser() user: any): Promise<RoomResponseDto[]> {
         return this.socialService.getUserRooms(user.id);
     }
 
     @Post('rooms')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async createRoom(
         @CurrentUser() user: any,
         @Body() createRoomDto: CreateRoomDto,
@@ -44,7 +45,7 @@ export class SocialController {
     }
 
     @Post('rooms/:roomId/invite')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async createInvite(
         @CurrentUser() user: any,
         @Param('roomId') roomId: string,
@@ -64,7 +65,7 @@ export class SocialController {
     }
 
     @Post('rooms/join')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async joinRoom(
         @CurrentUser() user: any,
         @Body() joinRoomDto: JoinRoomDto,
@@ -80,7 +81,7 @@ export class SocialController {
     }
 
     @Post('rooms/:roomId/leave')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async leaveRoom(
         @CurrentUser() user: any,
         @Param('roomId') roomId: string,
@@ -95,7 +96,7 @@ export class SocialController {
     }
 
     @Delete('rooms/:roomId')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async deleteRoom(
         @CurrentUser() user: any,
         @Param('roomId') roomId: string,
@@ -110,7 +111,7 @@ export class SocialController {
     }
 
     @Get('rooms/:roomId')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async getRoomContent(
         @CurrentUser() user: any,
         @Param('roomId') roomId: string,
@@ -122,7 +123,7 @@ export class SocialController {
     // ===== Link Management Endpoints =====
 
     @Post('rooms/:roomId/links')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async postLink(
         @CurrentUser() user: any,
         @Param('roomId') roomId: string,
@@ -132,8 +133,8 @@ export class SocialController {
         return this.linkService.postLink(user.id, roomId, postLinkDto, req);
     }
 
-    @Patch('links/:linkId/move')
-    @UseGuards(JwtAuthGuard)
+    @Patch('links/:linkId')
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async moveLink(
         @CurrentUser() user: any,
         @Param('linkId') linkId: string,
@@ -144,7 +145,7 @@ export class SocialController {
     }
 
     @Delete('links/:linkId')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async deleteLink(
         @CurrentUser() user: any,
         @Param('linkId') linkId: string,
@@ -155,7 +156,7 @@ export class SocialController {
     }
 
     @Post('links/:linkId/view')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async markLinkViewed(
         @CurrentUser() user: any,
         @Param('linkId') linkId: string,
@@ -164,7 +165,7 @@ export class SocialController {
     }
 
     @Delete('links/:linkId/view')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async unmarkLinkViewed(
         @CurrentUser() user: any,
         @Param('linkId') linkId: string,
@@ -173,7 +174,7 @@ export class SocialController {
     }
 
     @Get('rooms/:roomId/collections/:collectionId/links')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async getCollectionLinks(
         @CurrentUser() user: any,
         @Param('roomId') roomId: string,
@@ -196,7 +197,7 @@ export class SocialController {
     }
 
     @Get('rooms/:roomId/search')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async searchRoomLinks(
         @CurrentUser() user: any,
         @Param('roomId') roomId: string,
@@ -209,7 +210,7 @@ export class SocialController {
     // ===== Collection Management Endpoints =====
 
     @Post('rooms/:roomId/collections')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async createCollection(
         @CurrentUser() user: any,
         @Param('roomId') roomId: string,
@@ -220,7 +221,7 @@ export class SocialController {
     }
 
     @Delete('collections/:collectionId')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async deleteCollection(
         @CurrentUser() user: any,
         @Param('collectionId') collectionId: string,
@@ -231,7 +232,7 @@ export class SocialController {
     }
 
     @Patch('collections/:collectionId')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async updateCollection(
         @CurrentUser() user: any,
         @Param('collectionId') collectionId: string,
@@ -241,8 +242,8 @@ export class SocialController {
         return this.socialService.updateCollection(user.id, collectionId, updateCollectionDto.name, req);
     }
 
-    @Patch('rooms/:roomId/collections/reorder')
-    @UseGuards(JwtAuthGuard)
+    @Patch('rooms/:roomId/collections/order')
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async reorderCollections(
         @CurrentUser() user: any,
         @Param('roomId') roomId: string,
@@ -256,7 +257,7 @@ export class SocialController {
     // ===== Comment Management Endpoints =====
 
     @Get('links/:linkId/comments')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async getComments(
         @CurrentUser() user: any,
         @Param('linkId') linkId: string,
@@ -273,7 +274,7 @@ export class SocialController {
     }
 
     @Post('links/:linkId/comments')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async postComment(
         @CurrentUser() user: any,
         @Param('linkId') linkId: string,
@@ -284,7 +285,7 @@ export class SocialController {
     }
 
     @Delete('comments/:commentId')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async deleteComment(
         @CurrentUser() user: any,
         @Param('commentId') commentId: string,
@@ -305,7 +306,7 @@ export class SocialController {
     // ===== Reader Mode Endpoints =====
 
     @Get('links/:linkId/reader')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async getReaderContent(
         @CurrentUser() user: any,
         @Param('linkId') linkId: string,
@@ -314,7 +315,7 @@ export class SocialController {
     }
 
     @Get('links/:linkId/annotations')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async getAnnotations(
         @CurrentUser() user: any,
         @Param('linkId') linkId: string,
@@ -323,7 +324,7 @@ export class SocialController {
     }
 
     @Post('links/:linkId/annotations')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async createAnnotation(
         @CurrentUser() user: any,
         @Param('linkId') linkId: string,
@@ -334,7 +335,7 @@ export class SocialController {
     }
 
     @Delete('annotations/:annotationId')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, CsrfGuard)
     async deleteAnnotation(
         @CurrentUser() user: any,
         @Param('annotationId') annotationId: string,

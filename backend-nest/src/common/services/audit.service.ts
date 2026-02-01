@@ -57,7 +57,10 @@ export type AuditAction =
     | 'COLLECTION_DELETE'
     | 'COLLECTION_UPDATE'
     | 'COLLECTION_REORDER'
-    | 'READER_VIEW_ACCESS';
+    | 'READER_VIEW_ACCESS'
+    | 'FILE_SHARE'
+    | 'LINK_SHARE_CREATE'
+    | 'LINK_SHARE_REVOKE';
 
 export type AuditStatus = 'SUCCESS' | 'FAILURE';
 

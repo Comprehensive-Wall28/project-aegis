@@ -56,6 +56,9 @@ export class VaultFile {
 
     @Prop({ type: String, enum: FileStatus, default: FileStatus.PENDING })
     status!: FileStatus;
+
+    createdAt!: Date;
+    updatedAt!: Date;
 }
 
 export type VaultFileDocument = VaultFile & Document;

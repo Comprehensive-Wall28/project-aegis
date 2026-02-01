@@ -19,6 +19,7 @@ import { NotesModule } from './modules/notes/notes.module';
 import { SocialModule } from './modules/social/social.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 import { ActivityModule } from './modules/activity/activity.module';
+import { ShareModule } from './modules/share/share.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { ActivityModule } from './modules/activity/activity.module';
     SocialModule,
     WebsocketModule,
     ActivityModule,
+    ShareModule,
   ],
   controllers: [AppController],
   providers: [

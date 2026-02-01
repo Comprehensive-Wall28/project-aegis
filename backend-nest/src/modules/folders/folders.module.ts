@@ -17,6 +17,6 @@ import { FolderRepository } from './folders.repository';
     ],
     controllers: [FoldersController],
     providers: [FoldersService, FolderRepository],
-    exports: [FoldersService],
+    exports: [FoldersService, FolderRepository],
 })
 export class FoldersModule { }

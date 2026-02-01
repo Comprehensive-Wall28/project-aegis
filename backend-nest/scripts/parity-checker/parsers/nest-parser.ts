@@ -541,23 +541,52 @@ export class NestParser {
 
     // Extract fields with @Prop decorator
     const fields: FieldInfo[] = [];
-    const propPattern = /@Prop\s*\(\s*(\{[^}]*\})?\s*\)\s*(\w+)\s*(?:\?)?:\s*([^;]+)/g;
-
-    let match;
-    while ((match = propPattern.exec(content)) !== null) {
-      const [, propOptions, fieldName, fieldType] = match;
-
-      const required = propOptions ? propOptions.includes('required: true') : false;
-      const refMatch = propOptions?.match(/ref\s*:\s*['"`](\w+)['"`]/);
-      const enumMatch = propOptions?.match(/enum\s*:\s*(\w+|\[[^\]]+\])/);
-
-      fields.push({
-        name: fieldName,
-        type: fieldType.trim(),
-        required,
-        ref: refMatch ? refMatch[1] : undefined,
-        enum: enumMatch ? [enumMatch[1]] : undefined,
-      });
+    
+    // More robust pattern that handles:
+    // 1. Multiline @Prop({ ... }) with nested braces
+    // 2. Both ! and ? after field name
+    // 3. Array decorators like @Prop([...])
+    // 4. Simple @Prop() without options
+    
+    // Find all @Prop occurrences and extract field info
+    const propRegex = /@Prop\s*\(/g;
+    let propMatch;
+    
+    while ((propMatch = propRegex.exec(content)) !== null) {
+      const startIdx = propMatch.index;
+      
+      // Find the matching closing paren for @Prop(...)
+      const afterProp = content.substring(startIdx + propMatch[0].length);
+      const propEndIdx = this.findMatchingParen(afterProp, '(', ')');
+      
+      if (propEndIdx === -1) continue;
+      
+      const propOptions = afterProp.substring(0, propEndIdx);
+      const afterOptions = content.substring(startIdx + propMatch[0].length + propEndIdx + 1);
+      
+      // Extract field name and type after @Prop(...)
+      // Pattern: fieldName!: Type or fieldName?: Type or fieldName: Type
+      const fieldMatch = afterOptions.match(/^\s*(\w+)\s*([!?])?\s*:\s*([^;]+)/);
+      
+      if (fieldMatch) {
+        const [, fieldName, modifier, fieldType] = fieldMatch;
+        
+        // Parse options to get required, ref, enum
+        const required = modifier === '!' || propOptions.includes('required: true') || propOptions.includes('required:true');
+        const isOptional = modifier === '?';
+        const refMatch = propOptions.match(/ref\s*:\s*['"`](\w+)['"`]/);
+        const enumMatch = propOptions.match(/enum\s*:\s*(\[[^\]]+\]|['"`][^'"`]+['"`]|\w+)/);
+        const defaultMatch = propOptions.match(/default\s*:\s*([^,}\]]+)/);
+        
+        fields.push({
+          name: fieldName,
+          type: fieldType.trim().replace(/;$/, ''),
+          required: required && !isOptional,
+          ref: refMatch ? refMatch[1] : undefined,
+          enum: enumMatch ? [enumMatch[1].replace(/[\[\]'"`]/g, '')] : undefined,
+          default: defaultMatch ? defaultMatch[1].trim() : undefined,
+        });
+      }
     }
 
     // Extract indexes
@@ -565,6 +594,12 @@ export class NestParser {
     const indexMatches = content.match(/@Index\s*\(\s*(\{[^}]+\})/g);
     if (indexMatches) {
       indexes.push(...indexMatches);
+    }
+    
+    // Also extract SchemaFactory indexes
+    const schemaIndexMatches = content.match(/Schema\.index\s*\(\s*\{[^}]+\}/g);
+    if (schemaIndexMatches) {
+      indexes.push(...schemaIndexMatches);
     }
 
     return {
@@ -574,6 +609,44 @@ export class NestParser {
       indexes,
       virtuals: [],
     };
+  }
+  
+  /**
+   * Find the matching closing bracket/paren, handling nested brackets
+   */
+  private findMatchingParen(str: string, open: string, close: string): number {
+    let depth = 1;
+    let inString = false;
+    let stringChar = '';
+    
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      const prevChar = i > 0 ? str[i - 1] : '';
+      
+      // Handle string literals
+      if ((char === '"' || char === "'" || char === '`') && prevChar !== '\\') {
+        if (!inString) {
+          inString = true;
+          stringChar = char;
+        } else if (char === stringChar) {
+          inString = false;
+        }
+        continue;
+      }
+      
+      if (inString) continue;
+      
+      if (char === open || (open === '(' && char === '[') || (open === '(' && char === '{')) {
+        depth++;
+      } else if (char === close || (close === ')' && char === ']') || (close === ')' && char === '}')) {
+        depth--;
+        if (depth === 0) {
+          return i;
+        }
+      }
+    }
+    
+    return -1;
   }
 
   private extractUtil(content: string, fileName: string): UtilInfo {

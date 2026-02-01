@@ -20,6 +20,9 @@ export class Folder {
 
     @Prop({ required: false })
     color!: string;
+
+    createdAt!: Date;
+    updatedAt!: Date;
 }
 
 export type FolderDocument = Folder & Document;
