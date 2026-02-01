@@ -96,13 +96,14 @@ import activityService from '@/services/activityService';
 export function LiveActivityWidget() {
     const theme = useTheme();
     const navigate = useNavigate();
-    const { isAuthenticated } = useSessionStore();
+    const { isAuthenticated, user } = useSessionStore();
+    const userId = user?._id;
     // Removed tasks store usage as we fetch combined data now
 
     const { data: activityData, isLoading: isFetching } = useQuery({
-        queryKey: ['dashboardActivity'],
+        queryKey: ['dashboardActivity', userId],
         queryFn: () => activityService.getDashboardActivity(),
-        enabled: isAuthenticated,
+        enabled: isAuthenticated && !!userId,
         staleTime: 1000 * 60, // 1 minute stale time
     });
 
@@ -110,7 +111,7 @@ export function LiveActivityWidget() {
 
     // Use a separate query for decryption to cache the result and avoid re-decrypting on remount
     const { data: decryptedTasks = [], isLoading: isDecrypting } = useQuery({
-        queryKey: ['decryptedDashboardTasks', activityData?.tasks],
+        queryKey: ['decryptedDashboardTasks', userId, activityData?.tasks],
         queryFn: async () => {
             if (!activityData?.tasks || activityData.tasks.length === 0) return [];
 

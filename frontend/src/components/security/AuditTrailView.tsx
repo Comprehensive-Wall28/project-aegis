@@ -342,7 +342,7 @@ function AuditLogRow({ log, isMobile, expanded, onToggle, theme, getStatusColor 
                                         {new Date(log.timestamp).toLocaleString()}
                                     </Typography>
                                 </Box>
-                                {Object.keys(log.metadata).length > 0 && (
+                                {log.metadata && Object.keys(log.metadata).length > 0 && (
                                     <Box>
                                         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '10px', letterSpacing: '0.05em' }}>
                                             METADATA
