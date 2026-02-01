@@ -13,6 +13,8 @@ export interface UserPreferences {
     backgroundOpacity?: number;
 }
 
+export type UserRole = 'sys_admin';
+
 interface User {
     _id: string;
     email: string;
@@ -28,6 +30,7 @@ interface User {
         transports?: string[];
     }>;
     totalStorageUsed?: number;
+    role?: UserRole; // Only present for sys_admin users
 }
 
 export type CryptoStatus = 'idle' | 'encrypting' | 'decrypting' | 'processing' | 'done';

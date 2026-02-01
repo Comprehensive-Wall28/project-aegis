@@ -10,6 +10,7 @@ export { AuthService } from './AuthService';
 export { AuditService } from './AuditService';
 export { CalendarService } from './CalendarService';
 export { GPAService } from './GPAService';
+export { SystemLogService } from './SystemLogService';
 
 export { LinkPreviewService } from './LinkPreviewService';
 export { PublicShareService } from './PublicShareService';

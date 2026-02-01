@@ -35,6 +35,7 @@ export interface AuthResponse {
     preferences?: UserPreferences;
     status?: string;
     options?: Record<string, unknown>;
+    role?: 'sys_admin'; // Only present for sys_admin users
 }
 
 // Migration helper: SHA-256 for legacy support

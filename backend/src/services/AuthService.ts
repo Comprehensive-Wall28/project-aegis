@@ -15,7 +15,7 @@ import {
 import { isoBase64URL, isoUint8Array } from '@simplewebauthn/server/helpers';
 import { BaseService, ServiceError } from './base/BaseService';
 import { UserRepository } from '../repositories/UserRepository';
-import { IUser, IWebAuthnCredential } from '../models/User';
+import { IUser, IWebAuthnCredential, UserRole } from '../models/User';
 import logger from '../utils/logger';
 import { logFailedAuth } from '../utils/auditLogger';
 import { encryptToken } from '../utils/cryptoUtils';
@@ -66,6 +66,7 @@ export interface UserResponse {
         counter: number;
         transports?: string[];
     }>;
+    role?: UserRole; // Only present for sys_admin users
 }
 
 /**
@@ -76,15 +77,19 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         super(new UserRepository());
     }
 
-    private async generateToken(id: string, username: string): Promise<string> {
-        const jwtToken = jwt.sign({ id, username }, config.jwtSecret, {
+    private async generateToken(id: string, username: string, role?: UserRole): Promise<string> {
+        const payload: { id: string; username: string; role?: UserRole } = { id, username };
+        if (role) {
+            payload.role = role;
+        }
+        const jwtToken = jwt.sign(payload, config.jwtSecret, {
             expiresIn: '365d'
         });
         return await encryptToken(jwtToken);
     }
 
     private formatUserResponse(user: IUser): UserResponse {
-        return {
+        const response: UserResponse = {
             _id: user._id.toString(),
             username: user.username,
             email: user.email,
@@ -103,6 +108,13 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 transports: c.transports
             }))
         };
+        
+        // Only include role if user is sys_admin
+        if (user.role) {
+            response.role = user.role;
+        }
+        
+        return response;
     }
 
     // ============== Registration & Login ==============
@@ -225,7 +237,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
             // No 2FA, complete login
-            const token = await this.generateToken(user._id.toString(), user.username);
+            const token = await this.generateToken(user._id.toString(), user.username, user.role);
             setCookie(token);
 
             await this.logAction(user._id.toString(), 'LOGIN', 'SUCCESS', req, {
@@ -527,7 +539,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             user.currentChallenge = undefined;
             await user.save();
 
-            const token = await this.generateToken(user._id.toString(), user.username);
+            const token = await this.generateToken(user._id.toString(), user.username, user.role);
             setCookie(token);
 
             await this.logAction(user._id.toString(), 'PASSKEY_LOGIN', 'SUCCESS', req, {

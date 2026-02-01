@@ -13,6 +13,7 @@ import { GPAPage } from '@/pages/GPAPage';
 import { CalendarPage } from '@/pages/CalendarPage';
 import { SocialPage } from '@/pages/SocialPage';
 import NotesPage from '@/pages/NotesPage';
+import { AdministrationPage } from '@/pages/AdministrationPage';
 
 // Lazy load page components
 // const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })));
@@ -24,6 +25,7 @@ const BackendDownPage = lazy(() => import('@/pages/BackendDown').then(m => ({ de
 const PublicSharedFilePage = lazy(() => import('@/pages/PublicSharedFilePage').then(m => ({ default: m.PublicSharedFilePage })));
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { AdminProtectedRoute } from '@/components/auth/AdminProtectedRoute';
 import { RouteErrorBoundary } from '@/components/error/RouteErrorBoundary';
 import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
 import { BackendStatusProvider } from '@/contexts/BackendStatusContext';
@@ -171,6 +173,22 @@ const router = createBrowserRouter([
                     {
                         path: 'social/:roomId',
                         element: <SocialPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                ],
+            },
+            {
+                path: '/administration',
+                element: (
+                    <AdminProtectedRoute>
+                        <DashboardLayout />
+                    </AdminProtectedRoute>
+                ),
+                errorElement: <RouteErrorBoundary />,
+                children: [
+                    {
+                        index: true,
+                        element: <AdministrationPage />,
                         errorElement: <RouteErrorBoundary />,
                     },
                 ],

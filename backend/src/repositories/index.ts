@@ -14,6 +14,7 @@ export { UserRepository } from './UserRepository';
 export { AuditLogRepository } from './AuditLogRepository';
 export { CalendarEventRepository } from './CalendarEventRepository';
 export { CourseRepository } from './CourseRepository';
+export { SystemLogRepository } from './SystemLogRepository';
 
 
 export { SharedLinkRepository } from './SharedLinkRepository';

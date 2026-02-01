@@ -408,7 +408,7 @@ export const PublicSharedFilePage = () => {
                             >
                                 Get Started for Free
                             </Button>
-                            <Button
+                            {/* <Button
                                 component={Link}
                                 to="/"
                                 variant="outlined"
@@ -428,7 +428,7 @@ export const PublicSharedFilePage = () => {
                                 }}
                             >
                                 Back to Home
-                            </Button>
+                            </Button> */}
                         </Stack>
                     </Paper>
                 </Container>

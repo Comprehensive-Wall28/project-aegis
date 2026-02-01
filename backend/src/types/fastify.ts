@@ -1,11 +1,14 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 
+import { UserRole } from '../models/User';
+
 /**
  * Authenticated user structure
  */
 export interface AuthUser {
     id: string;
     username: string;
+    role?: UserRole;
 }
 
 /**

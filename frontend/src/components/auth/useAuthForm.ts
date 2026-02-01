@@ -74,14 +74,15 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
                     return;
                 }
 
-                setUser({ _id: response._id, email: response.email, username: response.username });
+                setUser({ _id: response._id, email: response.email, username: response.username, role: response.role });
                 if (response.pqcSeed) {
                     storeSeed(response.pqcSeed);
                     initializeQuantumKeys(response.pqcSeed);
                 }
                 await refreshCsrfToken();
                 onClose();
-                navigate('/dashboard');
+                // Redirect sys_admin users to administration page
+                navigate(response.role === 'sys_admin' ? '/administration' : '/dashboard');
             }
         } catch (err: unknown) {
             const error = err as { code?: string; message?: string; response?: { data?: { message?: string } } };
@@ -106,14 +107,15 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
             const response = await authService.loginWithPasskey(email, password);
 
             if (response._id) {
-                setUser({ _id: response._id, email: response.email, username: response.username });
+                setUser({ _id: response._id, email: response.email, username: response.username, role: response.role });
                 if (response.pqcSeed) {
                     storeSeed(response.pqcSeed);
                     initializeQuantumKeys(response.pqcSeed);
                 }
                 await refreshCsrfToken();
                 onClose();
-                navigate('/dashboard');
+                // Redirect sys_admin users to administration page
+                navigate(response.role === 'sys_admin' ? '/administration' : '/dashboard');
             }
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } } };

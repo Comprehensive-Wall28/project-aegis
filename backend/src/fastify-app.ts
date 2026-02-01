@@ -156,6 +156,11 @@ export async function buildApp(): Promise<FastifyInstance> {
         await instance.register(mentionRoutes);
     }, { prefix: '/api/mentions' });
 
+    await app.register(async (instance) => {
+        const { adminRoutes } = await import('./routes/fastifyAdminRoutes');
+        await instance.register(adminRoutes);
+    }, { prefix: '/api/admin' });
+
     console.log('✅ Fastify app configured successfully');
     return app;
 }

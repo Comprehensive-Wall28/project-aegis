@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { decryptToken } from '../utils/cryptoUtils';
 import { config } from '../config/env';
 import logger from '../utils/logger';
+import { AuthRequest } from '../types/fastify';
 
 /**
  * Middleware: Authenticate User
@@ -37,5 +38,24 @@ export async function authenticateUser(
     } catch (error) {
         logger.error('Auth verification error:', error);
         return reply.status(401).send({ message: 'Not authorized, token failed' });
+    }
+}
+
+/**
+ * Middleware: Require System Admin Role
+ * - Must be used after authenticateUser middleware
+ * - Checks if the authenticated user has sys_admin role
+ */
+export async function requireSysAdmin(
+    request: AuthRequest,
+    reply: FastifyReply
+) {
+    if (!request.user) {
+        return reply.status(401).send({ message: 'Not authorized' });
+    }
+
+    if (request.user.role !== 'sys_admin') {
+        logger.warn(`Unauthorized admin access attempt by user: ${request.user.id}`);
+        return reply.status(403).send({ message: 'Access denied. System administrator privileges required.' });
     }
 }

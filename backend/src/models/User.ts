@@ -15,6 +15,8 @@ export interface IWebAuthnCredential {
     transports?: string[];
 }
 
+export type UserRole = 'sys_admin';
+
 export interface IUser extends Document {
     username: string;
     email: string;
@@ -26,6 +28,7 @@ export interface IUser extends Document {
     passwordHashVersion: number;
     currentChallenge?: string;
     totalStorageUsed: number;
+    role?: UserRole; // Only set manually in DB - not exposed via API
 }
 
 const UserSchema: Schema = new Schema({
@@ -65,7 +68,16 @@ const UserSchema: Schema = new Schema({
 
     currentChallenge: { type: String },
 
-    totalStorageUsed: { type: Number, default: 0, min: 0 }
+    totalStorageUsed: { type: Number, default: 0, min: 0 },
+
+    // Role field - only set manually in DB, no default value
+    // sys_admin: Full access to system logs and administration
+    role: { 
+        type: String, 
+        enum: ['sys_admin'],
+        index: true,
+        sparse: true // Only index documents that have this field
+    }
 
 }, { timestamps: true });
 
