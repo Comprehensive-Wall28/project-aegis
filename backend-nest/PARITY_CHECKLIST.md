@@ -32,16 +32,16 @@
 ## 1. Controllers / Routes
 
 ### 1.1 Auth Module
-- ⬜ **authController.ts** → **auth.controller.ts**
-  - ⬜ `POST /login` - login()
-  - ⬜ `POST /register` - register()
-  - ⬜ `POST /logout` - logout()
-  - ⬜ `GET /profile` - getProfile()
-  - ⬜ `PUT /profile` - updateProfile()
-  - ⬜ `GET /csrf-token` - getCsrfToken()
-  - ⬜ Auth guards match
-  - ⬜ CSRF protection match
-  - ⬜ Response format match
+- ✅ **authController.ts** → **auth.controller.ts**
+  - ✅ `POST /login` - login()
+  - ✅ `POST /register` - register()
+  - ✅ `POST /logout` - logout()
+  - ✅ `GET /profile` - getProfile() (mapped to /me)
+  - ✅ `PUT /profile` - updateProfile() (mapped to /me)
+  - ✅ `GET /csrf-token` - getCsrfToken()
+  - ✅ Auth guards match
+  - ✅ CSRF protection match
+  - ✅ Response format match
 
 ### 1.2 Tasks Module
 - ⬜ **taskController.ts** → **tasks.controller.ts**
@@ -167,11 +167,11 @@
 ## 2. Services
 
 ### 2.1 Core Services
-- ⬜ **AuthService**
-  - ⬜ login() - JWT generation
-  - ⬜ register() - password hashing
-  - ⬜ validateUser()
-  - ⬜ Token refresh logic
+- ✅ **AuthService**
+  - ✅ login() - JWT generation
+  - ✅ register() - password hashing
+  - ✅ validateUser()
+  - ✅ Token refresh logic
 
 - ⬜ **TaskService**
   - ⬜ getTasks() / findAll()
@@ -350,9 +350,9 @@ Check each mutation method has corresponding audit logging in NestJS:
 - ⬜ downloadFile → FILE_DOWNLOAD
 
 #### Auth
-- ⬜ login → AUTH_LOGIN
-- ⬜ register → AUTH_REGISTER
-- ⬜ logout → AUTH_LOGOUT
+- ✅ login → AUTH_LOGIN
+- ✅ register → AUTH_REGISTER
+- ✅ logout → AUTH_LOGOUT
 
 ---
 
@@ -363,7 +363,7 @@ Track which sections were verified and by whom:
 | Date | Section | Agent/Session | Result | Notes |
 |------|---------|---------------|--------|-------|
 | 2026-02-01 | Initial Setup | System | ✅ | Created checklist |
-| | | | | |
+| 2026-02-01 | Auth Module | Agent | ✅ | Implemented WebAuthn & Audit logging |
 
 ---
 
@@ -375,7 +375,7 @@ Track which sections were verified and by whom:
 3. ❌ Add Mention controller endpoints
 4. ❌ Create SharedFile and SharedLink schemas
 5. ❌ Add NoteMedia schema and service
-6. ❌ Verify all audit logging in NestJS services
+6. 🔄 Verify all audit logging in NestJS services
 
 ### Warnings (Should Fix)
 1. ⚠️ Verify HTTP method for reorder endpoints (PUT vs PATCH)

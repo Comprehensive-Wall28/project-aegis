@@ -45,6 +45,24 @@ export class User {
 
     @Prop({ default: 'NORMAL', enum: ['NORMAL', 'GERMAN'] })
     gpaSystem!: string;
+
+    @Prop([
+        {
+            credentialID: { type: String, required: true },
+            publicKey: { type: String, required: true },
+            counter: { type: Number, required: true },
+            transports: { type: [String], default: [] }
+        }
+    ])
+    webauthnCredentials!: {
+        credentialID: string;
+        publicKey: string;
+        counter: number;
+        transports: string[];
+    }[];
+
+    @Prop()
+    currentChallenge?: string;
 }
 
 export type UserDocument = User & Document;

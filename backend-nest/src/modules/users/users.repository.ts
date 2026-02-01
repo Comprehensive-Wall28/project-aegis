@@ -64,4 +64,29 @@ export class UsersRepository extends BaseRepository<UserDocument> {
             } as any);
         }
     }
+
+    async updateChallenge(userId: string, challenge: string | undefined): Promise<UserDocument | null> {
+        return this.updateById(userId, { $set: { currentChallenge: challenge } } as any);
+    }
+
+    async addWebAuthnCredential(
+        userId: string,
+        credential: {
+            credentialID: string;
+            publicKey: string;
+            counter: number;
+            transports?: string[];
+        }
+    ): Promise<UserDocument | null> {
+        return this.updateById(userId, {
+            $push: { webauthnCredentials: credential },
+            $unset: { currentChallenge: 1 }
+        } as any);
+    }
+
+    async removeWebAuthnCredential(userId: string, credentialID: string): Promise<UserDocument | null> {
+        return this.updateById(userId, {
+            $pull: { webauthnCredentials: { credentialID } }
+        } as any);
+    }
 }

@@ -1,17 +1,20 @@
 
-import { 
-    Controller, 
-    Post, 
-    Body, 
-    Res, 
-    Get, 
-    UseGuards, 
-    Request, 
-    Put, 
-    HttpStatus, 
+import {
+    Controller,
+    Post,
+    Body,
+    Res,
+    Get,
+    UseGuards,
+    Request,
+    Put,
+    HttpStatus,
     HttpCode,
     Query,
-    Req
+    Req,
+    Param,
+    Delete,
+    BadRequestException
 } from '@nestjs/common';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import '@fastify/cookie';
@@ -74,7 +77,7 @@ export class AuthController {
     }
 
     @UseGuards(JwtAuthGuard, CsrfGuard)
-    @Put('profile')
+    @Put('me')
     async updateProfile(
         @Request() req: any,
         @Body() updateProfileDto: UpdateProfileDto
@@ -93,9 +96,71 @@ export class AuthController {
     }
 
     @UseGuards(JwtAuthGuard)
-    @Get('discover')
-    async discoverUser(@Query('email') email: string) {
+    @Get('discovery/:email')
+    async discoverUser(@Param('email') email: string) {
         return this.authService.discoverUser(email);
+    }
+
+    // ============== WebAuthn Routes ==============
+
+    @UseGuards(JwtAuthGuard, CsrfGuard)
+    @Post('webauthn/register-options')
+    async getRegistrationOptions(@Request() req: any) {
+        return this.authService.getRegistrationOptions(req.user._id.toString());
+    }
+
+    @UseGuards(JwtAuthGuard, CsrfGuard)
+    @Post('webauthn/register-verify')
+    async verifyRegistration(
+        @Request() req: any,
+        @Body() body: any
+    ) {
+        const verified = await this.authService.verifyRegistration(
+            req.user._id.toString(),
+            body,
+            req.raw as any
+        );
+        if (verified) {
+            return { verified: true };
+        } else {
+            throw new BadRequestException({ verified: false, message: 'Verification failed' });
+        }
+    }
+
+    @Post('webauthn/login-options')
+    async getAuthenticationOptions(@Body('email') email: string) {
+        return this.authService.getAuthenticationOptions(email);
+    }
+
+    @Post('webauthn/login-verify')
+    @HttpCode(HttpStatus.OK)
+    async verifyAuthentication(
+        @Body() body: any,
+        @Req() req: FastifyRequest,
+        @Res({ passthrough: true }) res: FastifyReply
+    ) {
+        const { email, body: credBody } = body;
+        const result = await this.authService.verifyAuthentication(
+            email,
+            credBody,
+            req.raw as any,
+            (token: string) => this.setCookie(res, token)
+        );
+        return { ...result, message: 'Login successful' };
+    }
+
+    @UseGuards(JwtAuthGuard, CsrfGuard)
+    @Delete('webauthn/passkey')
+    async removePasskey(
+        @Request() req: any,
+        @Body('credentialID') credentialID: string
+    ) {
+        const remainingCredentials = await this.authService.removePasskey(
+            req.user._id.toString(),
+            credentialID,
+            req.raw as any
+        );
+        return { message: 'Passkey removed successfully', remainingCredentials };
     }
 
     private setCookie(res: FastifyReply, token: string) {
