@@ -1,5 +1,5 @@
 import { BaseService, ServiceError } from './base/BaseService';
-import { SystemLogRepository, SystemLogFilterOptions, SystemLogPaginationOptions, SystemLogStats } from '../repositories/SystemLogRepository';
+import { SystemLogRepository, SystemLogFilterOptions, SystemLogPaginationOptions, SystemLogStats, PerformanceStats, EndpointPerformance, PerformanceTrendPoint, SlowestRequest } from '../repositories/SystemLogRepository';
 import { ISystemLog, LogLevel } from '../models/SystemLog';
 import logger from '../utils/logger';
 
@@ -42,10 +42,10 @@ export class SystemLogService extends BaseService<ISystemLog, SystemLogRepositor
 
         const filters: SystemLogFilterOptions = {};
 
-        // Validate level
+        // Validate level - now includes 'info'
         if (params.level) {
-            if (!['warn', 'error'].includes(params.level)) {
-                throw new ServiceError('Invalid level. Must be "warn" or "error"', 400);
+            if (!['info', 'warn', 'error'].includes(params.level)) {
+                throw new ServiceError('Invalid level. Must be "info", "warn", or "error"', 400);
             }
             filters.level = params.level as LogLevel;
         }
@@ -93,7 +93,7 @@ export class SystemLogService extends BaseService<ISystemLog, SystemLogRepositor
         }
 
         // Validate sort
-        const validSortFields = ['timestamp', 'level', 'statusCode', 'method'];
+        const validSortFields = ['timestamp', 'level', 'statusCode', 'method', 'duration'];
         const sortField = validSortFields.includes(params.sortField || '') 
             ? params.sortField! 
             : 'timestamp';
@@ -178,6 +178,60 @@ export class SystemLogService extends BaseService<ISystemLog, SystemLogRepositor
         } catch (error) {
             logger.error('SystemLogService getFilterOptions error:', error);
             throw new ServiceError('Failed to retrieve filter options', 500);
+        }
+    }
+
+    /**
+     * Get comprehensive performance statistics
+     */
+    async getPerformanceStats(hours: number = 24): Promise<PerformanceStats> {
+        try {
+            const validHours = Math.min(168, Math.max(1, parseInt(String(hours), 10) || 24)); // Max 7 days
+            return await this.repository.getPerformanceStats(validHours);
+        } catch (error) {
+            logger.error('SystemLogService getPerformanceStats error:', error);
+            throw new ServiceError('Failed to retrieve performance statistics', 500);
+        }
+    }
+
+    /**
+     * Get per-endpoint performance breakdown
+     */
+    async getEndpointPerformance(hours: number = 24, limit: number = 20): Promise<EndpointPerformance[]> {
+        try {
+            const validHours = Math.min(168, Math.max(1, parseInt(String(hours), 10) || 24));
+            const validLimit = Math.min(50, Math.max(1, parseInt(String(limit), 10) || 20));
+            return await this.repository.getEndpointPerformance(validHours, validLimit);
+        } catch (error) {
+            logger.error('SystemLogService getEndpointPerformance error:', error);
+            throw new ServiceError('Failed to retrieve endpoint performance', 500);
+        }
+    }
+
+    /**
+     * Get performance trends over time
+     */
+    async getPerformanceTrends(hours: number = 24): Promise<PerformanceTrendPoint[]> {
+        try {
+            const validHours = Math.min(168, Math.max(1, parseInt(String(hours), 10) || 24));
+            return await this.repository.getPerformanceTrends(validHours);
+        } catch (error) {
+            logger.error('SystemLogService getPerformanceTrends error:', error);
+            throw new ServiceError('Failed to retrieve performance trends', 500);
+        }
+    }
+
+    /**
+     * Get slowest requests
+     */
+    async getSlowestRequests(hours: number = 24, limit: number = 20): Promise<SlowestRequest[]> {
+        try {
+            const validHours = Math.min(168, Math.max(1, parseInt(String(hours), 10) || 24));
+            const validLimit = Math.min(50, Math.max(1, parseInt(String(limit), 10) || 20));
+            return await this.repository.getSlowestRequests(validHours, validLimit);
+        } catch (error) {
+            logger.error('SystemLogService getSlowestRequests error:', error);
+            throw new ServiceError('Failed to retrieve slowest requests', 500);
         }
     }
 }

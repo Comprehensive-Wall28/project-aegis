@@ -9,15 +9,14 @@ const transports: winston.transport[] = [
     })
 ];
 
-// Add MongoDB transport for production (async, non-blocking)
-if (process.env.NODE_ENV === 'production') {
-    transports.push(new MongoDBTransport({
-        level: 'warn', // Only warn and error
-    }));
-}
+// Add MongoDB transport for all environments (async, non-blocking)
+// Captures info, warn, error with performance metrics
+transports.push(new MongoDBTransport({
+    level: 'info', // Capture all info and above
+}));
 
 const logger = winston.createLogger({
-    level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'warn' : 'info'),
+    level: process.env.LOG_LEVEL || 'info', // Always use info level minimum
     format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.json()

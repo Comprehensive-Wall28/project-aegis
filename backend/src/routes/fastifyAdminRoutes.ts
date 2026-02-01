@@ -3,18 +3,26 @@ import {
     getLogs,
     getLogById,
     getLogStats,
-    getFilterOptions
+    getFilterOptions,
+    getPerformanceStats,
+    getEndpointPerformance,
+    getPerformanceTrends,
+    getSlowestRequests
 } from '../controllers/fastifyAdminController';
 import { authenticateUser, requireSysAdmin } from '../middleware/fastifyAuthMiddleware';
 import { csrfProtection } from '../middleware/fastifyCsrf';
 
 /**
- * Admin routes for system log management
+ * Admin routes for system log management and performance analytics
  * All routes require sys_admin role
  */
 export async function adminRoutes(app: FastifyInstance) {
     // All admin routes require authentication, sys_admin role, and CSRF protection
     const adminPreHandlers = [authenticateUser, requireSysAdmin, csrfProtection];
+
+    // ============================================
+    // System Logs Endpoints
+    // ============================================
 
     // Get aggregated statistics for dashboard
     // Must be registered before /:id to avoid route conflict
@@ -39,5 +47,33 @@ export async function adminRoutes(app: FastifyInstance) {
     app.get('/logs/:id', {
         preHandler: adminPreHandlers,
         handler: getLogById
+    });
+
+    // ============================================
+    // Performance Analytics Endpoints
+    // ============================================
+
+    // Get comprehensive performance statistics
+    app.get('/performance/stats', {
+        preHandler: adminPreHandlers,
+        handler: getPerformanceStats
+    });
+
+    // Get per-endpoint performance breakdown
+    app.get('/performance/endpoints', {
+        preHandler: adminPreHandlers,
+        handler: getEndpointPerformance
+    });
+
+    // Get performance trends over time
+    app.get('/performance/trends', {
+        preHandler: adminPreHandlers,
+        handler: getPerformanceTrends
+    });
+
+    // Get slowest requests
+    app.get('/performance/slowest', {
+        preHandler: adminPreHandlers,
+        handler: getSlowestRequests
     });
 }

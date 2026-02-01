@@ -1,15 +1,22 @@
 import Transport from 'winston-transport';
 
+// TTL constants in milliseconds
+const INFO_TTL_DAYS = 7;
+const WARN_ERROR_TTL_DAYS = 30;
 
 /**
  * Winston transport for writing logs to MongoDB (secondary database)
  * Non-blocking async implementation for zero performance impact
+ * 
+ * Captures all log levels (info, warn, error) with performance metrics
+ * - Info logs: 7 day retention
+ * - Warn/Error logs: 30 day retention
  */
 class MongoDBTransport extends Transport {
     private queue: any[] = [];
     private isProcessing: boolean = false;
-    private readonly BATCH_SIZE = 10;
-    private readonly FLUSH_INTERVAL = 5000; // 5 seconds
+    private readonly BATCH_SIZE = 50;      // Increased for higher volume
+    private readonly FLUSH_INTERVAL = 3000; // 3 seconds for faster writes
 
     constructor(opts?: Transport.TransportStreamOptions) {
         super(opts);
@@ -19,18 +26,27 @@ class MongoDBTransport extends Transport {
     }
 
     /**
+     * Calculate expiration date based on log level
+     */
+    private calculateExpiresAt(level: string): Date {
+        const now = Date.now();
+        const ttlDays = level === 'info' ? INFO_TTL_DAYS : WARN_ERROR_TTL_DAYS;
+        return new Date(now + ttlDays * 24 * 60 * 60 * 1000);
+    }
+
+    /**
      * Log to MongoDB asynchronously (fire-and-forget)
      */
     log(info: any, callback: () => void): void {
         // Immediately return to not block
         setImmediate(() => callback());
 
-        // Only log warn and error levels
-        if (info.level !== 'warn' && info.level !== 'error') {
+        // Accept info, warn, and error levels
+        if (info.level !== 'info' && info.level !== 'warn' && info.level !== 'error') {
             return;
         }
 
-        // Extract structured data
+        // Extract structured data including performance metrics
         const logEntry = {
             level: info.level,
             message: info.message,
@@ -42,6 +58,13 @@ class MongoDBTransport extends Transport {
             statusCode: info.statusCode,
             error: info.error,
             stack: info.stack,
+            // Performance metrics
+            duration: info.duration,
+            requestSize: info.requestSize,
+            responseSize: info.responseSize,
+            memoryUsage: info.memoryUsage,
+            // TTL - computed based on level
+            expiresAt: this.calculateExpiresAt(info.level),
             metadata: this.extractMetadata(info),
         };
 
@@ -61,7 +84,9 @@ class MongoDBTransport extends Transport {
         const knownFields = new Set([
             'level', 'message', 'timestamp', 'service',
             'method', 'url', 'userId', 'statusCode',
-            'error', 'stack', 'Symbol(level)', 'Symbol(message)'
+            'error', 'stack', 'duration', 'requestSize',
+            'responseSize', 'memoryUsage', 'expiresAt',
+            'Symbol(level)', 'Symbol(message)'
         ]);
 
         const metadata: Record<string, any> = {};

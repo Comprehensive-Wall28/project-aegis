@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
     Box,
     Typography,
@@ -25,6 +26,7 @@ import {
     CardContent,
     Stack,
     LinearProgress,
+    Button,
 } from '@mui/material';
 import { motion, type Variants } from 'framer-motion';
 import { LineChart, PieChart } from '@mui/x-charts';
@@ -39,6 +41,8 @@ import {
     Users,
     Link,
     Shield,
+    Gauge,
+    Info,
 } from 'lucide-react';
 import { DashboardCard } from '@/components/common/DashboardCard';
 import { LogDetailOverlay } from '@/components/admin/LogDetailOverlay';
@@ -139,6 +143,15 @@ function StatCard({
 function MobileLogCard({ log, onClick }: { log: SystemLog; onClick: () => void }) {
     const theme = useTheme();
 
+    const getLevelColor = (level: string) => {
+        switch (level) {
+            case 'error': return theme.palette.error.main;
+            case 'warn': return theme.palette.warning.main;
+            case 'info': return theme.palette.info.main;
+            default: return theme.palette.grey[500];
+        }
+    };
+
     return (
         <Card
             onClick={onClick}
@@ -162,8 +175,8 @@ function MobileLogCard({ log, onClick }: { log: SystemLog; onClick: () => void }
                             label={log.level}
                             size="small"
                             sx={{
-                                bgcolor: alpha(log.level === 'error' ? theme.palette.error.main : theme.palette.warning.main, 0.1),
-                                color: log.level === 'error' ? theme.palette.error.main : theme.palette.warning.main,
+                                bgcolor: alpha(getLevelColor(log.level), 0.1),
+                                color: getLevelColor(log.level),
                                 fontWeight: 600,
                                 textTransform: 'uppercase',
                                 fontSize: '10px',
@@ -259,6 +272,15 @@ function MobileLogCard({ log, onClick }: { log: SystemLog; onClick: () => void }
 function LogRow({ log, onClick }: { log: SystemLog; onClick: () => void }) {
     const theme = useTheme();
 
+    const getLevelColor = (level: string) => {
+        switch (level) {
+            case 'error': return theme.palette.error.main;
+            case 'warn': return theme.palette.warning.main;
+            case 'info': return theme.palette.info.main;
+            default: return theme.palette.grey[500];
+        }
+    };
+
     return (
         <TableRow
             hover
@@ -291,8 +313,8 @@ function LogRow({ log, onClick }: { log: SystemLog; onClick: () => void }) {
                     label={log.level}
                     size="small"
                     sx={{
-                        bgcolor: alpha(log.level === 'error' ? theme.palette.error.main : theme.palette.warning.main, 0.1),
-                        color: log.level === 'error' ? theme.palette.error.main : theme.palette.warning.main,
+                        bgcolor: alpha(getLevelColor(log.level), 0.1),
+                        color: getLevelColor(log.level),
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         fontSize: '10px',
@@ -358,6 +380,7 @@ function LogRow({ log, onClick }: { log: SystemLog; onClick: () => void }) {
 
 export function AdministrationPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     // Filter state
@@ -438,12 +461,13 @@ export function AdministrationPage() {
 
     // Chart data preparation
     const lineChartData = useMemo(() => {
-        if (!stats?.byHour) return { xAxis: [], errors: [], warnings: [] };
+        if (!stats?.byHour) return { xAxis: [], errors: [], warnings: [], info: [] };
         
         return {
             xAxis: stats.byHour.map((h) => dayjs(h.hour).format('HH:mm')),
             errors: stats.byHour.map((h) => h.errors),
             warnings: stats.byHour.map((h) => h.warnings),
+            info: stats.byHour.map((h) => h.info || 0),
         };
     }, [stats?.byHour]);
 
@@ -452,6 +476,7 @@ export function AdministrationPage() {
         return [
             { id: 0, value: stats.errorCount, label: 'Errors', color: theme.palette.error.main },
             { id: 1, value: stats.warnCount, label: 'Warnings', color: theme.palette.warning.main },
+            { id: 2, value: stats.infoCount || 0, label: 'Info', color: theme.palette.info.main },
         ];
     }, [stats, theme]);
 
@@ -500,11 +525,27 @@ export function AdministrationPage() {
                                 </Typography>
                             </Box>
                         </Box>
-                        <Tooltip title="Refresh data">
-                            <IconButton onClick={handleRefresh} sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
-                                <RefreshCw size={isMobile ? 18 : 20} />
-                            </IconButton>
-                        </Tooltip>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Tooltip title="Refresh data">
+                                <IconButton onClick={handleRefresh} sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+                                    <RefreshCw size={isMobile ? 18 : 20} />
+                                </IconButton>
+                            </Tooltip>
+                            <Button
+                                variant="contained"
+                                startIcon={<Gauge size={18} />}
+                                onClick={() => navigate('/administration/performance')}
+                                sx={{
+                                    borderRadius: 2,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    px: { xs: 1.5, sm: 2 },
+                                    fontSize: { xs: '12px', sm: '14px' },
+                                }}
+                            >
+                                {isMobile ? 'Performance' : 'Performance Analytics'}
+                            </Button>
+                        </Box>
                     </Box>
                 </motion.div>
 
@@ -528,10 +569,10 @@ export function AdministrationPage() {
                                 <Skeleton variant="rounded" height={120} sx={{ borderRadius: '24px' }} />
                             ) : (
                                 <StatCard
-                                    title="Errors (24h)"
-                                    value={stats?.last24Hours.errors || 0}
-                                    icon={AlertCircle}
-                                    color={theme.palette.error.main}
+                                    title="Info (24h)"
+                                    value={stats?.last24Hours.info || 0}
+                                    icon={Info}
+                                    color={theme.palette.info.main}
                                 />
                             )}
                         </Grid>
@@ -552,11 +593,10 @@ export function AdministrationPage() {
                                 <Skeleton variant="rounded" height={120} sx={{ borderRadius: '24px' }} />
                             ) : (
                                 <StatCard
-                                    title="Total Errors"
-                                    value={stats?.errorCount || 0}
+                                    title="Errors (24h)"
+                                    value={stats?.last24Hours.errors || 0}
                                     icon={AlertCircle}
                                     color={theme.palette.error.main}
-                                    subtitle="Last 7 days"
                                 />
                             )}
                         </Grid>
@@ -588,6 +628,13 @@ export function AdministrationPage() {
                                                 },
                                             ]}
                                             series={[
+                                                {
+                                                    data: lineChartData.info,
+                                                    label: 'Info',
+                                                    color: theme.palette.info.main,
+                                                    curve: 'monotoneX',
+                                                    area: true,
+                                                },
                                                 {
                                                     data: lineChartData.errors,
                                                     label: 'Errors',
@@ -823,8 +870,9 @@ export function AdministrationPage() {
                                         sx={{ '& .MuiInputBase-root': { fontSize: { xs: '13px', sm: '14px' } } }}
                                     >
                                         <MenuItem value="">All</MenuItem>
-                                        <MenuItem value="error">Error</MenuItem>
+                                        <MenuItem value="info">Info</MenuItem>
                                         <MenuItem value="warn">Warning</MenuItem>
+                                        <MenuItem value="error">Error</MenuItem>
                                     </TextField>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 2 }}>

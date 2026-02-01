@@ -60,3 +60,57 @@ export const getFilterOptions = withAuth(async (request: AuthRequest, reply: Fas
     const options = await systemLogService.getFilterOptions();
     reply.send(options);
 });
+
+// ============================================
+// Performance Analytics Endpoints
+// ============================================
+
+/**
+ * Get comprehensive performance statistics
+ * GET /api/admin/performance/stats
+ */
+export const getPerformanceStats = withAuth(async (request: AuthRequest, reply: FastifyReply) => {
+    const query = request.query as { hours?: string };
+    const hours = query.hours ? parseInt(query.hours, 10) : 24;
+    
+    const stats = await systemLogService.getPerformanceStats(hours);
+    reply.send(stats);
+});
+
+/**
+ * Get per-endpoint performance breakdown
+ * GET /api/admin/performance/endpoints
+ */
+export const getEndpointPerformance = withAuth(async (request: AuthRequest, reply: FastifyReply) => {
+    const query = request.query as { hours?: string; limit?: string };
+    const hours = query.hours ? parseInt(query.hours, 10) : 24;
+    const limit = query.limit ? parseInt(query.limit, 10) : 20;
+    
+    const endpoints = await systemLogService.getEndpointPerformance(hours, limit);
+    reply.send(endpoints);
+});
+
+/**
+ * Get performance trends over time (hourly buckets)
+ * GET /api/admin/performance/trends
+ */
+export const getPerformanceTrends = withAuth(async (request: AuthRequest, reply: FastifyReply) => {
+    const query = request.query as { hours?: string };
+    const hours = query.hours ? parseInt(query.hours, 10) : 24;
+    
+    const trends = await systemLogService.getPerformanceTrends(hours);
+    reply.send(trends);
+});
+
+/**
+ * Get slowest requests
+ * GET /api/admin/performance/slowest
+ */
+export const getSlowestRequests = withAuth(async (request: AuthRequest, reply: FastifyReply) => {
+    const query = request.query as { hours?: string; limit?: string };
+    const hours = query.hours ? parseInt(query.hours, 10) : 24;
+    const limit = query.limit ? parseInt(query.limit, 10) : 20;
+    
+    const slowest = await systemLogService.getSlowestRequests(hours, limit);
+    reply.send(slowest);
+});

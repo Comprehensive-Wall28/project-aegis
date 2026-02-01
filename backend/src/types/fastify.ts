@@ -52,5 +52,6 @@ declare module 'fastify' {
         user?: AuthUser;
         csrfToken?: string;
         startTime?: number;
+        startMemory?: number; // For memory usage tracking
     }
 }

@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type LogLevel = 'warn' | 'error';
+export type LogLevel = 'info' | 'warn' | 'error';
 
 export interface ISystemLog extends Document {
     level: LogLevel;
@@ -14,12 +14,19 @@ export interface ISystemLog extends Document {
     error?: string;
     stack?: string;
     metadata?: Record<string, any>;
+    // Performance metrics
+    duration?: number;         // Request duration in ms
+    requestSize?: number;      // Request body size in bytes
+    responseSize?: number;     // Response body size in bytes
+    memoryUsage?: number;      // Heap memory used in bytes
+    // TTL field - computed at insert time
+    expiresAt: Date;
 }
 
 const SystemLogSchema = new Schema<ISystemLog>({
     level: {
         type: String,
-        enum: ['warn', 'error'],
+        enum: ['info', 'warn', 'error'],
         required: true,
         index: true,
     },
@@ -43,16 +50,32 @@ const SystemLogSchema = new Schema<ISystemLog>({
     error: String,
     stack: String,
     metadata: Schema.Types.Mixed,
+    // Performance metrics
+    duration: Number,
+    requestSize: Number,
+    responseSize: Number,
+    memoryUsage: Number,
+    // TTL field - 7 days for info, 30 days for warn/error
+    expiresAt: {
+        type: Date,
+        required: true,
+        index: true,
+    },
 }, {
     collection: 'system_logs',
-    // Automatically delete logs older than 30 days
-    expireAfterSeconds: 30 * 24 * 60 * 60,
 });
+
+// TTL index - documents expire when current time > expiresAt
+SystemLogSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Indexes for efficient querying
 SystemLogSchema.index({ timestamp: -1 });
 SystemLogSchema.index({ level: 1, timestamp: -1 });
 SystemLogSchema.index({ service: 1, timestamp: -1 });
+// Performance query indexes
+SystemLogSchema.index({ url: 1, duration: -1 });
+SystemLogSchema.index({ timestamp: -1, duration: -1 });
+SystemLogSchema.index({ level: 1, duration: -1 });
 
 // Use secondary connection for system logs
 import DatabaseManager from '../config/DatabaseManager';

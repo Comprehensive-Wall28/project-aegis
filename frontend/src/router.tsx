@@ -14,6 +14,7 @@ import { CalendarPage } from '@/pages/CalendarPage';
 import { SocialPage } from '@/pages/SocialPage';
 import NotesPage from '@/pages/NotesPage';
 import { AdministrationPage } from '@/pages/AdministrationPage';
+import { PerformancePage } from '@/pages/PerformancePage';
 
 // Lazy load page components
 // const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })));
@@ -189,6 +190,11 @@ const router = createBrowserRouter([
                     {
                         index: true,
                         element: <AdministrationPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'performance',
+                        element: <PerformancePage />,
                         errorElement: <RouteErrorBoundary />,
                     },
                 ],

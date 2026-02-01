@@ -71,10 +71,9 @@ export async function buildApp(): Promise<FastifyInstance> {
     // Register global error handler
     registerErrorHandler(app);
 
-    // Register performance monitoring (dev only)
-    if (config.nodeEnv !== 'production') {
-        registerPerformanceHooks(app);
-    }
+    // Register performance monitoring (all environments)
+    // Captures comprehensive request metrics for analysis
+    registerPerformanceHooks(app);
 
     // Health check endpoint
     app.get('/health', async (request, reply) => {
