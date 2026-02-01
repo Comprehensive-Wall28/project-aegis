@@ -6,5 +6,5 @@ import { csrfProtection } from '../middleware/fastifyCsrf';
 export async function activityRoutes(app: FastifyInstance) {
     const authCsrf = [authenticateUser, csrfProtection];
 
-    app.get('/', { preHandler: authCsrf, handler: getDashboardActivity });
+    app.get('/dashboard', { preHandler: authCsrf, handler: getDashboardActivity });
 }

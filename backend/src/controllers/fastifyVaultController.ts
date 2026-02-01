@@ -64,7 +64,26 @@ export const getFile = withAuth(async (request: AuthRequest, reply: FastifyReply
 });
 
 export const getUserFiles = withAuth(async (request: AuthRequest, reply: FastifyReply) => {
-    const files = await vaultService.getUserFiles(request.user!.id);
+    const query = request.query as any;
+    const folderId = query.folderId as string | undefined;
+    const normalizedFolderId = folderId && folderId !== 'null' ? folderId : null;
+
+    // Check for pagination params
+    const limit = query.limit ? parseInt(query.limit as string) : undefined;
+    const cursor = query.cursor as string | undefined;
+    const search = query.search as string | undefined;
+
+    if (limit !== undefined) {
+        const result = await vaultService.getUserFilesPaginated(
+            request.user!.id,
+            normalizedFolderId,
+            { limit, cursor, search }
+        );
+        return reply.send(result);
+    }
+
+    // Non-paginated fallback
+    const files = await vaultService.getUserFiles(request.user!.id, folderId, search);
     reply.send(files);
 });
 
