@@ -13,6 +13,7 @@ import {
     Share as ShareIcon,
     Palette as PaletteIcon,
     NoteAlt as NotesIcon,
+    AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
 import {
     Box,
@@ -28,7 +29,7 @@ import {
     Tooltip,
     Divider
 } from '@mui/material';
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -36,7 +37,7 @@ import { AegisLogo } from '@/components/AegisLogo';
 import authService from '@/services/authService';
 import { clearStoredSeed } from '@/lib/cryptoUtils';
 
-const navItems = [
+const baseNavItems = [
     { name: 'Vault', href: '/dashboard', icon: VaultIcon },
     { name: 'Social', icon: ShareIcon, href: '/dashboard/social' },
     { name: 'Files', href: '/dashboard/files', icon: FolderOpenIcon },
@@ -47,6 +48,8 @@ const navItems = [
     // { name: 'ZKP Verifier', href: '/dashboard/zkp', icon: FingerprintIcon },
     { name: 'Settings', href: '/dashboard/security', icon: SettingsIcon },
 ];
+
+const adminNavItem = { name: 'Admin', href: '/administration', icon: AdminIcon };
 
 
 interface SidebarProps {
@@ -67,8 +70,23 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
     const theme = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
-    const { clearSession } = useSessionStore();
+    const { clearSession, user } = useSessionStore();
     const { theme: currentTheme, toggleTheme } = useThemeStore();
+
+    // Build nav items based on user role
+    const navItems = useMemo(() => {
+        const items = [...baseNavItems];
+        if (user?.role === 'sys_admin') {
+            // Insert admin item before Settings
+            const settingsIndex = items.findIndex(item => item.name === 'Settings');
+            if (settingsIndex !== -1) {
+                items.splice(settingsIndex, 0, adminNavItem);
+            } else {
+                items.push(adminNavItem);
+            }
+        }
+        return items;
+    }, [user?.role]);
 
     const handleLogout = async () => {
         await authService.logout();

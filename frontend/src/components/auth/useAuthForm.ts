@@ -114,8 +114,7 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
                 }
                 await refreshCsrfToken();
                 onClose();
-                // Redirect sys_admin users to administration page
-                navigate(response.role === 'sys_admin' ? '/administration' : '/dashboard');
+                navigate('/dashboard');
             }
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } } };

@@ -20,8 +20,6 @@ import {
     TableRow,
     TablePagination,
     Skeleton,
-    Collapse,
-    Paper,
     useMediaQuery,
     Card,
     CardContent,
@@ -35,7 +33,6 @@ import {
     AlertTriangle,
     AlertCircle,
     RefreshCw,
-    ChevronDown,
     ChevronRight,
     Activity,
     X,
@@ -44,6 +41,7 @@ import {
     Shield,
 } from 'lucide-react';
 import { DashboardCard } from '@/components/common/DashboardCard';
+import { LogDetailOverlay } from '@/components/admin/LogDetailOverlay';
 import adminService, { type SystemLog, type GetLogsParams } from '@/services/adminService';
 import dayjs from 'dayjs';
 
@@ -138,17 +136,23 @@ function StatCard({
 }
 
 // Mobile Log Card Component
-function MobileLogCard({ log }: { log: SystemLog }) {
-    const [expanded, setExpanded] = useState(false);
+function MobileLogCard({ log, onClick }: { log: SystemLog; onClick: () => void }) {
     const theme = useTheme();
 
     return (
         <Card
+            onClick={onClick}
             sx={{
                 bgcolor: alpha(theme.palette.background.paper, 0.6),
                 borderRadius: 3,
                 border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                mb: 1.5,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                    bgcolor: alpha(theme.palette.background.paper, 0.8),
+                    transform: 'translateY(-1px)',
+                    boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.1)}`,
+                },
             }}
         >
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
@@ -205,7 +209,7 @@ function MobileLogCard({ log }: { log: SystemLog }) {
                         fontWeight: 500,
                         mb: 0.5,
                         display: '-webkit-box',
-                        WebkitLineClamp: expanded ? 'unset' : 2,
+                        WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
                     }}
@@ -231,7 +235,6 @@ function MobileLogCard({ log }: { log: SystemLog }) {
                 )}
 
                 <Box
-                    onClick={() => setExpanded(!expanded)}
                     sx={{
                         display: 'flex',
                         alignItems: 'center',
@@ -239,236 +242,117 @@ function MobileLogCard({ log }: { log: SystemLog }) {
                         mt: 1,
                         pt: 1,
                         borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                        cursor: 'pointer',
                         color: 'text.secondary',
-                        '&:hover': { color: 'primary.main' },
                     }}
                 >
                     <Typography variant="caption" sx={{ mr: 0.5 }}>
-                        {expanded ? 'Hide details' : 'Show details'}
+                        Tap to view details
                     </Typography>
-                    {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    <ChevronRight size={14} />
                 </Box>
-
-                <Collapse in={expanded} timeout="auto" unmountOnExit>
-                    <Stack spacing={1.5} sx={{ mt: 1.5 }}>
-                        {log.error && (
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                    Error
-                                </Typography>
-                                <Paper
-                                    sx={{
-                                        mt: 0.5,
-                                        p: 1,
-                                        bgcolor: alpha(theme.palette.error.main, 0.05),
-                                        borderRadius: 1.5,
-                                        fontFamily: 'monospace',
-                                        fontSize: '11px',
-                                        overflow: 'auto',
-                                        maxHeight: 150,
-                                    }}
-                                >
-                                    {log.error}
-                                </Paper>
-                            </Box>
-                        )}
-                        {log.stack && (
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                    Stack Trace
-                                </Typography>
-                                <Paper
-                                    sx={{
-                                        mt: 0.5,
-                                        p: 1,
-                                        bgcolor: alpha(theme.palette.background.default, 0.5),
-                                        borderRadius: 1.5,
-                                        fontFamily: 'monospace',
-                                        fontSize: '10px',
-                                        overflow: 'auto',
-                                        maxHeight: 150,
-                                        whiteSpace: 'pre-wrap',
-                                        wordBreak: 'break-all',
-                                    }}
-                                >
-                                    {log.stack}
-                                </Paper>
-                            </Box>
-                        )}
-                        {log.userId && (
-                            <Typography variant="caption" color="text.secondary">
-                                User ID: <strong style={{ fontFamily: 'monospace' }}>{log.userId}</strong>
-                            </Typography>
-                        )}
-                    </Stack>
-                </Collapse>
             </CardContent>
         </Card>
     );
 }
 
-// Expandable Log Row Component
-function LogRow({ log }: { log: SystemLog }) {
-    const [expanded, setExpanded] = useState(false);
+// Log Row Component
+function LogRow({ log, onClick }: { log: SystemLog; onClick: () => void }) {
     const theme = useTheme();
 
     return (
-        <>
-            <TableRow
-                hover
-                onClick={() => setExpanded(!expanded)}
-                sx={{ cursor: 'pointer', '& > *': { borderBottom: expanded ? 'none' : undefined } }}
-            >
-                <TableCell sx={{ width: 40 }}>
-                    <IconButton size="small">
-                        {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </IconButton>
-                </TableCell>
-                <TableCell>
+        <TableRow
+            hover
+            onClick={onClick}
+            sx={{ 
+                cursor: 'pointer',
+                transition: 'background-color 0.15s ease',
+                '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.04),
+                },
+            }}
+        >
+            <TableCell sx={{ width: 40 }}>
+                <Box
+                    sx={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '8px',
+                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
+                >
+                    <ChevronRight size={14} color={theme.palette.primary.main} />
+                </Box>
+            </TableCell>
+            <TableCell>
+                <Chip
+                    label={log.level}
+                    size="small"
+                    sx={{
+                        bgcolor: alpha(log.level === 'error' ? theme.palette.error.main : theme.palette.warning.main, 0.1),
+                        color: log.level === 'error' ? theme.palette.error.main : theme.palette.warning.main,
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        fontSize: '10px',
+                    }}
+                />
+            </TableCell>
+            <TableCell>
+                <Typography
+                    variant="body2"
+                    sx={{
+                        maxWidth: 300,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    {log.message}
+                </Typography>
+            </TableCell>
+            <TableCell>
+                <Typography variant="caption" color="text.secondary">
+                    {dayjs(log.timestamp).format('MMM D, HH:mm:ss')}
+                </Typography>
+            </TableCell>
+            <TableCell>
+                {log.method && (
+                    <Chip label={log.method} size="small" variant="outlined" sx={{ fontSize: '10px' }} />
+                )}
+            </TableCell>
+            <TableCell>
+                <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {log.url || '-'}
+                </Typography>
+            </TableCell>
+            <TableCell>
+                {log.statusCode && (
                     <Chip
-                        label={log.level}
+                        label={log.statusCode}
                         size="small"
                         sx={{
-                            bgcolor: alpha(log.level === 'error' ? theme.palette.error.main : theme.palette.warning.main, 0.1),
-                            color: log.level === 'error' ? theme.palette.error.main : theme.palette.warning.main,
-                            fontWeight: 600,
-                            textTransform: 'uppercase',
-                            fontSize: '10px',
+                            bgcolor: alpha(
+                                log.statusCode >= 500
+                                    ? theme.palette.error.main
+                                    : log.statusCode >= 400
+                                      ? theme.palette.warning.main
+                                      : theme.palette.success.main,
+                                0.1
+                            ),
+                            color:
+                                log.statusCode >= 500
+                                    ? theme.palette.error.main
+                                    : log.statusCode >= 400
+                                      ? theme.palette.warning.main
+                                      : theme.palette.success.main,
+                            fontSize: '11px',
                         }}
                     />
-                </TableCell>
-                <TableCell>
-                    <Typography
-                        variant="body2"
-                        sx={{
-                            maxWidth: 300,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                        }}
-                    >
-                        {log.message}
-                    </Typography>
-                </TableCell>
-                <TableCell>
-                    <Typography variant="caption" color="text.secondary">
-                        {dayjs(log.timestamp).format('MMM D, HH:mm:ss')}
-                    </Typography>
-                </TableCell>
-                <TableCell>
-                    {log.method && (
-                        <Chip label={log.method} size="small" variant="outlined" sx={{ fontSize: '10px' }} />
-                    )}
-                </TableCell>
-                <TableCell>
-                    <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {log.url || '-'}
-                    </Typography>
-                </TableCell>
-                <TableCell>
-                    {log.statusCode && (
-                        <Chip
-                            label={log.statusCode}
-                            size="small"
-                            sx={{
-                                bgcolor: alpha(
-                                    log.statusCode >= 500
-                                        ? theme.palette.error.main
-                                        : log.statusCode >= 400
-                                          ? theme.palette.warning.main
-                                          : theme.palette.success.main,
-                                    0.1
-                                ),
-                                color:
-                                    log.statusCode >= 500
-                                        ? theme.palette.error.main
-                                        : log.statusCode >= 400
-                                          ? theme.palette.warning.main
-                                          : theme.palette.success.main,
-                                fontSize: '11px',
-                            }}
-                        />
-                    )}
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell colSpan={7} sx={{ p: 0 }}>
-                    <Collapse in={expanded} timeout="auto" unmountOnExit>
-                        <Box sx={{ p: 2, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
-                            <Grid container spacing={2}>
-                                <Grid size={{ xs: 12, md: 6 }}>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                        Error Details
-                                    </Typography>
-                                    <Paper
-                                        sx={{
-                                            mt: 1,
-                                            p: 1.5,
-                                            bgcolor: alpha(theme.palette.error.main, 0.05),
-                                            borderRadius: 2,
-                                            fontFamily: 'monospace',
-                                            fontSize: '12px',
-                                            overflow: 'auto',
-                                            maxHeight: 200,
-                                        }}
-                                    >
-                                        {log.error || 'No error message'}
-                                    </Paper>
-                                </Grid>
-                                <Grid size={{ xs: 12, md: 6 }}>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                        Stack Trace
-                                    </Typography>
-                                    <Paper
-                                        sx={{
-                                            mt: 1,
-                                            p: 1.5,
-                                            bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                            borderRadius: 2,
-                                            fontFamily: 'monospace',
-                                            fontSize: '11px',
-                                            overflow: 'auto',
-                                            maxHeight: 200,
-                                            whiteSpace: 'pre-wrap',
-                                            wordBreak: 'break-all',
-                                        }}
-                                    >
-                                        {log.stack || 'No stack trace available'}
-                                    </Paper>
-                                </Grid>
-                                {log.userId && (
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <Typography variant="caption" color="text.secondary">
-                                            User ID: <strong>{log.userId}</strong>
-                                        </Typography>
-                                    </Grid>
-                                )}
-                                {log.metadata && Object.keys(log.metadata).length > 0 && (
-                                    <Grid size={{ xs: 12 }}>
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                            Metadata
-                                        </Typography>
-                                        <Paper
-                                            sx={{
-                                                mt: 1,
-                                                p: 1.5,
-                                                bgcolor: alpha(theme.palette.background.paper, 0.5),
-                                                borderRadius: 2,
-                                                fontFamily: 'monospace',
-                                                fontSize: '11px',
-                                            }}
-                                        >
-                                            {JSON.stringify(log.metadata, null, 2)}
-                                        </Paper>
-                                    </Grid>
-                                )}
-                            </Grid>
-                        </Box>
-                    </Collapse>
-                </TableCell>
-            </TableRow>
-        </>
+                )}
+            </TableCell>
+        </TableRow>
     );
 }
 
@@ -483,6 +367,7 @@ export function AdministrationPage() {
         sortOrder: 'desc',
     });
     const [searchInput, setSearchInput] = useState('');
+    const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
 
     // Stats query
     const {
@@ -1025,7 +910,7 @@ export function AdministrationPage() {
                                 ) : (
                                     <Stack spacing={1.5}>
                                         {logsData?.items.map((log) => (
-                                            <MobileLogCard key={log._id} log={log} />
+                                            <MobileLogCard key={log._id} log={log} onClick={() => setSelectedLog(log)} />
                                         ))}
                                     </Stack>
                                 )}
@@ -1060,7 +945,7 @@ export function AdministrationPage() {
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
-                                            logsData?.items.map((log) => <LogRow key={log._id} log={log} />)
+                                            logsData?.items.map((log) => <LogRow key={log._id} log={log} onClick={() => setSelectedLog(log)} />)
                                         )}
                                     </TableBody>
                                 </Table>
@@ -1088,6 +973,13 @@ export function AdministrationPage() {
                     </DashboardCard>
                 </motion.div>
             </Box>
+
+            {/* Log Detail Overlay */}
+            <LogDetailOverlay
+                log={selectedLog}
+                open={selectedLog !== null}
+                onClose={() => setSelectedLog(null)}
+            />
         </motion.div>
     );
 }
