@@ -17,6 +17,7 @@ import ogs from 'open-graph-scraper';
 import PQueue from 'p-queue';
 import fs from 'fs';
 import path from 'path';
+import { USER_AGENTS } from './userAgents';
 import logger from './logger';
 
 // Setup Metascraper
@@ -133,19 +134,6 @@ let browserLaunchPromise: Promise<Browser> | null = null;
 
 // Note: Concurrency is now managed by scrapeQueue (p-queue)
 
-// =============================================================================
-// STEALTH & FINGERPRINTING
-// =============================================================================
-
-const USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.2; rv:121.0) Gecko/20100101 Firefox/121.0',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0',
-];
-
 const LOCALES = ['en-US', 'en-GB', 'en-CA', 'fr-FR', 'de-DE', 'es-ES'];
 const TIMEZONES = ['America/New_York', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Asia/Tokyo'];
 
@@ -236,8 +224,13 @@ const getBrowser = async (): Promise<Browser> => {
         ],
     };
 
-    if (executablePath && fs.existsSync(executablePath)) {
-        launchOptions.executablePath = executablePath;
+    if (executablePath) {
+        try {
+            await fs.promises.access(executablePath);
+            launchOptions.executablePath = executablePath;
+        } catch (err) {
+            // Path doesn't exist or isn't accessible, use default
+        }
     }
 
     browserLaunchPromise = chromium.launch(launchOptions).then((browser: Browser) => {
@@ -262,12 +255,30 @@ const getBrowser = async (): Promise<Browser> => {
 
 // Load Readability script content once to inject it
 let readabilityScript = '';
-try {
-    const readabilityPath = path.resolve(__dirname, '../../node_modules/@mozilla/readability/Readability.js');
-    readabilityScript = fs.readFileSync(readabilityPath, 'utf8');
-} catch (err) {
-    logger.error(`[Scraper] Failed to load Readability script: ${err}`);
-}
+let readabilityLoadingPromise: Promise<string> | null = null;
+
+const loadReadabilityScript = async (): Promise<string> => {
+    if (readabilityScript) return readabilityScript;
+    if (readabilityLoadingPromise) return readabilityLoadingPromise;
+
+    readabilityLoadingPromise = (async () => {
+        try {
+            const readabilityPath = path.resolve(__dirname, '../../node_modules/@mozilla/readability/Readability.js');
+            const content = await fs.promises.readFile(readabilityPath, 'utf8');
+            readabilityScript = content;
+            return content;
+        } catch (err) {
+            logger.error(`[Scraper] Failed to load Readability script: ${err}`);
+            readabilityLoadingPromise = null;
+            return '';
+        }
+    })();
+
+    return readabilityLoadingPromise;
+};
+
+// Initial trigger to load it async
+loadReadabilityScript();
 
 /**
  * Internal implementation of advanced scraping using Playwright.
@@ -718,10 +729,11 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
         } catch (e) { }
 
         // 3. Extraction + Processing in Browser
-        if (!readabilityScript) {
-            logger.warn('[ReaderScrape] Readability script is empty, extraction may fail.');
+        const script = await loadReadabilityScript();
+        if (!script) {
+            logger.warn('[ReaderScrape] Readability script is empty or failed to load, extraction may fail.');
         }
-        await page.addScriptTag({ content: readabilityScript });
+        await page.addScriptTag({ content: script });
 
         const result = await page.evaluate(function ({ baseUrl }) {
             // @ts-ignore

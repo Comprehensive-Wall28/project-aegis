@@ -9,8 +9,8 @@ export interface RenameDialogState {
 
 export interface ShareDialogState {
     open: boolean;
-    item: FileMetadata | Folder | null;
-    type: 'file' | 'folder';
+    item: FileMetadata | null;
+    type: 'file';
 }
 
 export interface DeleteConfirmState {
@@ -26,7 +26,7 @@ export function useFilesDialogs() {
     const [moveToFolderDialog, setMoveToFolderDialog] = useState(false);
     const [filesToMove, setFilesToMove] = useState<string[]>([]);
     const [colorPickerFolderId, setColorPickerFolderId] = useState<string | null>(null);
-    const [shareDialog, setShareDialog] = useState<ShareDialogState>({ open: false, item: null, type: 'folder' });
+    const [shareDialog, setShareDialog] = useState<ShareDialogState>({ open: false, item: null, type: 'file' });
     const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>({ open: false, type: 'file' });
 
     return {

@@ -11,7 +11,7 @@ export function useFilesData() {
     const [searchParams] = useSearchParams();
     const { folderId } = useParams<{ folderId: string }>();
     const navigate = useNavigate();
-    const currentView = searchParams.get('view');
+
 
     // Derived state from URL, fallback to null for root
     const currentFolderId = folderId || null;
@@ -182,14 +182,11 @@ export function useFilesData() {
     // but we can still filter folders effectively here since they aren't paginated yet
     const filteredFolders = useMemo(() => {
         let result = folders;
-        if (currentView === 'shared' && !currentFolderId) {
-            result = folders.filter(f => f.isSharedWithMe);
-        }
-        if (searchQuery) { // Client side folder filtering matches server side file searching
+        if (searchQuery) { // Client side folder filtering
             result = result.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()));
         }
         return result;
-    }, [folders, searchQuery, currentView, currentFolderId]);
+    }, [folders, searchQuery]);
 
     const imageFiles = useMemo(() => files.filter(f => f.mimeType?.startsWith('image/')), [files]);
 

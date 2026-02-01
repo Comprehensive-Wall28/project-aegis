@@ -1,15 +1,23 @@
 import * as crypto from 'crypto';
+import { promisify } from 'util';
 import { config } from '../config/env';
 
+const scrypt = promisify(crypto.scrypt);
+
 let cachedKey: Buffer | null = null;
+let derivationPromise: Promise<Buffer> | null = null;
 
 /**
  * Derives and caches the encryption key from environment variables.
- * Uses scryptSync but caches the result to avoid blocking the event loop on subsequent calls.
+ * Uses async scrypt and caches the result.
  */
-function getCookieEncryptionKey(): Buffer {
+async function getCookieEncryptionKey(): Promise<Buffer> {
     if (cachedKey) {
         return cachedKey;
+    }
+
+    if (derivationPromise) {
+        return derivationPromise;
     }
 
     const secret = config.cookieEncryptionKey || config.jwtSecret;
@@ -17,16 +25,24 @@ function getCookieEncryptionKey(): Buffer {
         throw new Error('Missing encryption key (COOKIE_ENCRYPTION_KEY or JWT_SECRET)');
     }
 
-    // scryptSync is expensive/blocking, but we only call it once at startup or first need.
-    cachedKey = crypto.scryptSync(secret, 'salt', 32);
-    return cachedKey;
+    derivationPromise = (async () => {
+        try {
+            const key = (await scrypt(secret, 'salt', 32)) as Buffer;
+            cachedKey = key;
+            return key;
+        } finally {
+            derivationPromise = null;
+        }
+    })();
+
+    return derivationPromise;
 }
 
 /**
  * Encrypts a plaintext string (JWT) using AES-256-GCM.
  */
-export function encryptToken(plaintext: string): string {
-    const key = getCookieEncryptionKey();
+export async function encryptToken(plaintext: string): Promise<string> {
+    const key = await getCookieEncryptionKey();
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
@@ -41,8 +57,8 @@ export function encryptToken(plaintext: string): string {
 /**
  * Decrypts a base64 encoded token back to plaintext.
  */
-export function decryptToken(encryptedToken: string): string {
-    const key = getCookieEncryptionKey();
+export async function decryptToken(encryptedToken: string): Promise<string> {
+    const key = await getCookieEncryptionKey();
     const buffer = Buffer.from(encryptedToken, 'base64');
 
     // Minimal sanity check: IV (12) + Tag (16) = 28 bytes

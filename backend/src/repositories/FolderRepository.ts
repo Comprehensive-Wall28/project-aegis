@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { BaseRepository } from './base/BaseRepository';
 import Folder, { IFolder } from '../models/Folder';
 import { QueryOptions, SafeFilter } from './base/types';
@@ -97,5 +98,39 @@ export class FolderRepository extends BaseRepository<IFolder> {
             parentId: { $eq: parentId as any },
             ownerId: { $eq: ownerId as any }
         } as SafeFilter<IFolder>);
+    }
+
+    /**
+     * Get all ancestors of a folder (for permission checks)
+     */
+    async getAncestors(folderId: string): Promise<IFolder[]> {
+        interface AggregationResult {
+            _id: mongoose.Types.ObjectId;
+            ancestors: IFolder[];
+        }
+
+        const results = await this.model.aggregate<AggregationResult>([
+            {
+                $match: {
+                    _id: new mongoose.Types.ObjectId(folderId)
+                }
+            },
+            {
+                $graphLookup: {
+                    from: 'folders',
+                    startWith: '$parentId',
+                    connectFromField: 'parentId',
+                    connectToField: '_id',
+                    as: 'ancestors',
+                    maxDepth: 10
+                }
+            }
+        ]);
+
+        if (results.length === 0 || !results[0].ancestors) {
+            return [];
+        }
+
+        return results[0].ancestors;
     }
 }

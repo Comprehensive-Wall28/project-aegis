@@ -76,6 +76,7 @@ export const AuditLogSchema: Schema = new Schema({
     action: {
         type: String,
         required: true,
+        index: true,
         enum: [
             'LOGIN', 'LOGOUT', 'REGISTER', 'LOGIN_FAILED',
             'GPA_UPDATE', 'FILE_UPLOAD', 'FILE_DELETE',

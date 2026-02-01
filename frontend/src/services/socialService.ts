@@ -255,7 +255,7 @@ const socialService = {
      * Move a link to a different collection
      */
     moveLink: async (linkId: string, collectionId: string): Promise<void> => {
-        await apiClient.patch(`social/links/${linkId}/move`, { collectionId });
+        await apiClient.patch(`social/links/${linkId}`, { collectionId });
     },
 
     /**
@@ -334,7 +334,7 @@ const socialService = {
      * Reorder collections in a room
      */
     reorderCollections: async (roomId: string, collectionIds: string[]): Promise<void> => {
-        await apiClient.patch(`social/rooms/${roomId}/collections/reorder`, {
+        await apiClient.patch(`social/rooms/${roomId}/collections/order`, {
             collectionIds,
         });
     },

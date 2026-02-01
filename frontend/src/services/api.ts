@@ -15,4 +15,39 @@ const apiClient = axios.create({
     xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
+// Attach CSRF token to request header (to bypass Axios issues or if cookie is httpOnly=false)
+apiClient.interceptors.request.use((config) => {
+    // Manually parse XSRF-TOKEN from document.cookie
+    const match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
+    if (match) {
+        // Ensure we decode the cookie value (express res.cookie defaults to encoding)
+        const token = decodeURIComponent(match[2]);
+        if (config.headers) {
+            config.headers['X-XSRF-TOKEN'] = token;
+        }
+    }
+    return config;
+});
+
+// Response interceptor to handle 403 CSRF errors or other global error handling
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 403 && error.response.data.code === 'EBADCSRFTOKEN') {
+            console.error('CSRF Token Mismatch');
+            // specific logic if needed (e.g. force refresh)
+        }
+        return Promise.reject(error);
+    }
+);
+
+export const refreshCsrfToken = async () => {
+    try {
+        const response = await apiClient.get('/auth/csrf-token');
+        apiClient.defaults.headers.common['X-XSRF-TOKEN'] = response.data.csrfToken;
+    } catch (error) {
+        console.error('Failed to fetch CSRF token', error);
+    }
+};
+
 export default apiClient;

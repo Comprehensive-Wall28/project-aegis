@@ -43,10 +43,6 @@ export const config = {
     clientOrigin: getEnv('CLIENT_ORIGIN', true, 'http://localhost:5173'),
     rpId: getEnv('RP_ID', true, 'localhost'),
 
-    // Rate Limiting
-    apiRateLimit: parseInt(getEnv('API_RATE_LIMIT', false, '500'), 10),
-    authRateLimit: parseInt(getEnv('AUTH_RATE_LIMIT', false, '50'), 10),
-
     // Google Drive / API
     googleClientId: getEnv('GOOGLE_CLIENT_ID', false, ''),
     googleClientSecret: getEnv('GOOGLE_CLIENT_SECRET', false, ''),

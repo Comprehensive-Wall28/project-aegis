@@ -47,6 +47,7 @@ NoteSchema.index({ userId: 1, tags: 1 });
 NoteSchema.index({ userId: 1, noteFolderId: 1 });
 NoteSchema.index({ userId: 1, 'educationalContext.subject': 1 });
 NoteSchema.index({ userId: 1, createdAt: -1 });
+NoteSchema.index({ userId: 1, updatedAt: -1 });
 
 export default mongoose.model<INote>('Note', NoteSchema);
 

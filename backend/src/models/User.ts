@@ -69,4 +69,6 @@ const UserSchema: Schema = new Schema({
 
 }, { timestamps: true });
 
+UserSchema.index({ 'webauthnCredentials.credentialID': 1 });
+
 export default mongoose.model<IUser>('User', UserSchema);

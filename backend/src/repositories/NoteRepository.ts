@@ -173,13 +173,15 @@ export class NoteRepository extends BaseRepository<INote> {
     }
 
     /**
-     * Move all notes from a folder to root (when deleting folder)
+     * Move all notes from multiple folders to root (when deleting folders)
      */
-    async moveNotesToRoot(userId: string, folderId: string): Promise<void> {
+    async moveNotesToRoot(userId: string, folderIds: string[]): Promise<void> {
+        if (folderIds.length === 0) return;
+
         await this.model.updateMany(
             {
                 userId: new mongoose.Types.ObjectId(userId),
-                noteFolderId: new mongoose.Types.ObjectId(folderId)
+                noteFolderId: { $in: folderIds.map(id => new mongoose.Types.ObjectId(id)) }
             },
             { $set: { noteFolderId: null } }
         );

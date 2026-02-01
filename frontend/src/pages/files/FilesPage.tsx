@@ -226,7 +226,6 @@ export function FilesPage() {
                 onNavigate={actions.navigateToFolder}
                 onFileClick={actions.handleFileClick}
                 onContextMenu={handleContextMenu}
-                onShare={(item) => dialogState.setShareDialog({ open: true, item, type: ('mimeType' in item) ? 'file' : 'folder' })}
                 onDeleteFile={actions.handleDeleteFile}
                 onDeleteFolder={actions.handleDeleteFolder}
                 onDownload={handleDownload}

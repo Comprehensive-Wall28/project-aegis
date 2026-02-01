@@ -25,7 +25,6 @@ interface FilesGridProps {
     onNavigate: (folder: Folder) => void;
     onFileClick: (file: FileMetadata, e: React.MouseEvent) => void;
     onContextMenu: (e: React.MouseEvent, target: ContextMenuTarget) => void;
-    onShare: (item: FileMetadata | Folder) => void;
     onDeleteFile: (id: string) => void;
     onDeleteFolder: (id: string) => void;
     onDownload: (file: FileMetadata) => void;
@@ -51,7 +50,6 @@ export function FilesGrid({
     onNavigate,
     onFileClick,
     onContextMenu,
-    onShare,
     onDeleteFile,
     onDeleteFolder,
     onDownload,
@@ -178,7 +176,6 @@ export function FilesGrid({
                                             dragOverId={dragOverId}
                                             onNavigate={onNavigate}
                                             onContextMenu={onContextMenu}
-                                            onShare={onShare}
                                             onDelete={onDeleteFolder}
                                             onDragOver={onDragOver}
                                             onDrop={onDrop}

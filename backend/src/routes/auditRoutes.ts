@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getAuditLogs, getRecentActivity } from '../controllers/auditController';
 import { protect } from '../middleware/authMiddleware';
-import { csrfProtection } from '../middleware/csrfMiddleware';
+import { csrfProtection } from '../middleware/customCsrf';
 
 const router = Router();
 
