@@ -1,4 +1,9 @@
-import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import axios from 'axios';
 import { Readable, PassThrough } from 'stream';
 import * as dns from 'dns';
@@ -51,7 +56,8 @@ function isPrivateIp(ip: string): boolean {
     // ::1 (Loopback)
     if (ip === '::1' || ip === '0:0:0:0:0:0:0:1') return true;
     // fc00::/7 (Unique local)
-    if (ip.toLowerCase().startsWith('fc') || ip.toLowerCase().startsWith('fd')) return true;
+    if (ip.toLowerCase().startsWith('fc') || ip.toLowerCase().startsWith('fd'))
+      return true;
     // fe80::/10 (Link-local)
     if (ip.toLowerCase().startsWith('fe80:')) return true;
     return false;
@@ -66,7 +72,11 @@ function isPrivateIp(ip: string): boolean {
 const ssrfSafeLookup = (
   hostname: string,
   options: dns.LookupOptions,
-  callback: (err: NodeJS.ErrnoException | null, address: string | dns.LookupAddress[], family: number) => void,
+  callback: (
+    err: NodeJS.ErrnoException | null,
+    address: string | dns.LookupAddress[],
+    family: number,
+  ) => void,
 ) => {
   dns.lookup(hostname, options, (err, address, family) => {
     if (err) {
@@ -77,7 +87,11 @@ const ssrfSafeLookup = (
 
     for (const addr of addresses) {
       if (isPrivateIp(addr.address)) {
-        return callback(new Error('Access to private IP denied'), address, family);
+        return callback(
+          new Error('Access to private IP denied'),
+          address,
+          family,
+        );
       }
     }
 
@@ -131,7 +145,10 @@ export class ImageProxyService {
               contentType: cached.contentType,
             };
           } catch (err: any) {
-            this.logger.error(`GridFS download failed for cached file: ${err.message}`, err.stack);
+            this.logger.error(
+              `GridFS download failed for cached file: ${err.message}`,
+              err.stack,
+            );
             // If file is missing in GridFS but exists in DB, re-fetch
           }
         }
@@ -161,12 +178,14 @@ export class ImageProxyService {
 
       const headers = {
         'User-Agent': getRandomItem(USER_AGENTS),
-        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        Accept:
+          'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': parsed.origin + '/',
+        Referer: parsed.origin + '/',
         'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+        Pragma: 'no-cache',
+        'Sec-Ch-Ua':
+          '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
         'Sec-Ch-Ua-Mobile': '?0',
         'Sec-Ch-Ua-Platform': '"Windows"',
         'Upgrade-Insecure-Requests': '1',
@@ -184,9 +203,13 @@ export class ImageProxyService {
         validateStatus: (status: number) => status < 400,
       });
 
-      const contentType = response.headers['content-type'] as string | undefined;
+      const contentType = response.headers['content-type'] as
+        | string
+        | undefined;
       const finalContentType =
-        contentType && contentType.startsWith('image/') ? contentType : 'image/png';
+        contentType && contentType.startsWith('image/')
+          ? contentType
+          : 'image/png';
 
       // 2. Cache the result (Fork the stream)
       const userStream = new PassThrough();
@@ -214,7 +237,10 @@ export class ImageProxyService {
 
           this.logger.log(`Cached image for ${url} (FileID: ${fileId})`);
         } catch (err: any) {
-          this.logger.error(`Failed to cache image for ${url}: ${err.message}`, err.stack);
+          this.logger.error(
+            `Failed to cache image for ${url}: ${err.message}`,
+            err.stack,
+          );
         }
       })();
 

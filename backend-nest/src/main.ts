@@ -1,5 +1,8 @@
 import { NestFactory } from '@nestjs/core';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
@@ -10,7 +13,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(), // Logger is now handled by nestjs-pino
-    { bufferLogs: true } // Buffer logs until custom logger is attached
+    { bufferLogs: true }, // Buffer logs until custom logger is attached
   );
 
   // Get config service once for all configuration
@@ -18,7 +21,8 @@ async function bootstrap() {
 
   // Register cookie parser
   await app.register(require('@fastify/cookie'), {
-    secret: configService.get<string>('COOKIE_SECRET') || process.env.COOKIE_SECRET
+    secret:
+      configService.get<string>('COOKIE_SECRET') || process.env.COOKIE_SECRET,
   });
 
   // Register CSRF protection
@@ -26,7 +30,8 @@ async function bootstrap() {
     cookieOpts: {
       signed: false,
       httpOnly: false, // Frontend needs to read XSRF-TOKEN cookie
-      sameSite: configService.get<string>('NODE_ENV') === 'production' ? 'none' : 'lax',
+      sameSite:
+        configService.get<string>('NODE_ENV') === 'production' ? 'none' : 'lax',
       secure: configService.get<string>('NODE_ENV') === 'production',
     },
     sessionPlugin: '@fastify/cookie',
@@ -45,20 +50,30 @@ async function bootstrap() {
   // MATCHING OLD BACKEND PREFIX
   app.setGlobalPrefix('api');
 
-  const clientOrigin = configService.get<string>('CLIENT_ORIGIN') || 'http://localhost:5173';
+  const clientOrigin =
+    configService.get<string>('CLIENT_ORIGIN') || 'http://localhost:5173';
 
   app.enableCors({
     origin: clientOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-xsrf-token', 'x-csrf-token', 'Content-Range'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'x-xsrf-token',
+      'x-csrf-token',
+      'Content-Range',
+    ],
   });
 
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   // Trust proxy for Render
   const adapter = app.getHttpAdapter().getInstance() as any;
@@ -76,7 +91,9 @@ async function bootstrap() {
   const shutdown = async (signal: string) => {
     logger.log(`Received ${signal}. Shutting down gracefully...`);
     setTimeout(() => {
-      logger.error('Could not close connections in time, forcefully shutting down');
+      logger.error(
+        'Could not close connections in time, forcefully shutting down',
+      );
       process.exit(1);
     }, 10000); // 10s timeout
 

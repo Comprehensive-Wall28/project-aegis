@@ -14,17 +14,22 @@ export class PreviewData {
   @Prop({ default: '' })
   favicon?: string;
 
-  @Prop({ 
-    type: String, 
-    enum: ['success', 'blocked', 'failed', 'scraping', ''], 
-    default: '' 
+  @Prop({
+    type: String,
+    enum: ['success', 'blocked', 'failed', 'scraping', ''],
+    default: '',
   })
   scrapeStatus?: 'success' | 'blocked' | 'failed' | 'scraping' | '';
 }
 
 @Schema({ timestamps: true })
 export class LinkPost extends Document {
-  @Prop({ type: Types.ObjectId, ref: 'Collection', required: true, index: true })
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'Collection',
+    required: true,
+    index: true,
+  })
   collectionId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })

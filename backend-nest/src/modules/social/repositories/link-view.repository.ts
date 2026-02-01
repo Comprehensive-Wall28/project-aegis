@@ -14,12 +14,15 @@ export class LinkViewRepository {
   constructor(
     @InjectModel(LinkView.name, 'audit')
     private readonly linkViewModel: Model<LinkView>,
-  ) { }
+  ) {}
 
   /**
    * Find viewed link IDs for a user within a set of links
    */
-  async findViewedLinkIds(userId: string, linkIds: string[]): Promise<string[]> {
+  async findViewedLinkIds(
+    userId: string,
+    linkIds: string[],
+  ): Promise<string[]> {
     const views = await this.linkViewModel
       .find({
         userId: new Types.ObjectId(userId),
@@ -54,7 +57,8 @@ export class LinkViewRepository {
     const updateData: any = {
       viewedAt: new Date(),
     };
-    if (collectionId) updateData.collectionId = new Types.ObjectId(collectionId);
+    if (collectionId)
+      updateData.collectionId = new Types.ObjectId(collectionId);
     if (roomId) updateData.roomId = new Types.ObjectId(roomId);
 
     this.linkViewModel
@@ -69,7 +73,10 @@ export class LinkViewRepository {
       .exec()
       .catch((err) => {
         // Log but don't throw - fire-and-forget pattern
-        this.logger.error(`Failed to mark link viewed: ${err.message}`, err.stack);
+        this.logger.error(
+          `Failed to mark link viewed: ${err.message}`,
+          err.stack,
+        );
       });
   }
 
@@ -84,7 +91,10 @@ export class LinkViewRepository {
       })
       .exec()
       .catch((err) => {
-        this.logger.error(`Failed to unmark link viewed: ${err.message}`, err.stack);
+        this.logger.error(
+          `Failed to unmark link viewed: ${err.message}`,
+          err.stack,
+        );
       });
   }
 
@@ -96,7 +106,10 @@ export class LinkViewRepository {
       .deleteMany({ linkId: new Types.ObjectId(linkId) })
       .exec()
       .catch((err) => {
-        this.logger.error(`Failed to delete link views: ${err.message}`, err.stack);
+        this.logger.error(
+          `Failed to delete link views: ${err.message}`,
+          err.stack,
+        );
       });
   }
 }

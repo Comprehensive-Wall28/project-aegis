@@ -5,7 +5,7 @@ import { Page } from 'playwright';
  * Replaces the functionality of puppeteer-extra-plugin-stealth.
  */
 export async function applyStealthScripts(page: Page): Promise<void> {
-    const stealthScript = `
+  const stealthScript = `
     (() => {
         // 1. Pass the Webdriver Test
         try {
@@ -129,5 +129,5 @@ export async function applyStealthScripts(page: Page): Promise<void> {
     })();
     `;
 
-    await page.addInitScript({ content: stealthScript });
+  await page.addInitScript({ content: stealthScript });
 }

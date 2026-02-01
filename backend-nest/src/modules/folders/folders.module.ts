@@ -4,19 +4,22 @@ import { FoldersService } from './folders.service';
 import { FoldersController } from './folders.controller';
 import { VaultModule } from '../vault/vault.module';
 import { Folder, FolderSchema } from './schemas/folder.schema';
-import { SharedFolder, SharedFolderSchema } from './schemas/shared-folder.schema';
+import {
+  SharedFolder,
+  SharedFolderSchema,
+} from './schemas/shared-folder.schema';
 import { FolderRepository } from './folders.repository';
 
 @Module({
-    imports: [
-        forwardRef(() => VaultModule),
-        MongooseModule.forFeature([
-            { name: Folder.name, schema: FolderSchema },
-            { name: SharedFolder.name, schema: SharedFolderSchema }
-        ]),
-    ],
-    controllers: [FoldersController],
-    providers: [FoldersService, FolderRepository],
-    exports: [FoldersService, FolderRepository],
+  imports: [
+    forwardRef(() => VaultModule),
+    MongooseModule.forFeature([
+      { name: Folder.name, schema: FolderSchema },
+      { name: SharedFolder.name, schema: SharedFolderSchema },
+    ]),
+  ],
+  controllers: [FoldersController],
+  providers: [FoldersService, FolderRepository],
+  exports: [FoldersService, FolderRepository],
 })
-export class FoldersModule { }
+export class FoldersModule {}

@@ -3,17 +3,17 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Collection {
-    @Prop({ type: Types.ObjectId, ref: 'Room', required: true, index: true })
-    roomId!: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Room', required: true, index: true })
+  roomId!: Types.ObjectId;
 
-    @Prop({ default: '' })
-    name!: string;
+  @Prop({ default: '' })
+  name!: string;
 
-    @Prop({ default: 0 })
-    order!: number;
+  @Prop({ default: 0 })
+  order!: number;
 
-    @Prop({ required: true, enum: ['links', 'discussion'] })
-    type!: string;
+  @Prop({ required: true, enum: ['links', 'discussion'] })
+  type!: string;
 }
 
 export type CollectionDocument = Collection & Document;

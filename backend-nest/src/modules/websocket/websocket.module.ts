@@ -3,7 +3,7 @@ import { WebsocketGateway } from './websocket.gateway';
 import { WebsocketService } from './websocket.service';
 
 @Module({
-    providers: [WebsocketGateway, WebsocketService],
-    exports: [WebsocketService, WebsocketGateway],
+  providers: [WebsocketGateway, WebsocketService],
+  exports: [WebsocketService, WebsocketGateway],
 })
-export class WebsocketModule { }
+export class WebsocketModule {}

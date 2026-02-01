@@ -18,10 +18,10 @@ export class LinkMetadata extends Document {
   @Prop({ default: '' })
   favicon!: string;
 
-  @Prop({ 
-    type: String, 
-    enum: ['success', 'blocked', 'failed', 'scraping'], 
-    default: 'success' 
+  @Prop({
+    type: String,
+    enum: ['success', 'blocked', 'failed', 'scraping'],
+    default: 'success',
   })
   scrapeStatus!: 'success' | 'blocked' | 'failed' | 'scraping';
 

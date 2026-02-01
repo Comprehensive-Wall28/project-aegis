@@ -3,25 +3,27 @@ import mongoose, { UpdateQuery } from 'mongoose';
 /**
  * Helper to allow string IDs where ObjectIds are expected in queries
  */
-type WithStringId<V> = V extends mongoose.Types.ObjectId | undefined | null ? V | string : V;
+type WithStringId<V> = V extends mongoose.Types.ObjectId | undefined | null
+  ? V | string
+  : V;
 
 /**
  * Query options for repository find operations
  */
 export interface QueryOptions {
-    sort?: Record<string, 1 | -1>;
-    limit?: number;
-    skip?: number;
-    select?: string | string[] | Record<string, 0 | 1>;
-    lean?: boolean;
-    populate?: string | PopulateOptions | (string | PopulateOptions)[];
+  sort?: Record<string, 1 | -1>;
+  limit?: number;
+  skip?: number;
+  select?: string | string[] | Record<string, 0 | 1>;
+  lean?: boolean;
+  populate?: string | PopulateOptions | (string | PopulateOptions)[];
 }
 
 export interface PopulateOptions {
-    path: string;
-    select?: string;
-    model?: string;
-    match?: Record<string, unknown>;
+  path: string;
+  select?: string;
+  model?: string;
+  match?: Record<string, unknown>;
 }
 
 /**
@@ -29,7 +31,7 @@ export interface PopulateOptions {
  * All values should be wrapped in $eq or use safe operators
  */
 export type SafeFilter<T> = {
-    [K in keyof Partial<T>]?:
+  [K in keyof Partial<T>]?:
     | WithStringId<T[K]>
     | null
     | { $eq: WithStringId<T[K]> | null }
@@ -42,84 +44,84 @@ export type SafeFilter<T> = {
     | { $lte: WithStringId<T[K]> }
     | { $exists: boolean };
 } & {
-    _id?: string | { $eq: string } | { $in: string[] };
-    $and?: SafeFilter<T>[];
-    $or?: SafeFilter<T>[];
+  _id?: string | { $eq: string } | { $in: string[] };
+  $and?: SafeFilter<T>[];
+  $or?: SafeFilter<T>[];
 };
 
 /**
  * Bulk write operation types for batch operations
  */
 export interface BulkInsertOne<T> {
-    insertOne: {
-        document: Partial<T>;
-    };
+  insertOne: {
+    document: Partial<T>;
+  };
 }
 
 export interface BulkUpdateOne<T> {
-    updateOne: {
-        filter: SafeFilter<T>;
-        update: UpdateQuery<T>;
-        upsert?: boolean;
-    };
+  updateOne: {
+    filter: SafeFilter<T>;
+    update: UpdateQuery<T>;
+    upsert?: boolean;
+  };
 }
 
 export interface BulkUpdateMany<T> {
-    updateMany: {
-        filter: SafeFilter<T>;
-        update: UpdateQuery<T>;
-    };
+  updateMany: {
+    filter: SafeFilter<T>;
+    update: UpdateQuery<T>;
+  };
 }
 
 export interface BulkDeleteOne<T> {
-    deleteOne: {
-        filter: SafeFilter<T>;
-    };
+  deleteOne: {
+    filter: SafeFilter<T>;
+  };
 }
 
 export interface BulkDeleteMany<T> {
-    deleteMany: {
-        filter: SafeFilter<T>;
-    };
+  deleteMany: {
+    filter: SafeFilter<T>;
+  };
 }
 
 export type BulkWriteOperation<T> =
-    | BulkInsertOne<T>
-    | BulkUpdateOne<T>
-    | BulkUpdateMany<T>
-    | BulkDeleteOne<T>
-    | BulkDeleteMany<T>;
+  | BulkInsertOne<T>
+  | BulkUpdateOne<T>
+  | BulkUpdateMany<T>
+  | BulkDeleteOne<T>
+  | BulkDeleteMany<T>;
 
 /**
  * Result of bulk write operations
  */
 export interface BulkWriteResult {
-    insertedCount: number;
-    matchedCount: number;
-    modifiedCount: number;
-    deletedCount: number;
-    upsertedCount: number;
+  insertedCount: number;
+  matchedCount: number;
+  modifiedCount: number;
+  deletedCount: number;
+  upsertedCount: number;
 }
 
 /**
  * Repository error types for consistent error handling
  */
 export class RepositoryError extends Error {
-    constructor(
-        message: string,
-        public readonly code: RepositoryErrorCode,
-        public readonly cause?: unknown
-    ) {
-        super(message);
-        this.name = 'RepositoryError';
-    }
+  constructor(
+    message: string,
+    public readonly code: RepositoryErrorCode,
+    public readonly cause?: unknown,
+  ) {
+    super(message);
+    this.name = 'RepositoryError';
+  }
 }
 
 export enum RepositoryErrorCode {
-    NOT_FOUND = 'NOT_FOUND',
-    VALIDATION_ERROR = 'VALIDATION_ERROR',
-    DUPLICATE_KEY = 'DUPLICATE_KEY',
-    INVALID_ID = 'INVALID_ID',
-    QUERY_ERROR = 'QUERY_ERROR',
-    CONNECTION_ERROR = 'CONNECTION_ERROR',
+  NOT_FOUND = 'NOT_FOUND',
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  DUPLICATE_KEY = 'DUPLICATE_KEY',
+  INVALID_ID = 'INVALID_ID',
+  QUERY_ERROR = 'QUERY_ERROR',
+  CONNECTION_ERROR = 'CONNECTION_ERROR',
 }

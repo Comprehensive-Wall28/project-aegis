@@ -55,7 +55,9 @@ export class LinkPostRepository {
         .limit(limit)
         .populate('userId', 'username')
         .exec(),
-      this.linkPostModel.countDocuments({ collectionId: new Types.ObjectId(collectionId) }).exec(),
+      this.linkPostModel
+        .countDocuments({ collectionId: new Types.ObjectId(collectionId) })
+        .exec(),
     ]);
 
     return { links, totalCount };
@@ -64,7 +66,10 @@ export class LinkPostRepository {
   /**
    * Find existing link in collection by URL (for duplicate check)
    */
-  async findByCollectionAndUrl(collectionId: string, url: string): Promise<LinkPost | null> {
+  async findByCollectionAndUrl(
+    collectionId: string,
+    url: string,
+  ): Promise<LinkPost | null> {
     return this.linkPostModel
       .findOne({
         collectionId: new Types.ObjectId(collectionId),
@@ -111,7 +116,9 @@ export class LinkPostRepository {
         $or: [
           { url: { $regex: escapedQuery, $options: 'i' } },
           { 'previewData.title': { $regex: escapedQuery, $options: 'i' } },
-          { 'previewData.description': { $regex: escapedQuery, $options: 'i' } },
+          {
+            'previewData.description': { $regex: escapedQuery, $options: 'i' },
+          },
         ],
       })
       .sort({ createdAt: -1 })
@@ -128,11 +135,7 @@ export class LinkPostRepository {
     previewData: Partial<LinkPost['previewData']>,
   ): Promise<LinkPost | null> {
     return this.linkPostModel
-      .findByIdAndUpdate(
-        linkId,
-        { $set: { previewData } },
-        { new: true },
-      )
+      .findByIdAndUpdate(linkId, { $set: { previewData } }, { new: true })
       .populate('userId', 'username')
       .exec();
   }
@@ -140,7 +143,10 @@ export class LinkPostRepository {
   /**
    * Update link's collection (move)
    */
-  async updateCollection(linkId: string, collectionId: string): Promise<LinkPost | null> {
+  async updateCollection(
+    linkId: string,
+    collectionId: string,
+  ): Promise<LinkPost | null> {
     return this.linkPostModel
       .findByIdAndUpdate(
         linkId,

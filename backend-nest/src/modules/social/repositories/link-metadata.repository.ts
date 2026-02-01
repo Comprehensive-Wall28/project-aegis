@@ -58,7 +58,10 @@ export class LinkMetadataRepository {
       )
       .exec()
       .catch((err) => {
-        this.logger.error(`Failed to cache link metadata: ${err.message}`, err.stack);
+        this.logger.error(
+          `Failed to cache link metadata: ${err.message}`,
+          err.stack,
+        );
       });
   }
 }

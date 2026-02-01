@@ -64,7 +64,9 @@ export class LinkCommentRepository {
         .limit(limit)
         .populate('userId', 'username')
         .exec(),
-      this.linkCommentModel.countDocuments({ linkId: new Types.ObjectId(linkId) }).exec(),
+      this.linkCommentModel
+        .countDocuments({ linkId: new Types.ObjectId(linkId) })
+        .exec(),
     ]);
 
     return { comments, totalCount };
@@ -94,7 +96,9 @@ export class LinkCommentRepository {
    * Delete comment by ID
    */
   async deleteById(commentId: string): Promise<boolean> {
-    const result = await this.linkCommentModel.deleteOne({ _id: commentId }).exec();
+    const result = await this.linkCommentModel
+      .deleteOne({ _id: commentId })
+      .exec();
     return result.deletedCount > 0;
   }
 

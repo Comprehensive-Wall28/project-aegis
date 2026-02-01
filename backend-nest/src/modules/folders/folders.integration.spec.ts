@@ -5,136 +5,158 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { FoldersService } from './folders.service';
 import { FolderRepository } from './folders.repository';
 import { Folder, FolderSchema } from './schemas/folder.schema';
-import { SharedFolder, SharedFolderSchema } from './schemas/shared-folder.schema';
+import {
+  SharedFolder,
+  SharedFolderSchema,
+} from './schemas/shared-folder.schema';
 import { Connection, Types } from 'mongoose';
 import { VaultService } from '../vault/vault.service';
 
 describe('FoldersModule (Integration)', () => {
-    let mongoServer: MongoMemoryReplSet;
-    let module: TestingModule;
-    let foldersService: FoldersService;
-    let dbConnection: Connection;
-    const userId = new Types.ObjectId();
+  let mongoServer: MongoMemoryReplSet;
+  let module: TestingModule;
+  let foldersService: FoldersService;
+  let dbConnection: Connection;
+  const userId = new Types.ObjectId();
 
-    beforeAll(async () => {
-        mongoServer = await MongoMemoryReplSet.create({
-            replSet: { count: 1 }
-        });
-        const uri = mongoServer.getUri();
-
-        module = await Test.createTestingModule({
-            imports: [
-                ConfigModule.forRoot({
-                    isGlobal: true,
-                    load: [() => ({
-                        MONGO_URI: uri,
-                    })],
-                }),
-                MongooseModule.forRoot(uri),
-                // Manually import the Feature for proper Model injection
-                MongooseModule.forFeature([
-                    { name: Folder.name, schema: FolderSchema },
-                    { name: SharedFolder.name, schema: SharedFolderSchema }
-                ]),
-            ],
-            providers: [
-                FoldersService,
-                FolderRepository,
-                {
-                    provide: VaultService,
-                    useValue: {
-                        countFiles: jest.fn().mockResolvedValue(0),
-                        bulkMoveFiles: jest.fn().mockResolvedValue(1)
-                    }
-                }
-            ]
-        })
-            .compile();
-
-        foldersService = module.get<FoldersService>(FoldersService);
-        dbConnection = module.get<Connection>(getConnectionToken());
+  beforeAll(async () => {
+    mongoServer = await MongoMemoryReplSet.create({
+      replSet: { count: 1 },
     });
+    const uri = mongoServer.getUri();
 
-    afterAll(async () => {
-        await module.close();
-        await mongoServer.stop();
-    });
+    module = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [
+            () => ({
+              MONGO_URI: uri,
+            }),
+          ],
+        }),
+        MongooseModule.forRoot(uri),
+        // Manually import the Feature for proper Model injection
+        MongooseModule.forFeature([
+          { name: Folder.name, schema: FolderSchema },
+          { name: SharedFolder.name, schema: SharedFolderSchema },
+        ]),
+      ],
+      providers: [
+        FoldersService,
+        FolderRepository,
+        {
+          provide: VaultService,
+          useValue: {
+            countFiles: jest.fn().mockResolvedValue(0),
+            bulkMoveFiles: jest.fn().mockResolvedValue(1),
+          },
+        },
+      ],
+    }).compile();
 
-    beforeEach(async () => {
-        const collections = dbConnection.collections;
-        for (const key in collections) {
-            await collections[key].deleteMany({});
-        }
-    });
+    foldersService = module.get<FoldersService>(FoldersService);
+    dbConnection = module.get<Connection>(getConnectionToken());
+  });
 
-    it('should create a root folder', async () => {
-        const folder = await foldersService.createFolder(userId.toHexString(), {
-            name: 'Root Folder',
-            color: '#FF0000',
-            encryptedSessionKey: 'mock-session-key',
-        } as any);
+  afterAll(async () => {
+    await module.close();
+    await mongoServer.stop();
+  });
 
-        expect(folder).toBeDefined();
-        expect(folder.name).toBe('Root Folder');
-        expect(folder.parentId).toBeNull();
-        expect(folder.ownerId.toString()).toBe(userId.toHexString());
-        expect(folder.encryptedSessionKey).toBe('mock-session-key');
-    });
+  beforeEach(async () => {
+    const collections = dbConnection.collections;
+    for (const key in collections) {
+      await collections[key].deleteMany({});
+    }
+  });
 
-    it('should create a subfolder', async () => {
-        const root = await foldersService.createFolder(userId.toHexString(), {
-            name: 'Root',
-            color: '#00FF00',
-            encryptedSessionKey: 'mock-key',
-        } as any);
+  it('should create a root folder', async () => {
+    const folder = await foldersService.createFolder(userId.toHexString(), {
+      name: 'Root Folder',
+      color: '#FF0000',
+      encryptedSessionKey: 'mock-session-key',
+    } as any);
 
-        const sub = await foldersService.createFolder(userId.toHexString(), {
-            name: 'Sub',
-            parentId: (root as any)._id.toString(),
-            encryptedSessionKey: 'mock-key-2',
-        } as any);
+    expect(folder).toBeDefined();
+    expect(folder.name).toBe('Root Folder');
+    expect(folder.parentId).toBeNull();
+    expect(folder.ownerId.toString()).toBe(userId.toHexString());
+    expect(folder.encryptedSessionKey).toBe('mock-session-key');
+  });
 
-        expect(sub.parentId.toString()).toBe((root as any)._id.toString());
-    });
+  it('should create a subfolder', async () => {
+    const root = await foldersService.createFolder(userId.toHexString(), {
+      name: 'Root',
+      color: '#00FF00',
+      encryptedSessionKey: 'mock-key',
+    } as any);
 
-    it('should get folder hierarchy', async () => {
-        const root = await foldersService.createFolder(userId.toHexString(), { name: 'Level 1', encryptedSessionKey: 'key' } as any);
-        const level2 = await foldersService.createFolder(userId.toHexString(), {
-            name: 'Level 2',
-            parentId: (root as any)._id.toString(),
-            encryptedSessionKey: 'key'
-        } as any);
-        const level3 = await foldersService.createFolder(userId.toHexString(), {
-            name: 'Level 3',
-            parentId: (level2 as any)._id.toString(),
-            encryptedSessionKey: 'key'
-        } as any);
+    const sub = await foldersService.createFolder(userId.toHexString(), {
+      name: 'Sub',
+      parentId: (root as any)._id.toString(),
+      encryptedSessionKey: 'mock-key-2',
+    } as any);
 
-        const fetched = await foldersService.getFolder(userId.toHexString(), (level3 as any)._id.toString());
+    expect(sub.parentId.toString()).toBe((root as any)._id.toString());
+  });
 
-        expect(fetched.path).toHaveLength(2);
-        expect(fetched.path[0].name).toBe('Level 1');
-        expect(fetched.path[1].name).toBe('Level 2');
-    });
+  it('should get folder hierarchy', async () => {
+    const root = await foldersService.createFolder(userId.toHexString(), {
+      name: 'Level 1',
+      encryptedSessionKey: 'key',
+    } as any);
+    const level2 = await foldersService.createFolder(userId.toHexString(), {
+      name: 'Level 2',
+      parentId: (root as any)._id.toString(),
+      encryptedSessionKey: 'key',
+    } as any);
+    const level3 = await foldersService.createFolder(userId.toHexString(), {
+      name: 'Level 3',
+      parentId: (level2 as any)._id.toString(),
+      encryptedSessionKey: 'key',
+    } as any);
 
-    it('should delete a folder if empty', async () => {
-        const folder = await foldersService.createFolder(userId.toHexString(), { name: 'To Delete', encryptedSessionKey: 'key' } as any);
-        const id = (folder as any)._id.toString();
+    const fetched = await foldersService.getFolder(
+      userId.toHexString(),
+      (level3 as any)._id.toString(),
+    );
 
-        await foldersService.deleteFolder(userId.toHexString(), id);
+    expect(fetched.path).toHaveLength(2);
+    expect(fetched.path[0].name).toBe('Level 1');
+    expect(fetched.path[1].name).toBe('Level 2');
+  });
 
-        await expect(foldersService.findById(id)).rejects.toThrow();
-    });
+  it('should delete a folder if empty', async () => {
+    const folder = await foldersService.createFolder(userId.toHexString(), {
+      name: 'To Delete',
+      encryptedSessionKey: 'key',
+    } as any);
+    const id = (folder as any)._id.toString();
 
-    it('should prevent deletion of folder with subfolders', async () => {
-        const root = await foldersService.createFolder(userId.toHexString(), { name: 'Root', encryptedSessionKey: 'key' } as any);
-        await foldersService.createFolder(userId.toHexString(), {
-            name: 'Sub',
-            parentId: (root as any)._id.toString(),
-            encryptedSessionKey: 'key'
-        } as any);
+    await foldersService.deleteFolder(userId.toHexString(), id);
 
-        await expect(foldersService.deleteFolder(userId.toHexString(), (root as any)._id.toString()))
-            .rejects.toThrow('Cannot delete folder with subfolders. Delete subfolders first.');
-    });
+    await expect(foldersService.findById(id)).rejects.toThrow();
+  });
+
+  it('should prevent deletion of folder with subfolders', async () => {
+    const root = await foldersService.createFolder(userId.toHexString(), {
+      name: 'Root',
+      encryptedSessionKey: 'key',
+    } as any);
+    await foldersService.createFolder(userId.toHexString(), {
+      name: 'Sub',
+      parentId: (root as any)._id.toString(),
+      encryptedSessionKey: 'key',
+    } as any);
+
+    await expect(
+      foldersService.deleteFolder(
+        userId.toHexString(),
+        (root as any)._id.toString(),
+      ),
+    ).rejects.toThrow(
+      'Cannot delete folder with subfolders. Delete subfolders first.',
+    );
+  });
 });

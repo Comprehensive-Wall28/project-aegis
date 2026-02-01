@@ -4,20 +4,20 @@ import { CalendarRepository } from './calendar.repository';
 import { CalendarEvent } from './schemas/calendar-event.schema';
 
 describe('CalendarRepository', () => {
-    let repository: CalendarRepository;
+  let repository: CalendarRepository;
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                CalendarRepository,
-                { provide: getModelToken(CalendarEvent.name), useValue: {} },
-            ],
-        }).compile();
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CalendarRepository,
+        { provide: getModelToken(CalendarEvent.name), useValue: {} },
+      ],
+    }).compile();
 
-        repository = module.get<CalendarRepository>(CalendarRepository);
-    });
+    repository = module.get<CalendarRepository>(CalendarRepository);
+  });
 
-    it('should be defined', () => {
-        expect(repository).toBeDefined();
-    });
+  it('should be defined', () => {
+    expect(repository).toBeDefined();
+  });
 });

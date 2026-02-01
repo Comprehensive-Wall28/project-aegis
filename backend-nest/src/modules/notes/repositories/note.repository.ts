@@ -7,28 +7,34 @@ import { Note, NoteDocument } from '../schemas/note.schema';
 
 @Injectable()
 export class NoteRepository extends BaseRepository<NoteDocument> {
-    constructor(@InjectModel(Note.name) model: Model<NoteDocument>) {
-        super(model);
-    }
+  constructor(@InjectModel(Note.name) model: Model<NoteDocument>) {
+    super(model);
+  }
 
-    async findByUserId(userId: string, filters?: any): Promise<NoteDocument[]> {
-        return this.findMany({ userId, ...filters }, { sort: { updatedAt: -1 } });
-    }
+  async findByUserId(userId: string, filters?: any): Promise<NoteDocument[]> {
+    return this.findMany({ userId, ...filters }, { sort: { updatedAt: -1 } });
+  }
 
-    async findMentionsOf(userId: string, entityId: string): Promise<NoteDocument[]> {
-        return this.findMany({ userId, linkedEntityIds: { $in: [entityId] } } as any);
-    }
+  async findMentionsOf(
+    userId: string,
+    entityId: string,
+  ): Promise<NoteDocument[]> {
+    return this.findMany({
+      userId,
+      linkedEntityIds: { $in: [entityId] },
+    } as any);
+  }
 
-    async getUniqueTags(userId: string): Promise<string[]> {
-        // BaseRepository doesn't have distinct yet, but QuerySanitizer can be used manually
-        const sanitizedFilter = QuerySanitizer.sanitizeQuery({ userId });
-        return this.model.distinct('tags', sanitizedFilter as any).exec();
-    }
+  async getUniqueTags(userId: string): Promise<string[]> {
+    // BaseRepository doesn't have distinct yet, but QuerySanitizer can be used manually
+    const sanitizedFilter = QuerySanitizer.sanitizeQuery({ userId });
+    return this.model.distinct('tags', sanitizedFilter as any).exec();
+  }
 
-    async moveNotesToRoot(userId: string, folderId: string): Promise<void> {
-        await this.updateMany(
-            { userId, noteFolderId: folderId },
-            { $set: { noteFolderId: null } }
-        );
-    }
+  async moveNotesToRoot(userId: string, folderId: string): Promise<void> {
+    await this.updateMany(
+      { userId, noteFolderId: folderId },
+      { $set: { noteFolderId: null } },
+    );
+  }
 }

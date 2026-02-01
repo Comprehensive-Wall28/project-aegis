@@ -24,7 +24,10 @@ export class LinkAccessHelper {
    * Optimized helper to verify link access in a single query.
    * Jointly checks LinkPost, Collection, and Room membership.
    */
-  async verifyLinkAccess(linkId: string, userId: string): Promise<LinkAccessResult> {
+  async verifyLinkAccess(
+    linkId: string,
+    userId: string,
+  ): Promise<LinkAccessResult> {
     const results = await this.linkPostModel.aggregate([
       {
         $match: {

@@ -11,22 +11,22 @@ import { VaultModule } from '../vault/vault.module';
 import { AuditService } from '../../common/services/audit.service';
 
 @Module({
-    imports: [
-        MongooseModule.forFeature([
-            { name: Note.name, schema: NoteSchema },
-            { name: NoteFolder.name, schema: NoteFolderSchema }
-        ]),
-        VaultModule
-    ],
-    controllers: [NotesController],
-    providers: [
-        NotesService,
-        NoteFolderService,
-        NoteRepository,
-        NoteRepository,
-        NoteFolderRepository,
-        AuditService
-    ],
-    exports: [NotesService, NoteFolderService],
+  imports: [
+    MongooseModule.forFeature([
+      { name: Note.name, schema: NoteSchema },
+      { name: NoteFolder.name, schema: NoteFolderSchema },
+    ]),
+    VaultModule,
+  ],
+  controllers: [NotesController],
+  providers: [
+    NotesService,
+    NoteFolderService,
+    NoteRepository,
+    NoteRepository,
+    NoteFolderRepository,
+    AuditService,
+  ],
+  exports: [NotesService, NoteFolderService],
 })
-export class NotesModule { }
+export class NotesModule {}

@@ -63,7 +63,10 @@ describe('LinkPostRepository', () => {
         exec: jest.fn().mockResolvedValue(10),
       });
 
-      const result = await repository.findByCollectionCursor(mockLinkPost.collectionId.toString(), 12);
+      const result = await repository.findByCollectionCursor(
+        mockLinkPost.collectionId.toString(),
+        12,
+      );
 
       expect(result.links).toEqual(mockLinks);
       expect(result.totalCount).toBe(10);
@@ -196,7 +199,9 @@ describe('LinkPostRepository', () => {
       const result = await repository.deleteById(mockLinkPost._id.toString());
 
       expect(result).toBe(true);
-      expect(model.deleteOne).toHaveBeenCalledWith({ _id: mockLinkPost._id.toString() });
+      expect(model.deleteOne).toHaveBeenCalledWith({
+        _id: mockLinkPost._id.toString(),
+      });
     });
 
     it('should return false if link not found', async () => {

@@ -6,8 +6,8 @@ import { FastifyRequest } from 'fastify';
  * Usage: @CsrfToken() token: string
  */
 export const CsrfToken = createParamDecorator(
-    (data: unknown, ctx: ExecutionContext) => {
-        const request = ctx.switchToHttp().getRequest<FastifyRequest>();
-        return (request as any).generateCsrf?.() || null;
-    },
+  (data: unknown, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest<FastifyRequest>();
+    return (request as any).generateCsrf?.() || null;
+  },
 );

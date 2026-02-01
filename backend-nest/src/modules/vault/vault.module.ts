@@ -13,14 +13,16 @@ import { VaultRepository } from './vault.repository';
 
 @Global()
 @Module({
-    imports: [
-        MongooseModule.forFeature([{ name: VaultFile.name, schema: VaultFileSchema }]),
-        ConfigModule,
-        UsersModule,
-        forwardRef(() => FoldersModule)
-    ],
-    controllers: [VaultController, GoogleDriveController],
-    providers: [GridFsService, GoogleDriveService, VaultService, VaultRepository],
-    exports: [VaultService, GridFsService, VaultRepository, GoogleDriveService],
+  imports: [
+    MongooseModule.forFeature([
+      { name: VaultFile.name, schema: VaultFileSchema },
+    ]),
+    ConfigModule,
+    UsersModule,
+    forwardRef(() => FoldersModule),
+  ],
+  controllers: [VaultController, GoogleDriveController],
+  providers: [GridFsService, GoogleDriveService, VaultService, VaultRepository],
+  exports: [VaultService, GridFsService, VaultRepository, GoogleDriveService],
 })
-export class VaultModule { }
+export class VaultModule {}

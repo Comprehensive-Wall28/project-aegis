@@ -23,58 +23,70 @@ import { Collection, CollectionSchema } from './schemas/collection.schema';
 import { LinkPost, LinkPostSchema } from './schemas/link-post.schema';
 import { LinkComment, LinkCommentSchema } from './schemas/link-comment.schema';
 import { LinkView, LinkViewSchema } from './schemas/link-view.schema';
-import { LinkMetadata, LinkMetadataSchema } from './schemas/link-metadata.schema';
+import {
+  LinkMetadata,
+  LinkMetadataSchema,
+} from './schemas/link-metadata.schema';
 import { CachedImage, CachedImageSchema } from './schemas/cached-image.schema';
-import { ReaderAnnotation, ReaderAnnotationSchema } from './schemas/reader-annotation.schema';
-import { ReaderContentCache, ReaderContentCacheSchema } from './schemas/reader-content-cache.schema';
+import {
+  ReaderAnnotation,
+  ReaderAnnotationSchema,
+} from './schemas/reader-annotation.schema';
+import {
+  ReaderContentCache,
+  ReaderContentCacheSchema,
+} from './schemas/reader-content-cache.schema';
 import { AuditService } from '../../common/services/audit.service';
 import { WebsocketModule } from '../websocket/websocket.module';
 import { GridFsService } from '../vault/gridfs.service';
 
 @Module({
-    imports: [
-        MongooseModule.forFeature([
-            { name: Room.name, schema: RoomSchema },
-            { name: Collection.name, schema: CollectionSchema },
-            { name: LinkPost.name, schema: LinkPostSchema },
-            { name: LinkComment.name, schema: LinkCommentSchema },
-            { name: CachedImage.name, schema: CachedImageSchema },
-            { name: ReaderAnnotation.name, schema: ReaderAnnotationSchema },
-        ]),
-        MongooseModule.forFeature(
-            [
-                { name: LinkView.name, schema: LinkViewSchema },
-                { name: LinkMetadata.name, schema: LinkMetadataSchema },
-                { name: ReaderContentCache.name, schema: ReaderContentCacheSchema },
-            ],
-            'audit', // Use secondary (audit) connection for cache/metadata
-        ),
-        WebsocketModule,
-    ],
-    providers: [
-        SocialService,
-        LinkService,
-        CommentService,
-        ImageProxyService,
-        ReaderService,
-        ScraperService,
-        SocialRepository,
-        CollectionRepository,
-        LinkPostRepository,
-        LinkCommentRepository,
-        LinkViewRepository,
-        LinkMetadataRepository,
-        CachedImageRepository,
-        ReaderAnnotationRepository,
-        ReaderContentCacheRepository,
-        LinkAccessHelper,
-        GridFsService,
-        AuditService,
-    ],
-    controllers: [
-        SocialController,
-        ScraperController,
-    ],
-    exports: [SocialService, LinkService, CommentService, ReaderService, ScraperService],
+  imports: [
+    MongooseModule.forFeature([
+      { name: Room.name, schema: RoomSchema },
+      { name: Collection.name, schema: CollectionSchema },
+      { name: LinkPost.name, schema: LinkPostSchema },
+      { name: LinkComment.name, schema: LinkCommentSchema },
+      { name: CachedImage.name, schema: CachedImageSchema },
+      { name: ReaderAnnotation.name, schema: ReaderAnnotationSchema },
+    ]),
+    MongooseModule.forFeature(
+      [
+        { name: LinkView.name, schema: LinkViewSchema },
+        { name: LinkMetadata.name, schema: LinkMetadataSchema },
+        { name: ReaderContentCache.name, schema: ReaderContentCacheSchema },
+      ],
+      'audit', // Use secondary (audit) connection for cache/metadata
+    ),
+    WebsocketModule,
+  ],
+  providers: [
+    SocialService,
+    LinkService,
+    CommentService,
+    ImageProxyService,
+    ReaderService,
+    ScraperService,
+    SocialRepository,
+    CollectionRepository,
+    LinkPostRepository,
+    LinkCommentRepository,
+    LinkViewRepository,
+    LinkMetadataRepository,
+    CachedImageRepository,
+    ReaderAnnotationRepository,
+    ReaderContentCacheRepository,
+    LinkAccessHelper,
+    GridFsService,
+    AuditService,
+  ],
+  controllers: [SocialController, ScraperController],
+  exports: [
+    SocialService,
+    LinkService,
+    CommentService,
+    ReaderService,
+    ScraperService,
+  ],
 })
-export class SocialModule { }
+export class SocialModule {}

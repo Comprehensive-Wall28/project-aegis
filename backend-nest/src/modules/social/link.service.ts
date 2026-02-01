@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AuditService } from '../../common/services/audit.service';
 import { LinkPostRepository } from './repositories/link-post.repository';
 import { LinkCommentRepository } from './repositories/link-comment.repository';
@@ -28,12 +34,17 @@ export class LinkService {
     private readonly scraperService: ScraperService,
     private readonly websocketGateway: WebsocketGateway,
     private readonly auditService: AuditService,
-  ) { }
+  ) {}
 
   /**
    * Post a new link to a collection
    */
-  async postLink(userId: string, roomId: string, data: PostLinkDto, req?: any): Promise<LinkPost> {
+  async postLink(
+    userId: string,
+    roomId: string,
+    data: PostLinkDto,
+    req?: any,
+  ): Promise<LinkPost> {
     if (!data.url) {
       throw new BadRequestException('URL is required');
     }
@@ -45,7 +56,8 @@ export class LinkService {
 
     let targetCollectionId: string | undefined = data.collectionId;
     if (!targetCollectionId) {
-      const defaultCollection = await this.collectionRepo.findDefaultLinksCollection(roomId);
+      const defaultCollection =
+        await this.collectionRepo.findDefaultLinksCollection(roomId);
       if (defaultCollection) {
         targetCollectionId = defaultCollection._id.toString();
       } else {
@@ -58,7 +70,10 @@ export class LinkService {
       throw new BadRequestException('Collection ID is required');
     }
 
-    const collection = await this.collectionRepo.findByIdAndRoom(targetCollectionId, roomId);
+    const collection = await this.collectionRepo.findByIdAndRoom(
+      targetCollectionId,
+      roomId,
+    );
     if (!collection) {
       throw new NotFoundException('Collection not found');
     }
@@ -68,7 +83,10 @@ export class LinkService {
       targetUrl = 'https://' + targetUrl;
     }
 
-    const existingLink = await this.linkPostRepo.findByCollectionAndUrl(targetCollectionId, targetUrl);
+    const existingLink = await this.linkPostRepo.findByCollectionAndUrl(
+      targetCollectionId,
+      targetUrl,
+    );
     if (existingLink) {
       throw new BadRequestException('Link already exists in this collection');
     }
@@ -93,8 +111,15 @@ export class LinkService {
     });
 
     // Background scraping (fire-and-forget)
-    this.backgroundScrapeAndBroadcast(linkPost._id.toString(), targetUrl, roomId).catch((err) => {
-      this.logger.error(`Background scraping failed: ${err.message}`, err.stack);
+    this.backgroundScrapeAndBroadcast(
+      linkPost._id.toString(),
+      targetUrl,
+      roomId,
+    ).catch((err) => {
+      this.logger.error(
+        `Background scraping failed: ${err.message}`,
+        err.stack,
+      );
     });
 
     await this.auditService.logAuditEvent(userId, 'LINK_POST', 'SUCCESS', req, {
@@ -109,7 +134,10 @@ export class LinkService {
    * Delete a link (creator or room owner only)
    */
   async deleteLink(userId: string, linkId: string, req?: any): Promise<void> {
-    const { link, roomId, room } = await this.linkAccessHelper.verifyLinkAccess(linkId, userId);
+    const { link, roomId, room } = await this.linkAccessHelper.verifyLinkAccess(
+      linkId,
+      userId,
+    );
 
     const isPostCreator = link.userId.toString() === userId;
     const isRoomOwner = room.members.some(
@@ -130,19 +158,36 @@ export class LinkService {
       collectionId: link.collectionId.toString(),
     });
 
-    await this.auditService.logAuditEvent(userId, 'LINK_DELETE', 'SUCCESS', req, {
-      linkId,
-      roomId,
-    });
+    await this.auditService.logAuditEvent(
+      userId,
+      'LINK_DELETE',
+      'SUCCESS',
+      req,
+      {
+        linkId,
+        roomId,
+      },
+    );
   }
 
   /**
    * Mark a link as viewed (fire-and-forget)
    */
-  async markLinkViewed(userId: string, linkId: string): Promise<{ message: string }> {
-    const { link, roomId } = await this.linkAccessHelper.verifyLinkAccess(linkId, userId);
+  async markLinkViewed(
+    userId: string,
+    linkId: string,
+  ): Promise<{ message: string }> {
+    const { link, roomId } = await this.linkAccessHelper.verifyLinkAccess(
+      linkId,
+      userId,
+    );
 
-    this.linkViewRepo.markViewedAsync(userId, linkId, link.collectionId.toString(), roomId);
+    this.linkViewRepo.markViewedAsync(
+      userId,
+      linkId,
+      link.collectionId.toString(),
+      roomId,
+    );
 
     return { message: 'Link marked as viewed' };
   }
@@ -150,7 +195,10 @@ export class LinkService {
   /**
    * Unmark a link as viewed (fire-and-forget)
    */
-  async unmarkLinkViewed(userId: string, linkId: string): Promise<{ message: string }> {
+  async unmarkLinkViewed(
+    userId: string,
+    linkId: string,
+  ): Promise<{ message: string }> {
     await this.linkAccessHelper.verifyLinkAccess(linkId, userId);
 
     this.linkViewRepo.unmarkViewedAsync(userId, linkId);
@@ -186,16 +234,17 @@ export class LinkService {
 
     const cursor = beforeCursor
       ? {
-        createdAt: new Date(beforeCursor.createdAt),
-        id: beforeCursor.id,
-      }
+          createdAt: new Date(beforeCursor.createdAt),
+          id: beforeCursor.id,
+        }
       : undefined;
 
-    const { links, totalCount } = await this.linkPostRepo.findByCollectionCursor(
-      collectionId,
-      limit,
-      cursor,
-    );
+    const { links, totalCount } =
+      await this.linkPostRepo.findByCollectionCursor(
+        collectionId,
+        limit,
+        cursor,
+      );
 
     const linkIds = links.map((l) => l._id.toString());
     const [viewedLinkIds, commentCounts] = await Promise.all([
@@ -241,7 +290,11 @@ export class LinkService {
       return { links: [], viewedLinkIds: [], commentCounts: {} };
     }
 
-    const links = await this.linkPostRepo.searchLinks(collectionIds, searchQuery, limit);
+    const links = await this.linkPostRepo.searchLinks(
+      collectionIds,
+      searchQuery,
+      limit,
+    );
 
     const linkIds = links.map((l) => l._id.toString());
     const [viewedLinkIds, commentCounts] = await Promise.all([
@@ -259,12 +312,20 @@ export class LinkService {
   /**
    * Move a link to a different collection in the same room
    */
-  async moveLink(userId: string, linkId: string, collectionId: string, req?: any): Promise<LinkPost> {
+  async moveLink(
+    userId: string,
+    linkId: string,
+    collectionId: string,
+    req?: any,
+  ): Promise<LinkPost> {
     if (!collectionId) {
       throw new BadRequestException('Target collection ID is required');
     }
 
-    const { link, roomId, room } = await this.linkAccessHelper.verifyLinkAccess(linkId, userId);
+    const { link, roomId, room } = await this.linkAccessHelper.verifyLinkAccess(
+      linkId,
+      userId,
+    );
 
     const targetCollection = await this.collectionRepo.findById(collectionId);
     if (!targetCollection) {
@@ -275,7 +336,10 @@ export class LinkService {
       throw new BadRequestException('Cannot move link to a different room');
     }
 
-    const updated = await this.linkPostRepo.updateCollection(linkId, collectionId);
+    const updated = await this.linkPostRepo.updateCollection(
+      linkId,
+      collectionId,
+    );
     if (!updated) {
       throw new NotFoundException('Link not found during move');
     }
@@ -325,7 +389,8 @@ export class LinkService {
       }
 
       // Fetch fresh
-      const scrapeResult: ScrapeResult = await this.scraperService.smartScrape(targetUrl);
+      const scrapeResult: ScrapeResult =
+        await this.scraperService.smartScrape(targetUrl);
       previewData = {
         ...scrapeResult,
         title: scrapeResult.title || '',
@@ -396,7 +461,10 @@ export class LinkService {
     try {
       const previewData = await this.fetchLinkPreview(url);
 
-      const updated = await this.linkPostRepo.updatePreviewData(linkId, previewData);
+      const updated = await this.linkPostRepo.updatePreviewData(
+        linkId,
+        previewData,
+      );
 
       if (updated) {
         this.websocketGateway.broadcastToRoom(roomId, 'LINK_UPDATED', {
@@ -404,7 +472,10 @@ export class LinkService {
         });
       }
     } catch (error) {
-      this.logger.error(`Background scraping failed for link ${linkId}:`, error);
+      this.logger.error(
+        `Background scraping failed for link ${linkId}:`,
+        error,
+      );
       try {
         const updated = await this.linkPostRepo.updatePreviewData(linkId, {
           scrapeStatus: 'failed',
@@ -415,7 +486,10 @@ export class LinkService {
           });
         }
       } catch (innerError) {
-        this.logger.error(`Final fail-safe for link ${linkId} failed:`, innerError);
+        this.logger.error(
+          `Final fail-safe for link ${linkId} failed:`,
+          innerError,
+        );
       }
     }
   }

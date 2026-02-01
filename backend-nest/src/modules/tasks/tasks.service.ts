@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Task, TaskDocument } from './schemas/task.schema';
@@ -10,132 +15,143 @@ import { Request } from 'express';
 
 @Injectable()
 export class TasksService extends BaseService<TaskDocument, TaskRepository> {
-    protected readonly logger = new Logger(TasksService.name);
+  protected readonly logger = new Logger(TasksService.name);
 
-    constructor(
-        private readonly taskRepository: TaskRepository,
-        private readonly auditService: AuditService,
-    ) {
-        super(taskRepository);
+  constructor(
+    private readonly taskRepository: TaskRepository,
+    private readonly auditService: AuditService,
+  ) {
+    super(taskRepository);
+  }
+
+  async findOne(id: string, userId: string): Promise<Task> {
+    const task = await this.taskRepository.findOne({ _id: id, userId });
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    return task;
+  }
+
+  async update(
+    id: string,
+    userId: string,
+    updateDto: UpdateTaskDTO,
+    req?: Request,
+  ): Promise<Task> {
+    const updatedTask = await this.taskRepository.updateOne(
+      { _id: id, userId },
+      updateDto as any,
+      { returnNew: true },
+    );
+
+    if (!updatedTask) {
+      throw new NotFoundException('Task not found');
     }
 
+    await this.auditService.logAuditEvent(
+      userId,
+      'TASK_UPDATE',
+      'SUCCESS',
+      req,
+      { taskId: id },
+    );
 
-    async findOne(id: string, userId: string): Promise<Task> {
-        const task = await this.taskRepository.findOne({ _id: id, userId });
-        if (!task) {
-            throw new NotFoundException('Task not found');
-        }
-        return task;
+    return updatedTask;
+  }
+
+  async remove(id: string, userId: string, req?: Request): Promise<void> {
+    const result = await this.taskRepository.deleteOne({ _id: id, userId });
+    if (!result) {
+      throw new NotFoundException('Task not found');
     }
 
-    async update(id: string, userId: string, updateDto: UpdateTaskDTO, req?: Request): Promise<Task> {
-        const updatedTask = await this.taskRepository.updateOne(
-            { _id: id, userId },
-            updateDto as any,
-            { returnNew: true }
-        );
+    await this.auditService.logAuditEvent(
+      userId,
+      'TASK_DELETE',
+      'SUCCESS',
+      req,
+      { taskId: id },
+    );
+  }
 
-        if (!updatedTask) {
-            throw new NotFoundException('Task not found');
-        }
+  async create(
+    userId: string,
+    createDto: CreateTaskDTO,
+    req?: Request,
+  ): Promise<Task> {
+    const { status = 'todo', priority = 'medium' } = createDto;
 
-        await this.auditService.logAuditEvent(
-            userId,
-            'TASK_UPDATE',
-            'SUCCESS',
-            req,
-            { taskId: id }
-        );
+    // Auto-calculate order: get max order for this status
+    const lastOrder = await this.taskRepository.getMaxOrderInColumn(
+      userId,
+      status,
+    );
 
-        return updatedTask;
-    }
+    const order = lastOrder + 1;
 
-    async remove(id: string, userId: string, req?: Request): Promise<void> {
-        const result = await this.taskRepository.deleteOne({ _id: id, userId });
-        if (!result) {
-            throw new NotFoundException('Task not found');
-        }
+    const task = await this.taskRepository.create({
+      ...createDto,
+      userId: new Types.ObjectId(userId),
+      dueDate: createDto.dueDate ? new Date(createDto.dueDate) : undefined,
+      order,
+      status, // Ensure defaults are applied if not in DTO (though DTO has optional)
+      priority,
+    });
 
-        await this.auditService.logAuditEvent(
-            userId,
-            'TASK_DELETE',
-            'SUCCESS',
-            req,
-            { taskId: id }
-        );
-    }
+    await this.auditService.logAuditEvent(
+      userId,
+      'TASK_CREATE',
+      'SUCCESS',
+      req,
+      { taskId: task._id },
+    );
 
-    async create(userId: string, createDto: CreateTaskDTO, req?: Request): Promise<Task> {
-        const { status = 'todo', priority = 'medium' } = createDto;
+    return task;
+  }
 
-        // Auto-calculate order: get max order for this status
-        const lastOrder = await this.taskRepository.getMaxOrderInColumn(userId, status);
+  async findAll(
+    userId: string,
+    filter?: { status?: string; priority?: string },
+  ): Promise<Task[]> {
+    return this.taskRepository.findByUserId(userId, filter);
+  }
 
-        const order = lastOrder + 1;
+  async reorder(
+    userId: string,
+    updates: { id: string; order: number; status?: string }[],
+    req?: Request,
+  ): Promise<void> {
+    await this.taskRepository.reorderBulk(userId, updates);
 
-        const task = await this.taskRepository.create({
-            ...createDto,
-            userId: new Types.ObjectId(userId),
-            dueDate: createDto.dueDate ? new Date(createDto.dueDate) : undefined,
-            order,
-            status, // Ensure defaults are applied if not in DTO (though DTO has optional)
-            priority
-        });
+    await this.auditService.logAuditEvent(
+      userId,
+      'TASK_REORDER',
+      'SUCCESS',
+      req,
+      { count: updates.length },
+    );
+  }
 
-        await this.auditService.logAuditEvent(
-            userId,
-            'TASK_CREATE',
-            'SUCCESS',
-            req,
-            { taskId: task._id }
-        );
+  async findPaginated(
+    userId: string,
+    options: { limit: number; cursor?: string },
+  ): Promise<{ items: Task[]; nextCursor: string | null }> {
+    return this.taskRepository.findPaginated(
+      { userId },
+      {
+        limit: options.limit,
+        cursor: options.cursor,
+        sortField: '_id',
+        sortOrder: -1, // Most recent first (descending)
+      },
+    );
+  }
 
-        return task;
-    }
+  async findUpcoming(userId: string, limit: number = 10): Promise<Task[]> {
+    return this.taskRepository.findUpcoming(userId, limit);
+  }
 
-    async findAll(
-        userId: string,
-        filter?: { status?: string; priority?: string }
-    ): Promise<Task[]> {
-        return this.taskRepository.findByUserId(userId, filter);
-    }
-
-    async reorder(
-        userId: string,
-        updates: { id: string; order: number; status?: string }[],
-        req?: Request
-    ): Promise<void> {
-        await this.taskRepository.reorderBulk(userId, updates);
-
-        await this.auditService.logAuditEvent(
-            userId,
-            'TASK_REORDER',
-            'SUCCESS',
-            req,
-            { count: updates.length }
-        );
-    }
-
-    async findPaginated(
-        userId: string,
-        options: { limit: number; cursor?: string }
-    ): Promise<{ items: Task[]; nextCursor: string | null }> {
-        return this.taskRepository.findPaginated(
-            { userId },
-            {
-                limit: options.limit,
-                cursor: options.cursor,
-                sortField: '_id',
-                sortOrder: -1 // Most recent first (descending)
-            }
-        );
-    }
-
-    async findUpcoming(userId: string, limit: number = 10): Promise<Task[]> {
-        return this.taskRepository.findUpcoming(userId, limit);
-    }
-
-    async getUpcomingTasks(userId: string, limit: number = 10): Promise<Task[]> {
-        return this.findUpcoming(userId, limit);
-    }
+  async getUpcomingTasks(userId: string, limit: number = 10): Promise<Task[]> {
+    return this.findUpcoming(userId, limit);
+  }
 }

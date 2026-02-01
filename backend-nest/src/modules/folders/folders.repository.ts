@@ -6,7 +6,7 @@ import { Folder, FolderDocument } from './schemas/folder.schema';
 
 @Injectable()
 export class FolderRepository extends BaseRepository<FolderDocument> {
-    constructor(@InjectModel(Folder.name) model: Model<FolderDocument>) {
-        super(model);
-    }
+  constructor(@InjectModel(Folder.name) model: Model<FolderDocument>) {
+    super(model);
+  }
 }

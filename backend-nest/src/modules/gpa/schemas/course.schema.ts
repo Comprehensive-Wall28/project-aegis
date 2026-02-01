@@ -3,31 +3,31 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Course {
-    @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-    userId!: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  userId!: Types.ObjectId;
 
-    // Encrypted fields
-    @Prop({ required: true })
-    encryptedData!: string;
+  // Encrypted fields
+  @Prop({ required: true })
+  encryptedData!: string;
 
-    @Prop({ required: true })
-    encapsulatedKey!: string;
+  @Prop({ required: true })
+  encapsulatedKey!: string;
 
-    @Prop({ required: true })
-    encryptedSymmetricKey!: string;
+  @Prop({ required: true })
+  encryptedSymmetricKey!: string;
 
-    // Legacy plaintext fields (optional for migration support)
-    @Prop()
-    name?: string;
+  // Legacy plaintext fields (optional for migration support)
+  @Prop()
+  name?: string;
 
-    @Prop()
-    grade?: number;
+  @Prop()
+  grade?: number;
 
-    @Prop()
-    credits?: number;
+  @Prop()
+  credits?: number;
 
-    @Prop()
-    semester?: string;
+  @Prop()
+  semester?: string;
 }
 
 export type CourseDocument = Course & Document;

@@ -6,53 +6,58 @@ import { NoteFolder, NoteFolderDocument } from '../schemas/note-folder.schema';
 
 @Injectable()
 export class NoteFolderRepository extends BaseRepository<NoteFolderDocument> {
-    constructor(@InjectModel(NoteFolder.name) model: Model<NoteFolderDocument>) {
-        super(model);
+  constructor(@InjectModel(NoteFolder.name) model: Model<NoteFolderDocument>) {
+    super(model);
+  }
+
+  async findByUserId(userId: string): Promise<NoteFolderDocument[]> {
+    return this.findMany({ userId }, { sort: { name: 1 } });
+  }
+
+  async existsWithName(
+    userId: string,
+    name: string,
+    parentId?: string | null,
+    excludeId?: string,
+  ): Promise<boolean> {
+    const query: any = {
+      userId: new this.model.base.Types.ObjectId(userId),
+      name,
+    };
+
+    if (parentId) {
+      query.parentId = new this.model.base.Types.ObjectId(parentId);
+    } else {
+      query.parentId = null;
     }
 
-    async findByUserId(userId: string): Promise<NoteFolderDocument[]> {
-        return this.findMany({ userId }, { sort: { name: 1 } });
+    if (excludeId) {
+      query._id = { $ne: new this.model.base.Types.ObjectId(excludeId) };
     }
 
-    async existsWithName(userId: string, name: string, parentId?: string | null, excludeId?: string): Promise<boolean> {
-        const query: any = {
-            userId: new this.model.base.Types.ObjectId(userId),
-            name
-        };
+    return Boolean(await this.model.exists(query));
+  }
 
-        if (parentId) {
-            query.parentId = new this.model.base.Types.ObjectId(parentId);
-        } else {
-            query.parentId = null;
-        }
+  async getDescendantIds(userId: string, folderId: string): Promise<string[]> {
+    // This requires recursive query or repeated queries.
+    // MongoDB $graphLookup is best here but for simplicity we might do simple recursion if depth is low
+    // or just assume single level? No, folders are nested.
+    // Use GraphLookup:
+    const result = await this.model.aggregate([
+      { $match: { _id: new this.model.base.Types.ObjectId(folderId) } },
+      {
+        $graphLookup: {
+          from: 'notefolders',
+          startWith: '$_id',
+          connectFromField: '_id',
+          connectToField: 'parentId',
+          as: 'descendants',
+        },
+      },
+      { $project: { descendants: 1 } },
+    ]);
 
-        if (excludeId) {
-            query._id = { $ne: new this.model.base.Types.ObjectId(excludeId) };
-        }
-
-        return Boolean(await this.model.exists(query));
-    }
-
-    async getDescendantIds(userId: string, folderId: string): Promise<string[]> {
-        // This requires recursive query or repeated queries. 
-        // MongoDB $graphLookup is best here but for simplicity we might do simple recursion if depth is low
-        // or just assume single level? No, folders are nested.
-        // Use GraphLookup:
-        const result = await this.model.aggregate([
-            { $match: { _id: new this.model.base.Types.ObjectId(folderId) } },
-            {
-                $graphLookup: {
-                    from: 'notefolders',
-                    startWith: '$_id',
-                    connectFromField: '_id',
-                    connectToField: 'parentId',
-                    as: 'descendants'
-                }
-            },
-            { $project: { descendants: 1 } }
-        ]);
-
-        if (!result[0] || !result[0].descendants) return [];
-        return result[0].descendants.map((d: any) => d._id.toString());
-    }
+    if (!result[0] || !result[0].descendants) return [];
+    return result[0].descendants.map((d: any) => d._id.toString());
+  }
 }

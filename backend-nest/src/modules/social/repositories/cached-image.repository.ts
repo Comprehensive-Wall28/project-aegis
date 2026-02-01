@@ -59,7 +59,10 @@ export class CachedImageRepository {
       lastFetched: new Date(),
     });
     cachedImage.save().catch((err) => {
-      this.logger.error(`Failed to cache image metadata: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to cache image metadata: ${err.message}`,
+        err.stack,
+      );
     });
   }
 }

@@ -7,20 +7,24 @@ export type SharedFileDocument = SharedFile & Document;
 
 @Schema({ timestamps: true })
 export class SharedFile {
-    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'VaultFile', required: true })
-    fileId!: VaultFile;
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'VaultFile',
+    required: true,
+  })
+  fileId!: VaultFile;
 
-    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
-    sharedBy!: User;
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
+  sharedBy!: User;
 
-    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
-    sharedWith!: User;
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
+  sharedWith!: User;
 
-    @Prop({ required: true })
-    encryptedSharedKey!: string;
+  @Prop({ required: true })
+  encryptedSharedKey!: string;
 
-    @Prop({ type: [String], default: ['READ', 'DOWNLOAD'] })
-    permissions!: string[];
+  @Prop({ type: [String], default: ['READ', 'DOWNLOAD'] })
+  permissions!: string[];
 }
 
 export const SharedFileSchema = SchemaFactory.createForClass(SharedFile);

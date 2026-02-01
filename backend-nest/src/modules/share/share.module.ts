@@ -13,22 +13,22 @@ import { PublicShareService } from './public-share.service';
 import { PublicShareController } from './public-share.controller';
 
 @Module({
-    imports: [
-        MongooseModule.forFeature([
-            { name: SharedFile.name, schema: SharedFileSchema },
-            { name: SharedLink.name, schema: SharedLinkSchema },
-        ]),
-        VaultModule,
-        UsersModule,
-        FoldersModule,
-    ],
-    controllers: [ShareController, PublicShareController],
-    providers: [
-        ShareService,
-        PublicShareService,
-        SharedFileRepository,
-        SharedLinkRepository,
-    ],
-    exports: [ShareService],
+  imports: [
+    MongooseModule.forFeature([
+      { name: SharedFile.name, schema: SharedFileSchema },
+      { name: SharedLink.name, schema: SharedLinkSchema },
+    ]),
+    VaultModule,
+    UsersModule,
+    FoldersModule,
+  ],
+  controllers: [ShareController, PublicShareController],
+  providers: [
+    ShareService,
+    PublicShareService,
+    SharedFileRepository,
+    SharedLinkRepository,
+  ],
+  exports: [ShareService],
 })
-export class ShareModule { }
+export class ShareModule {}

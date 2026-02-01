@@ -3,37 +3,37 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class CalendarEvent {
-    @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-    userId!: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  userId!: Types.ObjectId;
 
-    // Encrypted fields
-    @Prop({ required: true })
-    encryptedData!: string;
+  // Encrypted fields
+  @Prop({ required: true })
+  encryptedData!: string;
 
-    @Prop({ required: true })
-    encapsulatedKey!: string;
+  @Prop({ required: true })
+  encapsulatedKey!: string;
 
-    @Prop({ required: true })
-    encryptedSymmetricKey!: string;
+  @Prop({ required: true })
+  encryptedSymmetricKey!: string;
 
-    // Metadata (plaintext)
-    @Prop({ required: true, index: true })
-    startDate!: Date;
+  // Metadata (plaintext)
+  @Prop({ required: true, index: true })
+  startDate!: Date;
 
-    @Prop({ required: true, index: true })
-    endDate!: Date;
+  @Prop({ required: true, index: true })
+  endDate!: Date;
 
-    @Prop({ default: false })
-    isAllDay!: boolean;
+  @Prop({ default: false })
+  isAllDay!: boolean;
 
-    @Prop({ required: false })
-    color!: string;
+  @Prop({ required: false })
+  color!: string;
 
-    @Prop({ required: false })
-    recordHash!: string;
+  @Prop({ required: false })
+  recordHash!: string;
 
-    @Prop({ type: [String], default: [] })
-    mentions!: string[];
+  @Prop({ type: [String], default: [] })
+  mentions!: string[];
 }
 
 export type CalendarEventDocument = CalendarEvent & Document;

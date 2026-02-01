@@ -10,7 +10,11 @@ import { LinkAccessHelper } from './utils/link-access.helper';
 import { ScraperService } from './scraper.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { AuditService } from '../../common/services/audit.service';
-import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Types } from 'mongoose';
 
 describe('LinkService', () => {
@@ -159,15 +163,30 @@ describe('LinkService', () => {
 
     it('should create a link with placeholder preview', async () => {
       socialRepo.findByIdAndMember.mockResolvedValue(mockRoom as any);
-      collectionRepo.findDefaultLinksCollection.mockResolvedValue(mockCollection as any);
+      collectionRepo.findDefaultLinksCollection.mockResolvedValue(
+        mockCollection as any,
+      );
       collectionRepo.findByIdAndRoom.mockResolvedValue(mockCollection as any);
       linkPostRepo.findByCollectionAndUrl.mockResolvedValue(null);
-      linkPostRepo.create.mockResolvedValue({ ...mockLink, populate: jest.fn().mockReturnThis() } as any);
+      linkPostRepo.create.mockResolvedValue({
+        ...mockLink,
+        populate: jest.fn().mockReturnThis(),
+      } as any);
 
-      const result = await service.postLink(mockUserId, mockRoomId, postLinkDto);
+      const result = await service.postLink(
+        mockUserId,
+        mockRoomId,
+        postLinkDto,
+      );
 
-      expect(socialRepo.findByIdAndMember).toHaveBeenCalledWith(mockRoomId, mockUserId);
-      expect(linkPostRepo.findByCollectionAndUrl).toHaveBeenCalledWith(mockCollectionId, postLinkDto.url);
+      expect(socialRepo.findByIdAndMember).toHaveBeenCalledWith(
+        mockRoomId,
+        mockUserId,
+      );
+      expect(linkPostRepo.findByCollectionAndUrl).toHaveBeenCalledWith(
+        mockCollectionId,
+        postLinkDto.url,
+      );
       expect(linkPostRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           url: postLinkDto.url,
@@ -187,12 +206,19 @@ describe('LinkService', () => {
     it('should prepend https:// if protocol missing', async () => {
       const urlWithoutProtocol = 'example.com';
       socialRepo.findByIdAndMember.mockResolvedValue(mockRoom as any);
-      collectionRepo.findDefaultLinksCollection.mockResolvedValue(mockCollection as any);
+      collectionRepo.findDefaultLinksCollection.mockResolvedValue(
+        mockCollection as any,
+      );
       collectionRepo.findByIdAndRoom.mockResolvedValue(mockCollection as any);
       linkPostRepo.findByCollectionAndUrl.mockResolvedValue(null);
-      linkPostRepo.create.mockResolvedValue({ ...mockLink, populate: jest.fn().mockReturnThis() } as any);
+      linkPostRepo.create.mockResolvedValue({
+        ...mockLink,
+        populate: jest.fn().mockReturnThis(),
+      } as any);
 
-      await service.postLink(mockUserId, mockRoomId, { url: urlWithoutProtocol });
+      await service.postLink(mockUserId, mockRoomId, {
+        url: urlWithoutProtocol,
+      });
 
       expect(linkPostRepo.findByCollectionAndUrl).toHaveBeenCalledWith(
         mockCollectionId,
@@ -202,30 +228,32 @@ describe('LinkService', () => {
 
     it('should throw BadRequestException if duplicate URL', async () => {
       socialRepo.findByIdAndMember.mockResolvedValue(mockRoom as any);
-      collectionRepo.findDefaultLinksCollection.mockResolvedValue(mockCollection as any);
+      collectionRepo.findDefaultLinksCollection.mockResolvedValue(
+        mockCollection as any,
+      );
       collectionRepo.findByIdAndRoom.mockResolvedValue(mockCollection as any);
       linkPostRepo.findByCollectionAndUrl.mockResolvedValue(mockLink as any);
 
-      await expect(service.postLink(mockUserId, mockRoomId, postLinkDto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.postLink(mockUserId, mockRoomId, postLinkDto),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw NotFoundException if room not found', async () => {
       socialRepo.findByIdAndMember.mockResolvedValue(null);
 
-      await expect(service.postLink(mockUserId, mockRoomId, postLinkDto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.postLink(mockUserId, mockRoomId, postLinkDto),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw BadRequestException if no default collection', async () => {
       socialRepo.findByIdAndMember.mockResolvedValue(mockRoom as any);
       collectionRepo.findDefaultLinksCollection.mockResolvedValue(null);
 
-      await expect(service.postLink(mockUserId, mockRoomId, postLinkDto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.postLink(mockUserId, mockRoomId, postLinkDto),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -237,7 +265,9 @@ describe('LinkService', () => {
         roomId: mockRoomId,
         room: mockRoom,
       };
-      linkAccessHelper.verifyLinkAccess.mockResolvedValue(linkAccessResult as any);
+      linkAccessHelper.verifyLinkAccess.mockResolvedValue(
+        linkAccessResult as any,
+      );
       linkPostRepo.deleteById.mockResolvedValue(true);
       linkCommentRepo.deleteByLinkId.mockResolvedValue(0);
 
@@ -261,7 +291,9 @@ describe('LinkService', () => {
         roomId: mockRoomId,
         room: { ...mockRoom, members: [{ userId: mockUserId, role: 'owner' }] },
       };
-      linkAccessHelper.verifyLinkAccess.mockResolvedValue(linkAccessResult as any);
+      linkAccessHelper.verifyLinkAccess.mockResolvedValue(
+        linkAccessResult as any,
+      );
       linkPostRepo.deleteById.mockResolvedValue(true);
       linkCommentRepo.deleteByLinkId.mockResolvedValue(0);
 
@@ -276,11 +308,18 @@ describe('LinkService', () => {
         link: { ...mockLink, userId: otherUserId },
         collectionId: mockCollectionId,
         roomId: mockRoomId,
-        room: { ...mockRoom, members: [{ userId: mockUserId, role: 'member' }] },
+        room: {
+          ...mockRoom,
+          members: [{ userId: mockUserId, role: 'member' }],
+        },
       };
-      linkAccessHelper.verifyLinkAccess.mockResolvedValue(linkAccessResult as any);
+      linkAccessHelper.verifyLinkAccess.mockResolvedValue(
+        linkAccessResult as any,
+      );
 
-      await expect(service.deleteLink(mockUserId, mockLinkId)).rejects.toThrow(ForbiddenException);
+      await expect(service.deleteLink(mockUserId, mockLinkId)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -292,7 +331,9 @@ describe('LinkService', () => {
         roomId: mockRoomId,
         room: mockRoom,
       };
-      linkAccessHelper.verifyLinkAccess.mockResolvedValue(linkAccessResult as any);
+      linkAccessHelper.verifyLinkAccess.mockResolvedValue(
+        linkAccessResult as any,
+      );
 
       const result = await service.markLinkViewed(mockUserId, mockLinkId);
 
@@ -314,11 +355,16 @@ describe('LinkService', () => {
         roomId: mockRoomId,
         room: mockRoom,
       };
-      linkAccessHelper.verifyLinkAccess.mockResolvedValue(linkAccessResult as any);
+      linkAccessHelper.verifyLinkAccess.mockResolvedValue(
+        linkAccessResult as any,
+      );
 
       const result = await service.unmarkLinkViewed(mockUserId, mockLinkId);
 
-      expect(linkViewRepo.unmarkViewedAsync).toHaveBeenCalledWith(mockUserId, mockLinkId);
+      expect(linkViewRepo.unmarkViewedAsync).toHaveBeenCalledWith(
+        mockUserId,
+        mockLinkId,
+      );
       expect(result).toEqual({ message: 'Link unmarked as viewed' });
     });
   });
@@ -335,9 +381,18 @@ describe('LinkService', () => {
       linkViewRepo.findViewedLinkIds.mockResolvedValue([]);
       linkCommentRepo.countByLinkIds.mockResolvedValue({});
 
-      const result = await service.getCollectionLinks(mockUserId, mockRoomId, mockCollectionId, 12);
+      const result = await service.getCollectionLinks(
+        mockUserId,
+        mockRoomId,
+        mockCollectionId,
+        12,
+      );
 
-      expect(linkPostRepo.findByCollectionCursor).toHaveBeenCalledWith(mockCollectionId, 12, undefined);
+      expect(linkPostRepo.findByCollectionCursor).toHaveBeenCalledWith(
+        mockCollectionId,
+        12,
+        undefined,
+      );
       expect(result).toEqual({
         links: mockLinks,
         totalCount: 1,
@@ -350,12 +405,21 @@ describe('LinkService', () => {
     it('should handle cursor pagination', async () => {
       socialRepo.findByIdAndMember.mockResolvedValue(mockRoom as any);
       collectionRepo.findById.mockResolvedValue(mockCollection as any);
-      linkPostRepo.findByCollectionCursor.mockResolvedValue({ links: [], totalCount: 0 } as any);
+      linkPostRepo.findByCollectionCursor.mockResolvedValue({
+        links: [],
+        totalCount: 0,
+      } as any);
       linkViewRepo.findViewedLinkIds.mockResolvedValue([]);
       linkCommentRepo.countByLinkIds.mockResolvedValue({});
 
       const cursor = { createdAt: '2026-01-01T00:00:00.000Z', id: mockLinkId };
-      await service.getCollectionLinks(mockUserId, mockRoomId, mockCollectionId, 12, cursor);
+      await service.getCollectionLinks(
+        mockUserId,
+        mockRoomId,
+        mockCollectionId,
+        12,
+        cursor,
+      );
 
       expect(linkPostRepo.findByCollectionCursor).toHaveBeenCalledWith(
         mockCollectionId,
@@ -369,7 +433,10 @@ describe('LinkService', () => {
 
     it('should throw NotFoundException if collection not in room', async () => {
       socialRepo.findByIdAndMember.mockResolvedValue(mockRoom as any);
-      collectionRepo.findById.mockResolvedValue({ ...mockCollection, roomId: 'other-room' } as any);
+      collectionRepo.findById.mockResolvedValue({
+        ...mockCollection,
+        roomId: 'other-room',
+      } as any);
 
       await expect(
         service.getCollectionLinks(mockUserId, mockRoomId, mockCollectionId),
@@ -386,9 +453,18 @@ describe('LinkService', () => {
       linkViewRepo.findViewedLinkIds.mockResolvedValue([]);
       linkCommentRepo.countByLinkIds.mockResolvedValue({});
 
-      const result = await service.searchRoomLinks(mockUserId, mockRoomId, 'example', 50);
+      const result = await service.searchRoomLinks(
+        mockUserId,
+        mockRoomId,
+        'example',
+        50,
+      );
 
-      expect(linkPostRepo.searchLinks).toHaveBeenCalledWith([mockCollectionId], 'example', 50);
+      expect(linkPostRepo.searchLinks).toHaveBeenCalledWith(
+        [mockCollectionId],
+        'example',
+        50,
+      );
       expect(result).toEqual({
         links: mockLinks,
         viewedLinkIds: [],
@@ -399,18 +475,27 @@ describe('LinkService', () => {
     it('should return empty results for empty query', async () => {
       socialRepo.findByIdAndMember.mockResolvedValue(mockRoom as any);
 
-      const result = await service.searchRoomLinks(mockUserId, mockRoomId, '', 50);
+      const result = await service.searchRoomLinks(
+        mockUserId,
+        mockRoomId,
+        '',
+        50,
+      );
 
-      expect(result).toEqual({ links: [], viewedLinkIds: [], commentCounts: {} });
+      expect(result).toEqual({
+        links: [],
+        viewedLinkIds: [],
+        commentCounts: {},
+      });
       expect(linkPostRepo.searchLinks).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if room not found', async () => {
       socialRepo.findByIdAndMember.mockResolvedValue(null);
 
-      await expect(service.searchRoomLinks(mockUserId, mockRoomId, 'test')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.searchRoomLinks(mockUserId, mockRoomId, 'test'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

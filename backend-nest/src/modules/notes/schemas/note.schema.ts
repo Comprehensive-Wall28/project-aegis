@@ -5,54 +5,54 @@ export type NoteDocument = Note & Document;
 
 @Schema()
 class EducationalContext {
-    @Prop()
-    subject?: string;
+  @Prop()
+  subject?: string;
 
-    @Prop()
-    semester?: string;
+  @Prop()
+  semester?: string;
 }
 
 @Schema({ timestamps: true })
 export class Note {
-    @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-    userId!: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  userId!: Types.ObjectId;
 
-    // Note Identity
-    @Prop()
-    encryptedTitle?: string;            // Encrypted note title (client-side encrypted)
+  // Note Identity
+  @Prop()
+  encryptedTitle?: string; // Encrypted note title (client-side encrypted)
 
-    @Prop({ type: Types.ObjectId, ref: 'NoteFolder', default: null })
-    noteFolderId?: Types.ObjectId; // Reference to NoteFolder (null = root)
+  @Prop({ type: Types.ObjectId, ref: 'NoteFolder', default: null })
+  noteFolderId?: Types.ObjectId; // Reference to NoteFolder (null = root)
 
-    // Encryption Metadata (Same pattern as Tasks)
-    @Prop({ required: true })
-    encapsulatedKey!: string;        // ML-KEM-768 ciphertext (hex)
+  // Encryption Metadata (Same pattern as Tasks)
+  @Prop({ required: true })
+  encapsulatedKey!: string; // ML-KEM-768 ciphertext (hex)
 
-    @Prop({ required: true })
-    encryptedSymmetricKey!: string;  // Wrapped AES-256 key (hex)
+  @Prop({ required: true })
+  encryptedSymmetricKey!: string; // Wrapped AES-256 key (hex)
 
-    // Content Storage (GridFS)
-    @Prop({ type: Types.ObjectId, required: true })
-    gridFsFileId!: Types.ObjectId; // Pointer to GridFS file containing encrypted content
+  // Content Storage (GridFS)
+  @Prop({ type: Types.ObjectId, required: true })
+  gridFsFileId!: Types.ObjectId; // Pointer to GridFS file containing encrypted content
 
-    @Prop({ required: true, default: 0 })
-    contentSize!: number;            // Size of encrypted content in bytes
+  @Prop({ required: true, default: 0 })
+  contentSize!: number; // Size of encrypted content in bytes
 
-    // Rich Features
-    @Prop({ type: [String], default: [] })
-    tags!: string[];
+  // Rich Features
+  @Prop({ type: [String], default: [] })
+  tags!: string[];
 
-    @Prop({ type: [String], default: [] })
-    linkedEntityIds!: string[];      // IDs of Tasks/Files mentioned in this note (for backlinks)
+  @Prop({ type: [String], default: [] })
+  linkedEntityIds!: string[]; // IDs of Tasks/Files mentioned in this note (for backlinks)
 
-    @Prop({ type: Object })
-    educationalContext?: {
-        subject?: string;
-        semester?: string;
-    };
+  @Prop({ type: Object })
+  educationalContext?: {
+    subject?: string;
+    semester?: string;
+  };
 
-    @Prop({ required: true })
-    recordHash!: string;             // Integrity verification
+  @Prop({ required: true })
+  recordHash!: string; // Integrity verification
 }
 
 export const NoteSchema = SchemaFactory.createForClass(Note);

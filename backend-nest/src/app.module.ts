@@ -40,13 +40,18 @@ import { ShareModule } from './modules/share/share.module';
             transport: isProd
               ? undefined
               : {
-                target: 'pino-pretty',
-                options: {
-                  singleLine: true,
+                  target: 'pino-pretty',
+                  options: {
+                    singleLine: true,
+                  },
                 },
-              },
             // Redact sensitive headers/body fields
-            redact: ['req.headers.authorization', 'req.headers.cookie', 'req.body.password', 'req.body.token'],
+            redact: [
+              'req.headers.authorization',
+              'req.headers.cookie',
+              'req.body.password',
+              'req.body.token',
+            ],
           },
           forRoutes: ['*path'],
         };
@@ -73,7 +78,6 @@ import { ShareModule } from './modules/share/share.module';
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
     },
-
   ],
 })
-export class AppModule { }
+export class AppModule {}

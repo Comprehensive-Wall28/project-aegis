@@ -1,21 +1,20 @@
-
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class RegisterDto {
-    @IsString()
-    @IsNotEmpty()
-    @MinLength(3)
-    username!: string;
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  username!: string;
 
-    @IsEmail()
-    @IsNotEmpty()
-    email!: string;
+  @IsEmail()
+  @IsNotEmpty()
+  email!: string;
 
-    @IsString()
-    @IsNotEmpty()
-    pqcPublicKey!: string;
+  @IsString()
+  @IsNotEmpty()
+  pqcPublicKey!: string;
 
-    @IsString()
-    @IsNotEmpty()
-    argon2Hash!: string;
+  @IsString()
+  @IsNotEmpty()
+  argon2Hash!: string;
 }
