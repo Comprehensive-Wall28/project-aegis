@@ -39,6 +39,10 @@ export type AuditAction =
     | 'NOTE_FOLDER_CREATE'
     | 'NOTE_FOLDER_UPDATE'
     | 'NOTE_FOLDER_DELETE'
+    | 'FOLDER_CREATE'
+    | 'FOLDER_UPDATE'
+    | 'FOLDER_DELETE'
+    | 'FOLDER_REORDER'
     | 'ROOM_CREATE'
     | 'ROOM_INVITE_CREATE'
     | 'ROOM_JOIN'
@@ -77,7 +81,7 @@ export class AuditService {
 
     constructor(
         @InjectConnection('audit') private readonly secondaryConnection: Connection,
-    ) {}
+    ) { }
 
     /**
      * Extracts the client IP address from the request.
@@ -86,7 +90,7 @@ export class AuditService {
      */
     private getClientIp(req?: Request): string {
         if (!req || !req.headers) return 'unknown';
-        
+
         const forwarded = req.headers['x-forwarded-for'];
         if (forwarded) {
             const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;

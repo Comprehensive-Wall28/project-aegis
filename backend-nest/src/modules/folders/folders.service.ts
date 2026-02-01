@@ -7,6 +7,7 @@ import { CreateFolderDto, UpdateFolderDto, MoveFilesDto } from './dto/folder.dto
 import { BaseService, ServiceError } from '../../common/services/base.service';
 import { FolderRepository } from './folders.repository';
 import { VaultService } from '../vault/vault.service';
+import { AuditService } from '../../common/services/audit.service';
 
 @Injectable()
 export class FoldersService extends BaseService<FolderDocument, FolderRepository> {
@@ -14,6 +15,7 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
         private readonly folderRepository: FolderRepository,
         @InjectModel(SharedFolder.name) private readonly sharedFolderModel: Model<SharedFolderDocument>,
         @Inject(forwardRef(() => VaultService)) private readonly vaultService: VaultService,
+        private readonly auditService: AuditService,
     ) {
         super(folderRepository);
     }
@@ -155,7 +157,7 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
         };
     }
 
-    async createFolder(userId: string, createFolderDto: CreateFolderDto): Promise<Folder> {
+    async createFolder(userId: string, createFolderDto: CreateFolderDto, req?: any): Promise<Folder> {
         const { parentId, ...rest } = createFolderDto;
 
         // Verify parent if exists
@@ -168,14 +170,21 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
             if (parent.ownerId.toString() !== userId) throw new ForbiddenException('Cannot create subfolder in non-owned folder');
         }
 
-        return this.repository.create({
+        const folder = await this.repository.create({
             ...rest,
             ownerId: new Types.ObjectId(userId),
             parentId: parentId ? new Types.ObjectId(parentId) : null,
         } as any);
+
+        await this.auditService.logAuditEvent(userId, 'FOLDER_CREATE', 'SUCCESS', req, {
+            folderId: folder._id,
+            name: folder.name
+        });
+
+        return folder;
     }
 
-    async updateFolder(userId: string, folderId: string, updateFolderDto: UpdateFolderDto): Promise<Folder> {
+    async updateFolder(userId: string, folderId: string, updateFolderDto: UpdateFolderDto, req?: any): Promise<Folder> {
         // Validate existence and ownership
         const folder = await this.folderRepository.findOne({ _id: folderId, ownerId: userId });
         if (!folder) throw new NotFoundException('Folder not found');
@@ -186,6 +195,12 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
 
         const updated = await this.folderRepository.updateById(folderId, update);
         if (!updated) throw new NotFoundException('Folder not found');
+
+        await this.auditService.logAuditEvent(userId, 'FOLDER_UPDATE', 'SUCCESS', req, {
+            folderId,
+            updates: updateFolderDto
+        });
+
         return updated;
     }
 
@@ -212,7 +227,7 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
         }
     }
 
-    async deleteFolder(userId: string, folderId: string): Promise<void> {
+    async deleteFolder(userId: string, folderId: string, req?: any): Promise<void> {
         const folder = await this.folderRepository.findOne({ _id: folderId, ownerId: userId });
         if (!folder) throw new NotFoundException('Folder not found');
 
@@ -229,6 +244,8 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
         }
 
         await this.folderRepository.deleteById(folderId);
+
+        await this.auditService.logAuditEvent(userId, 'FOLDER_DELETE', 'SUCCESS', req, { folderId });
     }
 
     /**
@@ -294,3 +311,4 @@ export class FoldersService extends BaseService<FolderDocument, FolderRepository
         return false;
     }
 }
+

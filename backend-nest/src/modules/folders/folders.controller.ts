@@ -30,17 +30,17 @@ export class FoldersController {
 
     @Post()
     create(@Request() req: any, @Body() createFolderDto: CreateFolderDto) {
-        return this.foldersService.createFolder(req.user._id.toString(), createFolderDto);
+        return this.foldersService.createFolder(req.user._id.toString(), createFolderDto, req);
     }
 
     @Put(':id')
     update(@Request() req: any, @Param('id') id: string, @Body() updateFolderDto: UpdateFolderDto) {
-        return this.foldersService.updateFolder(req.user._id.toString(), id, updateFolderDto);
+        return this.foldersService.updateFolder(req.user._id.toString(), id, updateFolderDto, req);
     }
 
     @Delete(':id')
     async remove(@Request() req: any, @Param('id') id: string) {
-        await this.foldersService.deleteFolder(req.user._id.toString(), id);
+        await this.foldersService.deleteFolder(req.user._id.toString(), id, req);
         return { message: 'Folder deleted successfully' };
     }
 }

@@ -72,7 +72,7 @@
   - ✅ `POST /` - createFolder() / create()
   - ✅ `PUT /:id` - updateFolder() / update()
   - ✅ `DELETE /:id` - deleteFolder() / remove()
-  - ⬜ `PUT /reorder` - reorderFolders() / reorder()
+   - ⬜ `PUT /reorder` - reorderFolders() (N/A - Not in Express)
   - ✅ Nested folder support
 
 ### 1.5 Calendar Module
@@ -232,7 +232,7 @@
 - ⬜ **CalendarEventRepository** → calendar.repository.ts
 - ⬜ **CourseRepository** → gpa.repository.ts
 - ⬜ **FileMetadataRepository** → vault.repository.ts
-- ⬜ **UserRepository** → users.repository.ts
+- ✅ **UserRepository** → users.repository.ts
 - ⬜ **AuditLogRepository** → (via schema)
 - ⬜ **CollectionRepository** → collection.repository.ts
 - ⬜ **LinkPostRepository** → link-post.repository.ts
@@ -277,7 +277,7 @@
 | ReaderContentCache | reader-content-cache.schema | ⬜ |
 | Room | room.schema | ⬜ |
 | Task | task.schema | ✅ |
-| User | user.schema | ⬜ |
+| User | user.schema | ✅ |
 
 ### 4.2 Missing Schemas ❌
 | Express Model | NestJS Schema | Status |
@@ -335,9 +335,9 @@ Check each mutation method has corresponding audit logging in NestJS:
 - ⬜ moveNote → NOTE_MOVE
 
 #### Folders
-- ⬜ createFolder → FOLDER_CREATE
-- ⬜ updateFolder → FOLDER_UPDATE
-- ⬜ deleteFolder → FOLDER_DELETE
+- ✅ createFolder → FOLDER_CREATE
+- ✅ updateFolder → FOLDER_UPDATE
+- ✅ deleteFolder → FOLDER_DELETE
 
 #### Calendar
 - ⬜ createEvent → CALENDAR_CREATE
@@ -366,6 +366,8 @@ Track which sections were verified and by whom:
 | 2026-02-01 | Auth Module | Agent | ✅ | Implemented WebAuthn & Audit logging |
 | 2026-02-01 | Tasks Module | Agent | ✅ | Implemented Audit logging, Pagination, & Route parity |
 | 2026-02-01 | Notes Module | Agent | ✅ | Implemented Audit logging, Tags, Backlinks, Stream content. Media pending. |
+| 2026-02-01 | Users Module | Agent | ✅ | Verified User Schema & Repository. Validated AuthService integration. |
+| 2026-02-01 | Folders Module | Agent | ✅ | Implemented Audit logging. Verified generic parity. |
 
 ---
 
