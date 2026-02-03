@@ -53,8 +53,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const responseBody = {
             message,
             ...(this.configService.nodeEnv !== 'production' && { stack }),
-            timestamp: new Date().toISOString(),
-            path: request.url,
         };
 
         response.status(status).send(responseBody);
