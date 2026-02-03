@@ -11,6 +11,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
+import { FoldersModule } from './modules/folders/folders.module';
 
 @Module({
     imports: [
@@ -20,6 +21,7 @@ import { CalendarModule } from './modules/calendar/calendar.module';
         AuthModule,
         TasksModule,
         CalendarModule,
+        FoldersModule,
     ],
     controllers: [AppController],
     providers: [

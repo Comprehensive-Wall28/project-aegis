@@ -19,7 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CsrfGuard } from '../auth/guards/csrf.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-@Controller('api/calendar')
+@Controller('calendar')
 @UseGuards(JwtAuthGuard)
 export class CalendarController {
     constructor(private readonly calendarService: CalendarService) { }
