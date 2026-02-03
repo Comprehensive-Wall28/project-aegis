@@ -35,6 +35,10 @@ export const registerUser = async (app: AppTarget, userData: any) => {
         .post('/api/auth/register')
         .send(payload);
 
+    if (response.status !== 201) {
+        console.error('Registration failed:', response.status, response.body);
+    }
+
     return {
         response,
         cookies: extractCookies(response),
@@ -51,6 +55,10 @@ export const loginUser = async (app: AppTarget, credentials: any) => {
     const response = await getRequest(app)
         .post('/api/auth/login')
         .send(payload);
+
+    if (response.status !== 200) {
+        console.error('Login failed:', response.status, response.body);
+    }
 
     return {
         response,
@@ -72,47 +80,47 @@ export const getCsrfToken = async (app: AppTarget) => {
 };
 
 export const getAuthenticatedAgent = async (app: AppTarget, userData: any) => {
+    const agent = request.agent(typeof app === 'string' ? app : app.getHttpServer());
+    const email = userData.email.toLowerCase();
+    const password = userData.password.toLowerCase();
+
     // 1. Register
-    await registerUser(app, userData);
-
-    // 2. Login to get token (since register doesn't return it)
-    const loginRes = await loginUser(app, {
-        email: userData.email,
-        password: userData.password
-    });
-
-    const cookies = loginRes.cookies;
-    const token = cookies['token'];
-
-    // 3. Get CSRF Token
-    const csrfRes = await getCsrfToken(app);
-
-    // Create an agent that has these cookies set
-    const agentWithSession = request.agent(typeof app === 'string' ? app : app.getHttpServer());
-
-    // Need to manually set cookies on the agent?
-    // Supertest agents usually persist cookies if they receive them in responses.
-    // So we should perform the login WITH the agent.
-
-    await agentWithSession
-        .post('/api/auth/login')
+    const regRes = await agent
+        .post('/api/auth/register')
         .send({
-            email: userData.email,
-            argon2Hash: userData.password
+            username: userData.username,
+            email: email,
+            argon2Hash: password,
+            pqcPublicKey: userData.pqcPublicKey || 'test_key'
         });
 
-    // Get CSRF using the AGENT
-    const csrfResAgent = await agentWithSession.get('/api/auth/csrf-token');
-    const csrfToken = csrfResAgent.body.csrfToken;
+    if (regRes.status !== 201 && regRes.status !== 400) {
+        throw new Error(`Registration failed: ${regRes.status} ${JSON.stringify(regRes.body)}`);
+    }
 
-    const agentCookies = extractCookies(csrfResAgent);
-    const csrfCookieVal = agentCookies['XSRF-TOKEN'];
+    // 2. Login
+    const loginRes = await agent
+        .post('/api/auth/login')
+        .send({
+            email: email,
+            argon2Hash: password
+        });
+
+    if (loginRes.status !== 200) {
+        throw new Error(`Login failed: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+
+    // 3. Get CSRF
+    const csrfRes = await agent.get('/api/auth/csrf-token');
+    const csrfToken = csrfRes.body.csrfToken;
+    const cookies = extractCookies(csrfRes);
+    const csrfCookieVal = cookies['XSRF-TOKEN'];
 
     return {
-        agent: agentWithSession,
+        agent,
         csrfToken,
         csrfCookieVal,
-        accessToken: token, // Return the token from the first login (or extract from agent login if needed)
-        userId: null // We might need to get me to get ID, or parse from somewhere. Logic omitted for brevity as usually not needed for auth checks strictly unless we check ID match.
+        accessToken: extractCookies(loginRes)['token'],
+        userId: loginRes.body._id
     };
 };
