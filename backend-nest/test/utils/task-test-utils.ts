@@ -1,24 +1,7 @@
 import { SuperAgentTest } from 'supertest';
+import { TaskData, validTaskData } from '../fixtures/tasks.fixture';
 
-export interface TaskData {
-    encryptedData: string;
-    encapsulatedKey: string;
-    encryptedSymmetricKey: string;
-    dueDate?: string | Date;
-    priority?: 'high' | 'medium' | 'low';
-    status?: 'todo' | 'in_progress' | 'done';
-    recordHash: string;
-    mentions?: string[];
-}
-
-export const validTaskData: TaskData = {
-    encryptedData: 'test_encrypted_data',
-    encapsulatedKey: 'test_key',
-    encryptedSymmetricKey: 'test_sym_key',
-    priority: 'medium',
-    status: 'todo',
-    recordHash: 'test_hash'
-};
+export type { TaskData } from '../fixtures/tasks.fixture';
 
 const applyAuth = (req: any, csrfToken: string, accessToken?: string) => {
     req.set('X-XSRF-TOKEN', csrfToken);

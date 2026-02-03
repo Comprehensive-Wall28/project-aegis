@@ -1,6 +1,7 @@
 import * as request from 'supertest';
 import { getAuthenticatedAgent } from './helpers/auth.helper';
-import { validTaskData, createTask, getTasks, updateTask, deleteTask, reorderTasks } from './utils/task-test-utils';
+import { validTaskData } from './fixtures/tasks.fixture';
+import { createTask, getTasks, updateTask, deleteTask, reorderTasks } from './utils/task-test-utils';
 
 const APP_URL = 'http://127.0.0.1:5000';
 
@@ -137,6 +138,39 @@ describe('Task Domain E2E Tests (Express Backend)', () => {
             // This might or might not return results depending on what was created, 
             // but the status code should be 200.
             expect(Array.isArray(response.body)).toBe(true);
+        });
+
+        it('should support cursor-based pagination', async () => {
+            // Create multiple tasks to test pagination
+            await createTask(agent, csrfToken, {}, accessToken);
+            await createTask(agent, csrfToken, {}, accessToken);
+            await createTask(agent, csrfToken, {}, accessToken);
+
+            const firstPage = await agent
+                .get('/api/tasks')
+                .query({ limit: 2 })
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('X-XSRF-TOKEN', csrfToken)
+                .set('Cookie', [`XSRF-TOKEN=${csrfToken}`]);
+
+            expect(firstPage.status).toBe(200);
+            expect(firstPage.body).toHaveProperty('items');
+            expect(firstPage.body).toHaveProperty('nextCursor');
+            expect(firstPage.body.items.length).toBe(2);
+
+            if (firstPage.body.nextCursor) {
+                const secondPage = await agent
+                    .get('/api/tasks')
+                    .query({ limit: 2, cursor: firstPage.body.nextCursor })
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('X-XSRF-TOKEN', csrfToken)
+                    .set('Cookie', [`XSRF-TOKEN=${csrfToken}`]);
+
+                expect(secondPage.status).toBe(200);
+                expect(secondPage.body).toHaveProperty('items');
+                // Should have different items than first page
+                expect(secondPage.body.items[0]._id).not.toBe(firstPage.body.items[0]._id);
+            }
         });
     });
 
