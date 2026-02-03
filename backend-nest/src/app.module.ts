@@ -9,6 +9,7 @@ import { PerformanceInterceptor } from './common/interceptors/performance.interc
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AuthModule } from './modules/auth/auth.module';
 import { CommonModule } from './common/common.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { CommonModule } from './common/common.module';
         ConfigModule,
         DatabaseModule,
         AuthModule,
+        TasksModule,
     ],
     controllers: [AppController],
     providers: [

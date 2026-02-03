@@ -30,6 +30,6 @@ import { CsrfService } from './csrf.service';
         CsrfGuard,
         CsrfService
     ],
-    exports: [AuthService, JwtAuthGuard],
+    exports: [AuthService, JwtAuthGuard, JwtModule, CsrfService, CsrfGuard, UserRepository],
 })
 export class AuthModule { }
