@@ -21,16 +21,23 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
         let status = HttpStatus.INTERNAL_SERVER_ERROR;
         let message = 'Internal server error';
+        let code: string | undefined;
         let stack: string | undefined;
 
         if (exception instanceof HttpException) {
             status = exception.getStatus();
             const res = exception.getResponse();
-            message = typeof res === 'string' ? res : (res as any).message || message;
+            if (typeof res === 'string') {
+                message = res;
+            } else {
+                message = (res as any).message || message;
+                code = (res as any).code;
+            }
             stack = exception.stack;
         } else if (this.isServiceError(exception)) {
             status = exception.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
             message = exception.message;
+            code = exception.code;
             stack = exception.stack;
         } else if (exception instanceof Error) {
             message = exception.message;
@@ -52,6 +59,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
         const responseBody = {
             message,
+            code,
             ...(this.configService.nodeEnv !== 'production' && { stack }),
         };
 

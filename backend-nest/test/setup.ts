@@ -4,7 +4,9 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import * as dotenv from 'dotenv';
+import fastifyCookie from '@fastify/cookie';
 import { AppModule } from '../src/app.module';
+import { AppConfigService } from '../src/config/config.service';
 
 dotenv.config();
 
@@ -77,6 +79,11 @@ export async function createTestApp(): Promise<{ app: NestFastifyApplication; mo
     const app = moduleFixture.createNestApplication<NestFastifyApplication>(
         new FastifyAdapter(),
     );
+
+    const configService = app.get(AppConfigService);
+    await app.register(fastifyCookie as any, {
+        secret: configService.cookieEncryptionKey,
+    });
 
     app.useGlobalPipes(
         new ValidationPipe({

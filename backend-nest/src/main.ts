@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import fastifyCookie from '@fastify/cookie';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/config.service';
 import { AppLogger } from './common/logger/logger.service';
@@ -12,6 +13,10 @@ async function bootstrap() {
     );
 
     const configService = app.get(AppConfigService);
+
+    await app.register(fastifyCookie as any, {
+        secret: configService.cookieEncryptionKey,
+    });
     const logger = app.get(AppLogger);
 
     app.useLogger(logger);

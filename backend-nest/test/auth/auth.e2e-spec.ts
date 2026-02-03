@@ -9,11 +9,9 @@ import {
     extractCookies
 } from '../helpers/auth.helper';
 import { validUserData, invalidUserData } from '../fixtures/users.fixture';
+import { createTestApp, closeDatabase, cleanupDatabase } from '../setup';
 
-// URL of the running Express backend
-const appUrl = 'http://localhost:5000';
-// In the future, this will be the Nest app
-let app: INestApplication | string = appUrl;
+let app: INestApplication;
 
 describe('Auth E2E', () => {
 
@@ -24,8 +22,18 @@ describe('Auth E2E', () => {
         email: `user_${Date.now()}_${Math.floor(Math.random() * 1000)}@example.com`,
     });
 
+    beforeAll(async () => {
+        const { app: testApp } = await createTestApp();
+        app = testApp;
+    });
+
+    afterAll(async () => {
+        await closeDatabase();
+        await app.close();
+    });
+
     it('should return 404 for unknown auth route', async () => {
-        const response = await request(appUrl).get('/api/auth/unknown-route');
+        const response = await request(app.getHttpServer()).get('/api/auth/unknown-route');
         expect(response.status).toBe(404);
     });
 
@@ -187,7 +195,7 @@ describe('Auth E2E', () => {
             // user should be logged out
         });
         it('should reject unauthenticated request', async () => {
-            const response = await request(appUrl).post('/api/auth/logout');
+            const response = await request(app.getHttpServer()).post('/api/auth/logout');
             // Should likely be 401
             expect(response.status).toBe(401);
         });
@@ -197,7 +205,7 @@ describe('Auth E2E', () => {
             await agent.post('/api/auth/logout').set('Authorization', `Bearer ${accessToken}`);
 
             // Try to use old token
-            const response = await request(appUrl)
+            const response = await request(app.getHttpServer())
                 .get('/api/auth/me')
                 .set('Authorization', `Bearer ${accessToken}`);
             expect(response.status).toBe(401);
@@ -228,19 +236,19 @@ describe('Auth E2E', () => {
             expect(response.body).toHaveProperty('email', user.email);
         });
         it('should return 401 for unauthenticated request', async () => {
-            const response = await request(appUrl).get('/api/auth/me');
+            const response = await request(app.getHttpServer()).get('/api/auth/me');
             expect(response.status).toBe(401); // Or 403 if CSRF fails first? 
             // Middleware order: protect, csrfProtection.
             // protect checks token first. So 401.
         });
 
         it('should reject invalid Authorization header format', async () => {
-            const response = await request(appUrl).get('/api/auth/me').set('Authorization', 'InvalidFormat');
+            const response = await request(app.getHttpServer()).get('/api/auth/me').set('Authorization', 'InvalidFormat');
             expect(response.status).toBe(401);
         });
 
         it('should reject malformed token', async () => {
-            const response = await request(appUrl)
+            const response = await request(app.getHttpServer())
                 .get('/api/auth/me')
                 .set('Authorization', 'Bearer malformed.token.here');
             expect(response.status).toBe(401); // or 400? Middleware says: verify -> throws -> 401 usually.
@@ -350,7 +358,7 @@ describe('Auth E2E', () => {
             const user = createUniqueUser();
             await registerUser(app, user);
 
-            const response = await request(appUrl)
+            const response = await request(app.getHttpServer())
                 .post('/api/auth/webauthn/login-options')
                 .send({ email: user.email });
             expect(response.status).toBe(200);
@@ -371,7 +379,7 @@ describe('Auth E2E', () => {
             const user = createUniqueUser();
             await registerUser(app, user);
 
-            const response = await request(appUrl)
+            const response = await request(app.getHttpServer())
                 .post('/api/auth/webauthn/login-verify')
                 .send({ email: user.email, body: { id: 'bad' } });
             expect(response.status).toBe(400);
@@ -424,7 +432,7 @@ describe('Auth E2E', () => {
             // But wait, `loginUser` test uses `cookies`.
             // Let's verify token2 is string.
             if (token2) {
-                const meRes3 = await request(appUrl).get('/api/auth/me').set('Authorization', `Bearer ${token2}`);
+                const meRes3 = await request(app.getHttpServer()).get('/api/auth/me').set('Authorization', `Bearer ${token2}`);
                 expect(meRes3.status).toBe(401);
             }
         });

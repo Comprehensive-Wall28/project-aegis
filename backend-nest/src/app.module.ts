@@ -7,11 +7,15 @@ import { AppLogger } from './common/logger/logger.service';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AuthModule } from './modules/auth/auth.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
     imports: [
+        CommonModule,
         ConfigModule,
         DatabaseModule,
+        AuthModule,
     ],
     controllers: [AppController],
     providers: [
