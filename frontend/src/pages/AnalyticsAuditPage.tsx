@@ -18,6 +18,7 @@ import auditService, { type AuditAction, type AuditStatus } from '@/services/aud
 import { usePasswordGate } from '@/hooks/usePasswordGate';
 import { PasswordGateDialog } from '@/components/analytics/PasswordGateDialog';
 import { DebouncedSearchInput } from '@/components/common/DebouncedSearchInput';
+import { AuditLogDetailOverlay } from '@/components/analytics/AuditLogDetailOverlay';
 
 export default function AnalyticsAuditPage() {
     const theme = useTheme();
@@ -25,6 +26,10 @@ export default function AnalyticsAuditPage() {
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0);
+
+    // Overlay state
+    const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
+    const [isOverlayOpen, setIsOverlayOpen] = useState(false);
 
     // Filters and pagination state
     const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +67,11 @@ export default function AnalyticsAuditPage() {
             fetchLogs();
         }
     }, [isAuthenticated, password, fetchLogs]);
+
+    const handleViewDetails = useCallback((log: AuditLogEntry) => {
+        setSelectedLog(log);
+        setIsOverlayOpen(true);
+    }, []);
 
     const columns: GridColDef<AuditLogEntry>[] = [
         {
@@ -142,39 +152,27 @@ export default function AnalyticsAuditPage() {
         {
             field: 'metadata',
             headerName: 'Details',
-            minWidth: 300,
+            minWidth: 120,
             flex: 1,
-            renderCell: (params) => {
-                const metadata = params.value as Record<string, unknown>;
-                if (!metadata || Object.keys(metadata).length === 0) {
-                    return (
-                        <Typography variant="caption" color="text.secondary">
-                            No additional details
-                        </Typography>
-                    );
-                }
-                return (
-                    <Box sx={{ maxWidth: '100%', overflow: 'hidden', py: 0.5 }}>
-                        {Object.entries(metadata).slice(0, 2).map(([key, val]) => (
-                            <Typography
-                                key={key}
-                                variant="caption"
-                                sx={{
-                                    display: 'block',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    fontSize: '0.7rem',
-                                    color: theme.palette.text.primary,
-                                }}
-                            >
-                                <Box component="span" sx={{ fontWeight: 800, color: theme.palette.text.secondary }}>{key}:</Box>{' '}
-                                {typeof val === 'object' ? JSON.stringify(val) : String(val)}
-                            </Typography>
-                        ))}
-                    </Box>
-                );
-            },
+            renderCell: (params) => (
+                <Box
+                    onClick={() => handleViewDetails(params.row)}
+                    sx={{
+                        cursor: 'pointer',
+                        color: theme.palette.primary.main,
+                        fontWeight: 700,
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        '&:hover': {
+                            textDecoration: 'underline',
+                            color: theme.palette.primary.dark,
+                        }
+                    }}
+                >
+                    View Details
+                </Box>
+            ),
         },
     ];
 
@@ -284,6 +282,12 @@ export default function AnalyticsAuditPage() {
                     }}
                 />
             </Paper>
+
+            <AuditLogDetailOverlay
+                open={isOverlayOpen}
+                onClose={() => setIsOverlayOpen(false)}
+                log={selectedLog}
+            />
         </Box>
     );
 }
