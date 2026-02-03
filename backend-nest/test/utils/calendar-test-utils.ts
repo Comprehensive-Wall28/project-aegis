@@ -24,9 +24,7 @@ export const validCalendarEventData: CalendarEventData = {
     mentions: []
 };
 
-const applyAuth = (req: any, csrfToken: string, accessToken?: string) => {
-    req.set('X-XSRF-TOKEN', csrfToken);
-    req.set('Cookie', [`XSRF-TOKEN=${csrfToken}`]);
+const applyAuth = (req: any, accessToken?: string) => {
     if (accessToken) {
         req.set('Authorization', `Bearer ${accessToken}`);
     }
@@ -35,45 +33,41 @@ const applyAuth = (req: any, csrfToken: string, accessToken?: string) => {
 
 export const createEvent = async (
     agent: SuperAgentTest,
-    csrfToken: string,
     data: Partial<CalendarEventData> = {},
     accessToken?: string
 ) => {
     const req = agent.post('/api/calendar');
-    applyAuth(req, csrfToken, accessToken);
+    applyAuth(req, accessToken);
     return req.send({ ...validCalendarEventData, ...data });
 };
 
 export const getEvents = async (
     agent: SuperAgentTest,
-    csrfToken: string,
     params: { start?: string; end?: string; limit?: number; cursor?: string } = {},
     accessToken?: string
 ) => {
     const req = agent.get('/api/calendar').query(params);
-    applyAuth(req, csrfToken, accessToken);
+    applyAuth(req, accessToken);
     return req;
 };
 
 export const updateEvent = async (
     agent: SuperAgentTest,
-    csrfToken: string,
     eventId: string,
     data: any,
     accessToken?: string
 ) => {
     const req = agent.put(`/api/calendar/${eventId}`);
-    applyAuth(req, csrfToken, accessToken);
+    applyAuth(req, accessToken);
     return req.send(data);
 };
 
 export const deleteEvent = async (
     agent: SuperAgentTest,
-    csrfToken: string,
     eventId: string,
     accessToken?: string
 ) => {
     const req = agent.delete(`/api/calendar/${eventId}`);
-    applyAuth(req, csrfToken, accessToken);
+    applyAuth(req, accessToken);
     return req;
 };

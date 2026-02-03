@@ -17,7 +17,6 @@ import { UpdateFolderDto } from './dto/update-folder.dto';
 import { MoveFilesDto } from './dto/move-files.dto';
 import { GetFoldersQueryDto } from './dto/get-folders-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CsrfGuard } from '../auth/guards/csrf.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('folders')
@@ -50,7 +49,6 @@ export class FolderController {
     }
 
     @Post()
-    @UseGuards(CsrfGuard)
     @HttpCode(HttpStatus.CREATED)
     async createFolder(
         @CurrentUser() user: any,
@@ -60,7 +58,6 @@ export class FolderController {
     }
 
     @Put(':id')
-    @UseGuards(CsrfGuard)
     async updateFolder(
         @CurrentUser() user: any,
         @Param('id') id: string,
@@ -70,7 +67,6 @@ export class FolderController {
     }
 
     @Delete(':id')
-    @UseGuards(CsrfGuard)
     async deleteFolder(
         @CurrentUser() user: any,
         @Param('id') id: string
@@ -80,7 +76,6 @@ export class FolderController {
     }
 
     @Put('move-files')
-    @UseGuards(CsrfGuard)
     async moveFiles(
         @CurrentUser() user: any,
         @Body() moveFilesDto: MoveFilesDto

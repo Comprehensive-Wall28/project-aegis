@@ -5,7 +5,6 @@ import {
     registerUser,
     loginUser,
     getAuthenticatedAgent,
-    getCsrfToken,
     extractCookies
 } from '../helpers/auth.helper';
 import { validUserData, invalidUserData } from '../fixtures/users.fixture';
@@ -214,7 +213,6 @@ describe('Auth E2E', () => {
 
     describe('GET /api/auth/me', () => {
         let agent: request.SuperAgentTest;
-        let csrfToken: string;
         let accessToken: string;
         let user: any;
 
@@ -222,15 +220,13 @@ describe('Auth E2E', () => {
             user = createUniqueUser();
             const auth = await getAuthenticatedAgent(app, user);
             agent = auth.agent;
-            csrfToken = auth.csrfToken;
             accessToken = auth.accessToken;
         });
 
         it('should return current user for authenticated request', async () => {
             const response = await agent
                 .get('/api/auth/me')
-                .set('Authorization', `Bearer ${accessToken}`)
-                .set('X-XSRF-TOKEN', csrfToken);
+                .set('Authorization', `Bearer ${accessToken}`);
 
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('email', user.email);
@@ -257,96 +253,29 @@ describe('Auth E2E', () => {
         it('should include encryption public keys', async () => {
             const response = await agent
                 .get('/api/auth/me')
-                .set('Authorization', `Bearer ${accessToken}`)
-                .set('X-XSRF-TOKEN', csrfToken);
+                .set('Authorization', `Bearer ${accessToken}`);
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('pqcPublicKey');
         });
 
-        it('should fail if CSRF token is missing', async () => {
-            // Authenticated but no CSRF header. Use PUT as GET ignores CSRF.
-            const response = await agent.put('/api/auth/me').set('Authorization', `Bearer ${accessToken}`);
-            expect(response.status).toBe(403);
-            expect(response.body.code).toBe('EBADCSRFTOKEN');
-        });
-    });
-    describe('CSRF Protection', () => {
-        it('should return CSRF token endpoint', async () => {
-            const { csrfToken, csrfCookie } = await getCsrfToken(app);
-            expect(csrfToken).toBeDefined();
-            expect(csrfCookie).toBeDefined();
-            expect(csrfToken).toEqual(csrfCookie);
-        });
-
-        it('should reject protected route without CSRF token', async () => {
-            const { agent, accessToken } = await getAuthenticatedAgent(app, createUniqueUser());
-            const response = await agent.put('/api/auth/me').set('Authorization', `Bearer ${accessToken}`);
-            expect(response.status).toBe(403);
-        });
-
-        it('should reject protected route with invalid CSRF token', async () => {
-            const { agent, accessToken } = await getAuthenticatedAgent(app, createUniqueUser());
-            const response = await agent
-                .put('/api/auth/me')
-                .set('Authorization', `Bearer ${accessToken}`)
-                .set('X-XSRF-TOKEN', 'invalid-token')
-                .send({});
-            expect(response.status).toBe(403);
-        });
-
-        it('should accept protected PUT with valid CSRF token', async () => {
-            const { agent, accessToken, csrfToken, csrfCookieVal } = await getAuthenticatedAgent(app, createUniqueUser());
-            const response = await agent
-                .put('/api/auth/me')
-                .set('Authorization', `Bearer ${accessToken}`)
-                .set('X-XSRF-TOKEN', csrfToken)
-                .set('Cookie', `XSRF-TOKEN=${csrfCookieVal}`)
-                .send({ username: 'newname_' + Date.now() });
-            expect(response.status).toBe(200);
-        });
-
-        it('should reject protected POST route without CSRF token', async () => {
-            const { agent, accessToken } = await getAuthenticatedAgent(app, createUniqueUser());
-            const response = await agent
-                .post('/api/auth/webauthn/register-verify')
-                .set('Authorization', `Bearer ${accessToken}`)
-                .send({ response: {} });
-            expect(response.status).toBe(403);
-            expect(response.body.code).toBe('EBADCSRFTOKEN');
-        });
-
-        // DELETE is not used in auth routes currently?
-        // But if implemented, it should be rejected.
-        // We can't test DELETE if no route exists? 404 vs 403.
-        // `app.use('/api/auth', authRoutes)`
-        // If I make up a DELETE route, it returns 404. CSRF might not run if route not matched? 
-        // Express router runs middleware then matches? 
-        // `router.use(csrfProtection)` is NOT global. It is per route.
-        // `router.delete('/logout', ...)` ? Logout is POST.
-        // So no DELETE routes to test. Skipping DELETE.
 
     });
+
 
     describe('WebAuthn (Basic API Contract)', () => {
         let agent: request.SuperAgentTest;
-        let csrfToken: string;
         let accessToken: string;
-        let csrfCookieVal: string;
 
         beforeEach(async () => {
             const auth = await getAuthenticatedAgent(app, createUniqueUser());
             agent = auth.agent;
-            csrfToken = auth.csrfToken;
             accessToken = auth.accessToken;
-            csrfCookieVal = auth.csrfCookieVal;
         });
 
         it('should return registration options', async () => {
             const response = await agent
                 .post('/api/auth/webauthn/register-options')
-                .set('Authorization', `Bearer ${accessToken}`)
-                .set('X-XSRF-TOKEN', csrfToken)
-                .set('Cookie', `XSRF-TOKEN=${csrfCookieVal}`); // Manually set cookie
+                .set('Authorization', `Bearer ${accessToken}`);
             if (response.status !== 200) {
                 console.log('WebAuthn Reg Options Error:', JSON.stringify(response.body, null, 2));
             }
@@ -369,8 +298,6 @@ describe('Auth E2E', () => {
             const response = await agent
                 .post('/api/auth/webauthn/register-verify')
                 .set('Authorization', `Bearer ${accessToken}`)
-                .set('X-XSRF-TOKEN', csrfToken)
-                .set('Cookie', `XSRF-TOKEN=${csrfCookieVal}`)
                 .send({ response: {} });
             expect(response.status).toBe(400);
         });
@@ -409,12 +336,11 @@ describe('Auth E2E', () => {
 
 
             // 3. Authenticated Agent usage
-            const { agent, accessToken, csrfToken } = await getAuthenticatedAgent(app, { ...user, password: user.password });
+            const { agent, accessToken } = await getAuthenticatedAgent(app, { ...user, password: user.password });
 
             // 4. Me
             const meRes = await agent.get('/api/auth/me')
-                .set('Authorization', `Bearer ${accessToken}`)
-                .set('X-XSRF-TOKEN', csrfToken);
+                .set('Authorization', `Bearer ${accessToken}`);
             expect(meRes.status).toBe(200);
 
             // 5. Logout

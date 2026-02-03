@@ -5,7 +5,6 @@ import {
     getMe,
     updateMe,
     logoutUser,
-    getCsrfToken,
     getRegistrationOptions,
     verifyRegistration,
     getAuthenticationOptions,
@@ -14,7 +13,6 @@ import {
     discoverUser,
 } from '../controllers/authController';
 import { protect } from '../middleware/authMiddleware';
-import { csrfProtection, csrfTokenCookie } from '../middleware/customCsrf';
 
 const router = express.Router();
 
@@ -22,22 +20,21 @@ const router = express.Router();
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 
-// CSRF token endpoint - applies CSRF to set the cookie, then returns the token
-router.get('/csrf-token', csrfProtection, csrfTokenCookie, getCsrfToken);
 
-// Protected routes WITH CSRF protection
-router.get('/me', protect, csrfProtection, getMe);
-router.put('/me', protect, csrfProtection, updateMe);
-router.get('/discovery/:email', protect, csrfProtection, discoverUser);
 
-// Logout - protected to get user ID for token invalidation, no CSRF (cookie might be stale)
+// Protected routes
+router.get('/me', protect, getMe);
+router.put('/me', protect, updateMe);
+router.get('/discovery/:email', protect, discoverUser);
+
+// Logout - protected to get user ID for token invalidation
 router.post('/logout', protect, logoutUser);
 
 // WebAuthn routes
-router.post('/webauthn/register-options', protect, csrfProtection, getRegistrationOptions);
-router.post('/webauthn/register-verify', protect, csrfProtection, verifyRegistration);
+router.post('/webauthn/register-options', protect, getRegistrationOptions);
+router.post('/webauthn/register-verify', protect, verifyRegistration);
 router.post('/webauthn/login-options', getAuthenticationOptions);
 router.post('/webauthn/login-verify', verifyAuthentication);
-router.delete('/webauthn/passkey', protect, csrfProtection, removePasskey);
+router.delete('/webauthn/passkey', protect, removePasskey);
 
 export default router;

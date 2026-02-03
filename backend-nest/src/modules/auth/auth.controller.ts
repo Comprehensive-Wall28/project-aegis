@@ -20,17 +20,14 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CsrfGuard } from './guards/csrf.guard';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { CsrfService } from './csrf.service';
 
 @Controller('auth')
 export class AuthController {
     constructor(
         private authService: AuthService,
-        private configService: ConfigService,
-        private csrfService: CsrfService
+        private configService: ConfigService
     ) { }
 
     private setAuthCookie(res: FastifyReply, token: string) {
@@ -57,15 +54,7 @@ export class AuthController {
         });
     }
 
-    private setCsrfCookie(res: FastifyReply, token: string) {
-        const isProd = this.configService.get('NODE_ENV') === 'production';
-        (res as any).setCookie('XSRF-TOKEN', token, {
-            httpOnly: false, // Must be readable by frontend JS
-            secure: isProd,
-            sameSite: isProd ? 'none' : 'lax',
-            path: '/',
-        });
-    }
+
 
     @Public()
     @Post('register')
@@ -98,29 +87,21 @@ export class AuthController {
         return { ...result, message: 'Login successful' };
     }
 
-    @Public() // CSRF token generation is public
-    @Get('csrf-token')
-    getCsrfToken(@Res({ passthrough: true }) res: FastifyReply) {
-        const signedToken = this.csrfService.createSignedToken();
-        this.setCsrfCookie(res, signedToken);
-        // Express returned: { csrfToken: res.locals.csrfToken }. 
-        // We return the same signed token.
-        return { csrfToken: signedToken };
-    }
 
-    @UseGuards(JwtAuthGuard, CsrfGuard)
+
+    @UseGuards(JwtAuthGuard)
     @Get('me')
     async getMe(@CurrentUser() user: any) {
         return this.authService.getMe(user.id);
     }
 
-    @UseGuards(JwtAuthGuard, CsrfGuard)
+    @UseGuards(JwtAuthGuard)
     @Get('discovery/:email')
     async discoverUser(@Param('email') email: string) {
         return this.authService.discoverUser(email);
     }
 
-    @UseGuards(JwtAuthGuard, CsrfGuard)
+    @UseGuards(JwtAuthGuard)
     @Put('me')
     async updateMe(
         @CurrentUser() user: any,
@@ -144,14 +125,14 @@ export class AuthController {
     }
 
     // WebAuthn
-    @UseGuards(JwtAuthGuard, CsrfGuard)
+    @UseGuards(JwtAuthGuard)
     @Post('webauthn/register-options')
     @HttpCode(200)
     async getRegistrationOptions(@CurrentUser() user: any) {
         return this.authService.getRegistrationOptions(user.id);
     }
 
-    @UseGuards(JwtAuthGuard, CsrfGuard)
+    @UseGuards(JwtAuthGuard)
     @Post('webauthn/register-verify')
     @HttpCode(200)
     async verifyRegistration(
@@ -190,11 +171,11 @@ export class AuthController {
         return { ...result, message: 'Login successful' };
     }
 
-    @UseGuards(JwtAuthGuard, CsrfGuard)
+    @UseGuards(JwtAuthGuard)
     @Post('password/remove') // Express route was just `removePassword` in controller map?
     async removePasskeyPlaceholder() { } // Just comment
 
-    @UseGuards(JwtAuthGuard, CsrfGuard)
+    @UseGuards(JwtAuthGuard)
     @Delete('webauthn/passkey')
     async removePasskey(
         @CurrentUser() user: any,

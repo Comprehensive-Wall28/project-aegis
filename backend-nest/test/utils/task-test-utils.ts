@@ -3,9 +3,7 @@ import { TaskData, validTaskData } from '../fixtures/tasks.fixture';
 
 export type { TaskData } from '../fixtures/tasks.fixture';
 
-const applyAuth = (req: any, csrfToken: string, accessToken?: string) => {
-    req.set('X-XSRF-TOKEN', csrfToken);
-    req.set('Cookie', [`XSRF-TOKEN=${csrfToken}`]); // Manually set CSRF cookie
+const applyAuth = (req: any, accessToken?: string) => {
     if (accessToken) {
         req.set('Authorization', `Bearer ${accessToken}`);
     }
@@ -14,56 +12,51 @@ const applyAuth = (req: any, csrfToken: string, accessToken?: string) => {
 
 export const createTask = async (
     agent: SuperAgentTest,
-    csrfToken: string,
     data: Partial<TaskData> = {},
     accessToken?: string
 ) => {
     const req = agent.post('/api/tasks');
-    applyAuth(req, csrfToken, accessToken);
+    applyAuth(req, accessToken);
     return req.send({ ...validTaskData, ...data });
 };
 
 export const getTasks = async (
     agent: SuperAgentTest,
-    csrfToken: string,
     params: { status?: string; priority?: string; limit?: number; cursor?: string } = {},
     accessToken?: string
 ) => {
     const req = agent.get('/api/tasks').query(params);
-    applyAuth(req, csrfToken, accessToken);
+    applyAuth(req, accessToken);
     return req;
 };
 
 export const updateTask = async (
     agent: SuperAgentTest,
-    csrfToken: string,
     taskId: string,
     data: any,
     accessToken?: string
 ) => {
     const req = agent.put(`/api/tasks/${taskId}`);
-    applyAuth(req, csrfToken, accessToken);
+    applyAuth(req, accessToken);
     return req.send(data);
 };
 
 export const deleteTask = async (
     agent: SuperAgentTest,
-    csrfToken: string,
     taskId: string,
     accessToken?: string
 ) => {
     const req = agent.delete(`/api/tasks/${taskId}`);
-    applyAuth(req, csrfToken, accessToken);
+    applyAuth(req, accessToken);
     return req;
 };
 
 export const reorderTasks = async (
     agent: SuperAgentTest,
-    csrfToken: string,
     updates: Array<{ id: string; status?: string; order: number }>,
     accessToken?: string
 ) => {
     const req = agent.put('/api/tasks/reorder');
-    applyAuth(req, csrfToken, accessToken);
+    applyAuth(req, accessToken);
     return req.send({ updates });
 };

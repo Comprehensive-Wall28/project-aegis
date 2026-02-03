@@ -61,8 +61,7 @@ app.use(helmet({
 app.use(express.json());
 app.use(cookieParser());
 
-// CSRF Protection is applied per-route via middleware/customCsrf.ts
-// Login/register are excluded to prevent race conditions on fresh page loads.
+
 
 app.use('/api/auth', authRoutes);
 app.use('/api/vault', vaultRoutes);

@@ -8,13 +8,10 @@ import {
     moveFiles,
 } from '../controllers/folderController';
 import { protect } from '../middleware/authMiddleware';
-import { csrfProtection } from '../middleware/customCsrf';
-
 const router = Router();
 
-// All routes require authentication and CSRF protection
+// All routes require authentication
 router.use(protect);
-router.use(csrfProtection);
 
 // File operations (must be before /:id routes to prevent matching 'move-files' as id)
 router.put('/move-files', moveFiles);

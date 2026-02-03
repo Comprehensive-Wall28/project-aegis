@@ -16,7 +16,6 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventFilterDto } from './dto/event-filter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CsrfGuard } from '../auth/guards/csrf.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('calendar')
@@ -40,7 +39,6 @@ export class CalendarController {
     }
 
     @Post()
-    @UseGuards(CsrfGuard)
     @HttpCode(HttpStatus.CREATED)
     async createEvent(
         @CurrentUser() user: any,
@@ -50,7 +48,6 @@ export class CalendarController {
     }
 
     @Put(':id')
-    @UseGuards(CsrfGuard)
     async updateEvent(
         @CurrentUser() user: any,
         @Param('id') id: string,
@@ -60,7 +57,6 @@ export class CalendarController {
     }
 
     @Delete(':id')
-    @UseGuards(CsrfGuard)
     async deleteEvent(
         @CurrentUser() user: any,
         @Param('id') id: string

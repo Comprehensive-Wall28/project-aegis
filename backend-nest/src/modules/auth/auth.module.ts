@@ -8,8 +8,7 @@ import { AuthService } from './auth.service';
 import { UserRepository } from './user.repository';
 import { User, UserSchema } from './user.schema';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CsrfGuard } from './guards/csrf.guard';
-import { CsrfService } from './csrf.service';
+import { RegisterDto } from './dto/register.dto'; // Wait, this isn't in imports, checking file 
 
 @Module({
     imports: [
@@ -26,10 +25,8 @@ import { CsrfService } from './csrf.service';
     providers: [
         AuthService,
         UserRepository,
-        JwtAuthGuard,
-        CsrfGuard,
-        CsrfService
+        JwtAuthGuard
     ],
-    exports: [AuthService, JwtAuthGuard, JwtModule, CsrfService, CsrfGuard, UserRepository],
+    exports: [AuthService, JwtAuthGuard, JwtModule, UserRepository],
 })
 export class AuthModule { }

@@ -9,13 +9,10 @@ import {
     migrateCourse,
 } from '../controllers/gpaController';
 import { protect } from '../middleware/authMiddleware';
-import { csrfProtection } from '../middleware/customCsrf';
-
 const router = Router();
 
-// All routes require authentication and CSRF protection
+// All routes require authentication
 router.use(protect);
-router.use(csrfProtection);
 
 // Course CRUD (encrypted data only)
 router.get('/courses', getCourses);

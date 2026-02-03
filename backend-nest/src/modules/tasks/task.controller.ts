@@ -17,7 +17,6 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { ReorderTaskDto } from './dto/reorder-task.dto';
 import { TaskFilterDto } from './dto/task-filter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CsrfGuard } from '../auth/guards/csrf.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('tasks')
@@ -49,7 +48,6 @@ export class TaskController {
     }
 
     @Post()
-    @UseGuards(CsrfGuard)
     @HttpCode(HttpStatus.CREATED)
     async createTask(
         @CurrentUser() user: any,
@@ -59,7 +57,6 @@ export class TaskController {
     }
 
     @Put('reorder')
-    @UseGuards(CsrfGuard)
     async reorderTasks(
         @CurrentUser() user: any,
         @Body() reorderDto: ReorderTaskDto
@@ -69,7 +66,6 @@ export class TaskController {
     }
 
     @Put(':id')
-    @UseGuards(CsrfGuard)
     async updateTask(
         @CurrentUser() user: any,
         @Param('id') id: string,
@@ -79,7 +75,6 @@ export class TaskController {
     }
 
     @Delete(':id')
-    @UseGuards(CsrfGuard)
     async deleteTask(
         @CurrentUser() user: any,
         @Param('id') id: string

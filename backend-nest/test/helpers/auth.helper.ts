@@ -66,18 +66,7 @@ export const loginUser = async (app: AppTarget, credentials: any) => {
     };
 };
 
-export const getCsrfToken = async (app: AppTarget) => {
-    const response = await getRequest(app).get('/api/auth/csrf-token');
-    const cookies = extractCookies(response);
-    const csrfCookie = cookies['XSRF-TOKEN'];
-    const csrfToken = response.body.csrfToken; // Signed token from body
 
-    return {
-        csrfCookie, // The cookie value (signed)
-        csrfToken,  // The body value (signed), which should match cookie
-        response,
-    };
-};
 
 export const getAuthenticatedAgent = async (app: AppTarget, userData: any) => {
     const agent = request.agent(typeof app === 'string' ? app : app.getHttpServer());
@@ -110,16 +99,8 @@ export const getAuthenticatedAgent = async (app: AppTarget, userData: any) => {
         throw new Error(`Login failed: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
     }
 
-    // 3. Get CSRF
-    const csrfRes = await agent.get('/api/auth/csrf-token');
-    const csrfToken = csrfRes.body.csrfToken;
-    const cookies = extractCookies(csrfRes);
-    const csrfCookieVal = cookies['XSRF-TOKEN'];
-
     return {
         agent,
-        csrfToken,
-        csrfCookieVal,
         accessToken: extractCookies(loginRes)['token'],
         userId: loginRes.body._id
     };
