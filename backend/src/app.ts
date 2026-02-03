@@ -18,7 +18,9 @@ import shareRoutes from './routes/shareRoutes';
 import publicRoutes from './routes/publicRoutes';
 import mentionRoutes from './routes/mentionRoutes';
 import activityRoutes from './routes/activityRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
 import { errorHandler } from './middleware/errorHandler';
+import { analyticsMiddleware } from './middleware/analyticsMiddleware';
 import { config, validateConfig } from './config/env';
 
 // Validate config on startup
@@ -61,6 +63,10 @@ app.use(helmet({
 app.use(express.json());
 app.use(cookieParser());
 
+// Analytics middleware - captures performance metrics for all requests
+// Must be registered before route handlers to capture complete request lifecycle
+app.use(analyticsMiddleware);
+
 // CSRF Protection is applied per-route via middleware/customCsrf.ts
 // Login/register are excluded to prevent race conditions on fresh page loads.
 
@@ -78,6 +84,7 @@ app.use('/api/share', shareRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/mentions', mentionRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 app.use(errorHandler);
 

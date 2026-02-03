@@ -26,6 +26,7 @@ import {
     Home,
     Users,
     Link as LinkIcon,
+    AlertTriangle,
     type LucideIcon,
 } from 'lucide-react';
 import type { AuditLog, AuditAction } from '@/services/auditService';
@@ -69,6 +70,7 @@ const ACTION_ICON_MAP: Record<AuditAction, LucideIcon> = {
     ROOM_JOIN: Users,
     LINK_POST: LinkIcon,
     COLLECTION_DELETE: Trash2,
+    API_ERROR: AlertTriangle,
 };
 
 // Color scheme for different action categories

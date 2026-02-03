@@ -47,7 +47,8 @@ export type AuditAction =
     | 'COLLECTION_DELETE'
     | 'COLLECTION_UPDATE'
     | 'COLLECTION_REORDER'
-    | 'READER_VIEW_ACCESS';
+    | 'READER_VIEW_ACCESS'
+    | 'API_ERROR';
 
 export type AuditStatus = 'SUCCESS' | 'FAILURE';
 
@@ -90,7 +91,8 @@ export const AuditLogSchema: Schema = new Schema({
             'ROOM_CREATE', 'ROOM_INVITE_CREATE', 'ROOM_JOIN', 'ROOM_LEAVE', 'ROOM_DELETE',
             'LINK_POST', 'LINK_DELETE', 'LINK_MOVE', 'LINK_COMMENT_ADD', 'LINK_COMMENT_DELETE',
             'COLLECTION_CREATE', 'COLLECTION_DELETE', 'COLLECTION_UPDATE', 'COLLECTION_REORDER',
-            'READER_VIEW_ACCESS'
+            'READER_VIEW_ACCESS',
+            'API_ERROR'
         ]
     },
     status: {

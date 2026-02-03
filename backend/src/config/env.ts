@@ -51,6 +51,9 @@ export const config = {
 
     // CSRF
     csrfSecret: getEnv('CSRF_SECRET', true),
+
+    // Analytics
+    analyticsAccessPassword: getEnv('ANALYTICS_ACCESS_PASSWORD', false, 'admin-analytics-2024'),
 };
 
 /**

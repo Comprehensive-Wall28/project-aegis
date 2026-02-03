@@ -26,7 +26,7 @@ import {
     alpha,
     useTheme,
     Tooltip,
-    Divider
+    Divider,
 } from '@mui/material';
 import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -123,7 +123,7 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
             </Box>
 
             {/* Navigation */}
-            <Box sx={{ flex: 1, py: 2, px: 1 }}>
+            <Box sx={{ flex: 1, py: 2, px: 1, overflowY: 'auto' }}>
                 <List sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     {navItems.map((item) => {
                         const isActive = location.pathname === item.href;

@@ -17,10 +17,14 @@ import vaultService from '@/services/vaultService';
 import { backgroundCache } from '@/lib/backgroundCache';
 import { useGlobalData } from '@/hooks/useGlobalData';
 import { QuickOpen } from '@/components/navigation/QuickOpen';
+import { useAnalyticsShortcut } from '@/hooks/useAnalyticsShortcut';
 
 export function DashboardLayout() {
     // Global data hydration
     useGlobalData();
+
+    // Analytics keyboard shortcut (Ctrl+Shift+A)
+    useAnalyticsShortcut();
 
     const isSidebarCollapsed = usePreferenceStore((state) => state.isSidebarCollapsed);
     const toggleSidebar = usePreferenceStore((state) => state.toggleSidebar);
@@ -233,6 +237,7 @@ export function DashboardLayout() {
                 <Box sx={{ flexGrow: 1, p: { xs: 1, sm: 2 }, overflow: 'hidden' }}>
                     <Paper
                         elevation={0}
+                        variant="translucent"
                         component={motion.div}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -244,9 +249,6 @@ export function DashboardLayout() {
                             flexDirection: 'column',
                             borderRadius: '24px',
                             overflow: 'hidden',
-                            // Solid stage for professionalism and performance
-                            bgcolor: theme.palette.background.paper,
-                            border: `1px solid ${alpha(theme.palette.primary.main, 0.05)}`,
                             boxShadow: `0 8px 32px -8px ${alpha('#000', 0.5)}`,
                         }}
                     >

@@ -1,4 +1,4 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme, alpha } from '@mui/material/styles';
 
 declare module '@mui/material/Paper' {
     interface PaperPropsVariantOverrides {
@@ -339,8 +339,11 @@ export const getTheme = (mode: ThemeMode) => {
                     {
                         props: { variant: 'glass' },
                         style: {
-                            background: selectedPalette.background.paper,
-                            border: `1px solid ${selectedPalette.divider}`,
+                            background: alpha(selectedPalette.background.paper, 0.6),
+                            backdropFilter: 'blur(16px)',
+                            WebkitBackdropFilter: 'blur(16px)',
+                            border: `1px solid ${alpha(selectedPalette.divider, 0.1)}`,
+                            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
                         },
                     },
                     {
@@ -356,7 +359,9 @@ export const getTheme = (mode: ThemeMode) => {
                     {
                         props: { variant: 'translucent' },
                         style: {
-                            background: selectedPalette.background.paper,
+                            background: alpha(selectedPalette.background.paper, 0.8),
+                            backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)',
                             border: `1px solid ${selectedPalette.divider}`,
                         },
                     },
