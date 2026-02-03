@@ -10,6 +10,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AuthModule } from './modules/auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
 
 @Module({
     imports: [
@@ -18,6 +19,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
         DatabaseModule,
         AuthModule,
         TasksModule,
+        CalendarModule,
     ],
     controllers: [AppController],
     providers: [
