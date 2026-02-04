@@ -1,29 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     Box,
     Paper,
     Typography,
     alpha,
     useTheme,
-    TextField,
     MenuItem,
-    Chip,
-    InputAdornment,
+    TextField,
 } from '@mui/material';
-import { DataGrid, type GridColDef } from '@mui/x-data-grid';
+import { DataGrid, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
 import {
     Info as InfoIcon,
     Warning as WarningIcon,
     Error as ErrorIcon,
-    Search as SearchIcon,
+    ChevronRight as ChevronRightIcon,
+    FilterList as FilterListIcon,
 } from '@mui/icons-material';
 import { getLogs, type LogEntry } from '@/services/analyticsService';
 import { usePasswordGate } from '@/hooks/usePasswordGate';
 import { PasswordGateDialog } from '@/components/analytics/PasswordGateDialog';
+import { DebouncedSearchInput } from '@/components/common/DebouncedSearchInput';
+import { LogDetailOverlay } from '@/components/analytics/LogDetailOverlay';
 
 type LogLevel = 'INFO' | 'WARN' | 'ERROR';
-
 const LOG_LEVELS: LogLevel[] = ['INFO', 'WARN', 'ERROR'];
 
 export default function AnalyticsLogsPage() {
@@ -31,64 +31,69 @@ export default function AnalyticsLogsPage() {
     const { isAuthenticated, password, onAccessGranted } = usePasswordGate();
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [total, setTotal] = useState(0);
+    const [rowCount, setRowCount] = useState(0);
 
-    // Filters
-    const [search, setSearch] = useState('');
+    // Overlay state
+    const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+    const [isOverlayOpen, setIsOverlayOpen] = useState(false);
+
+    // Filters and pagination state
+    const [searchQuery, setSearchQuery] = useState('');
     const [level, setLevel] = useState<LogLevel | ''>('');
+    const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+        page: 0,
+        pageSize: 10,
+    });
 
-    const fetchLogs = async (page = 0, pageSize = 25) => {
+    const fetchLogs = useCallback(async () => {
         if (!password) return;
 
         setIsLoading(true);
         try {
             const response = await getLogs(password, {
-                search: search || undefined,
+                search: searchQuery || undefined,
                 level: (level || undefined) as LogLevel | undefined,
-                page: page + 1,
-                limit: pageSize,
+                page: paginationModel.page + 1,
+                limit: paginationModel.pageSize,
             });
 
             if (response.success) {
                 setLogs(response.data);
-                setTotal(response.pagination.total);
+                setRowCount(response.pagination.total);
             }
         } catch (error) {
             console.error('Failed to fetch logs:', error);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [password, searchQuery, level, paginationModel]);
 
     useEffect(() => {
         if (isAuthenticated && password) {
             fetchLogs();
         }
-    }, [isAuthenticated, password, search, level]);
+    }, [isAuthenticated, password, fetchLogs]);
 
-    const getLevelIcon = (levelValue: LogLevel) => {
-        switch (levelValue) {
-            case 'INFO':
-                return <InfoIcon />;
-            case 'WARN':
-                return <WarningIcon />;
-            case 'ERROR':
-                return <ErrorIcon />;
-            default:
-                return <InfoIcon />;
-        }
-    };
+    const handleViewDetails = useCallback((log: LogEntry) => {
+        setSelectedLog(log);
+        setIsOverlayOpen(true);
+    }, []);
 
     const getLevelColor = (levelValue: LogLevel) => {
         switch (levelValue) {
-            case 'INFO':
-                return theme.palette.info.main;
-            case 'WARN':
-                return theme.palette.warning.main;
-            case 'ERROR':
-                return theme.palette.error.main;
-            default:
-                return theme.palette.info.main;
+            case 'INFO': return theme.palette.info.main;
+            case 'WARN': return theme.palette.warning.main;
+            case 'ERROR': return theme.palette.error.main;
+            default: return theme.palette.info.main;
+        }
+    };
+
+    const getLevelIcon = (levelValue: LogLevel) => {
+        switch (levelValue) {
+            case 'INFO': return <InfoIcon sx={{ fontSize: '0.9rem' }} />;
+            case 'WARN': return <WarningIcon sx={{ fontSize: '0.9rem' }} />;
+            case 'ERROR': return <ErrorIcon sx={{ fontSize: '0.9rem' }} />;
+            default: return <InfoIcon sx={{ fontSize: '0.9rem' }} />;
         }
     };
 
@@ -96,7 +101,8 @@ export default function AnalyticsLogsPage() {
         {
             field: 'timestamp',
             headerName: 'Timestamp',
-            width: 180,
+            flex: 1,
+            minWidth: 160,
             valueFormatter: (value) => dayjs(value as string).format('MMM D, HH:mm:ss'),
         },
         {
@@ -105,37 +111,50 @@ export default function AnalyticsLogsPage() {
             width: 100,
             renderCell: (params) => {
                 const logLevel = params.value as LogLevel;
+                const color = getLevelColor(logLevel);
                 return (
-                    <Chip
-                        icon={getLevelIcon(logLevel)}
-                        label={logLevel}
-                        size="small"
+                    <Box
                         sx={{
-                            bgcolor: alpha(getLevelColor(logLevel), 0.1),
-                            color: getLevelColor(logLevel),
-                            fontWeight: 600,
-                            '& .MuiChip-icon': {
-                                color: 'inherit',
-                            },
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: '6px',
+                            bgcolor: alpha(color, 0.1),
+                            color: color,
+                            fontWeight: 700,
+                            fontSize: '0.65rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            lineHeight: 1,
                         }}
-                    />
+                    >
+                        {getLevelIcon(logLevel)}
+                        {logLevel}
+                    </Box>
                 );
             },
         },
         {
             field: 'source',
             headerName: 'Source',
-            width: 200,
+            flex: 1.2,
+            minWidth: 150,
+            renderCell: (params) => (
+                <Typography variant="caption" sx={{ fontWeight: 600, color: theme.palette.text.primary, fontFamily: 'JetBrains Mono, monospace' }}>
+                    {params.value}
+                </Typography>
+            ),
         },
         {
             field: 'message',
             headerName: 'Message',
-            width: 500,
-            flex: 1,
+            flex: 3,
+            minWidth: 300,
             renderCell: (params) => (
                 <Typography
-                    variant="body2"
+                    variant="caption"
                     sx={{
+                        color: theme.palette.text.secondary,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -145,6 +164,22 @@ export default function AnalyticsLogsPage() {
                 </Typography>
             ),
         },
+        {
+            field: 'id',
+            headerName: '',
+            width: 50,
+            sortable: false,
+            filterable: false,
+            disableColumnMenu: true,
+            renderCell: () => (
+                <ChevronRightIcon
+                    sx={{
+                        color: alpha(theme.palette.text.primary, 0.2),
+                        fontSize: '1.2rem'
+                    }}
+                />
+            ),
+        },
     ];
 
     if (!isAuthenticated) {
@@ -152,104 +187,131 @@ export default function AnalyticsLogsPage() {
     }
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pb: 4 }}>
             {/* Header */}
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'column', md: 'row' },
-                    alignItems: { xs: 'stretch', md: 'center' },
-                    justifyContent: 'space-between',
-                    gap: 2,
-                }}
-            >
-                <Typography variant="h4" sx={{ fontWeight: 700 }}>
+            <Box>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-0.02em' }}>
                     System Logs
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                    Backend service logs, runtime events, and error tracking
                 </Typography>
             </Box>
 
-            {/* Filters */}
-            <Paper
-                variant="glass"
-                sx={{
-                    p: 3,
-                    borderRadius: '24px',
-                }}
-            >
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexDirection: { xs: 'column', md: 'row' },
-                        gap: 2,
-                        flexWrap: 'wrap',
-                        alignItems: 'center',
-                    }}
-                >
-                    <TextField
-                        label="Search"
-                        placeholder="Search messages, sources, log levels..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        size="small"
-                        sx={{ minWidth: 350, flex: 1 }}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon color="action" />
-                                </InputAdornment>
-                            ),
-                        }}
-                    />
-
-                    <TextField
-                        select
-                        label="Log Level"
-                        value={level}
-                        onChange={(e) => setLevel(e.target.value as LogLevel)}
-                        size="small"
-                        sx={{ minWidth: 140 }}
-                    >
-                        <MenuItem value="">All Levels</MenuItem>
-                        {LOG_LEVELS.map((l) => (
-                            <MenuItem key={l} value={l}>
-                                {l}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-                </Box>
-            </Paper>
-
-            {/* Data Grid */}
+            {/* Logs Table Container */}
             <Paper
                 variant="glass"
                 sx={{
                     borderRadius: '24px',
                     overflow: 'hidden',
-                    p: 2,
+                    py: 1,
                 }}
             >
+                <Box sx={{ px: 3, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                        Log Stream
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flex: { xs: 1, sm: 'none' }, width: { xs: '100%', sm: 'auto' } }}>
+                        <TextField
+                            select
+                            value={level}
+                            onChange={(e) => setLevel(e.target.value as LogLevel)}
+                            size="small"
+                            label="Level"
+                            InputProps={{
+                                startAdornment: (
+                                    <FilterListIcon sx={{ mr: 1, fontSize: '1rem', color: theme.palette.text.secondary }} />
+                                ),
+                            }}
+                            SelectProps={{
+                                displayEmpty: true,
+                            }}
+                            sx={{
+                                minWidth: 160,
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: '12px',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                                },
+                                '& .MuiInputLabel-root': {
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
+                                }
+                            }}
+                        >
+                            <MenuItem value="">All Levels</MenuItem>
+                            {LOG_LEVELS.map((l) => (
+                                <MenuItem key={l} value={l}>{l}</MenuItem>
+                            ))}
+                        </TextField>
+                        <DebouncedSearchInput
+                            value={searchQuery}
+                            onChange={setSearchQuery}
+                            placeholder="Search messages, sources..."
+                            size="small"
+                            sx={{
+                                width: { xs: '100%', sm: 280 },
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: '12px',
+                                    bgcolor: alpha(theme.palette.background.paper, 0.4),
+                                }
+                            }}
+                        />
+                    </Box>
+                </Box>
                 <DataGrid
                     rows={logs.map((log) => ({ ...log, id: log._id }))}
                     columns={columns}
                     loading={isLoading}
-                    rowCount={total}
+                    density="compact"
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    pageSizeOptions={[10, 25, 50, 100]}
+                    rowCount={rowCount}
                     paginationMode="server"
-                    onPaginationModelChange={(model) => fetchLogs(model.page, model.pageSize)}
-                    initialState={{
-                        pagination: {
-                            paginationModel: { page: 0, pageSize: 25 },
-                        },
-                    }}
-                    pageSizeOptions={[25, 50, 100]}
                     disableRowSelectionOnClick
+                    onRowClick={(params) => handleViewDetails(params.row)}
+                    autoHeight
                     sx={{
                         border: 'none',
+                        bgcolor: 'transparent',
+                        '& .MuiDataGrid-row': {
+                            cursor: 'pointer',
+                        },
+                        '& .MuiDataGrid-columnHeaders': {
+                            bgcolor: 'transparent',
+                            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        },
+                        '& .MuiDataGrid-columnHeaderTitle': {
+                            fontWeight: 800,
+                            fontSize: '0.75rem',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            color: alpha(theme.palette.text.primary, 0.7),
+                        },
+                        '& .MuiDataGrid-cell': {
+                            borderColor: alpha(theme.palette.divider, 0.05),
+                            display: 'flex',
+                            alignItems: 'center',
+                        },
+                        '& .MuiDataGrid-row:hover': {
+                            bgcolor: alpha(theme.palette.primary.main, 0.03),
+                        },
                         '& .MuiDataGrid-cell:focus': {
                             outline: 'none',
+                        },
+                        '& .MuiDataGrid-footerContainer': {
+                            borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                            bgcolor: 'transparent',
                         },
                     }}
                 />
             </Paper>
+
+            <LogDetailOverlay
+                open={isOverlayOpen}
+                onClose={() => setIsOverlayOpen(false)}
+                log={selectedLog}
+            />
         </Box>
     );
 }

@@ -23,7 +23,6 @@ import {
     TrendingUp as TrendingUpIcon,
     Speed as SpeedIcon,
     Error as ErrorIcon,
-    People as PeopleIcon,
     Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
@@ -180,13 +179,6 @@ export default function AnalyticsPerformancePage() {
                 icon: <ErrorIcon sx={{ fontSize: 24, color: summary?.errorRate && summary.errorRate > 5 ? theme.palette.error.main : theme.palette.warning.main }} />,
                 color: summary?.errorRate && summary.errorRate > 5 ? theme.palette.error.main : theme.palette.warning.main,
                 bgColor: alpha(summary?.errorRate && summary.errorRate > 5 ? theme.palette.error.main : theme.palette.warning.main, 0.1),
-            },
-            {
-                label: 'Unique Users',
-                value: summary?.uniqueUserCount ?? 0,
-                icon: <PeopleIcon sx={{ fontSize: 24, color: theme.palette.info.main }} />,
-                color: theme.palette.info.main,
-                bgColor: alpha(theme.palette.info.main, 0.1),
             },
         ],
         [summary, theme]
@@ -364,7 +356,7 @@ export default function AnalyticsPerformancePage() {
             {/* Metric Cards */}
             <Grid container spacing={3}>
                 {metricCards.map((metric) => (
-                    <Grid key={metric.label} size={{ xs: 12, sm: 6, md: 3 }}>
+                    <Grid key={metric.label} size={{ xs: 12, sm: 12, md: 4 }}>
                         <Paper
                             variant="glass"
                             sx={{

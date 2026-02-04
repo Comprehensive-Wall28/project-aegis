@@ -12,6 +12,8 @@ import { DataGrid, type GridColDef, type GridPaginationModel } from '@mui/x-data
 import {
     CheckCircle as CheckCircleIcon,
     Error as ErrorIcon,
+    ChevronRight as ChevronRightIcon,
+    FilterList as FilterListIcon,
 } from '@mui/icons-material';
 import { getAuditLogs, type AuditLogEntry } from '@/services/analyticsService';
 import auditService, { type AuditAction, type AuditStatus } from '@/services/auditService';
@@ -36,7 +38,7 @@ export default function AnalyticsAuditPage() {
     const [status, setStatus] = useState<AuditStatus | ''>('');
     const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
         page: 0,
-        pageSize: 25,
+        pageSize: 10,
     });
 
     const fetchLogs = useCallback(async () => {
@@ -77,13 +79,15 @@ export default function AnalyticsAuditPage() {
         {
             field: 'timestamp',
             headerName: 'Timestamp',
-            width: 180,
+            flex: 1.2,
+            minWidth: 160,
             valueFormatter: (value) => auditService.formatTimestamp(value as string),
         },
         {
             field: 'action',
             headerName: 'Action',
-            width: 200,
+            flex: 1.5,
+            minWidth: 180,
             renderCell: (params) => (
                 <Typography variant="caption" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
                     {auditService.getActionLabel(params.value as AuditAction)}
@@ -125,7 +129,8 @@ export default function AnalyticsAuditPage() {
         {
             field: 'userId',
             headerName: 'User ID',
-            width: 200,
+            flex: 1.5,
+            minWidth: 180,
             renderCell: (params) => (
                 <Typography
                     variant="caption"
@@ -150,28 +155,19 @@ export default function AnalyticsAuditPage() {
             )
         },
         {
-            field: 'metadata',
-            headerName: 'Details',
-            minWidth: 120,
-            flex: 1,
-            renderCell: (params) => (
-                <Box
-                    onClick={() => handleViewDetails(params.row)}
+            field: 'id',
+            headerName: '',
+            width: 50,
+            sortable: false,
+            filterable: false,
+            disableColumnMenu: true,
+            renderCell: () => (
+                <ChevronRightIcon
                     sx={{
-                        cursor: 'pointer',
-                        color: theme.palette.primary.main,
-                        fontWeight: 700,
-                        fontSize: '0.75rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        '&:hover': {
-                            textDecoration: 'underline',
-                            color: theme.palette.primary.dark,
-                        }
+                        color: alpha(theme.palette.text.primary, 0.2),
+                        fontSize: '1.2rem'
                     }}
-                >
-                    View Details
-                </Box>
+                />
             ),
         },
     ];
@@ -211,11 +207,24 @@ export default function AnalyticsAuditPage() {
                             value={status}
                             onChange={(e) => setStatus(e.target.value as AuditStatus)}
                             size="small"
+                            label="Status"
+                            InputProps={{
+                                startAdornment: (
+                                    <FilterListIcon sx={{ mr: 1, fontSize: '1rem', color: theme.palette.text.secondary }} />
+                                ),
+                            }}
+                            SelectProps={{
+                                displayEmpty: true,
+                            }}
                             sx={{
-                                minWidth: 140,
+                                minWidth: 160,
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '12px',
                                     bgcolor: alpha(theme.palette.background.paper, 0.4),
+                                },
+                                '& .MuiInputLabel-root': {
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
                                 }
                             }}
                         >
@@ -245,13 +254,18 @@ export default function AnalyticsAuditPage() {
                     density="compact"
                     paginationModel={paginationModel}
                     onPaginationModelChange={setPaginationModel}
-                    pageSizeOptions={[25, 50, 100]}
+                    pageSizeOptions={[10, 25, 50, 100]}
                     rowCount={rowCount}
                     paginationMode="server"
                     disableRowSelectionOnClick
+                    onRowClick={(params) => handleViewDetails(params.row)}
+                    autoHeight
                     sx={{
                         border: 'none',
                         bgcolor: 'transparent',
+                        '& .MuiDataGrid-row': {
+                            cursor: 'pointer',
+                        },
                         '& .MuiDataGrid-columnHeaders': {
                             bgcolor: 'transparent',
                             borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
@@ -278,7 +292,6 @@ export default function AnalyticsAuditPage() {
                             borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                             bgcolor: 'transparent',
                         },
-                        height: 700,
                     }}
                 />
             </Paper>
