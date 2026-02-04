@@ -33,7 +33,7 @@ export class NoteMediaService extends BaseService<INoteMedia, any> {
     async initUpload(
         userId: string,
         data: NoteMediaUploadInitDTO,
-        req: Request
+        _req: Request
     ): Promise<{ mediaId: string }> {
         try {
             // 1. Initiate GridFS upload session
@@ -72,7 +72,7 @@ export class NoteMediaService extends BaseService<INoteMedia, any> {
         mediaId: string,
         contentRange: string,
         chunk: Readable | Buffer,
-        chunkLength: number
+        _chunkLength: number
     ): Promise<{ complete: boolean; receivedSize: number }> {
         try {
             const mediaRecord = await NoteMedia.findOne({ _id: mediaId, ownerId: userId });

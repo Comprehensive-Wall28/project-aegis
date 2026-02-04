@@ -1,5 +1,4 @@
-import { Request, Response } from 'express';
-import * as crypto from 'crypto';
+import { Request } from 'express';
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import {
@@ -14,7 +13,7 @@ import {
 import { isoBase64URL, isoUint8Array } from '@simplewebauthn/server/helpers';
 import { BaseService, ServiceError } from './base/BaseService';
 import { UserRepository } from '../repositories/UserRepository';
-import { IUser, IWebAuthnCredential } from '../models/User';
+import { IUser } from '../models/User';
 import logger from '../utils/logger';
 import { logFailedAuth } from '../utils/auditLogger';
 import { encryptToken } from '../utils/cryptoUtils';

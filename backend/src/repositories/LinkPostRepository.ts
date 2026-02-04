@@ -1,5 +1,5 @@
 import { BaseRepository } from './base/BaseRepository';
-import LinkPost, { ILinkPost, IPreviewData } from '../models/LinkPost';
+import LinkPost, { ILinkPost } from '../models/LinkPost';
 import { SafeFilter } from './base/types';
 import mongoose from 'mongoose';
 import { escapeRegex } from '../utils/regexUtils';

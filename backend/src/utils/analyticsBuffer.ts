@@ -1,6 +1,3 @@
-import mongoose from 'mongoose';
-import type { IApiMetric } from '../models/ApiMetric';
-import type { ILogEntry } from '../models/LogEntry';
 import logger from './logger';
 
 interface BufferedMetric {

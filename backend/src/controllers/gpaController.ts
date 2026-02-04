@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { GPAService } from '../services';
-import logger from '../utils/logger';
 import { withAuth } from '../middleware/controllerWrapper';
 
 interface AuthRequest extends Request {

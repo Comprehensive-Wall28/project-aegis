@@ -614,6 +614,7 @@ export function CalendarPage() {
                         dayHeaderFormat={{ weekday: isMobile ? 'narrow' : 'short' }}
                         weekends={!isMobile} // Hide weekends on mobile to reduce columns from 7 to 5
                         moreLinkClick={handleMoreLinkClick}
+                        fixedMirrorParent={document.body}
                     />
                 </Paper>
             </Box>

@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Box } from '@mui/material';
 import {
     CheckCircle,
@@ -8,7 +9,7 @@ import {
 import {
     DndContext,
     DragOverlay,
-    closestCorners,
+    closestCenter,
     defaultDropAnimationSideEffects,
     type DropAnimation,
 } from '@dnd-kit/core';
@@ -117,7 +118,7 @@ const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, onDel
     return (
         <DndContext
             sensors={sensors}
-            collisionDetection={closestCorners}
+            collisionDetection={closestCenter}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
@@ -127,15 +128,18 @@ const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, onDel
                     {columnList}
                 </Box>
 
-                <DragOverlay dropAnimation={dropAnimation}>
-                    {activeTask ? (
-                        <TaskCard
-                            task={activeTask}
-                            onClick={() => { }}
-                            isDragging={true}
-                        />
-                    ) : null}
-                </DragOverlay>
+                {createPortal(
+                    <DragOverlay dropAnimation={dropAnimation}>
+                        {activeTask ? (
+                            <TaskCard
+                                task={activeTask}
+                                onClick={() => { }}
+                                isDragging={true}
+                            />
+                        ) : null}
+                    </DragOverlay>,
+                    document.body
+                )}
 
                 <DeleteZone isVisible={activeId !== null} status={deleteStatus} />
             </Box>

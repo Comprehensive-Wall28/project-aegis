@@ -201,8 +201,8 @@ export const appendChunk = async (
  */
 export const finalizeUpload = async (
     streamId: string,
-    fileName: string,
-    metadata?: Record<string, any>
+    _fileName: string,
+    _metadata?: Record<string, any>
 ): Promise<any> => {
     const session = activeStreams.get(streamId);
 

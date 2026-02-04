@@ -1,4 +1,5 @@
 import { memo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
     Box,
     Typography,
@@ -376,34 +377,37 @@ export const SocialSidebar = memo(() => {
                                         />
                                     ))}
                                 </SortableContext>
-                                <DragOverlay
-                                    dropAnimation={{
-                                        sideEffects: defaultDropAnimationSideEffects({
-                                            styles: {
-                                                active: {
-                                                    opacity: '0.5',
+                                {createPortal(
+                                    <DragOverlay
+                                        dropAnimation={{
+                                            sideEffects: defaultDropAnimationSideEffects({
+                                                styles: {
+                                                    active: {
+                                                        opacity: '0.5',
+                                                    },
                                                 },
-                                            },
-                                        }),
-                                    }}
-                                >
-                                    {activeCollection ? (
-                                        <CollectionItem
-                                            collection={activeCollection}
-                                            isSelected={currentCollectionId === activeCollection._id}
-                                            isTarget={false}
-                                            unviewedCount={getUnviewedCountByCollection(activeCollection._id)}
-                                            isCollapsed={isCollapsed}
-                                            onSelect={() => { }}
-                                            onContextMenu={() => { }}
-                                            onTouchStart={() => { }}
-                                            onTouchEnd={() => { }}
-                                            onDrop={() => { }}
-                                            onDragOver={() => { }}
-                                            onDragLeave={() => { }}
-                                        />
-                                    ) : null}
-                                </DragOverlay>
+                                            }),
+                                        }}
+                                    >
+                                        {activeCollection ? (
+                                            <CollectionItem
+                                                collection={activeCollection}
+                                                isSelected={currentCollectionId === activeCollection._id}
+                                                isTarget={false}
+                                                unviewedCount={getUnviewedCountByCollection(activeCollection._id)}
+                                                isCollapsed={isCollapsed}
+                                                onSelect={() => { }}
+                                                onContextMenu={() => { }}
+                                                onTouchStart={() => { }}
+                                                onTouchEnd={() => { }}
+                                                onDrop={() => { }}
+                                                onDragOver={() => { }}
+                                                onDragLeave={() => { }}
+                                            />
+                                        ) : null}
+                                    </DragOverlay>,
+                                    document.body
+                                )}
                             </DndContext>
                         )}
                     </AnimatePresence>

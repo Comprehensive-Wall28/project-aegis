@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { ShareService } from '../services';
-import logger from '../utils/logger';
 import { withAuth } from '../middleware/controllerWrapper';
 
 interface AuthRequest extends Request {
@@ -19,10 +18,6 @@ export const inviteFile = withAuth(async (req: AuthRequest, res: Response) => {
     const result = await shareService.inviteToFile(req.user!.id, req.body, req);
     res.status(201).json(result);
 });
-
-
-
-
 
 /**
  * Get the encrypted shared key for a specific file.

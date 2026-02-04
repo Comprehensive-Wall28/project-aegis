@@ -1,4 +1,4 @@
-import mongoose, { Document, UpdateQuery } from 'mongoose';
+import mongoose, { UpdateQuery } from 'mongoose';
 
 /**
  * Helper to allow string IDs where ObjectIds are expected in queries

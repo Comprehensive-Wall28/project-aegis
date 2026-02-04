@@ -8,7 +8,7 @@ const linkPreviewService = new LinkPreviewService();
 /**
  * Proxy an image to bypass CORS and mask user IP.
  */
-export const proxyImage = async (req: Request, res: Response, next: NextFunction) => {
+export const proxyImage = async (req: Request, res: Response, _next: NextFunction) => {
     try {
         const url = req.query.url as string;
 

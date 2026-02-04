@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { config } from '../config/env';
 import AuditLog from '../models/AuditLog';
 
-export const errorHandler = async (err: any, req: Request, res: Response, next: NextFunction) => {
+export const errorHandler = async (err: any, req: Request, res: Response, _next: NextFunction) => {
     // If the response status is still 200, it means it wasn't set by the controller/middleware.
     // We should use the error's status code if available, otherwise default to 500.
     let statusCode = res.statusCode === 200 ? 500 : res.statusCode;

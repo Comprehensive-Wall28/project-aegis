@@ -3,7 +3,6 @@ import './config/initDatabase'; // Initialize DB before other imports
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import DatabaseManager from './config/DatabaseManager';
 import authRoutes from './routes/authRoutes';
 import vaultRoutes from './routes/vaultRoutes';
 

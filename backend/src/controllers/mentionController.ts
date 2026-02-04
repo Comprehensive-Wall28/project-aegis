@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { MentionService } from '../services/MentionService';
-import logger from '../utils/logger';
 import { withAuth } from '../middleware/controllerWrapper';
 
 interface AuthRequest extends Request {

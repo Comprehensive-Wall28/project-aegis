@@ -1,5 +1,4 @@
 import express, { Request, Response, NextFunction } from 'express';
-import mongoose from 'mongoose';
 import DatabaseManager from '../config/DatabaseManager';
 import { config } from '../config/env';
 

@@ -65,7 +65,7 @@ export class QuerySanitizer {
      * Recursively sanitize a query object
      * Removes dangerous operators and validates structure
      */
-    static sanitizeQuery<T>(query: unknown): Record<string, unknown> {
+    static sanitizeQuery(query: unknown): Record<string, unknown> {
         if (query === null || query === undefined) {
             return {};
         }
@@ -155,7 +155,7 @@ export class QuerySanitizer {
     /**
      * Sanitize update operations
      */
-    static sanitizeUpdate<T>(update: unknown): Record<string, unknown> {
+    static sanitizeUpdate(update: unknown): Record<string, unknown> {
         if (update === null || update === undefined) {
             return {};
         }

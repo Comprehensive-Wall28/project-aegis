@@ -1,6 +1,6 @@
 import { BaseRepository } from './base/BaseRepository';
 import { IAuditLog, AuditLogSchema } from '../models/AuditLog';
-import { SafeFilter, QueryOptions } from './base/types';
+import { SafeFilter } from './base/types';
 import { DatabaseManager } from '../config/DatabaseManager';
 
 /**

@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services';
-import logger from '../utils/logger';
 import { config } from '../config/env';
 import { catchAsync, withAuth } from '../middleware/controllerWrapper';
 
