@@ -25,6 +25,7 @@
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
     "@mui/x-charts": "^8.26.0",
+    "@mui/x-data-grid": "^8.27.0",
     "@mui/x-date-pickers": "^8.26.0",
     "@noble/post-quantum": "^0.5.4",
     "@simplewebauthn/browser": "^13.2.2",
