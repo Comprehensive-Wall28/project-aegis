@@ -25,9 +25,11 @@ export class CourseRepository extends BaseRepository<ICourse> {
      * Find course by ID and user
      */
     async findByIdAndUser(courseId: string, userId: string): Promise<ICourse | null> {
+        const validatedCourseId = this.validateId(courseId);
+        const validatedUserId = this.validateId(userId);
         return this.findOne({
-            _id: { $eq: courseId },
-            userId: { $eq: userId }
+            _id: { $eq: validatedCourseId },
+            userId: { $eq: validatedUserId }
         } as unknown as SafeFilter<ICourse>);
     }
 
@@ -35,9 +37,11 @@ export class CourseRepository extends BaseRepository<ICourse> {
      * Delete course by ID and user
      */
     async deleteByIdAndUser(courseId: string, userId: string): Promise<boolean> {
+        const validatedCourseId = this.validateId(courseId);
+        const validatedUserId = this.validateId(userId);
         return this.deleteOne({
-            _id: { $eq: courseId },
-            userId: { $eq: userId }
+            _id: { $eq: validatedCourseId },
+            userId: { $eq: validatedUserId }
         } as unknown as SafeFilter<ICourse>);
     }
 
@@ -64,10 +68,12 @@ export class CourseRepository extends BaseRepository<ICourse> {
         encapsulatedKey: string,
         encryptedSymmetricKey: string
     ): Promise<ICourse | null> {
+        const validatedCourseId = this.validateId(courseId);
+        const validatedUserId = this.validateId(userId);
         return this.updateOne(
             {
-                _id: { $eq: courseId },
-                userId: { $eq: userId }
+                _id: { $eq: validatedCourseId },
+                userId: { $eq: validatedUserId }
             } as unknown as SafeFilter<ICourse>,
             {
                 $set: { encryptedData, encapsulatedKey, encryptedSymmetricKey },

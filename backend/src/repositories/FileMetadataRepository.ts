@@ -15,9 +15,11 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
      * Find file by ID and owner
      */
     async findByIdAndOwner(fileId: string, ownerId: string): Promise<IFileMetadata | null> {
+        const validatedFileId = this.validateId(fileId);
+        const validatedOwnerId = this.validateId(ownerId);
         return this.findOne({
-            _id: fileId,
-            ownerId: { $eq: ownerId }
+            _id: validatedFileId,
+            ownerId: { $eq: validatedOwnerId }
         } as SafeFilter<IFileMetadata>);
     }
 
@@ -25,9 +27,11 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
      * Find file by ID and upload stream ID
      */
     async findByIdAndStream(fileId: string, ownerId: string): Promise<IFileMetadata | null> {
+        const validatedFileId = this.validateId(fileId);
+        const validatedOwnerId = this.validateId(ownerId);
         const file = await this.findOne({
-            _id: fileId,
-            ownerId: { $eq: ownerId }
+            _id: validatedFileId,
+            ownerId: { $eq: validatedOwnerId }
         } as SafeFilter<IFileMetadata>);
 
         return file?.uploadStreamId ? file : null;
@@ -108,9 +112,11 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
      * Delete file by ID and owner
      */
     async deleteByIdAndOwner(fileId: string, ownerId: string): Promise<boolean> {
+        const validatedFileId = this.validateId(fileId);
+        const validatedOwnerId = this.validateId(ownerId);
         return this.deleteOne({
-            _id: fileId,
-            ownerId: { $eq: ownerId }
+            _id: validatedFileId,
+            ownerId: { $eq: validatedOwnerId }
         } as SafeFilter<IFileMetadata>);
     }
     /**
@@ -122,9 +128,16 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
     ): Promise<number> {
         if (updates.length === 0) return 0;
 
-        const operations: BulkWriteOperation<IFileMetadata>[] = updates.map(update => ({
+        // Validate ownerId and all fileIds before building operations
+        const validatedOwnerId = this.validateId(ownerId);
+        const validatedUpdates = updates.map(update => ({
+            ...update,
+            fileId: this.validateId(update.fileId)
+        }));
+
+        const operations: BulkWriteOperation<IFileMetadata>[] = validatedUpdates.map(update => ({
             updateOne: {
-                filter: { _id: update.fileId, ownerId: ownerId } as SafeFilter<IFileMetadata>,
+                filter: { _id: update.fileId, ownerId: validatedOwnerId } as SafeFilter<IFileMetadata>,
                 update: {
                     $set: {
                         encryptedSymmetricKey: update.encryptedKey,

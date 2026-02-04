@@ -73,11 +73,19 @@ export class TaskRepository extends BaseRepository<ITask> {
         userId: string,
         updates: Array<{ id: string; status?: string; order: number }>
     ): Promise<void> {
-        const bulkOps = updates.map(update => ({
+        // Validate all IDs before building operations
+        const validatedUserId = this.validateId(userId);
+        const validatedUpdates = updates.map(update => ({
+            id: this.validateId(update.id),
+            status: update.status,
+            order: update.order
+        }));
+
+        const bulkOps = validatedUpdates.map(update => ({
             updateOne: {
                 filter: {
                     _id: update.id,
-                    userId: { $eq: userId }
+                    userId: { $eq: validatedUserId }
                 } as SafeFilter<ITask>,
                 update: {
                     $set: {
@@ -95,9 +103,11 @@ export class TaskRepository extends BaseRepository<ITask> {
      * Delete task and verify ownership
      */
     async deleteByIdAndUser(taskId: string, userId: string): Promise<boolean> {
+        const validatedTaskId = this.validateId(taskId);
+        const validatedUserId = this.validateId(userId);
         return this.deleteOne({
-            _id: taskId,
-            userId: { $eq: userId }
+            _id: validatedTaskId,
+            userId: { $eq: validatedUserId }
         } as SafeFilter<ITask>);
     }
 
@@ -109,10 +119,12 @@ export class TaskRepository extends BaseRepository<ITask> {
         userId: string,
         data: Partial<ITask>
     ): Promise<ITask | null> {
+        const validatedTaskId = this.validateId(taskId);
+        const validatedUserId = this.validateId(userId);
         return this.updateOne(
             {
-                _id: taskId,
-                userId: { $eq: userId }
+                _id: validatedTaskId,
+                userId: { $eq: validatedUserId }
             } as SafeFilter<ITask>,
             { $set: data },
             { returnNew: true }

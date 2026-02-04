@@ -120,9 +120,11 @@ export class NoteRepository extends BaseRepository<INote> {
      * Find note by ID and verify ownership
      */
     async findByIdAndUser(noteId: string, userId: string): Promise<INote | null> {
+        const validatedNoteId = this.validateId(noteId);
+        const validatedUserId = this.validateId(userId);
         return this.findOne({
-            _id: noteId,
-            userId: { $eq: userId }
+            _id: validatedNoteId,
+            userId: { $eq: validatedUserId }
         } as SafeFilter<INote>);
     }
 
@@ -134,10 +136,12 @@ export class NoteRepository extends BaseRepository<INote> {
         userId: string,
         data: Partial<INote>
     ): Promise<INote | null> {
+        const validatedNoteId = this.validateId(noteId);
+        const validatedUserId = this.validateId(userId);
         return this.updateOne(
             {
-                _id: noteId,
-                userId: { $eq: userId }
+                _id: validatedNoteId,
+                userId: { $eq: validatedUserId }
             } as SafeFilter<INote>,
             { $set: data },
             { returnNew: true }
@@ -148,9 +152,11 @@ export class NoteRepository extends BaseRepository<INote> {
      * Delete note and verify ownership
      */
     async deleteByIdAndUser(noteId: string, userId: string): Promise<boolean> {
+        const validatedNoteId = this.validateId(noteId);
+        const validatedUserId = this.validateId(userId);
         return this.deleteOne({
-            _id: noteId,
-            userId: { $eq: userId }
+            _id: validatedNoteId,
+            userId: { $eq: validatedUserId }
         } as SafeFilter<INote>);
     }
 

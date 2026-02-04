@@ -408,27 +408,6 @@ export const PublicSharedFilePage = () => {
                             >
                                 Get Started for Free
                             </Button>
-                            <Button
-                                component={Link}
-                                to="/"
-                                variant="outlined"
-                                size="large"
-                                sx={{
-                                    py: 1.5,
-                                    borderRadius: '16px',
-                                    borderColor: '#333',
-                                    color: alpha('#fff', 0.7),
-                                    fontWeight: 700,
-                                    '&:hover': {
-                                        borderColor: '#fff',
-                                        color: '#fff',
-                                        bgcolor: alpha('#fff', 0.05)
-                                    },
-                                    transition: 'all 0.3s ease'
-                                }}
-                            >
-                                Back to Home
-                            </Button>
                         </Stack>
                     </Paper>
                 </Container>
