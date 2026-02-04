@@ -1,10 +1,5 @@
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { TaskService, AuditService } from '../services';
-import { withAuth } from '../middleware/controllerWrapper';
-
-interface AuthRequest extends Request {
-    user?: { id: string; username: string };
-}
 
 const taskService = new TaskService();
 const auditService = new AuditService();
@@ -13,8 +8,9 @@ const auditService = new AuditService();
  * Get aggregated dashboard activity (tasks + audit logs)
  * Optimized for performance: fetches only what's needed to fill 3 slots.
  */
-export const getDashboardActivity = withAuth(async (req: AuthRequest, res: Response) => {
-    const userId = req.user!.id;
+export const getDashboardActivity = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
     const limit = 3;
 
     // 1. Fetch upcoming tasks first (highest priority)
@@ -31,8 +27,8 @@ export const getDashboardActivity = withAuth(async (req: AuthRequest, res: Respo
     }
 
     // 4. Return combined result
-    res.status(200).json({
+    reply.code(200).send({
         tasks: tasks,
         activities: recentLogs
     });
-});
+};

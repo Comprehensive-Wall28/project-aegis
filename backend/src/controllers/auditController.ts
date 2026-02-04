@@ -1,10 +1,5 @@
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { AuditService } from '../services';
-import { withAuth } from '../middleware/controllerWrapper';
-
-interface AuthRequest extends Request {
-    user?: { id: string; username: string };
-}
 
 // Service instance
 const auditService = new AuditService();
@@ -13,18 +8,23 @@ const auditService = new AuditService();
  * Get audit logs for the authenticated user.
  * Supports pagination via limit and offset query parameters.
  */
-export const getAuditLogs = withAuth(async (req: AuthRequest, res: Response) => {
-    const limit = parseInt(req.query.limit as string) || 50;
-    const offset = parseInt(req.query.offset as string) || 0;
+export const getAuditLogs = async (request: FastifyRequest, reply: FastifyReply) => {
+    const query = request.query as Record<string, string>;
+    const limit = parseInt(query.limit) || 50;
+    const offset = parseInt(query.offset) || 0;
 
-    const result = await auditService.getAuditLogs(req.user!.id, limit, offset);
-    res.status(200).json(result);
-});
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const result = await auditService.getAuditLogs(userId, limit, offset);
+    reply.code(200).send(result);
+};
 
 /**
  * Get a summary of recent activity for the dashboard widget.
  */
-export const getRecentActivity = withAuth(async (req: AuthRequest, res: Response) => {
-    const result = await auditService.getRecentActivity(req.user!.id);
-    res.status(200).json(result);
-});
+export const getRecentActivity = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const result = await auditService.getRecentActivity(userId);
+    reply.code(200).send(result);
+};

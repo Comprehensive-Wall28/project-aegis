@@ -1,10 +1,5 @@
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { GPAService } from '../services';
-import { withAuth } from '../middleware/controllerWrapper';
-
-interface AuthRequest extends Request {
-    user?: { id: string; username: string };
-}
 
 // Service instance
 const gpaService = new GPAService();
@@ -12,55 +7,72 @@ const gpaService = new GPAService();
 /**
  * Get all encrypted courses for the authenticated user.
  */
-export const getCourses = withAuth(async (req: AuthRequest, res: Response) => {
-    const courses = await gpaService.getCourses(req.user!.id);
-    res.status(200).json(courses);
-});
+export const getCourses = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const courses = await gpaService.getCourses(userId);
+    reply.code(200).send(courses);
+};
 
 /**
  * Create a new encrypted course.
  */
-export const createCourse = withAuth(async (req: AuthRequest, res: Response) => {
-    const course = await gpaService.createCourse(req.user!.id, req.body, req);
-    res.status(201).json(course);
-});
+export const createCourse = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const course = await gpaService.createCourse(userId, request.body as any, request as any);
+    reply.code(201).send(course);
+};
 
 /**
  * Delete a course.
  */
-export const deleteCourse = withAuth(async (req: AuthRequest, res: Response) => {
-    await gpaService.deleteCourse(req.user!.id, req.params.id as string, req);
-    res.status(200).json({ message: 'Course deleted successfully' });
-});
+export const deleteCourse = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await gpaService.deleteCourse(userId, params.id, request as any);
+    reply.code(200).send({ message: 'Course deleted successfully' });
+};
 
 /**
  * Update user's GPA system preference.
  */
-export const updatePreferences = withAuth(async (req: AuthRequest, res: Response) => {
-    const result = await gpaService.updatePreferences(req.user!.id, req.body.gpaSystem, req);
-    res.status(200).json(result);
-});
+export const updatePreferences = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const body = request.body as any;
+    const result = await gpaService.updatePreferences(userId, body.gpaSystem, request as any);
+    reply.code(200).send(result);
+};
 
 /**
  * Get user's current preferences.
  */
-export const getPreferences = withAuth(async (req: AuthRequest, res: Response) => {
-    const result = await gpaService.getPreferences(req.user!.id);
-    res.status(200).json(result);
-});
+export const getPreferences = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const result = await gpaService.getPreferences(userId);
+    reply.code(200).send(result);
+};
 
 /**
  * Get unmigrated (plaintext) courses for client-side encryption migration.
  */
-export const getUnmigratedCourses = withAuth(async (req: AuthRequest, res: Response) => {
-    const courses = await gpaService.getUnmigratedCourses(req.user!.id);
-    res.status(200).json(courses);
-});
+export const getUnmigratedCourses = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const courses = await gpaService.getUnmigratedCourses(userId);
+    reply.code(200).send(courses);
+};
 
 /**
  * Migrate a single course from plaintext to encrypted format.
  */
-export const migrateCourse = withAuth(async (req: AuthRequest, res: Response) => {
-    const course = await gpaService.migrateCourse(req.user!.id, req.params.id as string, req.body);
-    res.status(200).json(course);
-});
+export const migrateCourse = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const course = await gpaService.migrateCourse(userId, params.id, request.body as any);
+    reply.code(200).send(course);
+};

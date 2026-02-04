@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { FastifyInstance } from 'fastify';
 import {
     getTasks,
     createTask,
@@ -7,22 +7,17 @@ import {
     reorderTasks,
     getUpcomingTasks
 } from '../controllers/taskController';
-import { protect } from '../middleware/authMiddleware';
-import { csrfProtection } from '../middleware/customCsrf';
 
-const router = Router();
+export default async function taskRoutes(fastify: FastifyInstance) {
+    // All routes require authentication and CSRF protection
+    const preHandler = [fastify.authenticate, fastify.csrfProtection];
 
-// All routes require authentication and CSRF protection
-router.use(protect);
-router.use(csrfProtection);
-
-// Task CRUD
-router.get('/', getTasks);
-router.get('/upcoming', getUpcomingTasks);  // Lightweight endpoint for dashboard widget
-router.post('/', createTask);
-router.put('/reorder', reorderTasks);  // Must come before /:id to avoid route conflict
-router.put('/:id', updateTask);
-router.delete('/:id', deleteTask);
-
-export default router;
+    // Task CRUD
+    fastify.get('/', { preHandler }, getTasks);
+    fastify.get('/upcoming', { preHandler }, getUpcomingTasks);  // Lightweight endpoint for dashboard widget
+    fastify.post('/', { preHandler }, createTask);
+    fastify.put('/reorder', { preHandler }, reorderTasks);  // Must come before /:id to avoid route conflict
+    fastify.put('/:id', { preHandler }, updateTask);
+    fastify.delete('/:id', { preHandler }, deleteTask);
+}
 

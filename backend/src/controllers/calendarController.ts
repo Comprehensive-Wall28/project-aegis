@@ -1,10 +1,5 @@
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { CalendarService } from '../services';
-import { withAuth } from '../middleware/controllerWrapper';
-
-interface AuthRequest extends Request {
-    user?: { id: string; username: string };
-}
 
 // Service instance
 const calendarService = new CalendarService();
@@ -12,49 +7,60 @@ const calendarService = new CalendarService();
 /**
  * Get all calendar events for the authenticated user.
  */
-export const getEvents = withAuth(async (req: AuthRequest, res: Response) => {
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-    const cursor = req.query.cursor as string | undefined;
+export const getEvents = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const query = request.query as Record<string, string>;
+    const limit = query.limit ? parseInt(query.limit) : undefined;
+    const cursor = query.cursor as string | undefined;
 
     if (limit !== undefined || cursor !== undefined) {
-        const result = await calendarService.getPaginatedEvents(req.user!.id, { limit: limit || 50, cursor });
-        return res.status(200).json(result);
+        const result = await calendarService.getPaginatedEvents(userId, { limit: limit || 50, cursor });
+        return reply.code(200).send(result);
     }
 
-    const { start, end } = req.query;
+    const { start, end } = query;
     const events = await calendarService.getEvents(
-        req.user!.id,
+        userId,
         start as string,
         end as string
     );
-    res.status(200).json(events);
-});
+    reply.code(200).send(events);
+};
 
 /**
  * Create a new encrypted calendar event.
  */
-export const createEvent = withAuth(async (req: AuthRequest, res: Response) => {
-    const event = await calendarService.createEvent(req.user!.id, req.body, req);
-    res.status(201).json(event);
-});
+export const createEvent = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const event = await calendarService.createEvent(userId, request.body as any, request as any);
+    reply.code(201).send(event);
+};
 
 /**
  * Update an existing calendar event.
  */
-export const updateEvent = withAuth(async (req: AuthRequest, res: Response) => {
+export const updateEvent = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
     const event = await calendarService.updateEvent(
-        req.user!.id,
-        req.params.id as string,
-        req.body,
-        req
+        userId,
+        params.id,
+        request.body as any,
+        request as any
     );
-    res.status(200).json(event);
-});
+    reply.code(200).send(event);
+};
 
 /**
  * Delete a calendar event.
  */
-export const deleteEvent = withAuth(async (req: AuthRequest, res: Response) => {
-    await calendarService.deleteEvent(req.user!.id, req.params.id as string, req);
-    res.status(200).json({ message: 'Event deleted successfully' });
-});
+export const deleteEvent = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await calendarService.deleteEvent(userId, params.id, request as any);
+    reply.code(200).send({ message: 'Event deleted successfully' });
+};

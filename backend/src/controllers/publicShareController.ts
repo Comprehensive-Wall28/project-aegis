@@ -1,7 +1,6 @@
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { PublicShareService } from '../services';
 import logger from '../utils/logger';
-import { catchAsync } from '../middleware/controllerWrapper';
 
 // Service instance
 const publicShareService = new PublicShareService();
@@ -10,30 +9,32 @@ const publicShareService = new PublicShareService();
  * Get metadata for a shared link.
  * Access: Public
  */
-export const getLinkMetadata = catchAsync(async (req: Request, res: Response) => {
-    const { token } = req.params;
-    const result = await publicShareService.getLinkMetadata(token as string);
-    res.json(result);
-});
+export const getLinkMetadata = async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as any;
+    const { token } = params;
+    const result = await publicShareService.getLinkMetadata(token);
+    reply.send(result);
+};
 
 /**
  * Download file via shared link.
  * Access: Public (if link is public)
  */
-export const downloadSharedFile = catchAsync(async (req: Request, res: Response) => {
-    const { token } = req.params;
-    const { stream, mimeType, fileName, fileSize } = await publicShareService.downloadSharedFile(token as string);
+export const downloadSharedFile = async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as any;
+    const { token } = params;
+    const { stream, mimeType, fileName, fileSize } = await publicShareService.downloadSharedFile(token);
 
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.setHeader('Content-Length', fileSize.toString());
+    reply.header('Content-Type', mimeType);
+    reply.header('Content-Disposition', `attachment; filename="${fileName}"`);
+    reply.header('Content-Length', fileSize.toString());
 
     stream.on('error', (err) => {
         logger.error(`Stream error: ${err}`);
-        if (!res.headersSent) {
-            res.status(500).json({ message: 'Download failed' });
+        if (!reply.sent) {
+            reply.code(500).send({ message: 'Download failed' });
         }
     });
 
-    stream.pipe(res);
-});
+    return reply.send(stream);
+};

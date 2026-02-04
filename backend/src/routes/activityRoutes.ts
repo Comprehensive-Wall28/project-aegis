@@ -1,11 +1,8 @@
-import express from 'express';
+import { FastifyInstance } from 'fastify';
 import { getDashboardActivity } from '../controllers/activityController';
-import { protect } from '../middleware/authMiddleware';
 
-const router = express.Router();
-
-router.use(protect);
-
-router.get('/dashboard', getDashboardActivity);
-
-export default router;
+export default async function activityRoutes(fastify: FastifyInstance) {
+    fastify.get('/dashboard', {
+        preHandler: [fastify.authenticate]
+    }, getDashboardActivity);
+}

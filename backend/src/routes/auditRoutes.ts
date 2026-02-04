@@ -1,12 +1,13 @@
-import { Router } from 'express';
+import { FastifyInstance } from 'fastify';
 import { getAuditLogs, getRecentActivity } from '../controllers/auditController';
-import { protect } from '../middleware/authMiddleware';
-import { csrfProtection } from '../middleware/customCsrf';
 
-const router = Router();
-
-// All audit routes require authentication and CSRF protection
-router.get('/', protect, csrfProtection, getAuditLogs);
-router.get('/recent', protect, csrfProtection, getRecentActivity);
-
-export default router;
+export default async function auditRoutes(fastify: FastifyInstance) {
+    // All audit routes require authentication and CSRF protection
+    fastify.get('/', {
+        preHandler: [fastify.authenticate, fastify.csrfProtection]
+    }, getAuditLogs);
+    
+    fastify.get('/recent', {
+        preHandler: [fastify.authenticate, fastify.csrfProtection]
+    }, getRecentActivity);
+}

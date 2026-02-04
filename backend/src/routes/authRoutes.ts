@@ -1,4 +1,4 @@
-import express from 'express';
+import { FastifyInstance } from 'fastify';
 import {
     registerUser,
     loginUser,
@@ -13,31 +13,48 @@ import {
     removePasskey,
     discoverUser,
 } from '../controllers/authController';
-import { protect } from '../middleware/authMiddleware';
-import { csrfProtection, csrfTokenCookie } from '../middleware/customCsrf';
 
-const router = express.Router();
+export default async function authRoutes(fastify: FastifyInstance) {
+    // Public routes - NO CSRF protection (prevents race condition on fresh page loads)
+    fastify.post('/register', registerUser);
+    fastify.post('/login', loginUser);
 
-// Public routes - NO CSRF protection (prevents race condition on fresh page loads)
-router.post('/register', registerUser);
-router.post('/login', loginUser);
+    // CSRF token endpoint - applies CSRF to set the cookie, then returns the token
+    fastify.get('/csrf-token', {
+        preHandler: [fastify.csrfProtection, fastify.csrfTokenCookie]
+    }, getCsrfToken);
 
-// CSRF token endpoint - applies CSRF to set the cookie, then returns the token
-router.get('/csrf-token', csrfProtection, csrfTokenCookie, getCsrfToken);
+    // Protected routes WITH CSRF protection
+    fastify.get('/me', {
+        preHandler: [fastify.authenticate, fastify.csrfProtection]
+    }, getMe);
+    
+    fastify.put('/me', {
+        preHandler: [fastify.authenticate, fastify.csrfProtection]
+    }, updateMe);
+    
+    fastify.get('/discovery/:email', {
+        preHandler: [fastify.authenticate, fastify.csrfProtection]
+    }, discoverUser);
 
-// Protected routes WITH CSRF protection
-router.get('/me', protect, csrfProtection, getMe);
-router.put('/me', protect, csrfProtection, updateMe);
-router.get('/discovery/:email', protect, csrfProtection, discoverUser);
+    // Logout - protected to get user ID for token invalidation, no CSRF (cookie might be stale)
+    fastify.post('/logout', {
+        preHandler: [fastify.authenticate]
+    }, logoutUser);
 
-// Logout - protected to get user ID for token invalidation, no CSRF (cookie might be stale)
-router.post('/logout', protect, logoutUser);
-
-// WebAuthn routes
-router.post('/webauthn/register-options', protect, csrfProtection, getRegistrationOptions);
-router.post('/webauthn/register-verify', protect, csrfProtection, verifyRegistration);
-router.post('/webauthn/login-options', getAuthenticationOptions);
-router.post('/webauthn/login-verify', verifyAuthentication);
-router.delete('/webauthn/passkey', protect, csrfProtection, removePasskey);
-
-export default router;
+    // WebAuthn routes
+    fastify.post('/webauthn/register-options', {
+        preHandler: [fastify.authenticate, fastify.csrfProtection]
+    }, getRegistrationOptions);
+    
+    fastify.post('/webauthn/register-verify', {
+        preHandler: [fastify.authenticate, fastify.csrfProtection]
+    }, verifyRegistration);
+    
+    fastify.post('/webauthn/login-options', getAuthenticationOptions);
+    fastify.post('/webauthn/login-verify', verifyAuthentication);
+    
+    fastify.delete('/webauthn/passkey', {
+        preHandler: [fastify.authenticate, fastify.csrfProtection]
+    }, removePasskey);
+}

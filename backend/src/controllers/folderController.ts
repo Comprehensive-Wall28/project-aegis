@@ -1,10 +1,5 @@
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { FolderService } from '../services';
-import { withAuth } from '../middleware/controllerWrapper';
-
-interface AuthRequest extends Request {
-    user?: { id: string; username: string };
-}
 
 // Service instance
 const folderService = new FolderService();
@@ -12,8 +7,11 @@ const folderService = new FolderService();
 /**
  * Get all folders for the authenticated user in a specific parent folder.
  */
-export const getFolders = withAuth(async (req: AuthRequest, res: Response) => {
-    const { parentId: rawParentId } = req.query;
+export const getFolders = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const query = request.query as Record<string, string | string[]>;
+    const { parentId: rawParentId } = query;
 
     // Normalize rawParentId
     let parentId: string | null = null;
@@ -25,55 +23,69 @@ export const getFolders = withAuth(async (req: AuthRequest, res: Response) => {
         parentId = candidate;
     }
 
-    const folders = await folderService.getFolders(req.user!.id, parentId);
-    res.status(200).json(folders);
-});
+    const folders = await folderService.getFolders(userId, parentId);
+    reply.code(200).send(folders);
+};
 
 /**
  * Get a single folder by ID.
  */
-export const getFolder = withAuth(async (req: AuthRequest, res: Response) => {
-    const folder = await folderService.getFolder(req.user!.id, req.params.id as string);
-    res.status(200).json(folder);
-});
+export const getFolder = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const folder = await folderService.getFolder(userId, params.id);
+    reply.code(200).send(folder);
+};
 
 /**
  * Create a new folder.
  */
-export const createFolder = withAuth(async (req: AuthRequest, res: Response) => {
-    const folder = await folderService.createFolder(req.user!.id, req.body);
-    res.status(201).json(folder);
-});
+export const createFolder = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const folder = await folderService.createFolder(userId, request.body as any);
+    reply.code(201).send(folder);
+};
 
 /**
  * Update a folder (rename and/or change color).
  */
-export const renameFolder = withAuth(async (req: AuthRequest, res: Response) => {
+export const renameFolder = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
     const folder = await folderService.updateFolder(
-        req.user!.id,
-        req.params.id as string,
-        req.body
+        userId,
+        params.id,
+        request.body as any
     );
-    res.status(200).json(folder);
-});
+    reply.code(200).send(folder);
+};
 
 /**
  * Delete a folder (only if empty).
  */
-export const deleteFolder = withAuth(async (req: AuthRequest, res: Response) => {
-    await folderService.deleteFolder(req.user!.id, req.params.id as string);
-    res.status(200).json({ message: 'Folder deleted successfully' });
-});
+export const deleteFolder = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await folderService.deleteFolder(userId, params.id);
+    reply.code(200).send({ message: 'Folder deleted successfully' });
+};
 
 /**
  * Move files to a folder (supports bulk move).
  */
-export const moveFiles = withAuth(async (req: AuthRequest, res: Response) => {
-    const { updates, folderId } = req.body;
-    const modifiedCount = await folderService.moveFiles(req.user!.id, updates, folderId);
+export const moveFiles = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const body = request.body as any;
+    const { updates, folderId } = body;
+    const modifiedCount = await folderService.moveFiles(userId, updates, folderId);
 
-    res.status(200).json({
+    reply.code(200).send({
         message: `Moved ${modifiedCount} file(s)`,
         modifiedCount
     });
-});
+};

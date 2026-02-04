@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import {
     RoomService,
     CollectionService,
@@ -6,11 +6,6 @@ import {
     CommentService,
     ReaderService
 } from '../services/social';
-import { withAuth, catchAsync } from '../middleware/controllerWrapper';
-
-interface AuthRequest extends Request {
-    user?: { id: string; username: string };
-}
 
 // Service instances
 const roomService = new RoomService();
@@ -21,52 +16,76 @@ const readerService = new ReaderService();
 
 // ============== Room Endpoints ==============
 
-export const createRoom = withAuth(async (req: AuthRequest, res: Response) => {
-    const room = await roomService.createRoom(req.user!.id, req.body, req);
-    res.status(201).json(room);
-});
+export const createRoom = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const room = await roomService.createRoom(userId, request.body as any, request as any);
+    reply.code(201).send(room);
+};
 
-export const getUserRooms = withAuth(async (req: AuthRequest, res: Response) => {
-    const rooms = await roomService.getUserRooms(req.user!.id);
-    res.status(200).json(rooms);
-});
+export const getUserRooms = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const rooms = await roomService.getUserRooms(userId);
+    reply.code(200).send(rooms);
+};
 
-export const createInvite = withAuth(async (req: AuthRequest, res: Response) => {
-    const inviteCode = await roomService.createInvite(req.user!.id, req.params.roomId as string, req);
-    res.status(200).json({ inviteCode });
-});
+export const createInvite = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const inviteCode = await roomService.createInvite(userId, params.roomId as string, request as any);
+    reply.code(200).send({ inviteCode });
+};
 
-export const getInviteInfo = catchAsync(async (req: Request, res: Response) => {
-    const info = await roomService.getInviteInfo(req.params.inviteCode as string);
-    res.status(200).json(info);
-});
+export const getInviteInfo = async (request: FastifyRequest, reply: FastifyReply) => {
+    const params = request.params as any;
+    const info = await roomService.getInviteInfo(params.inviteCode as string);
+    reply.code(200).send(info);
+};
 
-export const joinRoom = withAuth(async (req: AuthRequest, res: Response) => {
-    const { inviteCode, encryptedRoomKey } = req.body;
-    const roomId = await roomService.joinRoom(req.user!.id, inviteCode, encryptedRoomKey, req);
-    res.status(200).json({ message: 'Successfully joined room', roomId });
-});
+export const joinRoom = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const { inviteCode, encryptedRoomKey } = request.body as any;
+    const roomId = await roomService.joinRoom(userId, inviteCode, encryptedRoomKey, request as any);
+    reply.code(200).send({ message: 'Successfully joined room', roomId });
+};
 
-export const leaveRoom = withAuth(async (req: AuthRequest, res: Response) => {
-    await roomService.leaveRoom(req.user!.id, req.params.roomId as string, req);
-    res.status(200).json({ message: 'Successfully left room' });
-});
+export const leaveRoom = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await roomService.leaveRoom(userId, params.roomId as string, request as any);
+    reply.code(200).send({ message: 'Successfully left room' });
+};
 
-export const deleteRoom = withAuth(async (req: AuthRequest, res: Response) => {
-    await roomService.deleteRoom(req.user!.id, req.params.roomId as string, req);
-    res.status(200).json({ message: 'Successfully deleted room' });
-});
+export const deleteRoom = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await roomService.deleteRoom(userId, params.roomId as string, request as any);
+    reply.code(200).send({ message: 'Successfully deleted room' });
+};
 
-export const getRoomContent = withAuth(async (req: AuthRequest, res: Response) => {
-    const collectionId = req.query.collectionId as string | undefined;
-    const content = await roomService.getRoomContent(req.user!.id, req.params.roomId as string, collectionId);
-    res.status(200).json(content);
-});
+export const getRoomContent = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const query = request.query as Record<string, string>;
+    const collectionId = query.collectionId as string | undefined;
+    const content = await roomService.getRoomContent(userId, params.roomId as string, collectionId);
+    reply.code(200).send(content);
+};
 
-export const getCollectionLinks = withAuth(async (req: AuthRequest, res: Response) => {
-    const cursorCreatedAt = req.query.cursorCreatedAt as string;
-    const cursorId = req.query.cursorId as string;
-    const limit = parseInt(req.query.limit as string) || 12;
+export const getCollectionLinks = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const query = request.query as Record<string, string>;
+    const cursorCreatedAt = query.cursorCreatedAt as string;
+    const cursorId = query.cursorId as string;
+    const limit = parseInt(query.limit as string) || 12;
 
     const beforeCursor = cursorCreatedAt && cursorId ? {
         createdAt: cursorCreatedAt,
@@ -74,90 +93,125 @@ export const getCollectionLinks = withAuth(async (req: AuthRequest, res: Respons
     } : undefined;
 
     const result = await linkService.getCollectionLinks(
-        req.user!.id,
-        req.params.roomId as string,
-        req.params.collectionId as string,
+        userId,
+        params.roomId as string,
+        params.collectionId as string,
         limit,
         beforeCursor
     );
-    res.status(200).json(result);
-});
+    reply.code(200).send(result);
+};
 
-export const searchRoomLinks = withAuth(async (req: AuthRequest, res: Response) => {
-    const query = req.query.q as string;
-    const limit = parseInt(req.query.limit as string) || 50;
+export const searchRoomLinks = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const query = request.query as Record<string, string>;
+    const searchQuery = query.q as string;
+    const limit = parseInt(query.limit as string) || 50;
 
-    if (!query) {
-        return res.status(200).json({ links: [], viewedLinkIds: [], commentCounts: {} });
+    if (!searchQuery) {
+        return reply.code(200).send({ links: [], viewedLinkIds: [], commentCounts: {} });
     }
 
     const result = await linkService.searchRoomLinks(
-        req.user!.id,
-        req.params.roomId as string,
-        query,
+        userId,
+        params.roomId as string,
+        searchQuery,
         limit
     );
-    res.status(200).json(result);
-});
+    reply.code(200).send(result);
+};
 
 // ============== Link Endpoints ==============
 
-export const postLink = withAuth(async (req: AuthRequest, res: Response) => {
-    const linkPost = await linkService.postLink(req.user!.id, req.params.roomId as string, req.body, req);
-    res.status(201).json(linkPost);
-});
+export const postLink = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const linkPost = await linkService.postLink(userId, params.roomId as string, request.body as any, request as any);
+    reply.code(201).send(linkPost);
+};
 
-export const deleteLink = withAuth(async (req: AuthRequest, res: Response) => {
-    await linkService.deleteLink(req.user!.id, req.params.linkId as string, req);
-    res.status(200).json({ message: 'Link deleted successfully' });
-});
+export const deleteLink = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await linkService.deleteLink(userId, params.linkId as string, request as any);
+    reply.code(200).send({ message: 'Link deleted successfully' });
+};
 
-export const markLinkViewed = withAuth(async (req: AuthRequest, res: Response) => {
-    await linkService.markLinkViewed(req.user!.id, req.params.linkId as string);
-    res.status(200).json({ message: 'Link marked as viewed' });
-});
+export const markLinkViewed = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await linkService.markLinkViewed(userId, params.linkId as string);
+    reply.code(200).send({ message: 'Link marked as viewed' });
+};
 
-export const unmarkLinkViewed = withAuth(async (req: AuthRequest, res: Response) => {
-    await linkService.unmarkLinkViewed(req.user!.id, req.params.linkId as string);
-    res.status(200).json({ message: 'Link unmarked as viewed' });
-});
+export const unmarkLinkViewed = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await linkService.unmarkLinkViewed(userId, params.linkId as string);
+    reply.code(200).send({ message: 'Link unmarked as viewed' });
+};
 
-export const moveLink = withAuth(async (req: AuthRequest, res: Response) => {
-    const linkPost = await linkService.moveLink(req.user!.id, req.params.linkId as string, req.body.collectionId, req);
-    res.status(200).json({ message: 'Link moved successfully', linkPost });
-});
+export const moveLink = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const { collectionId } = request.body as any;
+    const linkPost = await linkService.moveLink(userId, params.linkId as string, collectionId, request as any);
+    reply.code(200).send({ message: 'Link moved successfully', linkPost });
+};
 
 // ============== Collection Endpoints ==============
 
-export const createCollection = withAuth(async (req: AuthRequest, res: Response) => {
-    const collection = await collectionService.createCollection(req.user!.id, req.params.roomId as string, req.body, req);
-    res.status(201).json(collection);
-});
+export const createCollection = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const collection = await collectionService.createCollection(userId, params.roomId as string, request.body as any, request as any);
+    reply.code(201).send(collection);
+};
 
-export const deleteCollection = withAuth(async (req: AuthRequest, res: Response) => {
-    await collectionService.deleteCollection(req.user!.id, req.params.collectionId as string, req);
-    res.status(200).json({ message: 'Collection deleted successfully' });
-});
+export const deleteCollection = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await collectionService.deleteCollection(userId, params.collectionId as string, request as any);
+    reply.code(200).send({ message: 'Collection deleted successfully' });
+};
 
-export const updateCollection = withAuth(async (req: AuthRequest, res: Response) => {
-    const { name } = req.body;
-    const collection = await collectionService.updateCollection(req.user!.id, req.params.collectionId as string, name, req);
-    res.status(200).json(collection);
-});
+export const updateCollection = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const { name } = request.body as any;
+    const collection = await collectionService.updateCollection(userId, params.collectionId as string, name, request as any);
+    reply.code(200).send(collection);
+};
 
-export const reorderCollections = withAuth(async (req: AuthRequest, res: Response) => {
-    const { roomId } = req.params;
-    const { collectionIds } = req.body;
-    await collectionService.reorderCollections(req.user!.id, roomId as string, collectionIds, req);
-    res.status(200).json({ message: 'Collections reordered successfully' });
-});
+export const reorderCollections = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const { collectionIds } = request.body as any;
+    await collectionService.reorderCollections(userId, params.roomId as string, collectionIds, request as any);
+    reply.code(200).send({ message: 'Collections reordered successfully' });
+};
 
 // ============== Comment Endpoints ==============
 
-export const getComments = withAuth(async (req: AuthRequest, res: Response) => {
-    const limit = parseInt(req.query.limit as string) || 20;
-    const cursorCreatedAt = req.query.cursorCreatedAt as string;
-    const cursorId = req.query.cursorId as string;
+export const getComments = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const query = request.query as Record<string, string>;
+    const limit = parseInt(query.limit as string) || 20;
+    const cursorCreatedAt = query.cursorCreatedAt as string;
+    const cursorId = query.cursorId as string;
 
     const beforeCursor = cursorCreatedAt && cursorId ? {
         createdAt: cursorCreatedAt,
@@ -165,55 +219,74 @@ export const getComments = withAuth(async (req: AuthRequest, res: Response) => {
     } : undefined;
 
     const result = await commentService.getComments(
-        req.user!.id,
-        req.params.linkId as string,
+        userId,
+        params.linkId as string,
         limit,
         beforeCursor
     );
-    res.status(200).json(result);
-});
+    reply.code(200).send(result);
+};
 
-export const postComment = withAuth(async (req: AuthRequest, res: Response) => {
+export const postComment = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const { encryptedContent } = request.body as any;
     const comment = await commentService.postComment(
-        req.user!.id,
-        req.params.linkId as string,
-        req.body.encryptedContent,
-        req
+        userId,
+        params.linkId as string,
+        encryptedContent,
+        request as any
     );
-    res.status(201).json(comment);
-});
+    reply.code(201).send(comment);
+};
 
-export const deleteComment = withAuth(async (req: AuthRequest, res: Response) => {
-    await commentService.deleteComment(req.user!.id, req.params.commentId as string, req);
-    res.status(200).json({ message: 'Comment deleted successfully' });
-});
+export const deleteComment = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await commentService.deleteComment(userId, params.commentId as string, request as any);
+    reply.code(200).send({ message: 'Comment deleted successfully' });
+};
 
 // ============== Reader Mode Endpoints ==============
 
-export const getReaderContent = withAuth(async (req: AuthRequest, res: Response) => {
-    const result = await readerService.getReaderContent(req.user!.id, req.params.linkId as string);
-    res.status(200).json(result);
-});
+export const getReaderContent = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const result = await readerService.getReaderContent(userId, params.linkId as string);
+    reply.code(200).send(result);
+};
 
-export const getAnnotations = withAuth(async (req: AuthRequest, res: Response) => {
-    const annotations = await readerService.getAnnotations(req.user!.id, req.params.linkId as string);
-    res.status(200).json(annotations);
-});
+export const getAnnotations = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const annotations = await readerService.getAnnotations(userId, params.linkId as string);
+    reply.code(200).send(annotations);
+};
 
-export const createAnnotation = withAuth(async (req: AuthRequest, res: Response) => {
-    const { paragraphId, highlightText, encryptedContent } = req.body;
+export const createAnnotation = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const { paragraphId, highlightText, encryptedContent } = request.body as any;
     const annotation = await readerService.createAnnotation(
-        req.user!.id,
-        req.params.linkId as string,
+        userId,
+        params.linkId as string,
         paragraphId,
         highlightText,
         encryptedContent,
-        req
+        request as any
     );
-    res.status(201).json(annotation);
-});
+    reply.code(201).send(annotation);
+};
 
-export const deleteAnnotation = withAuth(async (req: AuthRequest, res: Response) => {
-    await readerService.deleteAnnotation(req.user!.id, req.params.annotationId as string, req);
-    res.status(200).json({ message: 'Annotation deleted successfully' });
-});
+export const deleteAnnotation = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await readerService.deleteAnnotation(userId, params.annotationId as string, request as any);
+    reply.code(200).send({ message: 'Annotation deleted successfully' });
+};

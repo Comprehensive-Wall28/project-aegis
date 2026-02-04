@@ -1,11 +1,6 @@
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { VaultService, ServiceError } from '../services';
 import logger from '../utils/logger';
-import { withAuth } from '../middleware/controllerWrapper';
-
-interface AuthRequest extends Request {
-    user?: { id: string; username: string };
-}
 
 // Service instance
 const vaultService = new VaultService();
@@ -13,112 +8,136 @@ const vaultService = new VaultService();
 /**
  * Initialize a file upload session
  */
-export const uploadInit = withAuth(async (req: AuthRequest, res: Response) => {
-    const result = await vaultService.initUpload(req.user!.id, req.body, req);
-    res.status(200).json({ fileId: result.fileId });
-});
+export const uploadInit = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const result = await vaultService.initUpload(userId, request.body as any, request as any);
+    reply.code(200).send({ fileId: result.fileId });
+};
 
 /**
  * Upload a file chunk
  */
-export const uploadChunk = withAuth(async (req: AuthRequest, res: Response) => {
-    const fileId = req.query.fileId as string;
-    const contentRange = req.headers['content-range'] as string;
-    const contentLength = parseInt(req.headers['content-length'] || '0', 10);
+export const uploadChunk = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const query = request.query as Record<string, string>;
+    const fileId = query.fileId;
+    const contentRange = request.headers['content-range'] as string;
+    const contentLength = parseInt(request.headers['content-length'] || '0', 10);
 
     if (contentLength === 0) {
         throw new ServiceError('Missing Content-Length', 400);
     }
 
+    // With Fastify's content type parser, request.body is the stream
+    // Fall back to request.raw if body is not set (shouldn't happen with proper parser)
+    const stream = (request.body as any) || request.raw;
+    
     const result = await vaultService.uploadChunk(
-        req.user!.id,
+        userId,
         fileId,
         contentRange,
-        req, // Pass the request stream directly
+        stream,
         contentLength
     );
 
     if (result.complete) {
-        res.status(200).json({
+        reply.code(200).send({
             message: 'Upload successful',
             googleDriveFileId: result.googleDriveFileId
         });
     } else {
         // Send 308 Resume Incomplete (following Google Drive convention)
-        res.status(308).set('Range', `bytes=0-${result.receivedSize! - 1}`).send();
+        reply.code(308).header('Range', `bytes=0-${result.receivedSize! - 1}`).send();
     }
-});
+};
 
 /**
  * Download a file
  */
-export const downloadFile = withAuth(async (req: AuthRequest, res: Response) => {
+export const downloadFile = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
     const { stream, file } = await vaultService.getDownloadStream(
-        req.user!.id,
-        req.params.id as string
+        userId,
+        params.id
     );
 
     // Handle stream errors
     stream.on('error', (err) => {
         logger.error(`Google Drive stream error: ${err}`);
-        if (!res.headersSent) {
-            res.status(500).json({ message: 'Download failed' });
+        if (!reply.sent) {
+            reply.code(500).send({ message: 'Download failed' });
         }
     });
 
-    res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${file.originalFileName}"`);
-    res.setHeader('Content-Length', file.fileSize.toString());
+    reply.header('Content-Type', file.mimeType || 'application/octet-stream');
+    reply.header('Content-Disposition', `attachment; filename="${file.originalFileName}"`);
+    reply.header('Content-Length', file.fileSize.toString());
 
-    stream.pipe(res);
-});
+    // Return the reply to ensure Fastify properly handles the stream
+    return reply.send(stream);
+};
 
 /**
  * Get a single file
  */
-export const getFile = withAuth(async (req: AuthRequest, res: Response) => {
-    const file = await vaultService.getFile(req.user!.id, req.params.id as string);
-    res.json(file);
-});
+export const getFile = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    const file = await vaultService.getFile(userId, params.id);
+    reply.send(file);
+};
 
 /**
  * Get user files (optionally filtered by folder, supports pagination)
  */
-export const getUserFiles = withAuth(async (req: AuthRequest, res: Response) => {
-    const folderId = req.query.folderId as string | undefined;
+export const getUserFiles = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const query = request.query as Record<string, string>;
+    const folderId = query.folderId as string | undefined;
     const normalizedFolderId = folderId && folderId !== 'null' ? folderId : null;
 
     // Check for pagination params
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-    const cursor = req.query.cursor as string | undefined;
-    const search = req.query.search as string | undefined;
+    const limit = query.limit ? parseInt(query.limit) : undefined;
+    const cursor = query.cursor as string | undefined;
+    const search = query.search as string | undefined;
 
     if (limit !== undefined) {
         const result = await vaultService.getUserFilesPaginated(
-            req.user!.id,
+            userId,
             normalizedFolderId,
             { limit, cursor, search }
         );
-        return res.json(result);
+        return reply.send(result);
     }
 
     // Non-paginated fallback
-    const files = await vaultService.getUserFiles(req.user!.id, folderId, search);
-    res.json(files);
-});
+    const files = await vaultService.getUserFiles(userId, folderId, search);
+    reply.send(files);
+};
 
 /**
  * Delete a file
  */
-export const deleteUserFile = withAuth(async (req: AuthRequest, res: Response) => {
-    await vaultService.deleteFile(req.user!.id, req.params.id as string, req);
-    res.status(200).json({ message: 'File deleted successfully' });
-});
+export const deleteUserFile = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const params = request.params as any;
+    await vaultService.deleteFile(userId, params.id, request as any);
+    reply.code(200).send({ message: 'File deleted successfully' });
+};
 
 /**
  * Get user storage stats
  */
-export const getStorageStats = withAuth(async (req: AuthRequest, res: Response) => {
-    const stats = await vaultService.getStorageStats(req.user!.id);
-    res.json(stats);
-});
+export const getStorageStats = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.user as any;
+    const userId = user?.id || user?._id;
+    const stats = await vaultService.getStorageStats(userId);
+    reply.send(stats);
+};

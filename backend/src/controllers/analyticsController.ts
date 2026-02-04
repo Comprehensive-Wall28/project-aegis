@@ -1,47 +1,6 @@
-import express, { Request, Response, NextFunction } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import DatabaseManager from '../config/DatabaseManager';
 import { config } from '../config/env';
-
-const router = express.Router();
-
-/**
- * Password verification middleware for analytics access
- * Simple security model: password stored in env var only
- */
-export const verifyAnalyticsPassword = (req: Request, res: Response, next: NextFunction): void => {
-    const providedPassword = req.body?.password || req.headers['x-analytics-password'];
-
-    if (!providedPassword || providedPassword !== config.analyticsAccessPassword) {
-        res.status(401).json({
-            success: false,
-            error: 'Invalid or missing analytics access password',
-        });
-        return;
-    }
-
-    next();
-};
-
-/**
- * POST /api/analytics/verify-access
- * Validate analytics access password
- */
-router.post('/verify-access', (req: Request, res: Response): void => {
-    const { password } = req.body;
-
-    if (!password || password !== config.analyticsAccessPassword) {
-        res.status(401).json({
-            success: false,
-            error: 'Invalid password',
-        });
-        return;
-    }
-
-    res.json({
-        success: true,
-        message: 'Access granted',
-    });
-});
 
 /**
  * Helper to get analytics models from secondary connection
@@ -60,16 +19,32 @@ const getAnalyticsModels = async () => {
 };
 
 /**
+ * POST /api/analytics/verify-access
+ * Validate analytics access password
+ */
+export const verifyAccess = async (request: FastifyRequest, reply: FastifyReply) => {
+    const { password } = request.body as any;
+
+    if (!password || password !== config.analyticsAccessPassword) {
+        return reply.code(401).send({
+            success: false,
+            error: 'Invalid password',
+        });
+    }
+
+    reply.send({
+        success: true,
+        message: 'Access granted',
+    });
+};
+
+/**
  * GET /api/analytics/metrics
  * Query API performance metrics with search and pagination
- * Query params:
- *   - search: Text search across path, method, statusCode, ipAddress
- *   - statusCode: Filter by status code
- *   - page: Page number (default: 1)
- *   - limit: Items per page (default: 100, max: 1000)
  */
-router.get('/metrics', verifyAnalyticsPassword, async (req: Request, res: Response): Promise<void> => {
+export const getMetrics = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
+        const query = request.query as Record<string, string>;
         const {
             search,
             statusCode,
@@ -77,19 +52,19 @@ router.get('/metrics', verifyAnalyticsPassword, async (req: Request, res: Respon
             endDate,
             page = '1',
             limit = '100'
-        } = req.query;
+        } = query;
 
         const { ApiMetric } = await getAnalyticsModels();
 
         // Build query
-        const query: any = {};
+        const mongoQuery: any = {};
 
         // Comprehensive text search
         if (search) {
-            const searchRegex = new RegExp(search as string, 'i');
-            const searchNum = parseInt(search as string);
+            const searchRegex = new RegExp(search, 'i');
+            const searchNum = parseInt(search);
 
-            query.$or = [
+            mongoQuery.$or = [
                 { path: searchRegex },
                 { method: searchRegex },
                 { ipAddress: searchRegex },
@@ -98,36 +73,36 @@ router.get('/metrics', verifyAnalyticsPassword, async (req: Request, res: Respon
 
             // Also search by status code if search term is a number
             if (!isNaN(searchNum)) {
-                query.$or.push({ statusCode: searchNum });
+                mongoQuery.$or.push({ statusCode: searchNum });
             }
         }
 
         if (statusCode) {
-            query.statusCode = parseInt(statusCode as string, 10);
+            mongoQuery.statusCode = parseInt(statusCode, 10);
         }
 
         if (startDate || endDate) {
-            query.timestamp = {};
-            if (startDate) query.timestamp.$gte = new Date(startDate as string);
-            if (endDate) query.timestamp.$lte = new Date(endDate as string);
+            mongoQuery.timestamp = {};
+            if (startDate) mongoQuery.timestamp.$gte = new Date(startDate);
+            if (endDate) mongoQuery.timestamp.$lte = new Date(endDate);
         }
 
         // Pagination
-        const pageNum = Math.max(1, parseInt(page as string, 10));
-        const limitNum = Math.min(1000, Math.max(1, parseInt(limit as string, 10)));
+        const pageNum = Math.max(1, parseInt(page, 10));
+        const limitNum = Math.min(1000, Math.max(1, parseInt(limit, 10)));
         const skip = (pageNum - 1) * limitNum;
 
         // Execute query - always return latest first
         const [metrics, total] = await Promise.all([
-            ApiMetric.find(query)
+            ApiMetric.find(mongoQuery)
                 .sort({ timestamp: -1 })
                 .skip(skip)
                 .limit(limitNum)
                 .lean(),
-            ApiMetric.countDocuments(query),
+            ApiMetric.countDocuments(mongoQuery),
         ]);
 
-        res.json({
+        reply.send({
             success: true,
             data: metrics,
             pagination: {
@@ -138,29 +113,30 @@ router.get('/metrics', verifyAnalyticsPassword, async (req: Request, res: Respon
             },
         });
     } catch (error) {
-        res.status(500).json({
+        reply.code(500).send({
             success: false,
             error: 'Failed to fetch metrics',
             details: error instanceof Error ? error.message : 'Unknown error',
         });
     }
-});
+};
 
 /**
  * GET /api/analytics/metrics/summary
  * Get aggregated metrics summary with optional search
  */
-router.get('/metrics/summary', verifyAnalyticsPassword, async (req: Request, res: Response): Promise<void> => {
+export const getMetricsSummary = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-        const { search, startDate, endDate } = req.query;
+        const query = request.query as Record<string, string>;
+        const { search, startDate, endDate } = query;
 
         const { ApiMetric } = await getAnalyticsModels();
 
         // Build search filter
         const searchFilter: any = {};
         if (search) {
-            const searchRegex = new RegExp(search as string, 'i');
-            const searchNum = parseInt(search as string);
+            const searchRegex = new RegExp(search, 'i');
+            const searchNum = parseInt(search);
 
             searchFilter.$or = [
                 { path: searchRegex },
@@ -175,8 +151,8 @@ router.get('/metrics/summary', verifyAnalyticsPassword, async (req: Request, res
 
         if (startDate || endDate) {
             searchFilter.timestamp = {};
-            if (startDate) searchFilter.timestamp.$gte = new Date(startDate as string);
-            if (endDate) searchFilter.timestamp.$lte = new Date(endDate as string);
+            if (startDate) searchFilter.timestamp.$gte = new Date(startDate);
+            if (endDate) searchFilter.timestamp.$lte = new Date(endDate);
         }
 
         // Aggregation pipeline for summary stats
@@ -253,7 +229,7 @@ router.get('/metrics/summary', verifyAnalyticsPassword, async (req: Request, res
             ])
         ]);
 
-        res.json({
+        reply.send({
             success: true,
             data: {
                 summary: summary[0] || {
@@ -273,21 +249,22 @@ router.get('/metrics/summary', verifyAnalyticsPassword, async (req: Request, res
             },
         });
     } catch (error) {
-        res.status(500).json({
+        reply.code(500).send({
             success: false,
             error: 'Failed to fetch metrics summary',
             details: error instanceof Error ? error.message : 'Unknown error',
         });
     }
-});
+};
 
 /**
  * GET /api/analytics/metrics/timeseries
  * Get time-series data for charts with optional search
  */
-router.get('/metrics/timeseries', verifyAnalyticsPassword, async (req: Request, res: Response): Promise<void> => {
+export const getMetricsTimeseries = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-        const { search, interval = '1h', hours = '24', startDate, endDate } = req.query;
+        const query = request.query as Record<string, string>;
+        const { search, interval = '1h', hours = '24', startDate, endDate } = query;
 
         const { ApiMetric } = await getAnalyticsModels();
 
@@ -296,18 +273,18 @@ router.get('/metrics/timeseries', verifyAnalyticsPassword, async (req: Request, 
 
         if (startDate || endDate) {
             searchFilter.timestamp = {};
-            if (startDate) searchFilter.timestamp.$gte = new Date(startDate as string);
-            if (endDate) searchFilter.timestamp.$lte = new Date(endDate as string);
+            if (startDate) searchFilter.timestamp.$gte = new Date(startDate);
+            if (endDate) searchFilter.timestamp.$lte = new Date(endDate);
         } else {
             // Default to last N hours if no date range provided
-            const hoursNum = parseInt(hours as string) || 24;
+            const hoursNum = parseInt(hours) || 24;
             const startTime = new Date(Date.now() - hoursNum * 60 * 60 * 1000);
             searchFilter.timestamp = { $gte: startTime };
         }
 
         if (search) {
-            const searchRegex = new RegExp(search as string, 'i');
-            const searchNum = parseInt(search as string);
+            const searchRegex = new RegExp(search, 'i');
+            const searchNum = parseInt(search);
 
             searchFilter.$or = [
                 { path: searchRegex },
@@ -369,46 +346,42 @@ router.get('/metrics/timeseries', verifyAnalyticsPassword, async (req: Request, 
             { $sort: { timestamp: 1 } }
         ]);
 
-        res.json({
+        reply.send({
             success: true,
             data: timeseries,
         });
     } catch (error) {
-        res.status(500).json({
+        reply.code(500).send({
             success: false,
             error: 'Failed to fetch timeseries data',
             details: error instanceof Error ? error.message : 'Unknown error',
         });
     }
-});
+};
 
 /**
  * GET /api/analytics/logs
  * Query structured logs with search and pagination
- * Query params:
- *   - search: Text search across message, source, level, metadata
- *   - level: INFO, WARN, ERROR
- *   - page: Page number (default: 1)
- *   - limit: Items per page (default: 100, max: 1000)
  */
-router.get('/logs', verifyAnalyticsPassword, async (req: Request, res: Response): Promise<void> => {
+export const getLogs = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
+        const query = request.query as Record<string, string>;
         const {
             search,
             level,
             page = '1',
             limit = '100'
-        } = req.query;
+        } = query;
 
         const { LogEntry } = await getAnalyticsModels();
 
         // Build query
-        const query: any = {};
+        const mongoQuery: any = {};
 
         // Comprehensive text search
         if (search) {
-            const searchRegex = new RegExp(search as string, 'i');
-            query.$or = [
+            const searchRegex = new RegExp(search, 'i');
+            mongoQuery.$or = [
                 { message: searchRegex },
                 { source: searchRegex },
                 { 'metadata.service': searchRegex },
@@ -416,25 +389,25 @@ router.get('/logs', verifyAnalyticsPassword, async (req: Request, res: Response)
         }
 
         if (level) {
-            query.level = (level as string).toUpperCase();
+            mongoQuery.level = level.toUpperCase();
         }
 
         // Pagination
-        const pageNum = Math.max(1, parseInt(page as string, 10));
-        const limitNum = Math.min(1000, Math.max(1, parseInt(limit as string, 10)));
+        const pageNum = Math.max(1, parseInt(page, 10));
+        const limitNum = Math.min(1000, Math.max(1, parseInt(limit, 10)));
         const skip = (pageNum - 1) * limitNum;
 
         // Execute query - always return latest first
         const [logs, total] = await Promise.all([
-            LogEntry.find(query)
+            LogEntry.find(mongoQuery)
                 .sort({ timestamp: -1 })
                 .skip(skip)
                 .limit(limitNum)
                 .lean(),
-            LogEntry.countDocuments(query),
+            LogEntry.countDocuments(mongoQuery),
         ]);
 
-        res.json({
+        reply.send({
             success: true,
             data: logs,
             pagination: {
@@ -445,34 +418,29 @@ router.get('/logs', verifyAnalyticsPassword, async (req: Request, res: Response)
             },
         });
     } catch (error) {
-        res.status(500).json({
+        reply.code(500).send({
             success: false,
             error: 'Failed to fetch logs',
             details: error instanceof Error ? error.message : 'Unknown error',
         });
     }
-});
+};
 
 /**
  * GET /api/analytics/audit-logs
  * Query system-wide audit logs for analytics with search and pagination
- * Query params:
- *   - search: Text search across action, identifier, ipAddress, and metadata
- *   - status: SUCCESS or FAILURE
- *   - page: Page number (default: 1)
- *   - limit: Items per page (default: 100, max: 1000)
  */
-router.get('/audit-logs', verifyAnalyticsPassword, async (req: Request, res: Response): Promise<void> => {
+export const getAuditLogs = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
+        const query = request.query as Record<string, string>;
         const {
             search,
             status,
             page = '1',
             limit = '100'
-        } = req.query;
+        } = query;
 
         // Get AuditLog model from the secondary connection (where audit logs are stored)
-        const { DatabaseManager } = await import('../config/DatabaseManager');
         const dbManager = DatabaseManager.getInstance();
         const secondaryConnection = dbManager.getConnection('secondary');
 
@@ -480,14 +448,14 @@ router.get('/audit-logs', verifyAnalyticsPassword, async (req: Request, res: Res
         const AuditLog = secondaryConnection.models['AuditLog'] || secondaryConnection.model('AuditLog', AuditLogSchema);
 
         // Build query
-        const query: any = {};
+        const mongoQuery: any = {};
 
         // Comprehensive text search across multiple fields
         if (search) {
-            const searchRegex = new RegExp(search as string, 'i');
+            const searchRegex = new RegExp(search, 'i');
             // Note: userId is ObjectId so we can't regex search it
             // We search on text fields only
-            query.$or = [
+            mongoQuery.$or = [
                 { action: searchRegex },
                 { identifier: searchRegex },
                 { ipAddress: searchRegex },
@@ -499,25 +467,25 @@ router.get('/audit-logs', verifyAnalyticsPassword, async (req: Request, res: Res
         }
 
         if (status) {
-            query.status = status as string;
+            mongoQuery.status = status;
         }
 
         // Pagination
-        const pageNum = Math.max(1, parseInt(page as string, 10));
-        const limitNum = Math.min(1000, Math.max(1, parseInt(limit as string, 10)));
+        const pageNum = Math.max(1, parseInt(page, 10));
+        const limitNum = Math.min(1000, Math.max(1, parseInt(limit, 10)));
         const skip = (pageNum - 1) * limitNum;
 
         // Execute query - always return latest first
         const [logs, total] = await Promise.all([
-            AuditLog.find(query)
+            AuditLog.find(mongoQuery)
                 .sort({ timestamp: -1 })
                 .skip(skip)
                 .limit(limitNum)
                 .lean(),
-            AuditLog.countDocuments(query),
+            AuditLog.countDocuments(mongoQuery),
         ]);
 
-        res.json({
+        reply.send({
             success: true,
             data: logs,
             pagination: {
@@ -528,12 +496,10 @@ router.get('/audit-logs', verifyAnalyticsPassword, async (req: Request, res: Res
             },
         });
     } catch (error) {
-        res.status(500).json({
+        reply.code(500).send({
             success: false,
             error: 'Failed to fetch audit logs',
             details: error instanceof Error ? error.message : 'Unknown error',
         });
     }
-});
-
-export default router;
+};
