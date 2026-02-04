@@ -360,12 +360,12 @@ export default function AnalyticsPerformancePage() {
                         <Paper
                             variant="glass"
                             sx={{
-                                p: 2.5,
+                                p: 1.5,
                                 borderRadius: '24px',
                                 height: '100%',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: 1.5,
+                                gap: 1,
                             }}
                         >
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -420,13 +420,13 @@ export default function AnalyticsPerformancePage() {
                             borderRadius: '24px',
                         }}
                     >
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, fontSize: '1.1rem' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, fontSize: '1rem' }}>
                             Traffic Trends
                         </Typography>
                         {isLoading ? (
-                            <Skeleton variant="rectangular" height={300} sx={{ borderRadius: '12px' }} />
+                            <Skeleton variant="rectangular" height={240} sx={{ borderRadius: '12px' }} />
                         ) : (
-                            <Box sx={{ height: 320, width: '100%' }}>
+                            <Box sx={{ height: 260, width: '100%' }}>
                                 <LineChart
                                     dataset={timeseries}
                                     xAxis={[
@@ -447,7 +447,7 @@ export default function AnalyticsPerformancePage() {
                                         },
                                     ]}
                                     sx={chartBaseStyle}
-                                    margin={{ left: 40, right: 20, top: 20, bottom: 40 }}
+                                    margin={{ left: 40, right: 20, top: 10, bottom: 30 }}
                                 />
                             </Box>
                         )}
@@ -464,13 +464,13 @@ export default function AnalyticsPerformancePage() {
                             height: '100%',
                         }}
                     >
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, fontSize: '1.1rem' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, fontSize: '1rem' }}>
                             Response Status
                         </Typography>
                         {isLoading ? (
-                            <Skeleton variant="circular" width={200} height={200} sx={{ m: '0 auto' }} />
+                            <Skeleton variant="circular" width={180} height={180} sx={{ m: '0 auto' }} />
                         ) : (
-                            <Box sx={{ height: 320, width: '100%', position: 'relative' }}>
+                            <Box sx={{ height: 260, width: '100%', position: 'relative' }}>
                                 <PieChart
                                     series={[
                                         {
@@ -492,10 +492,10 @@ export default function AnalyticsPerformancePage() {
                                     ]}
                                     slotProps={{
                                         legend: {
-                                            position: { vertical: 'bottom', horizontal: 'center' },
+                                            position: { vertical: 'middle', horizontal: 'end' },
                                         },
                                     }}
-                                    margin={{ bottom: 100 }}
+                                    margin={{ right: 80 }}
                                 >
                                     <PieCenterLabel>
                                         {statusDistribution.reduce((acc, curr) => acc + curr.count, 0)}
@@ -515,13 +515,13 @@ export default function AnalyticsPerformancePage() {
                             borderRadius: '24px',
                         }}
                     >
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, fontSize: '1.1rem' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, fontSize: '1rem' }}>
                             Latency (ms)
                         </Typography>
                         {isLoading ? (
-                            <Skeleton variant="rectangular" height={250} sx={{ borderRadius: '12px' }} />
+                            <Skeleton variant="rectangular" height={220} sx={{ borderRadius: '12px' }} />
                         ) : (
-                            <Box sx={{ height: 280, width: '100%' }}>
+                            <Box sx={{ height: 240, width: '100%' }}>
                                 <BarChart
                                     dataset={timeseries}
                                     xAxis={[
@@ -556,13 +556,13 @@ export default function AnalyticsPerformancePage() {
                             borderRadius: '24px',
                         }}
                     >
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, fontSize: '1.1rem' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, fontSize: '1rem' }}>
                             Most Hit Endpoints
                         </Typography>
                         {isLoading ? (
-                            <Skeleton variant="rectangular" height={250} sx={{ borderRadius: '12px' }} />
+                            <Skeleton variant="rectangular" height={220} sx={{ borderRadius: '12px' }} />
                         ) : (
-                            <Box sx={{ height: 280, width: '100%' }}>
+                            <Box sx={{ height: 240, width: '100%' }}>
                                 <BarChart
                                     dataset={topPaths}
                                     xAxis={[
@@ -656,7 +656,7 @@ export default function AnalyticsPerformancePage() {
                                     borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                                     bgcolor: 'transparent',
                                 },
-                                height: 500,
+                                height: 400,
                             }}
                         />
                     </Paper>
