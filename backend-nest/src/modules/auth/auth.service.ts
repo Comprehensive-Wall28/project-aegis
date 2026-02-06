@@ -8,6 +8,7 @@ import { AuthenticatorTransportFuture } from '@simplewebauthn/typescript-types';
 import { UserRepository } from './repositories/user.repository';
 import { RegisterRequestDto } from './dto/register-request.dto';
 import { LoginRequestDto } from './dto/login-request.dto';
+import { UpdateProfileRequestDto } from './dto/update-profile-request.dto';
 
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserDocument } from './schemas/user.schema';
@@ -198,5 +199,57 @@ export class AuthService {
     private async logFailedAuth(email: string, action: string, req: any) {
         // Log to logger
         this.logger.warn(`Auth failed: ${action} for ${email} from ${req.ip}`);
+    }
+
+    async updateProfile(userId: string, data: UpdateProfileRequestDto, clientIp: string): Promise<UserResponseDto> {
+        try {
+            if (data.email) {
+                data.email = data.email.toLowerCase().trim();
+                const emailTaken = await this.userRepository.isEmailTaken(data.email, userId);
+                if (emailTaken) {
+                    throw new BadRequestException('Email already in use');
+                }
+            }
+
+            if (data.username) {
+                const usernameTaken = await this.userRepository.isUsernameTaken(data.username, userId);
+                if (usernameTaken) {
+                    throw new BadRequestException('Username already in use');
+                }
+            }
+
+            const updateData: any = {};
+            if (data.username) updateData.username = data.username;
+            if (data.email) updateData.email = data.email;
+
+            if (data.preferences) {
+                for (const [key, value] of Object.entries(data.preferences)) {
+                    if (value !== undefined && value !== null) {
+                        updateData[`preferences.${key}`] = value;
+                    }
+                }
+            }
+
+            const updatedUser = await this.userRepository.updateById(userId, { $set: updateData }, { returnNew: true });
+            if (!updatedUser) {
+                throw new BadRequestException('User not found');
+            }
+
+            await this.auditService.log({
+                userId: userId,
+                action: AuditAction.PROFILE_UPDATE,
+                status: AuditStatus.SUCCESS,
+                ipAddress: clientIp,
+                metadata: {
+                    updatedFields: Object.keys(data)
+                }
+            });
+
+            return this.formatUserResponse(updatedUser);
+        } catch (error) {
+            if (error instanceof BadRequestException) throw error;
+            this.logger.error('Update profile error:', error);
+            throw new InternalServerErrorException('Failed to update profile');
+        }
     }
 }

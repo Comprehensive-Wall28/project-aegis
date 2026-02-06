@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, Ip, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Body, Controller, Post, Get, Put, Ip, HttpCode, HttpStatus, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { ConfigService } from '@nestjs/config';
 import { Public } from '../../common/decorators/public.decorator';
@@ -13,6 +13,7 @@ import { RegisterRequestDto } from './dto/register-request.dto';
 import { LoginRequestDto } from './dto/login-request.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { UpdateProfileRequestDto } from './dto/update-profile-request.dto';
 
 
 interface RegisterResponse extends UserResponseDto {
@@ -83,5 +84,15 @@ export class AuthController {
     @UseGuards(JwtAuthGuard)
     async getMe(@CurrentUser() user: any): Promise<UserResponseDto> {
         return this.authService.getMe(user.id);
+    }
+
+    @Put('me')
+    @UseGuards(JwtAuthGuard)
+    async updateProfile(
+        @CurrentUser() user: any,
+        @Body() body: UpdateProfileRequestDto,
+        @Ip() clientIp: string
+    ): Promise<UserResponseDto> {
+        return this.authService.updateProfile(user.id, body, clientIp);
     }
 }
