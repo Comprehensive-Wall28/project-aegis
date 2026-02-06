@@ -13,6 +13,7 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { UserDocument } from './schemas/user.schema';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction, AuditStatus } from '../audit/schemas/audit-log.schema';
+import { CryptoUtils } from '../../common/utils/crypto.utils';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +24,7 @@ export class AuthService {
         private readonly auditService: AuditService,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
+        private readonly cryptoUtils: CryptoUtils,
     ) { }
 
 
@@ -177,11 +179,20 @@ export class AuthService {
     }
 
     private async generateToken(userId: string, username: string, tokenVersion: number): Promise<string> {
-        return this.jwtService.signAsync({
+        const token = await this.jwtService.signAsync({
             id: userId,
             username,
             tokenVersion
         });
+        return this.cryptoUtils.encryptToken(token);
+    }
+
+    async getMe(userId: string): Promise<UserResponseDto> {
+        const user = await this.userRepository.findById(userId);
+        if (!user) {
+            throw new BadRequestException('User not found');
+        }
+        return this.formatUserResponse(user);
     }
 
     private async logFailedAuth(email: string, action: string, req: any) {

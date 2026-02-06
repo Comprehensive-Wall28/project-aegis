@@ -1,7 +1,10 @@
-import { Body, Controller, Post, Ip, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Body, Controller, Post, Get, Ip, HttpCode, HttpStatus, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { ConfigService } from '@nestjs/config';
 import { Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { UseGuards } from '@nestjs/common';
 
 
 
@@ -74,5 +77,11 @@ export class AuthController {
             ...(result as UserResponseDto),
             message: 'Login successful'
         };
+    }
+
+    @Get('me')
+    @UseGuards(JwtAuthGuard)
+    async getMe(@CurrentUser() user: any): Promise<UserResponseDto> {
+        return this.authService.getMe(user.id);
     }
 }
