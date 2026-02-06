@@ -12,6 +12,7 @@ import { CsrfGuard } from './common/guards/csrf.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { VaultModule } from './modules/vault/vault.module';
 import { FoldersModule } from './modules/folders/folders.module';
+import { SocialModule } from './modules/social/social.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { FoldersModule } from './modules/folders/folders.module';
     AuthModule,
     VaultModule,
     FoldersModule,
+    SocialModule,
   ],
   controllers: [AppController],
   providers: [

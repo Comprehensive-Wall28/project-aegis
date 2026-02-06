@@ -75,7 +75,7 @@ Priority: MEDIUM - File handling required before social features
 Priority: MEDIUM - Can be done in parallel after auth
 
 ### Rooms (6 routes)
-- [ ] GET /api/social/rooms
+- [x] GET /api/social/rooms
 - [ ] POST /api/social/rooms
 - [ ] POST /api/social/rooms/:roomId/invite
 - [ ] GET /api/social/invite/:inviteCode (public)
@@ -120,11 +120,11 @@ Priority: MEDIUM - Can be done in parallel after auth
 ## Statistics
 
 **Total Routes:** 53
-**Completed:** 20
+**Completed:** 21
 **In Progress:** 0
-**Remaining:** 33
+**Remaining:** 32
 
-**Progress:** 38%
+**Progress:** 40%
 
 ---
 
