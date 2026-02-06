@@ -9,6 +9,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { HealthModule } from './modules/health/health.module';
 import { CommonModule } from './common/common.module';
 import { CsrfGuard } from './common/guards/csrf.guard';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CsrfGuard } from './common/guards/csrf.guard';
     AnalyticsModule,
     HealthModule,
     CommonModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
