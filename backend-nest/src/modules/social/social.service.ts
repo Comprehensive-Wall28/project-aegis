@@ -1,10 +1,11 @@
-import { Injectable, Logger, InternalServerErrorException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { RoomRepository } from './repositories/room.repository';
 import { CollectionRepository } from './repositories/collection.repository';
 import { RoomResponseDto } from './dto/room-response.dto';
 import { CreateRoomRequestDto } from './dto/create-room-request.dto';
 import { RoomDocument } from './schemas/room.schema';
 import { Types } from 'mongoose';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class SocialService {
@@ -58,6 +59,31 @@ export class SocialService {
         } catch (error) {
             this.logger.error('Get user rooms error:', error);
             throw new InternalServerErrorException('Failed to get rooms');
+        }
+    }
+
+    async createInvite(userId: string, roomId: string): Promise<{ inviteCode: string }> {
+        try {
+            const room = await this.roomRepository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new NotFoundException('Room not found');
+            }
+
+            const member = room.members.find(m => m.userId.toString() === userId);
+            if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+                throw new ForbiddenException('Permission denied');
+            }
+
+            const inviteCode = randomBytes(6).toString('base64url');
+            await this.roomRepository.updateInviteCode(roomId, inviteCode);
+
+            return { inviteCode };
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+                throw error;
+            }
+            this.logger.error('Create invite error:', error);
+            throw new InternalServerErrorException('Failed to create invite');
         }
     }
 }

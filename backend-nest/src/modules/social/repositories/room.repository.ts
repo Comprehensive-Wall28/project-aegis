@@ -40,4 +40,8 @@ export class RoomRepository extends BaseRepository<RoomDocument> {
             inviteCode: { $eq: inviteCode as any }
         } as unknown as SafeFilter<RoomDocument>);
     }
+
+    async updateInviteCode(roomId: string, inviteCode: string): Promise<RoomDocument | null> {
+        return this.updateById(roomId, { $set: { inviteCode } } as any);
+    }
 }
