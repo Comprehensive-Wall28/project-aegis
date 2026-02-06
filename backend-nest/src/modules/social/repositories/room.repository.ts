@@ -65,4 +65,12 @@ export class RoomRepository extends BaseRepository<RoomDocument> {
         } as unknown as SafeFilter<RoomDocument>);
         return room !== null;
     }
+
+    async removeMember(roomId: string, userId: string): Promise<RoomDocument | null> {
+        return this.updateById(roomId, {
+            $pull: {
+                members: { userId: new Types.ObjectId(userId) }
+            }
+        } as any);
+    }
 }

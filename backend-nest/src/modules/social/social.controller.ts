@@ -75,4 +75,14 @@ export class SocialRoomsController {
     ) {
         return await this.socialService.joinRoom(user.id, joinRoomDto);
     }
+
+    @Post(':roomId/leave')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async leaveRoom(
+        @CurrentUser() user: any,
+        @Param('roomId') roomId: string,
+    ) {
+        return await this.socialService.leaveRoom(user.id, roomId);
+    }
 }

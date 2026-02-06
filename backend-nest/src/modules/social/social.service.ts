@@ -144,4 +144,30 @@ export class SocialService {
             throw new InternalServerErrorException('Failed to join room');
         }
     }
+
+    async leaveRoom(userId: string, roomId: string): Promise<{ message: string }> {
+        try {
+            const room = await this.roomRepository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new NotFoundException('Room not found or access denied');
+            }
+
+            const ownerCount = room.members.filter(m => m.role === 'owner').length;
+            const userMember = room.members.find(m => m.userId.toString() === userId);
+
+            if (userMember?.role === 'owner' && ownerCount === 1) {
+                throw new BadRequestException('Cannot leave room as the last owner. Delete the room instead.');
+            }
+
+            await this.roomRepository.removeMember(roomId, userId);
+
+            return { message: 'Successfully left room' };
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Leave room error:', error);
+            throw new InternalServerErrorException('Failed to leave room');
+        }
+    }
 }
