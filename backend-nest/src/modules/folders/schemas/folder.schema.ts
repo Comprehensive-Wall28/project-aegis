@@ -21,7 +21,7 @@ export class Folder {
     isShared: boolean;
 
     @Prop({ type: String, default: null })
-    color?: string;
+    color?: string | null;
 }
 
 export const FolderSchema = SchemaFactory.createForClass(Folder);

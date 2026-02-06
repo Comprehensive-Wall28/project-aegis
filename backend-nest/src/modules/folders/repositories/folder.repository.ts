@@ -67,6 +67,24 @@ export class FolderRepository extends BaseRepository<FolderDocument> {
     }
 
     /**
+     * Update folder by ID and owner
+     */
+    async updateByIdAndOwner(
+        folderId: string,
+        ownerId: string,
+        data: Partial<FolderDocument>
+    ): Promise<FolderDocument | null> {
+        return this.updateOne(
+            {
+                _id: new Types.ObjectId(folderId),
+                ownerId: new Types.ObjectId(ownerId) as any
+            } as SafeFilter<FolderDocument>,
+            { $set: data },
+            { returnNew: true }
+        );
+    }
+
+    /**
      * Get all ancestors of a folder
      */
     async getAncestors(folderId: string): Promise<FolderDocument[]> {

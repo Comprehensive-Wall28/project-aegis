@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenEx
 import { FolderRepository } from './repositories/folder.repository';
 import { FolderResponseDto } from './dto/folder-response.dto';
 import { CreateFolderRequestDto } from './dto/create-folder-request.dto';
+import { UpdateFolderRequestDto } from './dto/update-folder-request.dto';
 import { Types } from 'mongoose';
 import { FolderDocument } from './schemas/folder.schema';
 
@@ -134,6 +135,45 @@ export class FoldersService {
             }
             this.logger.error('Create folder error:', error);
             throw new InternalServerErrorException('Failed to create folder');
+        }
+    }
+
+    /**
+     * Update a folder (rename and/or change color)
+     */
+    async updateFolder(userId: string, folderId: string, data: UpdateFolderRequestDto): Promise<FolderResponseDto> {
+        try {
+            // Validate folderId
+            if (!folderId || !Types.ObjectId.isValid(folderId)) {
+                throw new BadRequestException('Invalid folder ID');
+            }
+
+            const update: Partial<FolderDocument> = {};
+
+            if (data.name?.trim()) {
+                update.name = data.name.trim();
+            }
+            if (data.color !== undefined) {
+                update.color = data.color;
+            }
+
+            if (Object.keys(update).length === 0) {
+                throw new BadRequestException('No valid fields to update');
+            }
+
+            const folder = await this.folderRepository.updateByIdAndOwner(folderId, userId, update);
+
+            if (!folder) {
+                throw new NotFoundException('Folder not found');
+            }
+
+            return folder as unknown as FolderResponseDto;
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Update folder error:', error);
+            throw new InternalServerErrorException('Failed to update folder');
         }
     }
 }
