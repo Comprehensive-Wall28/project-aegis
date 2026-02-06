@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Param, UseGuards } from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -17,5 +17,14 @@ export class FoldersController {
         @Query('parentId') parentId?: string | null,
     ): Promise<FolderResponseDto[]> {
         return await this.foldersService.getFolders(user.id, parentId);
+    }
+
+    @Get(':id')
+    @UseGuards(JwtAuthGuard)
+    async getFolder(
+        @CurrentUser() user: any,
+        @Param('id') id: string,
+    ): Promise<FolderResponseDto> {
+        return await this.foldersService.getFolder(user.id, id);
     }
 }

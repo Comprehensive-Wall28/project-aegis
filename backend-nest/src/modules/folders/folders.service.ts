@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenEx
 import { FolderRepository } from './repositories/folder.repository';
 import { FolderResponseDto } from './dto/folder-response.dto';
 import { Types } from 'mongoose';
+import { FolderDocument } from './schemas/folder.schema';
 
 @Injectable()
 export class FoldersService {
@@ -58,6 +59,50 @@ export class FoldersService {
             }
             this.logger.error('Get folders error:', error);
             throw new InternalServerErrorException('Failed to get folders');
+        }
+    }
+
+    /**
+     * Get a single folder by ID
+     */
+    async getFolder(userId: string, folderId: string): Promise<FolderResponseDto> {
+        try {
+            // Validate folderId
+            if (!folderId || !Types.ObjectId.isValid(folderId)) {
+                throw new BadRequestException('Invalid folder ID');
+            }
+
+            const folder = await this.folderRepository.findByIdAndOwner(folderId, userId);
+
+            if (!folder) {
+                throw new NotFoundException('Folder not found or access denied');
+            }
+
+            // Build path
+            const path: any[] = [];
+            let current: FolderDocument = folder;
+            while (current.parentId) {
+                const parent = await this.folderRepository.findById(current.parentId.toString());
+                if (!parent) break;
+                // Prepend to path
+                path.unshift({
+                    _id: parent._id,
+                    name: parent.name,
+                    parentId: parent.parentId
+                });
+                current = parent;
+            }
+
+            return {
+                ...folder.toObject(),
+                path
+            } as unknown as FolderResponseDto;
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Get folder error:', error);
+            throw new InternalServerErrorException('Failed to get folder');
         }
     }
 }
