@@ -44,4 +44,25 @@ export class RoomRepository extends BaseRepository<RoomDocument> {
     async updateInviteCode(roomId: string, inviteCode: string): Promise<RoomDocument | null> {
         return this.updateById(roomId, { $set: { inviteCode } } as any);
     }
+
+    async addMember(
+        roomId: string,
+        userId: string,
+        role: 'owner' | 'admin' | 'member',
+        encryptedRoomKey: string
+    ): Promise<RoomDocument | null> {
+        return this.updateById(roomId, {
+            $push: {
+                members: { userId: new Types.ObjectId(userId), role, encryptedRoomKey }
+            }
+        } as any);
+    }
+
+    async isMember(roomId: string, userId: string): Promise<boolean> {
+        const room = await this.findOne({
+            _id: { $eq: new Types.ObjectId(roomId) },
+            'members.userId': { $eq: new Types.ObjectId(userId) }
+        } as unknown as SafeFilter<RoomDocument>);
+        return room !== null;
+    }
 }

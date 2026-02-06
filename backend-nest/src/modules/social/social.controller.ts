@@ -7,6 +7,7 @@ import { RoomResponseDto } from './dto/room-response.dto';
 import { CreateRoomRequestDto } from './dto/create-room-request.dto';
 import { InviteCodeResponseDto } from './dto/invite-code-response.dto';
 import { InviteInfoResponseDto } from './dto/invite-info-response.dto';
+import { JoinRoomRequestDto } from './dto/join-room-request.dto';
 
 @Controller('api/social')
 export class SocialController {
@@ -63,5 +64,15 @@ export class SocialRoomsController {
         @Param('roomId') roomId: string,
     ): Promise<InviteCodeResponseDto> {
         return await this.socialService.createInvite(user.id, roomId);
+    }
+
+    @Post('join')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async joinRoom(
+        @CurrentUser() user: any,
+        @Body() joinRoomDto: JoinRoomRequestDto,
+    ) {
+        return await this.socialService.joinRoom(user.id, joinRoomDto);
     }
 }

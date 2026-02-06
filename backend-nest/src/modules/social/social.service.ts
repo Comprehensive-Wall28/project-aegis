@@ -4,6 +4,7 @@ import { CollectionRepository } from './repositories/collection.repository';
 import { RoomResponseDto } from './dto/room-response.dto';
 import { CreateRoomRequestDto } from './dto/create-room-request.dto';
 import { InviteInfoResponseDto } from './dto/invite-info-response.dto';
+import { JoinRoomRequestDto } from './dto/join-room-request.dto';
 import { RoomDocument } from './schemas/room.schema';
 import { Types } from 'mongoose';
 import { randomBytes } from 'crypto';
@@ -110,6 +111,37 @@ export class SocialService {
             }
             this.logger.error('Get invite info error:', error);
             throw new InternalServerErrorException('Failed to get invite info');
+        }
+    }
+
+    async joinRoom(userId: string, data: JoinRoomRequestDto): Promise<{ message: string; roomId: string }> {
+        try {
+            if (!data.inviteCode || !data.encryptedRoomKey) {
+                throw new BadRequestException('Missing required fields: inviteCode, encryptedRoomKey');
+            }
+
+            const room = await this.roomRepository.findByInviteCode(data.inviteCode);
+            if (!room) {
+                throw new NotFoundException('Invite not found or expired');
+            }
+
+            const existingMember = room.members.find(m => m.userId.toString() === userId);
+            if (existingMember) {
+                throw new BadRequestException('Already a member of this room');
+            }
+
+            await this.roomRepository.addMember(room._id.toString(), userId, 'member', data.encryptedRoomKey);
+
+            return {
+                message: 'Successfully joined room',
+                roomId: room._id.toString()
+            };
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Join room error:', error);
+            throw new InternalServerErrorException('Failed to join room');
         }
     }
 }
