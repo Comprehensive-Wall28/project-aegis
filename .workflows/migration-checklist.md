@@ -23,7 +23,7 @@ Priority: HIGH - Core authentication must work first
 - [x] GET /api/auth/me
 - [x] PUT /api/auth/me
 - [x] GET /api/auth/discovery/:email
-- [ ] POST /api/auth/logout
+- [x] POST /api/auth/logout
 
 **Notes:**
 - 

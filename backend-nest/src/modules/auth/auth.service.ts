@@ -271,4 +271,12 @@ export class AuthService {
             throw new InternalServerErrorException('Discovery failed');
         }
     }
+
+    async logout(userId: string): Promise<void> {
+        // In the future, we might want to invalidate refresh tokens or clear sessions in Redis
+        // For now, we just rely on the client clearing the cookie
+        // But we could also update the user's token version to invalidate all existing tokens if needed
+        // await this.userRepository.incrementTokenVersion(userId);
+        this.logger.log(`User ${userId} logged out`);
+    }
 }

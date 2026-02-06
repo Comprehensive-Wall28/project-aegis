@@ -101,4 +101,25 @@ export class AuthController {
     async discoverUser(@Param('email') email: string): Promise<DiscoveryResponseDto> {
         return await this.authService.discoverUser(email);
     }
+
+    @Post('logout')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async logout(
+        @CurrentUser() user: any,
+        @Res({ passthrough: true }) res: FastifyReply
+    ): Promise<{ message: string }> {
+        await this.authService.logout(user.id);
+
+        res.setCookie('token', '', {
+            httpOnly: true,
+            secure: this.configService.get('app.nodeEnv') === 'production',
+            sameSite: this.configService.get('app.nodeEnv') === 'production' ? 'none' : 'lax',
+            expires: new Date(0),
+            path: '/',
+            partitioned: this.configService.get('app.nodeEnv') === 'production'
+        });
+
+        return { message: 'Logged out successfully' };
+    }
 }
