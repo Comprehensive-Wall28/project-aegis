@@ -8,8 +8,7 @@ import {
     Logout as LogOutIcon,
     KeyboardArrowDown as ChevronDownIcon,
     Settings as SettingsIcon,
-    Palette as PaletteIcon,
-    Menu as MenuIcon
+    Palette as PaletteIcon
 } from '@mui/icons-material';
 import { Command } from 'lucide-react';
 import {
@@ -28,10 +27,11 @@ import {
 import { ThemeSelectorOverlay } from '@/components/common/ThemeSelectorOverlay';
 
 interface TopHeaderProps {
-    onMobileMenuOpen: () => void;
+    // onMobileMenuOpen removed as navigation moved to Bottom Bar
 }
 
-export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
+export function TopHeader({ }: TopHeaderProps) {
+    // onMobileMenuOpen is currently unused and removed to resolve lint errors
     const navigate = useNavigate();
     const { user } = useSessionStore();
     const { theme: currentTheme } = useThemeStore();
@@ -253,8 +253,8 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                     </Menu>
                 </Box>
 
-                {/* Mobile Menu Button - Far right */}
-                <IconButton
+                {/* Mobile Menu Button - Far right - Hidden as navigation moved to Bottom Bar */}
+                {/* <IconButton
                     onClick={onMobileMenuOpen}
                     sx={{
                         display: { lg: 'none' },
@@ -267,7 +267,7 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                     }}
                 >
                     <MenuIcon sx={{ fontSize: 28 }} />
-                </IconButton>
+                </IconButton> */}
             </Box>
         </Box>
     );

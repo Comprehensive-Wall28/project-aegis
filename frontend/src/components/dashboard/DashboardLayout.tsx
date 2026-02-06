@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
+import { MobileBottomBar } from './MobileBottomBar';
 import { SystemStatusBar } from './SystemStatusBar';
 import { motion } from 'framer-motion';
-import type { PanInfo } from 'framer-motion';
 import { Box, alpha, useTheme, Paper, Snackbar, Alert } from '@mui/material';
 import { refreshCsrfToken } from '@/services/api';
 import UploadManager from '@/components/vault/UploadManager';
@@ -33,7 +33,7 @@ export function DashboardLayout() {
     const backgroundOpacity = usePreferenceStore((state) => state.backgroundOpacity);
     const [bgUrl, setBgUrl] = useState<string | null>(null);
     const { downloadAndDecrypt } = useVaultDownload();
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isBottomBarVisible, setIsBottomBarVisible] = useState(true);
     const theme = useTheme();
     const user = useSessionStore((state) => state.user);
     const location = useLocation();
@@ -147,13 +147,25 @@ export function DashboardLayout() {
         checkPendingInvite();
     }, [joinRoom, navigate]);
 
-    // Swipe to open sidebar (left swipe on mobile)
-    const handlePanEnd = (_: PointerEvent, info: PanInfo) => {
-        // Detect swipe to left (negative velocity or offset) from the right side
-        if (info.offset.x < -50 && info.velocity.x < -100) {
-            setIsMobileMenuOpen(true);
-        }
-    };
+    const lastScrollTop = useRef(0);
+
+    useEffect(() => {
+        const handleGlobalScroll = (e: Event) => {
+            const target = e.target as HTMLElement;
+            if (!target || !target.scrollTop) return;
+
+            const scrollTop = target.scrollTop;
+            if (scrollTop > lastScrollTop.current && scrollTop > 50) {
+                setIsBottomBarVisible(false);
+            } else if (scrollTop < lastScrollTop.current) {
+                setIsBottomBarVisible(true);
+            }
+            lastScrollTop.current = scrollTop;
+        };
+
+        window.addEventListener('scroll', handleGlobalScroll, true);
+        return () => window.removeEventListener('scroll', handleGlobalScroll, true);
+    }, []);
 
     return (
         <Box
@@ -183,29 +195,13 @@ export function DashboardLayout() {
                 }}
             />
 
-            {/* Gesture Strip for Swipe-to-Open (Mobile Only) */}
-            <Box
-                component={motion.div}
-                onPanEnd={handlePanEnd}
-                sx={{
-                    position: 'fixed',
-                    top: 0,
-                    right: 0,
-                    bottom: 0,
-                    width: 30, // Narrow strip on the right edge
-                    zIndex: 100, // Above content (1) but below modals (1300) and header actions
-                    display: { lg: 'none' },
-                    touchAction: 'none',
-                    bgcolor: 'transparent'
-                }}
-            />
 
             {/* Sidebar */}
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
                 onToggle={toggleSidebar}
-                isMobileOpen={isMobileMenuOpen}
-                onMobileClose={() => setIsMobileMenuOpen(false)}
+                isMobileOpen={false}
+                onMobileClose={() => { }}
             />
 
             {/* Main Content Wrapper */}
@@ -229,7 +225,7 @@ export function DashboardLayout() {
             >
                 {/* Headers Section */}
                 <Box sx={{ zIndex: 10, flexShrink: 0 }}>
-                    <TopHeader onMobileMenuOpen={() => setIsMobileMenuOpen(true)} />
+                    <TopHeader />
                     <SystemStatusBar />
                 </Box>
 
@@ -272,6 +268,8 @@ export function DashboardLayout() {
                     </Paper>
                 </Box>
             </Box>
+
+            <MobileBottomBar visible={isBottomBarVisible} onHide={() => setIsBottomBarVisible(false)} />
 
             {/* Persistent Upload Manager */}
             <UploadManager />
