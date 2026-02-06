@@ -11,6 +11,7 @@ import { InviteInfoResponseDto } from './dto/invite-info-response.dto';
 import { JoinRoomRequestDto } from './dto/join-room-request.dto';
 import { CreateCollectionRequestDto } from './dto/create-collection-request.dto';
 import { UpdateCollectionRequestDto } from './dto/update-collection-request.dto';
+import { ReorderCollectionsRequestDto } from './dto/reorder-collections-request.dto';
 import { CollectionResponseDto } from './dto/collection-response.dto';
 import { RoomDocument } from './schemas/room.schema';
 import { CollectionDocument } from './schemas/collection.schema';
@@ -340,6 +341,25 @@ export class SocialService {
             }
             this.logger.error('Update collection error:', error);
             throw new InternalServerErrorException('Failed to update collection');
+        }
+    }
+
+    async reorderCollections(userId: string, roomId: string, data: ReorderCollectionsRequestDto): Promise<{ message: string }> {
+        try {
+            const room = await this.roomRepository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new NotFoundException('Room not found or access denied');
+            }
+
+            await this.collectionRepository.bulkUpdateOrders(data.collectionIds);
+
+            return { message: 'Collections reordered successfully' };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Reorder collections error:', error);
+            throw new InternalServerErrorException('Failed to reorder collections');
         }
     }
 }

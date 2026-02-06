@@ -20,7 +20,7 @@ export class CollectionRepository extends BaseRepository<CollectionDocument> {
         };
 
         return this.findMany(filter as unknown as SafeFilter<CollectionDocument>, {
-            select: '_id roomId name type',
+            select: '_id roomId name type order',
             ...options
         });
     }
@@ -45,5 +45,16 @@ export class CollectionRepository extends BaseRepository<CollectionDocument> {
         return this.count({
             roomId: { $eq: new Types.ObjectId(roomId) }
         } as unknown as SafeFilter<CollectionDocument>);
+    }
+
+    async bulkUpdateOrders(collectionIds: string[]): Promise<void> {
+        const bulkOps = collectionIds.map((id, index) => ({
+            updateOne: {
+                filter: { _id: new Types.ObjectId(id) },
+                update: { $set: { order: index } }
+            }
+        }));
+
+        await this.collectionModel.bulkWrite(bulkOps);
     }
 }

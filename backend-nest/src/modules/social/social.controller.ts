@@ -10,6 +10,7 @@ import { InviteInfoResponseDto } from './dto/invite-info-response.dto';
 import { JoinRoomRequestDto } from './dto/join-room-request.dto';
 import { CreateCollectionRequestDto } from './dto/create-collection-request.dto';
 import { UpdateCollectionRequestDto } from './dto/update-collection-request.dto';
+import { ReorderCollectionsRequestDto } from './dto/reorder-collections-request.dto';
 import { CollectionResponseDto } from './dto/collection-response.dto';
 
 @Controller('api/social')
@@ -129,5 +130,16 @@ export class SocialRoomsController {
         @Body() createCollectionDto: CreateCollectionRequestDto,
     ): Promise<CollectionResponseDto> {
         return await this.socialService.createCollection(user.id, roomId, createCollectionDto);
+    }
+
+    @Patch(':roomId/collections/order')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async reorderCollections(
+        @CurrentUser() user: any,
+        @Param('roomId') roomId: string,
+        @Body() reorderDto: ReorderCollectionsRequestDto,
+    ) {
+        return await this.socialService.reorderCollections(user.id, roomId, reorderDto);
     }
 }
