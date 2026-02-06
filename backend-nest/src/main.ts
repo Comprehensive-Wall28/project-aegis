@@ -62,8 +62,16 @@ async function bootstrap() {
   app.useGlobalInterceptors(new AnalyticsInterceptor(analyticsBuffer));
 
   // CORS
+  const allowedOrigins = [
+    configService.get('app.webAuthn.clientOrigin'),
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ].filter((origin): origin is string => !!origin);
+
   app.enableCors({
-    origin: configService.get('app.webAuthn.clientOrigin'),
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-XSRF-TOKEN'],
     credentials: true,
   });
 

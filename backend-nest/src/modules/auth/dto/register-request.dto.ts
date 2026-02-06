@@ -1,4 +1,4 @@
-import { IsString, IsEmail, MinLength } from 'class-validator';
+import { IsString, IsEmail, MinLength, IsOptional } from 'class-validator';
 
 export class RegisterRequestDto {
     @IsString()
@@ -10,6 +10,10 @@ export class RegisterRequestDto {
 
     @IsString()
     pqcPublicKey: string;
+
+    @IsString()
+    @IsOptional()
+    legacyHash?: string;
 
     @IsString()
     argon2Hash: string;
