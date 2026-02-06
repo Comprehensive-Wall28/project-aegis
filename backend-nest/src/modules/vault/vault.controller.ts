@@ -1,7 +1,9 @@
-import { Controller, Post, Put, Body, UseGuards, Req, Res, Ip, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Post, Put, Get, Body, Query, UseGuards, Req, Res, Ip, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { VaultService } from './vault.service';
 import { UploadInitDto } from './dto/upload-init.dto';
+import { VaultListingRequestDto } from './dto/vault-listing.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction, AuditStatus } from '../audit/schemas/audit-log.schema';
 
@@ -15,11 +17,11 @@ export class VaultController {
     @Post('upload-init')
     @UseGuards(JwtAuthGuard)
     async uploadInit(
-        @Req() req: any,
+        @CurrentUser() user: any,
         @Body() data: UploadInitDto,
         @Ip() ip: string,
     ) {
-        const userId = req.user.id;
+        const userId = user.id;
         const result = await this.vaultService.initUpload(userId, data);
 
         await this.auditService.log({
@@ -41,10 +43,11 @@ export class VaultController {
     @Put('upload-chunk')
     @UseGuards(JwtAuthGuard)
     async uploadChunk(
+        @CurrentUser() user: any,
         @Req() req: any,
         @Res() res: any,
     ) {
-        const userId = req.user.id;
+        const userId = user.id;
         const fileId = req.query.fileId;
         const contentRange = req.headers['content-range'];
         const contentLength = parseInt(req.headers['content-length'] || '0', 10);
@@ -77,4 +80,14 @@ export class VaultController {
                 .send();
         }
     }
+
+    @Get('files')
+    @UseGuards(JwtAuthGuard)
+    async getUserFiles(
+        @CurrentUser() user: any,
+        @Query() query: VaultListingRequestDto,
+    ) {
+        return await this.vaultService.getUserFiles(user.id, query);
+    }
 }
+

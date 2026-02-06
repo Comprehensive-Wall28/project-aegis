@@ -1,9 +1,12 @@
 import { Injectable, Logger, BadRequestException, ForbiddenException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 import { VaultRepository } from './repositories/vault.repository';
 import { UserRepository } from '../auth/repositories/user.repository';
 import { UploadInitDto } from './dto/upload-init.dto';
+import { VaultListingRequestDto, VaultListingResponseDto } from './dto/vault-listing.dto';
 import { GoogleDriveService } from './services/google-drive.service';
-import { Types } from 'mongoose';
+import { Types, Model } from 'mongoose';
+import { Folder, FolderDocument } from './schemas/folder.schema';
 
 @Injectable()
 export class VaultService {
@@ -14,6 +17,8 @@ export class VaultService {
         private readonly vaultRepository: VaultRepository,
         private readonly userRepository: UserRepository,
         private readonly googleDriveService: GoogleDriveService,
+        @InjectModel(Folder.name, 'primary')
+        private readonly folderModel: Model<FolderDocument>,
     ) { }
 
     async initUpload(userId: string, data: UploadInitDto): Promise<{ fileId: string }> {
@@ -129,6 +134,50 @@ export class VaultService {
             }
             this.logger.error('Upload chunk error:', error);
             throw new InternalServerErrorException('Failed to process chunk');
+        }
+    }
+
+    async getUserFiles(
+        userId: string,
+        query: VaultListingRequestDto,
+    ): Promise<VaultListingResponseDto | any[]> {
+        try {
+            const { folderId, limit, cursor, search } = query;
+
+            if (folderId && folderId !== 'null') {
+                if (!Types.ObjectId.isValid(folderId)) {
+                    throw new BadRequestException('Invalid folder ID format');
+                }
+
+                const folder = await this.folderModel.findById(folderId);
+                if (!folder) {
+                    throw new NotFoundException('Folder not found');
+                }
+
+                if (folder.ownerId.toString() !== userId) {
+                    throw new ForbiddenException('Access denied to this folder');
+                }
+            }
+
+            if (limit !== undefined) {
+                const result = await this.vaultRepository.findByOwnerAndFolderPaginated(
+                    userId,
+                    folderId || null,
+                    { limit, cursor, search },
+                );
+                return {
+                    items: result.items as any,
+                    nextCursor: result.nextCursor,
+                };
+            }
+
+            return await this.vaultRepository.findByOwnerAndFolder(userId, folderId || null, search);
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof ForbiddenException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Get files error:', error);
+            throw new InternalServerErrorException('Failed to get files');
         }
     }
 }

@@ -47,6 +47,9 @@ export class FileMetadata {
         default: 'pending'
     })
     status: string;
+
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export const FileMetadataSchema = SchemaFactory.createForClass(FileMetadata);
