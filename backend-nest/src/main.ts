@@ -24,6 +24,12 @@ async function bootstrap() {
     }),
   );
 
+  const fastifyInstance = app.getHttpAdapter().getInstance();
+  // Register parser for raw binary streams
+  fastifyInstance.addContentTypeParser('application/octet-stream', (_req, _payload, done) => {
+    done(null); // Just pass through, we'll use req.raw
+  });
+
   const configService = app.get(ConfigService);
   const auditService = app.get(AuditService);
   const analyticsBuffer = app.get(AnalyticsBufferService);

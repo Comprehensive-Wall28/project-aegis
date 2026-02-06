@@ -36,7 +36,7 @@ Priority: HIGH - Core authentication must work first
 Priority: MEDIUM - File handling required before social features
 
 - [x] POST /api/vault/upload-init
-- [ ] PUT /api/vault/upload-chunk
+- [x] PUT /api/vault/upload-chunk
 - [ ] GET /api/vault/files
 - [ ] GET /api/vault/files/:id
 - [ ] GET /api/vault/download/:id

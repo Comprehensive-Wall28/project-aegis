@@ -111,6 +111,83 @@ export class GoogleDriveService implements OnModuleInit {
             throw new Error('No session URL returned from Google Drive');
         }
 
+
         return { sessionId, sessionUrl };
+    }
+
+    /**
+     * Append a chunk to an active upload session using resumable upload protocol.
+     */
+    async appendChunk(
+        sessionUrl: string,
+        chunk: Buffer | any, // any to support Fastify stream
+        chunkLength: number,
+        rangeStart: number,
+        rangeEnd: number,
+        totalSize: number
+    ): Promise<{ complete: boolean; receivedSize: number }> {
+        const accessToken = await this.getAccessToken();
+
+        const response = await this.fetchWithRetry(sessionUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Length': String(chunkLength),
+                'Content-Range': `bytes ${rangeStart}-${rangeEnd}/${totalSize}`
+            },
+            body: chunk,
+            duplex: 'half'
+        } as any);
+
+        // 200 or 201 means upload complete
+        if (response.status === 200 || response.status === 201) {
+            return { complete: true, receivedSize: rangeEnd + 1 };
+        }
+
+        // 308 means upload incomplete, continue
+        if (response.status === 308) {
+            const rangeHeader = response.headers.get('range');
+            let receivedSize = rangeEnd + 1;
+            if (rangeHeader) {
+                const match = rangeHeader.match(/bytes=0-(\d+)/);
+                if (match) {
+                    receivedSize = parseInt(match[1], 10) + 1;
+                }
+            }
+            return { complete: false, receivedSize };
+        }
+
+        const errorText = await response.text();
+        throw new Error(`Chunk upload failed: ${response.status} - ${errorText}`);
+    }
+
+    /**
+     * Finalize an upload session and retrieve the Google Drive file ID.
+     */
+    async finalizeUpload(sessionUrl: string, totalSize: number): Promise<string> {
+        const accessToken = await this.getAccessToken();
+
+        const response = await this.fetchWithRetry(sessionUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Length': '0',
+                'Content-Range': `bytes */${totalSize}`
+            }
+        });
+
+        if (response.status === 200 || response.status === 201) {
+            const fileData = await response.json() as any;
+            const fileId = fileData.id;
+
+            if (!fileId) {
+                throw new Error('No file ID returned from Google Drive');
+            }
+
+            return fileId;
+        }
+
+        const errorText = await response.text();
+        throw new Error(`Finalize upload failed: ${response.status} - ${errorText}`);
     }
 }

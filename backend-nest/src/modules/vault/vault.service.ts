@@ -60,4 +60,75 @@ export class VaultService {
             throw new InternalServerErrorException('Failed to initialize upload');
         }
     }
+
+    async uploadChunk(
+        userId: string,
+        fileId: string,
+        contentRange: string,
+        chunk: any,
+        chunkLength: number,
+    ): Promise<{ complete: boolean; receivedSize?: number; googleDriveFileId?: string }> {
+        try {
+            if (!fileId || !contentRange) {
+                throw new BadRequestException('Missing fileId or Content-Range');
+            }
+
+            const fileRecord = await this.vaultRepository.findByIdAndStream(fileId, userId);
+            if (!fileRecord || !fileRecord.uploadSessionUrl) {
+                throw new NotFoundException('File not found or session invalid');
+            }
+
+            // Parse Content-Range: "bytes START-END/TOTAL"
+            const rangeMatch = contentRange.match(/bytes (\d+)-(\d+)\/(\d+)/);
+            if (!rangeMatch) {
+                throw new BadRequestException('Invalid Content-Range header');
+            }
+
+            const rangeStart = parseInt(rangeMatch[1], 10);
+            const rangeEnd = parseInt(rangeMatch[2], 10);
+            const totalSize = parseInt(rangeMatch[3], 10);
+
+            // Update status to uploading if still pending
+            if (fileRecord.status === 'pending') {
+                await this.vaultRepository.updateUploadStatus(fileId, 'uploading');
+            }
+
+            // Append chunk to Google Drive upload session
+            const { complete, receivedSize } = await this.googleDriveService.appendChunk(
+                fileRecord.uploadSessionUrl,
+                chunk,
+                chunkLength,
+                rangeStart,
+                rangeEnd,
+                totalSize
+            );
+
+            // Update offset in DB
+            if (receivedSize > (fileRecord.uploadOffset || 0)) {
+                fileRecord.uploadOffset = receivedSize;
+                await (fileRecord as any).save();
+            }
+
+            if (complete) {
+                // Finalize the upload
+                const googleDriveFileId = await this.googleDriveService.finalizeUpload(fileRecord.uploadSessionUrl, totalSize);
+                await this.vaultRepository.completeUpload(fileId, googleDriveFileId);
+
+                // Update user storage usage
+                await this.userRepository.updateById(userId, {
+                    $inc: { totalStorageUsed: fileRecord.fileSize }
+                });
+
+                return { complete: true, googleDriveFileId };
+            }
+
+            return { complete: false, receivedSize };
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof ForbiddenException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Upload chunk error:', error);
+            throw new InternalServerErrorException('Failed to process chunk');
+        }
+    }
 }
