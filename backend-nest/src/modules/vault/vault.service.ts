@@ -180,4 +180,25 @@ export class VaultService {
             throw new InternalServerErrorException('Failed to get files');
         }
     }
+
+    async getFile(userId: string, fileId: string) {
+        try {
+            if (!Types.ObjectId.isValid(fileId)) {
+                throw new BadRequestException('Invalid file ID format');
+            }
+
+            const file = await this.vaultRepository.findByIdAndOwner(fileId, userId);
+            if (!file) {
+                throw new NotFoundException('File not found');
+            }
+
+            return file;
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error(`Get file error: ${error}`);
+            throw new InternalServerErrorException('Failed to get file');
+        }
+    }
 }

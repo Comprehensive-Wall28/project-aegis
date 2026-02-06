@@ -16,10 +16,11 @@ export class VaultRepository extends BaseRepository<FileMetadataDocument> {
     }
 
     async findByIdAndOwner(id: string, ownerId: string): Promise<FileMetadataDocument | null> {
-        return await this.findOne({
-            _id: id as any,
-            ownerId: ownerId as any,
-        });
+        const file = await this.findById(id);
+        if (!file || file.ownerId.toString() !== ownerId) {
+            return null;
+        }
+        return file;
     }
 
     async updateUploadStatus(id: string, status: string): Promise<void> {
@@ -34,10 +35,11 @@ export class VaultRepository extends BaseRepository<FileMetadataDocument> {
     }
 
     async findByIdAndStream(id: string, ownerId: string): Promise<FileMetadataDocument | null> {
-        return await this.findOne({
-            _id: id as any,
-            ownerId: ownerId as any,
-        });
+        const file = await this.findById(id);
+        if (!file || file.ownerId.toString() !== ownerId) {
+            return null;
+        }
+        return file;
     }
 
     async findByOwnerAndFolder(

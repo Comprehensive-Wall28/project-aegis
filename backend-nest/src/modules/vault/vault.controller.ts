@@ -1,4 +1,4 @@
-import { Controller, Post, Put, Get, Body, Query, UseGuards, Req, Res, Ip, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Post, Put, Get, Body, Query, Param, UseGuards, Req, Res, Ip, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { VaultService } from './vault.service';
 import { UploadInitDto } from './dto/upload-init.dto';
 import { VaultListingRequestDto } from './dto/vault-listing.dto';
@@ -88,6 +88,15 @@ export class VaultController {
         @Query() query: VaultListingRequestDto,
     ) {
         return await this.vaultService.getUserFiles(user.id, query);
+    }
+
+    @Get('files/:id')
+    @UseGuards(JwtAuthGuard)
+    async getFile(
+        @CurrentUser() user: any,
+        @Param('id') id: string,
+    ) {
+        return await this.vaultService.getFile(user.id, id);
     }
 }
 

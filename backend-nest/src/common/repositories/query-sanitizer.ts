@@ -101,6 +101,8 @@ export class QuerySanitizer {
                     if (sanitizedId) {
                         sanitized[key] = { $eq: sanitizedId };
                     }
+                } else if (value instanceof mongoose.Types.ObjectId) {
+                    sanitized[key] = value;
                 } else if (typeof value === 'object' && value !== null) {
                     const idObj = value as Record<string, unknown>;
                     if ('$eq' in idObj && typeof idObj.$eq === 'string') {
