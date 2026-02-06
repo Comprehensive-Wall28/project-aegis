@@ -55,7 +55,7 @@ Priority: MEDIUM - File handling required before social features
  
   - [x] GET /api/folders?parentId=null (Normalize parentId)
   - [x] GET /api/folders/:id
-  - [ ] POST /api/folders
+  - [x] POST /api/folders
  - [ ] PUT /api/folders/:id
  - [ ] DELETE /api/folders/:id
  - [ ] PUT /api/folders/move-files
@@ -120,11 +120,11 @@ Priority: MEDIUM - Can be done in parallel after auth
 ## Statistics
 
 **Total Routes:** 53
-**Completed:** 16
+**Completed:** 17
 **In Progress:** 0
-**Remaining:** 37
+**Remaining:** 36
 
-**Progress:** 30%
+**Progress:** 32%
 
 ---
 

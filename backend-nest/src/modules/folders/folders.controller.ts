@@ -1,8 +1,9 @@
-import { Controller, Get, Query, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, Param, Body, UseGuards, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { FolderResponseDto } from './dto/folder-response.dto';
+import { CreateFolderRequestDto } from './dto/create-folder-request.dto';
 
 @Controller('api/folders')
 export class FoldersController {
@@ -26,5 +27,15 @@ export class FoldersController {
         @Param('id') id: string,
     ): Promise<FolderResponseDto> {
         return await this.foldersService.getFolder(user.id, id);
+    }
+
+    @Post()
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.CREATED)
+    async createFolder(
+        @CurrentUser() user: any,
+        @Body(ValidationPipe) data: CreateFolderRequestDto,
+    ): Promise<FolderResponseDto> {
+        return await this.foldersService.createFolder(user.id, data);
     }
 }

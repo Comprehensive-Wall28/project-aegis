@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { FolderRepository } from './repositories/folder.repository';
 import { FolderResponseDto } from './dto/folder-response.dto';
+import { CreateFolderRequestDto } from './dto/create-folder-request.dto';
 import { Types } from 'mongoose';
 import { FolderDocument } from './schemas/folder.schema';
 
@@ -103,6 +104,36 @@ export class FoldersService {
             }
             this.logger.error('Get folder error:', error);
             throw new InternalServerErrorException('Failed to get folder');
+        }
+    }
+
+    /**
+     * Create a new folder
+     */
+    async createFolder(userId: string, data: CreateFolderRequestDto): Promise<FolderResponseDto> {
+        try {
+            if (!data.name?.trim()) {
+                throw new BadRequestException('Folder name is required');
+            }
+
+            if (!data.encryptedSessionKey) {
+                throw new BadRequestException('Encrypted session key is required');
+            }
+
+            const folder = await this.folderRepository.create({
+                ownerId: new Types.ObjectId(userId),
+                name: data.name.trim(),
+                parentId: data.parentId ? new Types.ObjectId(data.parentId) : null,
+                encryptedSessionKey: data.encryptedSessionKey
+            } as any);
+
+            return folder as unknown as FolderResponseDto;
+        } catch (error) {
+            if (error instanceof BadRequestException) {
+                throw error;
+            }
+            this.logger.error('Create folder error:', error);
+            throw new InternalServerErrorException('Failed to create folder');
         }
     }
 }
