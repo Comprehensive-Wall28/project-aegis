@@ -10,6 +10,7 @@ import { HealthModule } from './modules/health/health.module';
 import { CommonModule } from './common/common.module';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { AuthModule } from './modules/auth/auth.module';
+import { VaultModule } from './modules/vault/vault.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AuthModule } from './modules/auth/auth.module';
     HealthModule,
     CommonModule,
     AuthModule,
+    VaultModule,
   ],
   controllers: [AppController],
   providers: [
