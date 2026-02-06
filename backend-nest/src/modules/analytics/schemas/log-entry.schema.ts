@@ -21,7 +21,7 @@ export class LogEntry extends Document {
     @Prop({ type: MongooseSchema.Types.Mixed, default: {} })
     metadata: Record<string, any>;
 
-    @Prop({ type: Date, default: Date.now, index: true })
+    @Prop({ type: Date, default: Date.now })
     timestamp: Date;
 
     @Prop({ type: String, required: false })

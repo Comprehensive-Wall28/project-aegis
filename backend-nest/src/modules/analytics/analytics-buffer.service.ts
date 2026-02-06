@@ -141,8 +141,10 @@ export class AnalyticsBufferService implements OnApplicationShutdown {
     }
 
     async onApplicationShutdown() {
-        this.startFlushTimer(); // ensure timer is cleared? no, clear it.
-        if (this.flushTimer) clearInterval(this.flushTimer);
+        if (this.flushTimer) {
+            clearInterval(this.flushTimer);
+            this.flushTimer = null;
+        }
         await this.flushAll();
     }
 }

@@ -33,4 +33,9 @@ export class UserRepository extends BaseRepository<UserDocument> {
         }
         return await this.exists(query);
     }
+    async updateChallenge(userId: string, challenge: string): Promise<void> {
+        await this.updateById(userId, {
+            $set: { currentChallenge: challenge }
+        } as any);
+    }
 }

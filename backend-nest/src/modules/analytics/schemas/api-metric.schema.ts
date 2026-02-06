@@ -24,8 +24,9 @@ export class ApiMetric extends Document {
     @Prop({ type: String, required: false })
     userAgent?: string;
 
-    @Prop({ type: Date, default: Date.now, index: true })
+    @Prop({ type: Date, default: Date.now })
     timestamp: Date;
+
 
     @Prop({ type: MongooseSchema.Types.Mixed, default: {} })
     metadata: Record<string, any>;
