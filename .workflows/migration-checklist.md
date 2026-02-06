@@ -41,13 +41,34 @@ Priority: MEDIUM - File handling required before social features
 - [x] GET /api/vault/files/:id
 - [x] GET /api/vault/download/:id
 - [x] DELETE /api/vault/files/:id
-- [ ] GET /api/vault/storage-stats
+- [x] GET /api/vault/storage-stats
 
 **Notes:**
 - 
 
 
 ---
+ 
+ ## Folders Module (6 routes)
+ 
+ Priority: MEDIUM - Required for vault navigation
+ 
+ - [x] GET /api/folders?parentId=null (Normalize parentId)
+ - [ ] GET /api/folders/:id
+ - [ ] POST /api/folders
+ - [ ] PUT /api/folders/:id
+ - [ ] DELETE /api/folders/:id
+ - [ ] PUT /api/folders/move-files
+ 
+ ---
+ 
+ ## Activity Module (1 route)
+ 
+ Priority: LOW - Dashboard widget data
+ 
+ - [ ] GET /api/activity/dashboard
+ 
+ ---
 
 ## Social Module (27 routes)
 
@@ -98,12 +119,12 @@ Priority: MEDIUM - Can be done in parallel after auth
 
 ## Statistics
 
-**Total Routes:** 46
-**Completed:** 0
+**Total Routes:** 53
+**Completed:** 15
 **In Progress:** 0
-**Remaining:** 46
+**Remaining:** 38
 
-**Progress:** 0%
+**Progress:** 28%
 
 ---
 

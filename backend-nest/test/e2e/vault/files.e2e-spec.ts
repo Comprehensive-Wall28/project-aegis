@@ -10,7 +10,7 @@ import { AppModule } from '../../../src/app.module';
 import { UserRepository } from '../../../src/modules/auth/repositories/user.repository';
 import { VaultRepository } from '../../../src/modules/vault/repositories/vault.repository';
 import { Model } from 'mongoose';
-import { Folder, FolderDocument } from '../../../src/modules/vault/schemas/folder.schema';
+import { Folder, FolderDocument } from '../../../src/modules/folders/schemas/folder.schema';
 import { FileMetadata } from '../../../src/modules/vault/schemas/file-metadata.schema';
 
 describe('Vault listing (e2e) - GET /api/vault/files', () => {

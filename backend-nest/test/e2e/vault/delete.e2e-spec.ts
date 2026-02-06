@@ -119,10 +119,10 @@ describe('Vault deletion (e2e) - DELETE /api/vault/files/:id', () => {
     });
 
     it('should return 404/403 for file owned by another user', async () => {
-        const otherEmail = 'other@example.com';
+        const otherEmail = 'other_vault_delete@example.com';
         await userRepository.deleteMany({ email: otherEmail });
         const otherUser = await userRepository.create({
-            username: 'other_user',
+            username: 'other_vault_delete_user',
             email: otherEmail,
             passwordHash: 'hash',
             pqcPublicKey: 'key'

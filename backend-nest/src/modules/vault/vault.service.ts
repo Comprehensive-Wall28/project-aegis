@@ -7,7 +7,7 @@ import { VaultListingRequestDto, VaultListingResponseDto } from './dto/vault-lis
 import { StorageStatsDto } from './dto/storage-stats.dto';
 import { GoogleDriveService } from './services/google-drive.service';
 import { Types, Model } from 'mongoose';
-import { Folder, FolderDocument } from './schemas/folder.schema';
+import { Folder, FolderDocument } from '../folders/schemas/folder.schema';
 
 @Injectable()
 export class VaultService {

@@ -11,6 +11,7 @@ import { CommonModule } from './common/common.module';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { VaultModule } from './modules/vault/vault.module';
+import { FoldersModule } from './modules/folders/folders.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { VaultModule } from './modules/vault/vault.module';
     CommonModule,
     AuthModule,
     VaultModule,
+    FoldersModule,
   ],
   controllers: [AppController],
   providers: [
