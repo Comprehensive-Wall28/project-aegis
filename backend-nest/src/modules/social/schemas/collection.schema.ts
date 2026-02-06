@@ -11,10 +11,13 @@ export class Collection {
     @Prop({ default: '' })
     name: string;
 
-    @Prop({ type: String, enum: ['links'], default: 'links' })
-    type: 'links';
+    @Prop({ default: 0 })
+    order: number;
+
+    @Prop({ type: String, enum: ['links', 'discussion'], default: 'links' })
+    type: 'links' | 'discussion';
 }
 
 export const CollectionSchema = SchemaFactory.createForClass(Collection);
 
-CollectionSchema.index({ roomId: 1 });
+CollectionSchema.index({ roomId: 1, order: 1 });

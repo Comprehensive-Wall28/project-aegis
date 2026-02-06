@@ -8,6 +8,8 @@ import { CreateRoomRequestDto } from './dto/create-room-request.dto';
 import { InviteCodeResponseDto } from './dto/invite-code-response.dto';
 import { InviteInfoResponseDto } from './dto/invite-info-response.dto';
 import { JoinRoomRequestDto } from './dto/join-room-request.dto';
+import { CreateCollectionRequestDto } from './dto/create-collection-request.dto';
+import { CollectionResponseDto } from './dto/collection-response.dto';
 
 @Controller('api/social')
 export class SocialController {
@@ -94,5 +96,16 @@ export class SocialRoomsController {
         @Param('roomId') roomId: string,
     ) {
         return await this.socialService.deleteRoom(user.id, roomId);
+    }
+
+    @Post(':roomId/collections')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.CREATED)
+    async createCollection(
+        @CurrentUser() user: any,
+        @Param('roomId') roomId: string,
+        @Body() createCollectionDto: CreateCollectionRequestDto,
+    ): Promise<CollectionResponseDto> {
+        return await this.socialService.createCollection(user.id, roomId, createCollectionDto);
     }
 }

@@ -9,7 +9,10 @@ import { RoomResponseDto } from './dto/room-response.dto';
 import { CreateRoomRequestDto } from './dto/create-room-request.dto';
 import { InviteInfoResponseDto } from './dto/invite-info-response.dto';
 import { JoinRoomRequestDto } from './dto/join-room-request.dto';
+import { CreateCollectionRequestDto } from './dto/create-collection-request.dto';
+import { CollectionResponseDto } from './dto/collection-response.dto';
 import { RoomDocument } from './schemas/room.schema';
+import { CollectionDocument } from './schemas/collection.schema';
 import { Types } from 'mongoose';
 import { randomBytes } from 'crypto';
 
@@ -218,6 +221,44 @@ export class SocialService {
             }
             this.logger.error('Delete room error:', error);
             throw new InternalServerErrorException('Failed to delete room');
+        }
+    }
+
+    async createCollection(userId: string, roomId: string, data: CreateCollectionRequestDto): Promise<CollectionResponseDto> {
+        try {
+            if (!data.name) {
+                throw new BadRequestException('Collection name is required');
+            }
+
+            const room = await this.roomRepository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new ForbiddenException('Room not found or not a member');
+            }
+
+            const currentCount = await this.collectionRepository.countByRoom(roomId);
+
+            const collection = await this.collectionRepository.create({
+                roomId: new Types.ObjectId(roomId),
+                name: data.name,
+                order: currentCount,
+                type: data.type || 'links'
+            } as any);
+
+            return {
+                _id: collection._id.toString(),
+                roomId: collection.roomId.toString(),
+                name: collection.name,
+                order: collection.order,
+                type: collection.type,
+                createdAt: (collection as any).createdAt,
+                updatedAt: (collection as any).updatedAt
+            };
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof ForbiddenException) {
+                throw error;
+            }
+            this.logger.error('Create collection error:', error);
+            throw new InternalServerErrorException('Failed to create collection');
         }
     }
 }

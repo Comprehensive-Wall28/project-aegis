@@ -40,4 +40,10 @@ export class CollectionRepository extends BaseRepository<CollectionDocument> {
             roomId: { $eq: new Types.ObjectId(roomId) }
         } as unknown as SafeFilter<CollectionDocument>);
     }
+
+    async countByRoom(roomId: string): Promise<number> {
+        return this.count({
+            roomId: { $eq: new Types.ObjectId(roomId) }
+        } as unknown as SafeFilter<CollectionDocument>);
+    }
 }
