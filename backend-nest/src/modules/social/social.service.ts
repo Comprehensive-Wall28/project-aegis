@@ -261,4 +261,37 @@ export class SocialService {
             throw new InternalServerErrorException('Failed to create collection');
         }
     }
+
+    async deleteCollection(userId: string, collectionId: string): Promise<{ message: string }> {
+        try {
+            const collection = await this.collectionRepository.findById(collectionId);
+            if (!collection) {
+                throw new NotFoundException('Collection not found');
+            }
+
+            const room = await this.roomRepository.findById(collection.roomId.toString());
+            if (!room) {
+                throw new NotFoundException('Room not found');
+            }
+
+            const member = room.members.find(m => m.userId.toString() === userId);
+            if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+                throw new ForbiddenException('Only room owner or admin can delete collections');
+            }
+
+            // Delete all links in collection
+            await this.linkPostRepository.deleteByCollection(collectionId);
+
+            // Delete collection
+            await this.collectionRepository.deleteById(collectionId);
+
+            return { message: 'Collection deleted successfully' };
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+                throw error;
+            }
+            this.logger.error('Delete collection error:', error);
+            throw new InternalServerErrorException('Failed to delete collection');
+        }
+    }
 }

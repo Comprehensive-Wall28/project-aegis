@@ -24,6 +24,16 @@ export class SocialController {
     ): Promise<InviteInfoResponseDto> {
         return await this.socialService.getInviteInfo(inviteCode);
     }
+
+    @Delete('collections/:collectionId')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async deleteCollection(
+        @CurrentUser() user: any,
+        @Param('collectionId') collectionId: string,
+    ) {
+        return await this.socialService.deleteCollection(user.id, collectionId);
+    }
 }
 
 @Controller('api/social/rooms')
