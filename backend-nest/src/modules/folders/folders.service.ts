@@ -1,5 +1,6 @@
-import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException, InternalServerErrorException, Inject, forwardRef } from '@nestjs/common';
 import { FolderRepository } from './repositories/folder.repository';
+import { VaultRepository } from '../vault/repositories/vault.repository';
 import { FolderResponseDto } from './dto/folder-response.dto';
 import { CreateFolderRequestDto } from './dto/create-folder-request.dto';
 import { UpdateFolderRequestDto } from './dto/update-folder-request.dto';
@@ -12,6 +13,8 @@ export class FoldersService {
 
     constructor(
         private readonly folderRepository: FolderRepository,
+        @Inject(forwardRef(() => VaultRepository))
+        private readonly vaultRepository: VaultRepository,
     ) { }
 
     /**
@@ -174,6 +177,46 @@ export class FoldersService {
             }
             this.logger.error('Update folder error:', error);
             throw new InternalServerErrorException('Failed to update folder');
+        }
+    }
+
+    /**
+     * Delete a folder (only if empty)
+     */
+    async deleteFolder(userId: string, folderId: string): Promise<void> {
+        try {
+            // Validate folderId
+            if (!folderId || !Types.ObjectId.isValid(folderId)) {
+                throw new BadRequestException('Invalid folder ID');
+            }
+
+            // Check for files in the folder
+            const filesCount = await this.vaultRepository.countFilesByFolder(folderId, userId);
+            if (filesCount > 0) {
+                throw new BadRequestException(
+                    'Cannot delete folder with files. Move or delete files first.'
+                );
+            }
+
+            // Check for subfolders
+            const subfoldersCount = await this.folderRepository.countSubfolders(folderId, userId);
+            if (subfoldersCount > 0) {
+                throw new BadRequestException(
+                    'Cannot delete folder with subfolders. Delete subfolders first.'
+                );
+            }
+
+            // Delete the folder
+            const deleted = await this.folderRepository.deleteByIdAndOwner(folderId, userId);
+            if (!deleted) {
+                throw new NotFoundException('Folder not found');
+            }
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Delete folder error:', error);
+            throw new InternalServerErrorException('Failed to delete folder');
         }
     }
 }

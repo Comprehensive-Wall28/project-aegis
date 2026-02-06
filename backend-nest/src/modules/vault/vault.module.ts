@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { VaultController } from './vault.controller';
 import { VaultService } from './vault.service';
@@ -16,7 +16,7 @@ import { AuthModule } from '../auth/auth.module';
         ], 'primary'),
         AuditModule,
         AuthModule,
-        FoldersModule,
+        forwardRef(() => FoldersModule),
     ],
     controllers: [VaultController],
     providers: [VaultService, VaultRepository, GoogleDriveService],

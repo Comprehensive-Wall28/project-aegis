@@ -120,4 +120,21 @@ export class VaultRepository extends BaseRepository<FileMetadataDocument> {
             ownerId: new Types.ObjectId(ownerId),
         } as any).exec();
     }
+
+    /**
+     * Count files by folder ID and owner
+     */
+    async countFilesByFolder(folderId: string | null, ownerId: string): Promise<number> {
+        const filter: SafeFilter<FileMetadataDocument> = {
+            ownerId: new Types.ObjectId(ownerId) as any,
+        };
+
+        if (folderId && folderId !== 'null') {
+            filter.folderId = new Types.ObjectId(folderId) as any;
+        } else {
+            filter.folderId = null;
+        }
+
+        return this.count(filter);
+    }
 }

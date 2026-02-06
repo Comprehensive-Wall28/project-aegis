@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { FoldersController } from './folders.controller';
 import { FoldersService } from './folders.service';
 import { FolderRepository } from './repositories/folder.repository';
 import { Folder, FolderSchema } from './schemas/folder.schema';
 import { AuthModule } from '../auth/auth.module';
+import { VaultModule } from '../vault/vault.module';
 
 @Module({
     imports: [
@@ -12,6 +13,7 @@ import { AuthModule } from '../auth/auth.module';
             { name: Folder.name, schema: FolderSchema },
         ], 'primary'),
         AuthModule,
+        forwardRef(() => VaultModule),
     ],
     controllers: [FoldersController],
     providers: [FoldersService, FolderRepository],

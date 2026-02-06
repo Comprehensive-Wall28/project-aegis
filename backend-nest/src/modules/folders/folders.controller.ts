@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Query, Param, Body, UseGuards, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Query, Param, Body, UseGuards, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CsrfGuard } from '../../common/guards/csrf.guard';
@@ -49,5 +49,15 @@ export class FoldersController {
         @Body(ValidationPipe) data: UpdateFolderRequestDto,
     ): Promise<FolderResponseDto> {
         return await this.foldersService.updateFolder(user.id, id, data);
+    }
+
+    @Delete(':id')
+    @UseGuards(JwtAuthGuard, CsrfGuard)
+    async deleteFolder(
+        @CurrentUser() user: any,
+        @Param('id') id: string,
+    ): Promise<{ message: string }> {
+        await this.foldersService.deleteFolder(user.id, id);
+        return { message: 'Folder deleted successfully' };
     }
 }

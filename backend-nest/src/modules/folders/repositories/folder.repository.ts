@@ -117,4 +117,24 @@ export class FolderRepository extends BaseRepository<FolderDocument> {
 
         return results[0].ancestors;
     }
+
+    /**
+     * Count subfolders by parent and owner
+     */
+    async countSubfolders(parentId: string, ownerId: string): Promise<number> {
+        return this.count({
+            parentId: new Types.ObjectId(parentId) as any,
+            ownerId: new Types.ObjectId(ownerId) as any
+        } as SafeFilter<FolderDocument>);
+    }
+
+    /**
+     * Delete folder by ID and owner
+     */
+    async deleteByIdAndOwner(folderId: string, ownerId: string): Promise<boolean> {
+        return this.deleteOne({
+            _id: new Types.ObjectId(folderId),
+            ownerId: new Types.ObjectId(ownerId) as any
+        } as SafeFilter<FolderDocument>);
+    }
 }
