@@ -2,12 +2,29 @@ import { Controller, Get, Post, Body, Param, UseGuards, HttpCode, HttpStatus } f
 import { SocialService } from './social.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { RoomResponseDto } from './dto/room-response.dto';
 import { CreateRoomRequestDto } from './dto/create-room-request.dto';
 import { InviteCodeResponseDto } from './dto/invite-code-response.dto';
+import { InviteInfoResponseDto } from './dto/invite-info-response.dto';
+
+@Controller('api/social')
+export class SocialController {
+    constructor(
+        private readonly socialService: SocialService,
+    ) { }
+
+    @Get('invite/:inviteCode')
+    @Public()
+    async getInviteInfo(
+        @Param('inviteCode') inviteCode: string,
+    ): Promise<InviteInfoResponseDto> {
+        return await this.socialService.getInviteInfo(inviteCode);
+    }
+}
 
 @Controller('api/social/rooms')
-export class SocialController {
+export class SocialRoomsController {
     constructor(
         private readonly socialService: SocialService,
     ) { }

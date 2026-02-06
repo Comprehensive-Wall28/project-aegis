@@ -3,6 +3,7 @@ import { RoomRepository } from './repositories/room.repository';
 import { CollectionRepository } from './repositories/collection.repository';
 import { RoomResponseDto } from './dto/room-response.dto';
 import { CreateRoomRequestDto } from './dto/create-room-request.dto';
+import { InviteInfoResponseDto } from './dto/invite-info-response.dto';
 import { RoomDocument } from './schemas/room.schema';
 import { Types } from 'mongoose';
 import { randomBytes } from 'crypto';
@@ -84,6 +85,31 @@ export class SocialService {
             }
             this.logger.error('Create invite error:', error);
             throw new InternalServerErrorException('Failed to create invite');
+        }
+    }
+
+    async getInviteInfo(inviteCode: string): Promise<InviteInfoResponseDto> {
+        try {
+            if (!inviteCode) {
+                throw new BadRequestException('Invite code required');
+            }
+
+            const room = await this.roomRepository.findByInviteCode(inviteCode);
+            if (!room) {
+                throw new NotFoundException('Invite not found or expired');
+            }
+
+            return {
+                name: room.name,
+                description: room.description,
+                icon: room.icon
+            };
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Get invite info error:', error);
+            throw new InternalServerErrorException('Failed to get invite info');
         }
     }
 }

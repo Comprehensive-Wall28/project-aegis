@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SocialController } from './social.controller';
+import { SocialRoomsController } from './social.controller';
 import { SocialService } from './social.service';
 import { RoomRepository } from './repositories/room.repository';
 import { CollectionRepository } from './repositories/collection.repository';
@@ -16,7 +17,7 @@ import { AuthModule } from '../auth/auth.module';
         ], 'primary'),
         AuthModule,
     ],
-    controllers: [SocialController],
+    controllers: [SocialController, SocialRoomsController],
     providers: [SocialService, RoomRepository, CollectionRepository],
     exports: [SocialService, RoomRepository, CollectionRepository],
 })
