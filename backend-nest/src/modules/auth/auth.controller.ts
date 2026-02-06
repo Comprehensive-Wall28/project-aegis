@@ -1,12 +1,11 @@
-import { Body, Controller, Post, Get, Put, Ip, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Body, Controller, Post, Get, Put, Ip, HttpCode, HttpStatus, Res, Param } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { ConfigService } from '@nestjs/config';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CsrfGuard } from '../../common/guards/csrf.guard';
 import { UseGuards } from '@nestjs/common';
-
-
 
 import { AuthService } from './auth.service';
 import { RegisterRequestDto } from './dto/register-request.dto';
@@ -14,6 +13,7 @@ import { LoginRequestDto } from './dto/login-request.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UpdateProfileRequestDto } from './dto/update-profile-request.dto';
+import { DiscoveryResponseDto } from './dto/discovery-response.dto';
 
 
 interface RegisterResponse extends UserResponseDto {
@@ -94,5 +94,11 @@ export class AuthController {
         @Ip() clientIp: string
     ): Promise<UserResponseDto> {
         return this.authService.updateProfile(user.id, body, clientIp);
+    }
+
+    @Get('discovery/:email')
+    @UseGuards(JwtAuthGuard, CsrfGuard)
+    async discoverUser(@Param('email') email: string): Promise<DiscoveryResponseDto> {
+        return await this.authService.discoverUser(email);
     }
 }

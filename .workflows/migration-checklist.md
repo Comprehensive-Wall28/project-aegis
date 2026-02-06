@@ -22,7 +22,7 @@ Priority: HIGH - Core authentication must work first
 - [ ] GET /api/auth/csrf-token
 - [x] GET /api/auth/me
 - [x] PUT /api/auth/me
-- [ ] GET /api/auth/discovery/:email
+- [x] GET /api/auth/discovery/:email
 - [ ] POST /api/auth/logout
 
 **Notes:**

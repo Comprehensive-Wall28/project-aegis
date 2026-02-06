@@ -33,6 +33,13 @@ export class UserRepository extends BaseRepository<UserDocument> {
         }
         return await this.exists(query);
     }
+
+    async findForSharing(email: string): Promise<UserDocument | null> {
+        return await this.model.findOne(
+            { email: { $eq: email } },
+            { username: 1, pqcPublicKey: 1 }
+        ).exec();
+    }
     async updateChallenge(userId: string, challenge: string): Promise<void> {
         await this.updateById(userId, {
             $set: { currentChallenge: challenge }

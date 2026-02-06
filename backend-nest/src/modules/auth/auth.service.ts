@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -250,6 +250,25 @@ export class AuthService {
             if (error instanceof BadRequestException) throw error;
             this.logger.error('Update profile error:', error);
             throw new InternalServerErrorException('Failed to update profile');
+        }
+    }
+
+    async discoverUser(email: string): Promise<{ username: string; pqcPublicKey: string }> {
+        try {
+            if (!email) {
+                throw new BadRequestException('Email parameter is required');
+            }
+
+            const result = await this.userRepository.findForSharing(email);
+            if (!result) {
+                throw new NotFoundException('User not found'); // Matching Express 404/Error behavior
+            }
+
+            return { username: result.username, pqcPublicKey: result.pqcPublicKey };
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) throw error;
+            this.logger.error('Discover user error:', error);
+            throw new InternalServerErrorException('Discovery failed');
         }
     }
 }
