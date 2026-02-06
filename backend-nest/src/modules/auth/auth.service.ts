@@ -272,11 +272,19 @@ export class AuthService {
         }
     }
 
-    async logout(userId: string): Promise<void> {
-        // In the future, we might want to invalidate refresh tokens or clear sessions in Redis
-        // For now, we just rely on the client clearing the cookie
-        // But we could also update the user's token version to invalidate all existing tokens if needed
-        // await this.userRepository.incrementTokenVersion(userId);
-        this.logger.log(`User ${userId} logged out`);
+    async logout(userId: string, clientIp: string): Promise<void> {
+        await this.userRepository.incrementTokenVersion(userId);
+
+        await this.auditService.log({
+            userId,
+            action: AuditAction.LOGOUT,
+            status: AuditStatus.SUCCESS,
+            ipAddress: clientIp,
+            metadata: {
+                timestamp: new Date().toISOString()
+            }
+        });
+
+        this.logger.log(`User ${userId} logged out and tokens invalidated`);
     }
 }

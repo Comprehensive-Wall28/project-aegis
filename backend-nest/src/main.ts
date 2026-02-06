@@ -35,20 +35,17 @@ async function bootstrap() {
   });
 
   // CSRF Protection
-  // We use the same generic logic as backend: XSRF-TOKEN cookie + X-XSRF-TOKEN header.
   await app.register(fastifyCsrf, {
+    cookieKey: 'XSRF-TOKEN',
     cookieOpts: {
       signed: true,
       httpOnly: false, // Frontend reads it
       path: '/',
       secure: configService.get('app.nodeEnv') === 'production',
+      sameSite: configService.get('app.nodeEnv') === 'production' ? 'none' : 'lax',
     },
     getToken: (req) => {
-      // Fastify CSRF looks for token in body/query by default, and verifies against session/cookie secret.
-      // We need to clarify if "getToken" is for extracting the token FROM THE REQUEST to verify.
-      // Fastify default behavior: checks `req.body._csrf` or `req.headers['csrf-token']` etc.
-      // We want `req.headers['x-xsrf-token']`.
-      return (req.headers['x-xsrf-token'] as string) || (req.headers['location'] as string); // location? just check headers
+      return (req.headers['x-xsrf-token'] as string);
     }
   });
 

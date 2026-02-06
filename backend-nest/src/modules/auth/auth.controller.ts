@@ -107,9 +107,10 @@ export class AuthController {
     @HttpCode(HttpStatus.OK)
     async logout(
         @CurrentUser() user: any,
+        @Ip() clientIp: string,
         @Res({ passthrough: true }) res: FastifyReply
     ): Promise<{ message: string }> {
-        await this.authService.logout(user.id);
+        await this.authService.logout(user.id, clientIp);
 
         res.setCookie('token', '', {
             httpOnly: true,
@@ -121,5 +122,12 @@ export class AuthController {
         });
 
         return { message: 'Logged out successfully' };
+    }
+
+    @Get('csrf-token')
+    @Public()
+    async getCsrfToken(@Res({ passthrough: true }) res: FastifyReply) {
+        const token = await res.generateCsrf();
+        return { csrfToken: token };
     }
 }

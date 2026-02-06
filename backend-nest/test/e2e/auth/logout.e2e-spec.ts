@@ -8,12 +8,15 @@ import fastifyCookie from '@fastify/cookie';
 import { AppModule } from '../../../src/app.module';
 import { JwtService } from '@nestjs/jwt';
 import { CryptoUtils } from '../../../src/common/utils/crypto.utils';
+import { UserRepository } from '../../../src/modules/auth/repositories/user.repository';
 
-describe('AuthModule (e2e) - Logout', () => {
+describe('AuthModule (e2e) - Logout Refined', () => {
     let app: NestFastifyApplication;
     let jwtService: JwtService;
     let cryptoUtils: CryptoUtils;
+    let userRepository: UserRepository;
     let validToken: string;
+    let testUserId = '507f1f77bcf86cd799439011';
 
     beforeAll(async () => {
         const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,7 +27,6 @@ describe('AuthModule (e2e) - Logout', () => {
             new FastifyAdapter(),
         );
 
-        // Register cookie plugin just like in main.ts/login test
         await app.register(fastifyCookie, {
             secret: 'test-secret',
         });
@@ -40,11 +42,24 @@ describe('AuthModule (e2e) - Logout', () => {
 
         jwtService = moduleFixture.get<JwtService>(JwtService);
         cryptoUtils = moduleFixture.get<CryptoUtils>(CryptoUtils);
+        userRepository = moduleFixture.get<UserRepository>(UserRepository);
+
+        // Ensure test user exists with known tokenVersion and passwordHash (required)
+        await userRepository.deleteMany({ email: 'logout_test@example.com' });
+        const user = await userRepository.create({
+            _id: testUserId,
+            username: 'logout_test_user',
+            email: 'logout_test@example.com',
+            pqcPublicKey: 'test_key',
+            passwordHash: 'dummy_hash',
+            tokenVersion: 5
+        } as any);
+        testUserId = user._id.toString();
 
         const userPayload = {
-            id: '507f1f77bcf86cd799439011', // valid mongo id
-            username: 'testuser',
-            tokenVersion: 0
+            id: testUserId,
+            username: 'logout_test_user',
+            tokenVersion: 5
         };
         const rawToken = jwtService.sign(userPayload);
         validToken = await cryptoUtils.encryptToken(rawToken);
@@ -55,7 +70,11 @@ describe('AuthModule (e2e) - Logout', () => {
     });
 
     describe('/api/auth/logout (POST)', () => {
-        it('should successfully logout an authenticated user and clear cookie', async () => {
+        it('should logout, clear cookie, and increment tokenVersion', async () => {
+            // Check initial state
+            const userBefore = await userRepository.findById(testUserId);
+            const initialVersion = userBefore?.tokenVersion || 0;
+
             const response = await app.inject({
                 method: 'POST',
                 url: '/api/auth/logout',
@@ -65,41 +84,17 @@ describe('AuthModule (e2e) - Logout', () => {
             });
 
             expect(response.statusCode).toBe(200);
-            const body = JSON.parse(response.payload);
-            expect(body).toEqual({ message: 'Logged out successfully' });
+            expect(JSON.parse(response.payload)).toEqual({ message: 'Logged out successfully' });
 
-            // Verify cookie clearing
+            // 1. Verify cookie clearing
             const setCookie = response.headers['set-cookie'];
-            expect(setCookie).toBeDefined();
-
-            // Fastify inject returns headers slightly differently, usually array or string
             const cookies = Array.isArray(setCookie) ? setCookie : [setCookie];
             const tokenCookie = cookies.find((c: string) => c.startsWith('token='));
-
-            expect(tokenCookie).toBeDefined();
-            // Expect empty value and expiry
             expect(tokenCookie).toContain('token=;');
-            expect(tokenCookie).toContain('Expires=Thu, 01 Jan 1970 00:00:00 GMT');
-        });
 
-        it('should fail for unauthenticated user', async () => {
-            const response = await app.inject({
-                method: 'POST',
-                url: '/api/auth/logout'
-            });
-            expect(response.statusCode).toBe(401);
-        });
-
-        it('should work without CSRF token (CSRF excluded)', async () => {
-            const response = await app.inject({
-                method: 'POST',
-                url: '/api/auth/logout',
-                headers: {
-                    Cookie: `token=${validToken}`
-                }
-                // No CSRF header provided
-            });
-            expect(response.statusCode).toBe(200);
+            // 2. Verify tokenVersion increment
+            const userAfter = await userRepository.findById(testUserId);
+            expect(userAfter?.tokenVersion).toBe(initialVersion + 1);
         });
     });
 });

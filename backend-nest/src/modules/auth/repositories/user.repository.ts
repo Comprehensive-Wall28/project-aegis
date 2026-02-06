@@ -45,4 +45,10 @@ export class UserRepository extends BaseRepository<UserDocument> {
             $set: { currentChallenge: challenge }
         } as any);
     }
+
+    async incrementTokenVersion(userId: string): Promise<void> {
+        await this.updateById(userId, {
+            $inc: { tokenVersion: 1 }
+        } as any);
+    }
 }
