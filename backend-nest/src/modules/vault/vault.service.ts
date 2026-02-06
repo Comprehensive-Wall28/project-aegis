@@ -4,6 +4,7 @@ import { VaultRepository } from './repositories/vault.repository';
 import { UserRepository } from '../auth/repositories/user.repository';
 import { UploadInitDto } from './dto/upload-init.dto';
 import { VaultListingRequestDto, VaultListingResponseDto } from './dto/vault-listing.dto';
+import { StorageStatsDto } from './dto/storage-stats.dto';
 import { GoogleDriveService } from './services/google-drive.service';
 import { Types, Model } from 'mongoose';
 import { Folder, FolderDocument } from './schemas/folder.schema';
@@ -261,6 +262,26 @@ export class VaultService {
             }
             this.logger.error('Delete file error:', error);
             throw new InternalServerErrorException('Delete failed');
+        }
+    }
+
+    async getStorageStats(userId: string): Promise<StorageStatsDto> {
+        try {
+            const user = await this.userRepository.findById(userId);
+            if (!user) {
+                throw new NotFoundException('User not found');
+            }
+
+            return {
+                totalStorageUsed: user.totalStorageUsed || 0,
+                maxStorage: this.MAX_STORAGE,
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error(`Get storage stats error: ${error}`);
+            throw new InternalServerErrorException('Failed to get storage stats');
         }
     }
 }

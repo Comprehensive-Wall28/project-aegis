@@ -81,6 +81,14 @@ export class VaultController {
         }
     }
 
+    @Get('storage-stats')
+    @UseGuards(JwtAuthGuard)
+    async getStorageStats(
+        @CurrentUser() user: any,
+    ) {
+        return await this.vaultService.getStorageStats(user.id);
+    }
+
     @Get('files')
     @UseGuards(JwtAuthGuard)
     async getUserFiles(
