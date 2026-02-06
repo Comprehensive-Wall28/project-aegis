@@ -190,4 +190,20 @@ export class GoogleDriveService implements OnModuleInit {
         const errorText = await response.text();
         throw new Error(`Finalize upload failed: ${response.status} - ${errorText}`);
     }
+
+    /**
+     * Get a readable stream for downloading a file from Google Drive.
+     */
+    async getFileStream(fileId: string): Promise<any> {
+        if (!this.driveClient) {
+            throw new Error('Google Drive client not initialized');
+        }
+
+        const response = await this.driveClient.files.get(
+            { fileId, alt: 'media', supportsAllDrives: true },
+            { responseType: 'stream' }
+        );
+
+        return response.data;
+    }
 }

@@ -39,7 +39,7 @@ Priority: MEDIUM - File handling required before social features
 - [x] PUT /api/vault/upload-chunk
 - [x] GET /api/vault/files
 - [x] GET /api/vault/files/:id
-- [ ] GET /api/vault/download/:id
+- [x] GET /api/vault/download/:id
 - [ ] DELETE /api/vault/files/:id
 - [ ] GET /api/vault/storage-stats
 

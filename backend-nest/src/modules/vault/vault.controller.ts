@@ -98,5 +98,21 @@ export class VaultController {
     ) {
         return await this.vaultService.getFile(user.id, id);
     }
+
+    @Get('download/:id')
+    @UseGuards(JwtAuthGuard)
+    async downloadFile(
+        @CurrentUser() user: any,
+        @Param('id') id: string,
+        @Res() res: any,
+    ) {
+        const { stream, file } = await this.vaultService.getDownloadStream(user.id, id);
+
+        res.header('Content-Type', file.mimeType || 'application/octet-stream');
+        res.header('Content-Disposition', `attachment; filename="${file.originalFileName}"`);
+        res.header('Content-Length', file.fileSize.toString());
+
+        return res.send(stream);
+    }
 }
 

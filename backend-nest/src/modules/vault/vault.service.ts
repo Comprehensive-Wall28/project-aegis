@@ -201,4 +201,31 @@ export class VaultService {
             throw new InternalServerErrorException('Failed to get file');
         }
     }
+
+    async getDownloadStream(
+        userId: string,
+        fileId: string,
+    ): Promise<{ stream: any; file: any }> {
+        try {
+            if (!Types.ObjectId.isValid(fileId)) {
+                throw new BadRequestException('Invalid file ID format');
+            }
+
+            const fileRecord = await this.vaultRepository.findByIdAndOwner(fileId, userId);
+
+            if (!fileRecord || !fileRecord.googleDriveFileId) {
+                throw new NotFoundException('File not found or access denied');
+            }
+
+            const stream = await this.googleDriveService.getFileStream(fileRecord.googleDriveFileId);
+
+            return { stream, file: fileRecord };
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Download error:', error);
+            throw new InternalServerErrorException('Download failed');
+        }
+    }
 }
