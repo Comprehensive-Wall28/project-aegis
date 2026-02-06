@@ -76,7 +76,7 @@ Priority: MEDIUM - Can be done in parallel after auth
 
 ### Rooms (6 routes)
 - [x] GET /api/social/rooms
-- [ ] POST /api/social/rooms
+- [x] POST /api/social/rooms
 - [ ] POST /api/social/rooms/:roomId/invite
 - [ ] GET /api/social/invite/:inviteCode (public)
 - [ ] POST /api/social/rooms/join
@@ -120,11 +120,11 @@ Priority: MEDIUM - Can be done in parallel after auth
 ## Statistics
 
 **Total Routes:** 53
-**Completed:** 21
+**Completed:** 22
 **In Progress:** 0
-**Remaining:** 32
+**Remaining:** 31
 
-**Progress:** 40%
+**Progress:** 42%
 
 ---
 

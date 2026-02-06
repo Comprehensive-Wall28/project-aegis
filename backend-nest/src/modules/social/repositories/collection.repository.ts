@@ -1,0 +1,37 @@
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { BaseRepository } from '../../../common/repositories/base.repository';
+import { Collection, CollectionDocument } from '../schemas/collection.schema';
+import { SafeFilter, QueryOptions } from '../../../common/repositories/types';
+
+@Injectable()
+export class CollectionRepository extends BaseRepository<CollectionDocument> {
+    constructor(
+        @InjectModel(Collection.name, 'primary')
+        readonly collectionModel: Model<CollectionDocument>,
+    ) {
+        super(collectionModel);
+    }
+
+    async findByRoom(roomId: string, options: QueryOptions = {}): Promise<CollectionDocument[]> {
+        const filter = {
+            roomId: { $eq: new Types.ObjectId(roomId) }
+        };
+
+        return this.findMany(filter as unknown as SafeFilter<CollectionDocument>, {
+            select: '_id roomId name type',
+            ...options
+        });
+    }
+
+    async findByIdAndRoom(collectionId: string, roomId: string): Promise<CollectionDocument | null> {
+        const validatedCollectionId = this.validateId(collectionId);
+        const validatedRoomId = this.validateId(roomId);
+
+        return this.findOne({
+            _id: { $eq: validatedCollectionId },
+            roomId: { $eq: validatedRoomId }
+        } as unknown as SafeFilter<CollectionDocument>);
+    }
+}
