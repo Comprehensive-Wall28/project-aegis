@@ -40,7 +40,7 @@ Priority: MEDIUM - File handling required before social features
 - [x] GET /api/vault/files
 - [x] GET /api/vault/files/:id
 - [x] GET /api/vault/download/:id
-- [ ] DELETE /api/vault/files/:id
+- [x] DELETE /api/vault/files/:id
 - [ ] GET /api/vault/storage-stats
 
 **Notes:**

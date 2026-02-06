@@ -1,4 +1,4 @@
-import { Controller, Post, Put, Get, Body, Query, Param, UseGuards, Req, Res, Ip, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Post, Put, Get, Delete, Body, Query, Param, UseGuards, Req, Res, Ip, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { VaultService } from './vault.service';
 import { UploadInitDto } from './dto/upload-init.dto';
 import { VaultListingRequestDto } from './dto/vault-listing.dto';
@@ -99,6 +99,7 @@ export class VaultController {
         return await this.vaultService.getFile(user.id, id);
     }
 
+
     @Get('download/:id')
     @UseGuards(JwtAuthGuard)
     async downloadFile(
@@ -113,6 +114,32 @@ export class VaultController {
         res.header('Content-Length', file.fileSize.toString());
 
         return res.send(stream);
+    }
+
+    @Delete('files/:id')
+    @UseGuards(JwtAuthGuard)
+    async deleteUserFile(
+        @CurrentUser() user: any,
+        @Param('id') id: string,
+        @Ip() ip: string,
+    ) {
+        const userId = user.id;
+        const file = await this.vaultService.getFile(userId, id);
+
+        await this.vaultService.deleteFile(userId, id);
+
+        await this.auditService.log({
+            userId,
+            action: AuditAction.FILE_DELETE,
+            status: AuditStatus.SUCCESS,
+            ipAddress: ip,
+            metadata: {
+                fileName: file.originalFileName,
+                fileId: id,
+            },
+        });
+
+        return { message: 'File deleted successfully' };
     }
 }
 

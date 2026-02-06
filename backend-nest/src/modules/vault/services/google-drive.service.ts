@@ -206,4 +206,15 @@ export class GoogleDriveService implements OnModuleInit {
 
         return response.data;
     }
+
+    /**
+     * Delete a file from Google Drive.
+     */
+    async deleteFile(fileId: string): Promise<void> {
+        if (!this.driveClient) {
+            throw new Error('Google Drive client not initialized');
+        }
+
+        await this.driveClient.files.delete({ fileId, supportsAllDrives: true });
+    }
 }

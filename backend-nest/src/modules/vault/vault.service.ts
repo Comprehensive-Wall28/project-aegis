@@ -228,4 +228,39 @@ export class VaultService {
             throw new InternalServerErrorException('Download failed');
         }
     }
+
+    async deleteFile(userId: string, fileId: string): Promise<void> {
+        try {
+            if (!Types.ObjectId.isValid(fileId)) {
+                throw new BadRequestException('Invalid file ID format');
+            }
+
+            const fileRecord = await this.vaultRepository.findByIdAndOwner(fileId, userId);
+
+            if (!fileRecord) {
+                throw new NotFoundException('File not found');
+            }
+
+            // Delete from Google Drive if file was uploaded
+            if (fileRecord.googleDriveFileId) {
+                await this.googleDriveService.deleteFile(fileRecord.googleDriveFileId);
+            }
+
+            // Delete metadata record
+            await this.vaultRepository.deleteByIdAndOwner(fileId, userId);
+
+            // Update user storage usage (decrement)
+            if (fileRecord.status === 'completed') {
+                await this.userRepository.updateById(userId, {
+                    $inc: { totalStorageUsed: -fileRecord.fileSize }
+                });
+            }
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Delete file error:', error);
+            throw new InternalServerErrorException('Delete failed');
+        }
+    }
 }

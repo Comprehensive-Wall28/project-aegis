@@ -113,4 +113,11 @@ export class VaultRepository extends BaseRepository<FileMetadataDocument> {
 
         return { items, nextCursor };
     }
+
+    async deleteByIdAndOwner(id: string, ownerId: string): Promise<void> {
+        await this.model.deleteOne({
+            _id: new Types.ObjectId(id),
+            ownerId: new Types.ObjectId(ownerId),
+        } as any).exec();
+    }
 }
