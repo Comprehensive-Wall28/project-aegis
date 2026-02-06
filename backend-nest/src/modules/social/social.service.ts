@@ -10,6 +10,7 @@ import { CreateRoomRequestDto } from './dto/create-room-request.dto';
 import { InviteInfoResponseDto } from './dto/invite-info-response.dto';
 import { JoinRoomRequestDto } from './dto/join-room-request.dto';
 import { CreateCollectionRequestDto } from './dto/create-collection-request.dto';
+import { UpdateCollectionRequestDto } from './dto/update-collection-request.dto';
 import { CollectionResponseDto } from './dto/collection-response.dto';
 import { RoomDocument } from './schemas/room.schema';
 import { CollectionDocument } from './schemas/collection.schema';
@@ -292,6 +293,53 @@ export class SocialService {
             }
             this.logger.error('Delete collection error:', error);
             throw new InternalServerErrorException('Failed to delete collection');
+        }
+    }
+
+    async updateCollection(userId: string, collectionId: string, data: UpdateCollectionRequestDto): Promise<CollectionResponseDto> {
+        try {
+            if (!data.name) {
+                throw new BadRequestException('Collection name is required');
+            }
+
+            const collection = await this.collectionRepository.findById(collectionId);
+            if (!collection) {
+                throw new NotFoundException('Collection not found');
+            }
+
+            const room = await this.roomRepository.findById(collection.roomId.toString());
+            if (!room) {
+                throw new NotFoundException('Room not found');
+            }
+
+            const member = room.members.find(m => m.userId.toString() === userId);
+            if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+                throw new ForbiddenException('Only room owner or admin can update collections');
+            }
+
+            const updatedCollection = await this.collectionRepository.updateById(collectionId, {
+                $set: { name: data.name }
+            } as any);
+
+            if (!updatedCollection) {
+                throw new InternalServerErrorException('Failed to update collection');
+            }
+
+            return {
+                _id: updatedCollection._id.toString(),
+                roomId: updatedCollection.roomId.toString(),
+                name: updatedCollection.name,
+                order: updatedCollection.order,
+                type: updatedCollection.type,
+                createdAt: (updatedCollection as any).createdAt,
+                updatedAt: (updatedCollection as any).updatedAt
+            };
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException || error instanceof ForbiddenException) {
+                throw error;
+            }
+            this.logger.error('Update collection error:', error);
+            throw new InternalServerErrorException('Failed to update collection');
         }
     }
 }

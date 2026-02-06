@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { SocialService } from './social.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -9,6 +9,7 @@ import { InviteCodeResponseDto } from './dto/invite-code-response.dto';
 import { InviteInfoResponseDto } from './dto/invite-info-response.dto';
 import { JoinRoomRequestDto } from './dto/join-room-request.dto';
 import { CreateCollectionRequestDto } from './dto/create-collection-request.dto';
+import { UpdateCollectionRequestDto } from './dto/update-collection-request.dto';
 import { CollectionResponseDto } from './dto/collection-response.dto';
 
 @Controller('api/social')
@@ -33,6 +34,17 @@ export class SocialController {
         @Param('collectionId') collectionId: string,
     ) {
         return await this.socialService.deleteCollection(user.id, collectionId);
+    }
+
+    @Patch('collections/:collectionId')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async updateCollection(
+        @CurrentUser() user: any,
+        @Param('collectionId') collectionId: string,
+        @Body() updateDto: UpdateCollectionRequestDto,
+    ): Promise<CollectionResponseDto> {
+        return await this.socialService.updateCollection(user.id, collectionId, updateDto);
     }
 }
 
