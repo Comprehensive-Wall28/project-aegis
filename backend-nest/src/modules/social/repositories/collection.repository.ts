@@ -34,4 +34,10 @@ export class CollectionRepository extends BaseRepository<CollectionDocument> {
             roomId: { $eq: validatedRoomId }
         } as unknown as SafeFilter<CollectionDocument>);
     }
+
+    async deleteByRoom(roomId: string): Promise<number> {
+        return this.deleteMany({
+            roomId: { $eq: new Types.ObjectId(roomId) }
+        } as unknown as SafeFilter<CollectionDocument>);
+    }
 }

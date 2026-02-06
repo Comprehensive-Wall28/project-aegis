@@ -1,6 +1,10 @@
 import { Injectable, Logger, InternalServerErrorException, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { RoomRepository } from './repositories/room.repository';
 import { CollectionRepository } from './repositories/collection.repository';
+import { LinkPostRepository } from './repositories/link-post.repository';
+import { LinkCommentRepository } from './repositories/link-comment.repository';
+import { LinkViewRepository } from './repositories/link-view.repository';
+import { ReaderAnnotationRepository } from './repositories/reader-annotation.repository';
 import { RoomResponseDto } from './dto/room-response.dto';
 import { CreateRoomRequestDto } from './dto/create-room-request.dto';
 import { InviteInfoResponseDto } from './dto/invite-info-response.dto';
@@ -16,6 +20,10 @@ export class SocialService {
     constructor(
         private readonly roomRepository: RoomRepository,
         private readonly collectionRepository: CollectionRepository,
+        private readonly linkPostRepository: LinkPostRepository,
+        private readonly linkCommentRepository: LinkCommentRepository,
+        private readonly linkViewRepository: LinkViewRepository,
+        private readonly readerAnnotationRepository: ReaderAnnotationRepository,
     ) { }
 
     async createRoom(userId: string, data: CreateRoomRequestDto): Promise<RoomDocument> {
@@ -168,6 +176,48 @@ export class SocialService {
             }
             this.logger.error('Leave room error:', error);
             throw new InternalServerErrorException('Failed to leave room');
+        }
+    }
+
+    async deleteRoom(userId: string, roomId: string): Promise<{ message: string }> {
+        try {
+            const room = await this.roomRepository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new NotFoundException('Room not found or access denied');
+            }
+
+            const member = room.members.find(m => m.userId.toString() === userId);
+            if (!member || member.role !== 'owner') {
+                throw new ForbiddenException('Only room owners can delete rooms');
+            }
+
+            const collections = await this.collectionRepository.findByRoom(roomId);
+            const collectionIds = collections.map(c => c._id.toString());
+
+            const links = await this.linkPostRepository.findByCollections(collectionIds);
+            const linkIds = links.map(l => l._id.toString());
+
+            await Promise.all([
+                ...linkIds.map(linkId => this.linkCommentRepository.deleteByLinkId(linkId)),
+                this.readerAnnotationRepository.deleteByRoom(roomId),
+                this.linkViewRepository.deleteByRoom(roomId)
+            ]);
+
+            if (collectionIds.length > 0) {
+                await Promise.all(collectionIds.map(cid => this.linkPostRepository.deleteByCollection(cid)));
+            }
+
+            await this.collectionRepository.deleteByRoom(roomId);
+
+            await this.roomRepository.deleteById(roomId);
+
+            return { message: 'Successfully deleted room' };
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+                throw error;
+            }
+            this.logger.error('Delete room error:', error);
+            throw new InternalServerErrorException('Failed to delete room');
         }
     }
 }

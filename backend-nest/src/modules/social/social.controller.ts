@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { SocialService } from './social.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -84,5 +84,15 @@ export class SocialRoomsController {
         @Param('roomId') roomId: string,
     ) {
         return await this.socialService.leaveRoom(user.id, roomId);
+    }
+
+    @Delete(':roomId')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async deleteRoom(
+        @CurrentUser() user: any,
+        @Param('roomId') roomId: string,
+    ) {
+        return await this.socialService.deleteRoom(user.id, roomId);
     }
 }
