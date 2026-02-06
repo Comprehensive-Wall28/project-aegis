@@ -219,4 +219,51 @@ export class FoldersService {
             throw new InternalServerErrorException('Failed to delete folder');
         }
     }
+
+    /**
+     * Move files to a folder (with re-encryption)
+     */
+    async moveFiles(
+        userId: string,
+        updates: { fileId: string; encryptedKey: string; encapsulatedKey: string }[],
+        folderId: string | null
+    ): Promise<{ message: string; modifiedCount: number }> {
+        try {
+            if (!updates || !Array.isArray(updates) || updates.length === 0) {
+                throw new BadRequestException('File updates are required');
+            }
+
+            // Normalize folderId
+            let normalizedFolderId: string | null = null;
+            if (folderId && folderId !== '') {
+                normalizedFolderId = folderId;
+
+                // Validate folder exists and user owns it
+                const folder = await this.folderRepository.findByIdAndOwner(normalizedFolderId, userId);
+                if (!folder) {
+                    throw new NotFoundException('Target folder not found');
+                }
+            }
+
+            const bulkUpdates = updates.map(u => ({
+                fileId: u.fileId,
+                encryptedKey: u.encryptedKey,
+                encapsulatedKey: u.encapsulatedKey,
+                folderId: normalizedFolderId
+            }));
+
+            const modifiedCount = await this.vaultRepository.bulkMoveFiles(bulkUpdates, userId);
+
+            return {
+                message: `Moved ${modifiedCount} file(s)`,
+                modifiedCount
+            };
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Move files error:', error);
+            throw new InternalServerErrorException('Failed to move files');
+        }
+    }
 }

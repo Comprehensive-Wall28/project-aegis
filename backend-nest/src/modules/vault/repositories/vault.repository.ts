@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { BaseRepository } from '../../../common/repositories/base.repository';
 import { FileMetadata, FileMetadataDocument } from '../schemas/file-metadata.schema';
-import { SafeFilter } from '../../../common/repositories/types';
+import { SafeFilter, BulkWriteOperation } from '../../../common/repositories/types';
 import { escapeRegex } from '../../../common/utils/regex-utils';
 
 @Injectable()
@@ -136,5 +136,36 @@ export class VaultRepository extends BaseRepository<FileMetadataDocument> {
         }
 
         return this.count(filter);
+    }
+
+    /**
+     * Bulk move files with new encrypted keys
+     */
+    async bulkMoveFiles(
+        updates: { fileId: string; encryptedKey: string; encapsulatedKey: string; folderId: string | null }[],
+        ownerId: string
+    ): Promise<number> {
+        if (updates.length === 0) return 0;
+
+        const ownerObjectId = new Types.ObjectId(ownerId);
+
+        const operations: BulkWriteOperation<FileMetadataDocument>[] = updates.map(update => ({
+            updateOne: {
+                filter: {
+                    _id: new Types.ObjectId(update.fileId),
+                    ownerId: ownerObjectId
+                } as SafeFilter<FileMetadataDocument>,
+                update: {
+                    $set: {
+                        encryptedSymmetricKey: update.encryptedKey,
+                        encapsulatedKey: update.encapsulatedKey,
+                        folderId: update.folderId ? new Types.ObjectId(update.folderId) : null
+                    }
+                }
+            }
+        }));
+
+        const result = await this.bulkWrite(operations);
+        return result.modifiedCount || 0;
     }
 }

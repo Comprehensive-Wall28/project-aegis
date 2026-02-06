@@ -6,6 +6,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { FolderResponseDto } from './dto/folder-response.dto';
 import { CreateFolderRequestDto } from './dto/create-folder-request.dto';
 import { UpdateFolderRequestDto } from './dto/update-folder-request.dto';
+import { MoveFilesRequestDto } from './dto/move-files-request.dto';
+import { MoveFilesResponseDto } from './dto/move-files-response.dto';
 
 @Controller('api/folders')
 export class FoldersController {
@@ -59,5 +61,14 @@ export class FoldersController {
     ): Promise<{ message: string }> {
         await this.foldersService.deleteFolder(user.id, id);
         return { message: 'Folder deleted successfully' };
+    }
+
+    @Put('move-files')
+    @UseGuards(JwtAuthGuard, CsrfGuard)
+    async moveFiles(
+        @CurrentUser() user: any,
+        @Body(ValidationPipe) data: MoveFilesRequestDto,
+    ): Promise<MoveFilesResponseDto> {
+        return await this.foldersService.moveFiles(user.id, data.updates, data.folderId ?? null);
     }
 }
