@@ -37,7 +37,7 @@ Create database module that supports:
 
 Key files:
 - `src/config/database/database.module.ts` - Module definition
-- `src/config/database/database-manager.service.ts` - Connection manager with switching logic
+- `src/config/database/database-manager.service.ts` - Connection manager with auto-fallback logic during runtime
 - `src/config/database/database.providers.ts` - Connection providers
 
 Requirements:
@@ -82,7 +82,6 @@ Configure `main.ts`:
 Create health module with endpoints:
 - `GET /health` - Basic health check
 - `GET /health/db` - Database connections status
-- `POST /admin/db/switch/:name` - Switch active database connection (protected)
 
 ### 8. Verification
 Run verification tests:

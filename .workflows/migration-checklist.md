@@ -22,11 +22,6 @@ Priority: HIGH - Core authentication must work first
 - [ ] PUT /api/auth/me
 - [ ] GET /api/auth/discovery/:email
 - [ ] POST /api/auth/logout
-- [ ] POST /api/auth/webauthn/register-options
-- [ ] POST /api/auth/webauthn/register-verify
-- [ ] POST /api/auth/webauthn/login-options
-- [ ] POST /api/auth/webauthn/login-verify
-- [ ] DELETE /api/auth/webauthn/passkey
 
 **Notes:**
 - 
