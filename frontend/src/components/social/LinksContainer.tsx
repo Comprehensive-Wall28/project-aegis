@@ -25,6 +25,7 @@ import { SocialErrorBoundary } from './SocialErrorBoundary';
 import { LinkCardSkeleton } from './SocialSkeletons';
 import { useSocial } from '@/hooks/useSocial';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
+import { useInfiniteScroll } from '@/pages/files/hooks/useInfiniteScroll';
 import type { Collection } from '@/services/socialService';
 
 const CollectionName = memo(({ collection }: { collection: Collection }) => {
@@ -57,9 +58,17 @@ export const LinksContainer = memo(forwardRef<HTMLDivElement, LinksContainerProp
         handleOpenMoveDialog,
         previewLink,
         effectiveIsLoadingLinks,
-        loadAllLinks,
+        loadMoreLinks,
         hasMoreLinks,
     } = useSocial();
+
+    // Infinite scroll hook
+    const { sentinelRef } = useInfiniteScroll({
+        hasMore: hasMoreLinks,
+        isLoading: effectiveIsLoadingLinks,
+        onLoadMore: loadMoreLinks,
+        rootMargin: '400px'
+    });
 
     // Use React 18 useDeferredValue for deferred search display
     const debouncedSearchQuery = useDeferredValue(searchQuery);
@@ -260,16 +269,22 @@ export const LinksContainer = memo(forwardRef<HTMLDivElement, LinksContainerProp
                                 </Box>
                             ))}
                             {hasMoreLinks && (
-                                <Box sx={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', py: 2, width: '100%' }}>
-                                    <Button
-                                        variant="outlined"
-                                        onClick={() => loadAllLinks()}
-                                        disabled={effectiveIsLoadingLinks}
-                                        startIcon={effectiveIsLoadingLinks ? <CircularProgress size={20} color="inherit" /> : undefined}
-                                        sx={{ borderRadius: SOCIAL_RADIUS_MEDIUM }}
-                                    >
-                                        {effectiveIsLoadingLinks ? 'Loading...' : 'Load all links'}
-                                    </Button>
+                                <Box
+                                    ref={sentinelRef}
+                                    sx={{
+                                        gridColumn: '1 / -1',
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        py: 3,
+                                        width: '100%',
+                                        gap: 1,
+                                    }}
+                                >
+                                    <CircularProgress size={20} thickness={4} />
+                                    <Typography variant="caption" color="text.secondary">
+                                        {effectiveIsLoadingLinks ? 'Loading more...' : 'Scroll for more'}
+                                    </Typography>
                                 </Box>
                             )}
                         </Box>

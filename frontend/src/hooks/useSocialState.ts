@@ -49,6 +49,7 @@ export function useSocialState() {
             markLinkViewed: state.markLinkViewed,
             unmarkLinkViewed: state.unmarkLinkViewed,
             getUnviewedCountByCollection: state.getUnviewedCountByCollection,
+            loadMoreLinks: state.loadMoreLinks,
             loadAllLinks: state.loadAllLinks,
             searchRoomLinks: state.searchRoomLinks,
             clearRoomContent: state.clearRoomContent,
