@@ -91,7 +91,7 @@ Priority: MEDIUM - Can be done in parallel after auth
 - [x] GET /api/social/rooms/:roomId/collections/:collectionId/links
 
 ### Links (8 routes)
-- [ ] POST /api/social/rooms/:roomId/links
+- [x] POST /api/social/rooms/:roomId/links
 - [ ] GET /api/social/rooms/:roomId (get room content)
 - [ ] GET /api/social/rooms/:roomId/search
 - [ ] DELETE /api/social/links/:linkId

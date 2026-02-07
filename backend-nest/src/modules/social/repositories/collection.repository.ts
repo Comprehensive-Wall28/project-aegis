@@ -27,11 +27,11 @@ export class CollectionRepository extends BaseRepository<CollectionDocument> {
 
     async findByIdAndRoom(collectionId: string, roomId: string): Promise<CollectionDocument | null> {
         const validatedCollectionId = this.validateId(collectionId);
-        const validatedRoomId = this.validateId(roomId);
+        const validatedRoomId = new Types.ObjectId(this.validateId(roomId));
 
         return this.findOne({
-            _id: { $eq: validatedCollectionId },
-            roomId: { $eq: validatedRoomId }
+            _id: { $eq: validatedCollectionId },  // String - sanitizer handles conversion
+            roomId: { $eq: validatedRoomId }      // ObjectId - not handled specially by sanitizer
         } as unknown as SafeFilter<CollectionDocument>);
     }
 
@@ -56,5 +56,13 @@ export class CollectionRepository extends BaseRepository<CollectionDocument> {
         }));
 
         await this.collectionModel.bulkWrite(bulkOps);
+    }
+
+    async findDefaultLinksCollection(roomId: string): Promise<CollectionDocument | null> {
+        return this.findOne({
+            roomId: { $eq: new Types.ObjectId(roomId) },
+            name: { $eq: '' },
+            type: { $eq: 'links' }
+        } as unknown as SafeFilter<CollectionDocument>);
     }
 }

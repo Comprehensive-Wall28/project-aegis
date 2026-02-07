@@ -14,6 +14,9 @@ import { ReorderCollectionsRequestDto } from './dto/reorder-collections-request.
 import { CollectionResponseDto } from './dto/collection-response.dto';
 import { GetCollectionLinksQueryDto } from './dto/get-collection-links-query.dto';
 import { GetCollectionLinksResponseDto } from './dto/get-collection-links-response.dto';
+import { PostLinkRequestDto } from './dto/post-link-request.dto';
+import { RoomContentResponseDto } from './dto/room-content-response.dto';
+import { GetRoomContentQueryDto } from './dto/get-room-content-query.dto';
 
 @Controller('api/social')
 export class SocialController {
@@ -145,6 +148,17 @@ export class SocialRoomsController {
         return await this.socialService.reorderCollections(user.id, roomId, reorderDto);
     }
 
+    @Post(':roomId/links')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.CREATED)
+    async postLink(
+        @CurrentUser() user: any,
+        @Param('roomId') roomId: string,
+        @Body() postLinkDto: PostLinkRequestDto,
+    ) {
+        return await this.socialService.postLink(user.id, roomId, postLinkDto);
+    }
+
     @Get(':roomId/collections/:collectionId/links')
     @UseGuards(JwtAuthGuard)
     async getCollectionLinks(
@@ -163,5 +177,15 @@ export class SocialRoomsController {
             query.limit || 12,
             beforeCursor
         );
+    }
+
+    @Get(':roomId')
+    @UseGuards(JwtAuthGuard)
+    async getRoomContent(
+        @CurrentUser() user: any,
+        @Param('roomId') roomId: string,
+        @Query() query: GetRoomContentQueryDto,
+    ): Promise<RoomContentResponseDto> {
+        return await this.socialService.getRoomContent(user.id, roomId, query.collectionId);
     }
 }

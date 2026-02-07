@@ -69,4 +69,45 @@ export class LinkPostRepository extends BaseRepository<LinkPostDocument> {
 
         return { links, totalCount };
     }
+
+    async findByCollectionAndUrl(collectionId: string, url: string): Promise<LinkPostDocument | null> {
+        const validatedId = new Types.ObjectId(this.validateId(collectionId));
+        return this.findOne({
+            collectionId: { $eq: validatedId },
+            url: { $eq: url }
+        } as unknown as SafeFilter<LinkPostDocument>);
+    }
+
+    async createWithPopulate(data: {
+        collectionId: string;
+        userId: string;
+        url: string;
+        previewData: { title: string; scrapeStatus: string };
+    }): Promise<LinkPostDocument> {
+        const linkPost = await this.create({
+            collectionId: new Types.ObjectId(data.collectionId),
+            userId: new Types.ObjectId(data.userId),
+            url: data.url,
+            previewData: data.previewData
+        } as any);
+
+        await linkPost.populate({ path: 'userId', select: 'username' });
+        return linkPost;
+    }
+
+    /**
+     * Get aggregate counts of links per collection
+     */
+    async groupCountByCollections(collectionIds: string[]): Promise<{ _id: string; count: number }[]> {
+        const validatedIds = collectionIds.map(id => new Types.ObjectId(this.validateId(id)));
+        const results = await this.aggregate<{ _id: Types.ObjectId; count: number }>([
+            { $match: { collectionId: { $in: validatedIds } } },
+            { $group: { _id: '$collectionId', count: { $sum: 1 } } }
+        ]);
+
+        return results.map(r => ({
+            _id: r._id.toString(),
+            count: r.count
+        }));
+    }
 }

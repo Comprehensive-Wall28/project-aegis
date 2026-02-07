@@ -14,6 +14,9 @@ import { UpdateCollectionRequestDto } from './dto/update-collection-request.dto'
 import { ReorderCollectionsRequestDto } from './dto/reorder-collections-request.dto';
 import { CollectionResponseDto } from './dto/collection-response.dto';
 import { GetCollectionLinksResponseDto } from './dto/get-collection-links-response.dto';
+import { PostLinkRequestDto } from './dto/post-link-request.dto';
+import { RoomContentResponseDto } from './dto/room-content-response.dto';
+import { LinkPostDocument } from './schemas/link-post.schema';
 import { RoomDocument } from './schemas/room.schema';
 import { CollectionDocument } from './schemas/collection.schema';
 import { Types } from 'mongoose';
@@ -364,6 +367,66 @@ export class SocialService {
         }
     }
 
+    async postLink(userId: string, roomId: string, data: PostLinkRequestDto): Promise<LinkPostDocument> {
+        try {
+            if (!data.url) {
+                throw new BadRequestException('URL is required');
+            }
+
+            const room = await this.roomRepository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new NotFoundException('Room not found or access denied');
+            }
+
+            let targetCollectionId = data.collectionId;
+            if (!targetCollectionId) {
+                const defaultCollection = await this.collectionRepository.findDefaultLinksCollection(roomId);
+                if (defaultCollection) {
+                    targetCollectionId = defaultCollection._id.toString();
+                } else {
+                    throw new BadRequestException('No collection found for links');
+                }
+            }
+
+            const collection = await this.collectionRepository.findByIdAndRoom(targetCollectionId, roomId);
+            if (!collection) {
+                throw new NotFoundException('Collection not found');
+            }
+
+            let targetUrl = data.url;
+            if (!/^https?:\/\//i.test(targetUrl)) {
+                targetUrl = 'https://' + targetUrl;
+            }
+
+            const existingLink = await this.linkPostRepository.findByCollectionAndUrl(targetCollectionId, targetUrl);
+            if (existingLink) {
+                throw new BadRequestException('Link already exists in this collection');
+            }
+
+            const placeholderPreview = {
+                title: targetUrl.split('://')[1] || targetUrl,
+                scrapeStatus: 'scraping'
+            };
+
+            const linkPost = await this.linkPostRepository.createWithPopulate({
+                collectionId: targetCollectionId,
+                userId,
+                url: targetUrl,
+                previewData: placeholderPreview
+            });
+
+            // Note: Background scraping and Socket broadcasting not implemented in migration
+
+            return linkPost;
+        } catch (error) {
+            if (error instanceof BadRequestException || error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Post link error:', error);
+            throw new InternalServerErrorException('Failed to post link');
+        }
+    }
+
     async getCollectionLinks(
         userId: string,
         roomId: string,
@@ -431,5 +494,121 @@ export class SocialService {
             throw new InternalServerErrorException('Failed to get collection links');
         }
     }
-}
 
+    async getRoomContent(userId: string, roomId: string, targetCollectionId?: string): Promise<RoomContentResponseDto> {
+        try {
+            const room = await this.roomRepository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new NotFoundException('Room not found or access denied');
+            }
+
+            const member = room.members.find((mAny: any) => mAny.userId.toString() === userId);
+
+            const [collections, viewedByCollection] = await Promise.all([
+                this.collectionRepository.findByRoom(roomId, { sort: { order: 1 } }),
+                this.linkViewRepository.findMany({
+                    userId: { $eq: new Types.ObjectId(userId) as any },
+                    roomId: { $eq: new Types.ObjectId(roomId) as any }
+                } as any, {
+                    select: 'collectionId',
+                    lean: true
+                })
+            ]);
+
+            const viewedCounts: Record<string, number> = {};
+            (viewedByCollection as any[]).forEach((v: any) => {
+                if (v.collectionId) {
+                    const cid = v.collectionId.toString();
+                    viewedCounts[cid] = (viewedCounts[cid] || 0) + 1;
+                }
+            });
+
+            const collectionIds = collections.map((c: CollectionDocument) => c._id.toString());
+
+            let fetchCollectionId = collections.length > 0 ? collections[0]._id.toString() : null;
+            if (targetCollectionId && collectionIds.includes(targetCollectionId)) {
+                fetchCollectionId = targetCollectionId;
+            }
+
+            const limit = 12;
+
+            const [collectionStats, initialLinksResult] = await Promise.all([
+                this.linkPostRepository.groupCountByCollections(collectionIds),
+                fetchCollectionId
+                    ? this.linkPostRepository.findByCollectionCursor(fetchCollectionId, limit)
+                    : Promise.resolve({ links: [], totalCount: 0 })
+            ]);
+
+            const unviewedCounts: Record<string, number> = {};
+            collections.forEach((c: CollectionDocument) => unviewedCounts[c._id.toString()] = 0);
+
+            collectionStats.forEach((stat: { _id: string; count: number }) => {
+                const cid = stat._id.toString();
+                const total = stat.count;
+                const viewed = viewedCounts[cid] || 0;
+                unviewedCounts[cid] = Math.max(0, total - viewed);
+            });
+
+            const initialLinks = initialLinksResult.links;
+            let initialViewedLinkIds: string[] = [];
+            let initialCommentCounts: Record<string, number> = {};
+
+            if (initialLinks.length > 0) {
+                const initialIds = initialLinks.map((l: LinkPostDocument) => l._id.toString());
+                const [viewed, comments] = await Promise.all([
+                    this.linkViewRepository.findViewedLinkIds(userId, initialIds),
+                    this.linkCommentRepository.countByLinkIds(initialIds)
+                ]);
+                initialViewedLinkIds = viewed;
+                initialCommentCounts = comments;
+            }
+
+            return {
+                room: {
+                    _id: room._id.toString(),
+                    name: room.name,
+                    description: room.description,
+                    icon: room.icon,
+                    role: member?.role || 'member',
+                    encryptedRoomKey: member?.encryptedRoomKey
+                },
+                collections: collections.map((c: CollectionDocument) => ({
+                    _id: c._id.toString(),
+                    roomId: c.roomId.toString(),
+                    name: c.name,
+                    order: c.order,
+                    type: c.type,
+                    createdAt: (c as any).createdAt,
+                    updatedAt: (c as any).updatedAt
+                })),
+                links: initialLinks.map((link: LinkPostDocument) => ({
+                    _id: link._id.toString(),
+                    collectionId: link.collectionId.toString(),
+                    userId: {
+                        _id: (link.userId as any)?._id?.toString() || link.userId.toString(),
+                        username: (link.userId as any)?.username || ''
+                    },
+                    url: link.url,
+                    previewData: link.previewData || {
+                        title: '',
+                        description: '',
+                        image: '',
+                        favicon: '',
+                        scrapeStatus: ''
+                    },
+                    createdAt: (link as any).createdAt?.toISOString() || '',
+                    updatedAt: (link as any).updatedAt?.toISOString() || ''
+                })),
+                viewedLinkIds: initialViewedLinkIds,
+                commentCounts: initialCommentCounts,
+                unviewedCounts
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Get room content error:', error);
+            throw new InternalServerErrorException('Failed to get room content');
+        }
+    }
+}
