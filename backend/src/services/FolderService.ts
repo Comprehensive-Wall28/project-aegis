@@ -5,6 +5,7 @@ import { FileMetadataRepository } from '../repositories/FileMetadataRepository';
 import { IFolder } from '../models/Folder';
 import Folder from '../models/Folder';
 import logger from '../utils/logger';
+import { CacheInvalidator } from '../utils/cacheUtils';
 
 /**
  * DTO for creating a folder
@@ -264,6 +265,9 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             }));
 
             const result = await this.fileMetadataRepo.bulkMoveFiles(bulkUpdates, userId);
+
+            // Invalidate file list caches for the user
+            CacheInvalidator.userFiles(userId);
 
             return result;
         } catch (error) {

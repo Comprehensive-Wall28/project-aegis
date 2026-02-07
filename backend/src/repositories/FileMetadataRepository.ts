@@ -47,7 +47,8 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
         options: QueryOptions = {}
     ): Promise<IFileMetadata[]> {
         const filter: any = {
-            ownerId: { $eq: ownerId }
+            ownerId: { $eq: ownerId },
+            status: 'completed'
         };
 
         if (search) {
@@ -75,7 +76,8 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
     ): Promise<IFileMetadata[]> {
         return this.findMany({
             folderId: { $eq: folderId },
-            ownerId: { $eq: folderOwnerId }
+            ownerId: { $eq: folderOwnerId },
+            status: 'completed'
         } as SafeFilter<IFileMetadata>, {
             sort: { createdAt: -1 },
             ...options
@@ -158,10 +160,16 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
     async findByOwnerAndFolderPaginated(
         ownerId: string,
         folderId: string | null,
-        options: { limit: number; cursor?: string; search?: string }
+        options: {
+            limit: number;
+            cursor?: string;
+            search?: string;
+            sort?: { field: string; order: 'asc' | 'desc' }
+        }
     ): Promise<{ items: IFileMetadata[]; nextCursor: string | null }> {
         const filter: any = {
-            ownerId: { $eq: ownerId }
+            ownerId: { $eq: ownerId },
+            status: 'completed'
         };
 
         if (options.search) {
@@ -173,11 +181,14 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
             filter.folderId = null;
         }
 
+        const sortField = options.sort?.field || 'createdAt';
+        const sortOrder = options.sort?.order === 'asc' ? 1 : -1;
+
         return this.findPaginated(filter, {
             limit: Math.min(options.limit || 20, 100),
             cursor: options.cursor,
-            sortField: 'createdAt',
-            sortOrder: -1
+            sortField,
+            sortOrder
         });
     }
 }

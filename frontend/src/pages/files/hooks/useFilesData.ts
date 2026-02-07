@@ -3,7 +3,7 @@ import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import vaultService, { type FileMetadata } from '@/services/vaultService';
 import folderService, { type Folder } from '@/services/folderService';
 import { useVaultDownload } from '@/hooks/useVaultDownload';
-import { useUploadStatus } from '@/hooks/useVaultUpload';
+import { useUploadStore } from '@/stores/useUploadStore';
 
 const PAGE_SIZE = 20;
 
@@ -32,10 +32,13 @@ export function useFilesData() {
     const debouncedSearchQuery = useRef('');
     const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Sort State
+    const [sortField, setSortField] = useState<'createdAt' | 'fileSize' | 'originalFileName'>('createdAt');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
     const { downloadAndDecrypt } = useVaultDownload();
-    const uploadStatus = useUploadStatus();
 
     // 1. Initial Fetch (Reset)
     const fetchData = useCallback(async (reset = true) => {
@@ -67,7 +70,9 @@ export function useFilesData() {
                         folderId: currentFolderId,
                         limit: PAGE_SIZE,
                         cursor: reset ? undefined : (nextCursorRef.current || undefined),
-                        search: debouncedSearchQuery.current
+                        search: debouncedSearchQuery.current,
+                        sortField,
+                        sortOrder
                     }),
                     // Only fetch folders if resetting (folders don't paginate yet or implementation is simple)
                     reset ? folderService.getFolders(currentFolderId) : Promise.resolve([]),
@@ -110,15 +115,18 @@ export function useFilesData() {
             setIsLoading(false);
             setIsLoadingMore(false);
         }
-    }, [currentFolderId, navigate]); // Removed nextCursor dependency
+    }, [currentFolderId, navigate, sortField, sortOrder]);
 
-    // Effect: Trigger fetch when Folder changes
+    // Effect: Clear search when Folder changes
     useEffect(() => {
-        // Clear search when changing folders
         setSearchQuery('');
         debouncedSearchQuery.current = '';
+    }, [currentFolderId]);
+
+    // Effect: Trigger fetch when dependencies change (Folder, Sort, etc.)
+    useEffect(() => {
         fetchData(true);
-    }, [currentFolderId, fetchData]); // Safe now that fetchData doesn't depend on changing cursor
+    }, [fetchData]);
 
     // Effect: Handle Search Debounce
     useEffect(() => {
@@ -150,12 +158,49 @@ export function useFilesData() {
         }
     }, [isLoadingMore, hasMore, fetchData]);
 
-    // Refresh file list when an upload completes
+    // Optimistic Update: Append new files when upload completes
     useEffect(() => {
-        if (uploadStatus === 'completed') {
-            fetchData(true);
-        }
-    }, [uploadStatus, fetchData]);
+
+        // Subscribe to store changes to avoid re-renders on progress
+        const unsub = useUploadStore.subscribe((state: any, prevState: any) => {
+            const newFilesToAdd: FileMetadata[] = [];
+
+            state.uploads.forEach((item: any, id: string) => {
+                const prevItem = prevState.uploads.get(id);
+                // If item is completed now, and was not completed before, and has a result
+                if (item.status === 'completed' && item.result) {
+                    if (!prevItem || prevItem.status !== 'completed') {
+                        newFilesToAdd.push(item.result);
+                    }
+                }
+            });
+
+            if (newFilesToAdd.length > 0) {
+                setFiles(prev => {
+                    const updated = [...prev];
+                    let changed = false;
+
+                    newFilesToAdd.forEach(file => {
+                        // Check if file matches current folder view
+                        // Folder match: (file.folderId is null AND currentFolderId is null) OR (file.folderId === currentFolderId)
+                        const isMatch = (file.folderId || null) === (currentFolderId || null);
+
+                        if (isMatch) {
+                            // Deduplicate
+                            if (!updated.some(f => f._id === file._id)) {
+                                updated.unshift(file);
+                                changed = true;
+                            }
+                        }
+                    });
+
+                    return changed ? updated : prev;
+                });
+            }
+        });
+
+        return () => unsub();
+    }, [currentFolderId]); // Re-subscribe if folder context changes to capture correct closure
 
     const handleDownload = useCallback(async (file: FileMetadata) => {
         try {
@@ -209,6 +254,11 @@ export function useFilesData() {
         imageFiles,
         currentFolderId,
         fetchData,
-        searchParams
+        searchParams,
+        // Sort
+        sortField,
+        setSortField,
+        sortOrder,
+        setSortOrder
     };
 }

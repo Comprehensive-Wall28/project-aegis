@@ -236,7 +236,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
      */
     public async getFile(userId: string, fileId: string): Promise<IFileMetadata> {
         const cacheKey = CacheKeyBuilder.userFile(userId, fileId);
-        
+
         return withCache(
             { key: cacheKey, ttl: 60000 }, // 1 minute TTL for single items
             async () => {
@@ -355,7 +355,7 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
      */
     async getStorageStats(userId: string): Promise<{ totalStorageUsed: number; maxStorage: number }> {
         const cacheKey = CacheKeyBuilder.userStorageStats(userId);
-        
+
         return withCache(
             { key: cacheKey, ttl: 60000 }, // 1 minute for storage stats
             async () => {
@@ -378,7 +378,12 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
     async getUserFilesPaginated(
         userId: string,
         folderId: string | null,
-        options: { limit: number; cursor?: string; search?: string }
+        options: {
+            limit: number;
+            cursor?: string;
+            search?: string;
+            sort?: { field: string; order: 'asc' | 'desc' }
+        }
     ): Promise<{ items: IFileMetadata[]; nextCursor: string | null }> {
         try {
             if (folderId && folderId !== 'null') {
@@ -388,9 +393,10 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 }
             }
 
-            const cacheKey = CacheKeyBuilder.userFiles(userId, folderId, options.search) + 
-                `:cursor_${options.cursor || 'first'}:limit_${Math.min(options.limit || 20, 100)}`;
-            
+            const sortKey = options.sort ? `:sort_${options.sort.field}_${options.sort.order}` : ':sort_createdAt_desc';
+            const cacheKey = CacheKeyBuilder.userFiles(userId, folderId, options.search) +
+                `:cursor_${options.cursor || 'first'}:limit_${Math.min(options.limit || 20, 100)}${sortKey}`;
+
             return await withCache(
                 { key: cacheKey, ttl: 300000 }, // 5 minutes for paginated lists
                 async () => {
@@ -400,7 +406,8 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                         {
                             limit: Math.min(options.limit || 20, 100),
                             cursor: options.cursor,
-                            search: options.search
+                            search: options.search,
+                            sort: options.sort
                         }
                     );
                 }

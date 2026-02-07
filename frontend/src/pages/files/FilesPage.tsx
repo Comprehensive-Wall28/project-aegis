@@ -25,7 +25,6 @@ import { ImagePreviewOverlay } from '@/components/vault/ImagePreviewOverlay';
 import { PDFPreviewOverlay } from '@/components/vault/PDFPreviewOverlay';
 import { ContextMenu } from '@/components/ContextMenu';
 import { FilesHeader } from './components/FilesHeader';
-import { FilesToolbar } from './components/FilesToolbar';
 import { FilesBreadcrumbs } from './components/FilesBreadcrumbs';
 import { FilesGrid } from './components/FilesGrid';
 import { FilesDialogs } from './components/FilesDialogs';
@@ -53,7 +52,12 @@ export function FilesPage() {
         searchParams,
         hasMore,
         loadMore,
-        isLoadingMore
+        isLoadingMore,
+        // Sort
+        sortField,
+        setSortField,
+        sortOrder,
+        setSortOrder
     } = useFilesData();
 
     const {
@@ -140,12 +144,17 @@ export function FilesPage() {
 
     return (
         <Stack
-            spacing={4}
+            spacing={2}
             className="text-sharp"
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onContextMenu={(e) => handleContextMenu(e, { type: 'empty' })}
-            sx={{ position: 'relative', pb: 4 }}
+            sx={{
+                position: 'relative',
+                height: '100%',
+                overflow: 'hidden',
+                pb: 0
+            }}
         >
             {/* External Drag Overlay */}
             <AnimatePresence>
@@ -182,6 +191,15 @@ export function FilesPage() {
                 )}
             </AnimatePresence>
 
+
+            <FilesBreadcrumbs
+                folderPath={folderPath}
+                onNavigate={actions.navigateToFolder}
+                dragOverId={dragOverId}
+                setDragOverId={setDragOverId}
+                onMove={(targetId, droppedFileId) => handleInternalDrop(targetId || '', droppedFileId, selectedIds)}
+            />
+
             <FilesHeader
                 fileCount={files.length}
                 selectedCount={selectedIds.size}
@@ -193,22 +211,12 @@ export function FilesPage() {
                     dialogState.setFilesToMove(Array.from(selectedIds));
                     dialogState.setMoveToFolderDialog(true);
                 }, [selectedIds, dialogState])}
-            />
-
-            <FilesToolbar
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                selectedCount={selectedIds.size}
                 totalCount={files.length}
                 onSelectAll={selectAll}
-            />
-
-            <FilesBreadcrumbs
-                folderPath={folderPath}
-                onNavigate={actions.navigateToFolder}
-                dragOverId={dragOverId}
-                setDragOverId={setDragOverId}
-                onMove={(targetId, droppedFileId) => handleInternalDrop(targetId || '', droppedFileId, selectedIds)}
+                viewPreset={pageState.viewPreset}
+                onViewPresetChange={(preset) => pageState.setViewPreset(preset)}
             />
 
             <FilesGrid
@@ -238,6 +246,17 @@ export function FilesPage() {
                 }}
                 dragOverId={dragOverId}
                 highlightId={highlightId}
+                searchQuery={searchQuery}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSortChange={(field) => {
+                    if (sortField === field) {
+                        setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+                    } else {
+                        setSortField(field);
+                        setSortOrder('desc'); // Default to desc for new field
+                    }
+                }}
             />
 
             <ContextMenu

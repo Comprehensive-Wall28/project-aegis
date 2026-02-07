@@ -39,9 +39,13 @@ export const uploadChunk = withAuth(async (req: AuthRequest, res: Response) => {
     );
 
     if (result.complete) {
+        // Fetch the full file metadata to return to the client
+        const file = await vaultService.getFile(req.user!.id, fileId);
+
         res.status(200).json({
             message: 'Upload successful',
-            googleDriveFileId: result.googleDriveFileId
+            googleDriveFileId: result.googleDriveFileId,
+            file
         });
     } else {
         // Send 308 Resume Incomplete (following Google Drive convention)
@@ -93,11 +97,15 @@ export const getUserFiles = withAuth(async (req: AuthRequest, res: Response) => 
     const cursor = req.query.cursor as string | undefined;
     const search = req.query.search as string | undefined;
 
+    // Sort params
+    const sortField = req.query.sortField as string | undefined;
+    const sortOrder = req.query.sortOrder as 'asc' | 'desc' | undefined;
+
     if (limit !== undefined) {
         const result = await vaultService.getUserFilesPaginated(
             req.user!.id,
             normalizedFolderId,
-            { limit, cursor, search }
+            { limit, cursor, search, sort: sortField ? { field: sortField, order: sortOrder || 'desc' } : undefined }
         );
         return res.json(result);
     }
