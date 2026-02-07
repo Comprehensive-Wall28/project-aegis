@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Patch, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Body, Param, Query, UseGuards, HttpCode, HttpStatus, Ip } from '@nestjs/common';
 import { SocialService } from './social.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -53,6 +53,17 @@ export class SocialController {
         @Body() updateDto: UpdateCollectionRequestDto,
     ): Promise<CollectionResponseDto> {
         return await this.socialService.updateCollection(user.id, collectionId, updateDto);
+    }
+
+    @Delete('links/:linkId')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async deleteLink(
+        @CurrentUser() user: any,
+        @Param('linkId') linkId: string,
+        @Ip() ip: string,
+    ) {
+        return await this.socialService.deleteLink(user.id, linkId, ip);
     }
 }
 

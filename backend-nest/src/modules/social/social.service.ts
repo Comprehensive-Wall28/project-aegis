@@ -23,6 +23,8 @@ import { RoomDocument } from './schemas/room.schema';
 import { CollectionDocument } from './schemas/collection.schema';
 import { Types } from 'mongoose';
 import { randomBytes } from 'crypto';
+import { AuditService } from '../audit/audit.service';
+import { AuditAction, AuditStatus } from '../audit/schemas/audit-log.schema';
 
 @Injectable()
 export class SocialService {
@@ -35,6 +37,7 @@ export class SocialService {
         private readonly linkCommentRepository: LinkCommentRepository,
         private readonly linkViewRepository: LinkViewRepository,
         private readonly readerAnnotationRepository: ReaderAnnotationRepository,
+        private readonly auditService: AuditService,
     ) { }
 
     async createRoom(userId: string, data: CreateRoomRequestDto): Promise<RoomDocument> {
@@ -672,6 +675,62 @@ export class SocialService {
             }
             this.logger.error('Search room links error:', error);
             throw new InternalServerErrorException('Failed to search room links');
+        }
+    }
+
+    async deleteLink(userId: string, linkId: string, ipAddress: string): Promise<{ message: string }> {
+        try {
+            const link = await this.linkPostRepository.findById(linkId);
+            if (!link) {
+                throw new NotFoundException('Link not found');
+            }
+
+            const collection = await this.collectionRepository.findById(link.collectionId.toString());
+            if (!collection) {
+                throw new NotFoundException('Collection not found');
+            }
+
+            const roomId = collection.roomId.toString();
+            const room = await this.roomRepository.findById(roomId);
+            if (!room) {
+                throw new NotFoundException('Room not found');
+            }
+
+            const member = room.members.find(m => m.userId.toString() === userId);
+            if (!member) {
+                throw new ForbiddenException('Not a member of this room');
+            }
+
+            const isPostCreator = link.userId.toString() === userId;
+            const isRoomOwner = member.role === 'owner';
+
+            if (!isPostCreator && !isRoomOwner) {
+                throw new ForbiddenException('Only post creator or room owner can delete links');
+            }
+
+            await this.linkPostRepository.deleteById(linkId);
+            await this.linkCommentRepository.deleteByLinkId(linkId);
+
+            // Note: Socket broadcasting not implemented in migration
+
+            await this.auditService.log({
+                userId,
+                action: AuditAction.LINK_DELETE,
+                status: AuditStatus.SUCCESS,
+                ipAddress,
+                metadata: {
+                    linkId,
+                    roomId
+                }
+            });
+
+            return { message: 'Link deleted successfully' };
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+                throw error;
+            }
+            this.logger.error('Delete link error:', error);
+            throw new InternalServerErrorException('Failed to delete link');
         }
     }
 }
