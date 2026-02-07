@@ -17,6 +17,8 @@ import { GetCollectionLinksResponseDto } from './dto/get-collection-links-respon
 import { PostLinkRequestDto } from './dto/post-link-request.dto';
 import { RoomContentResponseDto } from './dto/room-content-response.dto';
 import { GetRoomContentQueryDto } from './dto/get-room-content-query.dto';
+import { SearchRoomLinksQueryDto } from './dto/search-room-links-query.dto';
+import { SearchRoomLinksResponseDto } from './dto/search-room-links-response.dto';
 
 @Controller('api/social')
 export class SocialController {
@@ -177,6 +179,16 @@ export class SocialRoomsController {
             query.limit || 12,
             beforeCursor
         );
+    }
+
+    @Get(':roomId/search')
+    @UseGuards(JwtAuthGuard)
+    async searchRoomLinks(
+        @CurrentUser() user: any,
+        @Param('roomId') roomId: string,
+        @Query() query: SearchRoomLinksQueryDto,
+    ): Promise<SearchRoomLinksResponseDto> {
+        return await this.socialService.searchRoomLinks(user.id, roomId, query);
     }
 
     @Get(':roomId')

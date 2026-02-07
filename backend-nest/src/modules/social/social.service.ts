@@ -16,6 +16,8 @@ import { CollectionResponseDto } from './dto/collection-response.dto';
 import { GetCollectionLinksResponseDto } from './dto/get-collection-links-response.dto';
 import { PostLinkRequestDto } from './dto/post-link-request.dto';
 import { RoomContentResponseDto } from './dto/room-content-response.dto';
+import { SearchRoomLinksQueryDto } from './dto/search-room-links-query.dto';
+import { SearchRoomLinksResponseDto } from './dto/search-room-links-response.dto';
 import { LinkPostDocument } from './schemas/link-post.schema';
 import { RoomDocument } from './schemas/room.schema';
 import { CollectionDocument } from './schemas/collection.schema';
@@ -609,6 +611,67 @@ export class SocialService {
             }
             this.logger.error('Get room content error:', error);
             throw new InternalServerErrorException('Failed to get room content');
+        }
+    }
+
+    async searchRoomLinks(
+        userId: string,
+        roomId: string,
+        query: SearchRoomLinksQueryDto,
+    ): Promise<SearchRoomLinksResponseDto> {
+        try {
+            const room = await this.roomRepository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new NotFoundException('Room not found or access denied');
+            }
+
+            const collections = await this.collectionRepository.findByRoom(roomId);
+            const collectionIds = collections.map(c => c._id.toString());
+
+            if (collectionIds.length === 0) {
+                return { links: [], viewedLinkIds: [], commentCounts: {} };
+            }
+
+            const links = await this.linkPostRepository.searchLinks(
+                collectionIds,
+                query.q,
+                query.limit || 50
+            );
+
+            const linkIds = links.map(l => l._id.toString());
+            const [viewedLinkIds, commentCounts] = await Promise.all([
+                this.linkViewRepository.findViewedLinkIds(userId, linkIds),
+                this.linkCommentRepository.countByLinkIds(linkIds)
+            ]);
+
+            return {
+                links: links.map(link => ({
+                    _id: link._id.toString(),
+                    collectionId: link.collectionId.toString(),
+                    userId: {
+                        _id: (link.userId as any)?._id?.toString() || link.userId.toString(),
+                        username: (link.userId as any)?.username || ''
+                    },
+                    url: link.url,
+                    previewData: link.previewData || {
+                        title: '',
+                        description: '',
+                        image: '',
+                        favicon: '',
+                        scrapeStatus: ''
+                    },
+                    createdAt: (link as any).createdAt?.toISOString() || '',
+                    updatedAt: (link as any).updatedAt?.toISOString() || ''
+                })),
+                viewedLinkIds,
+                commentCounts
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Search room links error:', error);
+            throw new InternalServerErrorException('Failed to search room links');
         }
     }
 }

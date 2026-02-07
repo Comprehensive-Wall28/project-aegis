@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { BaseRepository } from '../../../common/repositories/base.repository';
 import { LinkPost, LinkPostDocument } from '../schemas/link-post.schema';
 import { SafeFilter } from '../../../common/repositories/types';
+import { escapeRegex } from '../../../common/utils/regex-utils';
 
 @Injectable()
 export class LinkPostRepository extends BaseRepository<LinkPostDocument> {
@@ -109,5 +110,32 @@ export class LinkPostRepository extends BaseRepository<LinkPostDocument> {
             _id: r._id.toString(),
             count: r.count
         }));
+    }
+
+    /**
+     * Search links across multiple collections with basic regex matching
+     */
+    async searchLinks(
+        collectionIds: string[],
+        searchQuery: string,
+        limit: number = 50
+    ): Promise<LinkPostDocument[]> {
+        const safeQuery = escapeRegex(searchQuery);
+        const validatedIds = collectionIds.map(id => new Types.ObjectId(this.validateId(id)));
+
+        const query: any = {
+            collectionId: { $in: validatedIds },
+            $or: [
+                { url: { $regex: safeQuery, $options: 'i' } },
+                { 'previewData.title': { $regex: safeQuery, $options: 'i' } },
+                { 'previewData.description': { $regex: safeQuery, $options: 'i' } }
+            ]
+        };
+
+        return this.findMany(query as unknown as SafeFilter<LinkPostDocument>, {
+            sort: { createdAt: -1 },
+            populate: { path: 'userId', select: 'username' },
+            limit
+        });
     }
 }
