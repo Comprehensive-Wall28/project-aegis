@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import DatabaseManager from '../config/DatabaseManager';
 import { config } from '../config/env';
+import cacheService from '../services/cache/CacheService';
 
 const router = express.Router();
 
@@ -531,6 +532,34 @@ router.get('/audit-logs', verifyAnalyticsPassword, async (req: Request, res: Res
         res.status(500).json({
             success: false,
             error: 'Failed to fetch audit logs',
+            details: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+});
+
+/**
+ * GET /api/analytics/cache
+ * Get cache statistics and performance metrics
+ */
+router.get('/cache', verifyAnalyticsPassword, (req: Request, res: Response): void => {
+    try {
+        const stats = cacheService.getStats();
+        
+        res.json({
+            success: true,
+            data: {
+                enabled: cacheService.isEnabled(),
+                hits: stats.hits,
+                misses: stats.misses,
+                size: stats.size,
+                hitRate: stats.hitRate,
+                maxItems: 5000, // From CACHE_MAX_ITEMS env var
+            },
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch cache statistics',
             details: error instanceof Error ? error.message : 'Unknown error',
         });
     }

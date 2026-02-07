@@ -1,6 +1,6 @@
 {
   "name": "aegis-backend",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "description": "project-aegis backend",
   "main": "index.js",
   "scripts": {

@@ -24,15 +24,18 @@ import {
     Speed as SpeedIcon,
     Error as ErrorIcon,
     Refresh as RefreshIcon,
+    Storage as StorageIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import {
     getMetricsSummary,
     getMetricsTimeseries,
     getMetrics,
+    getCacheStats,
     type ApiMetric,
     type MetricsSummary,
     type MetricsResponse,
+    type CacheStats,
 } from '@/services/analyticsService';
 import { usePasswordGate } from '@/hooks/usePasswordGate';
 import { PasswordGateDialog } from '@/components/analytics/PasswordGateDialog';
@@ -64,6 +67,7 @@ export default function AnalyticsPerformancePage() {
     const [metrics, setMetrics] = useState<ApiMetric[]>([]);
     const [statusDistribution, setStatusDistribution] = useState<{ _id: number; count: number }[]>([]);
     const [topPaths, setTopPaths] = useState<{ path: string; method: string; count: number; avgDurationMs: number }[]>([]);
+    const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
 
     // Use current month as default date range
     const getMonthDateRange = useCallback(() => {
@@ -90,7 +94,7 @@ export default function AnalyticsPerformancePage() {
 
         setIsLoading(true);
         try {
-            const [summaryRes, timeseriesRes] = await Promise.all([
+            const [summaryRes, timeseriesRes, cacheRes] = await Promise.all([
                 getMetricsSummary(password, {
                     startDate: monthDateRange.startDate.toISOString(),
                     endDate: monthDateRange.endDate.toISOString(),
@@ -100,6 +104,7 @@ export default function AnalyticsPerformancePage() {
                     endDate: monthDateRange.endDate.toISOString(),
                     interval: '1h',
                 }),
+                getCacheStats(password),
             ]);
 
             if (summaryRes.success) {
@@ -110,6 +115,10 @@ export default function AnalyticsPerformancePage() {
 
             if (timeseriesRes.success) {
                 setTimeseries(timeseriesRes.data);
+            }
+
+            if (cacheRes.success) {
+                setCacheStats(cacheRes.data);
             }
         } catch (error) {
             console.error('Failed to fetch chart data:', error);
@@ -157,6 +166,35 @@ export default function AnalyticsPerformancePage() {
         }
     }, [isAuthenticated, password, paginationModel, searchQuery, fetchTableData]);
 
+    const groupedStatusDistribution = useMemo(() => {
+        const normalCount = statusDistribution
+            .filter(item => item._id < 400)
+            .reduce((acc, curr) => acc + curr.count, 0);
+
+        const errorCount = statusDistribution
+            .filter(item => item._id >= 400)
+            .reduce((acc, curr) => acc + curr.count, 0);
+
+        const data = [];
+        if (normalCount > 0) {
+            data.push({
+                id: 'normal',
+                value: normalCount,
+                label: 'Normal',
+                color: theme.palette.success.main,
+            });
+        }
+        if (errorCount > 0) {
+            data.push({
+                id: 'error',
+                value: errorCount,
+                label: 'Error',
+                color: theme.palette.error.main,
+            });
+        }
+        return data;
+    }, [statusDistribution, theme]);
+
     const metricCards = useMemo(
         () => [
             {
@@ -182,6 +220,34 @@ export default function AnalyticsPerformancePage() {
             },
         ],
         [summary, theme]
+    );
+
+    // Cache performance metric cards
+    const cacheMetricCards = useMemo(
+        () => [
+            {
+                label: 'Cache Hit Rate',
+                value: cacheStats ? `${cacheStats.hitRate.toFixed(1)}%` : 'N/A',
+                icon: <TrendingUpIcon sx={{ fontSize: 24, color: cacheStats && cacheStats.hitRate > 70 ? theme.palette.success.main : theme.palette.warning.main }} />,
+                color: cacheStats && cacheStats.hitRate > 70 ? theme.palette.success.main : theme.palette.warning.main,
+                bgColor: alpha(cacheStats && cacheStats.hitRate > 70 ? theme.palette.success.main : theme.palette.warning.main, 0.1),
+            },
+            {
+                label: 'Cache Size',
+                value: cacheStats ? `${cacheStats.size} / ${cacheStats.maxItems}` : 'N/A',
+                icon: <StorageIcon sx={{ fontSize: 24, color: theme.palette.info.main }} />,
+                color: theme.palette.info.main,
+                bgColor: alpha(theme.palette.info.main, 0.1),
+            },
+            {
+                label: 'Total Requests',
+                value: cacheStats ? (cacheStats.hits + cacheStats.misses).toLocaleString() : 'N/A',
+                icon: <SpeedIcon sx={{ fontSize: 24, color: theme.palette.primary.main }} />,
+                color: theme.palette.primary.main,
+                bgColor: alpha(theme.palette.primary.main, 0.1),
+            },
+        ],
+        [cacheStats, theme]
     );
 
     const columns: GridColDef<ApiMetric>[] = [
@@ -409,6 +475,183 @@ export default function AnalyticsPerformancePage() {
                 ))}
             </Grid>
 
+            {/* Cache Performance Section */}
+            <Grid container spacing={3}>
+                {/* Cache Metric Cards */}
+                {cacheMetricCards.map((metric) => (
+                    <Grid key={metric.label} size={{ xs: 12, sm: 12, md: 4 }}>
+                        <Paper
+                            variant="glass"
+                            sx={{
+                                p: 1.5,
+                                borderRadius: '24px',
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 1,
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Box
+                                    sx={{
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: '12px',
+                                        bgcolor: metric.bgColor,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {metric.icon}
+                                </Box>
+                                <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}
+                                >
+                                    {metric.label}
+                                </Typography>
+                            </Box>
+                            {isLoading ? (
+                                <Skeleton variant="text" width="60%" height={40} />
+                            ) : (
+                                <Typography
+                                    variant="h4"
+                                    sx={{
+                                        fontFamily: 'Outfit, sans-serif',
+                                        fontWeight: 700,
+                                        color: metric.color,
+                                    }}
+                                >
+                                    {metric.value}
+                                </Typography>
+                            )}
+                        </Paper>
+                    </Grid>
+                ))}
+
+                {/* Cache Hit/Miss Distribution */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <Paper
+                        variant="glass"
+                        sx={{
+                            p: 3,
+                            borderRadius: '24px',
+                        }}
+                    >
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, fontSize: '1rem' }}>
+                            Cache Hit/Miss Distribution
+                        </Typography>
+                        {isLoading ? (
+                            <Skeleton variant="circular" width={180} height={180} sx={{ m: '0 auto' }} />
+                        ) : (
+                            <Box sx={{ height: 240, width: '100%', position: 'relative' }}>
+                                {cacheStats && (cacheStats.hits + cacheStats.misses) > 0 ? (
+                                    <PieChart
+                                        series={[
+                                            {
+                                                data: [
+                                                    {
+                                                        id: 'hits',
+                                                        value: cacheStats.hits,
+                                                        label: `Hits (${cacheStats.hits.toLocaleString()})`,
+                                                        color: theme.palette.success.main,
+                                                    },
+                                                    {
+                                                        id: 'misses',
+                                                        value: cacheStats.misses,
+                                                        label: `Misses (${cacheStats.misses.toLocaleString()})`,
+                                                        color: theme.palette.error.main,
+                                                    },
+                                                ],
+                                                innerRadius: '50%',
+                                                outerRadius: '90%',
+                                                paddingAngle: 2,
+                                                cornerRadius: 4,
+                                                highlightScope: { fade: 'global', highlight: 'item' },
+                                            },
+                                        ]}
+                                        slotProps={{
+                                            legend: {
+                                                position: { vertical: 'middle', horizontal: 'end' },
+                                            },
+                                        }}
+                                        margin={{ right: 100 }}
+                                    >
+                                        <PieCenterLabel>
+                                            {((cacheStats.hitRate)).toFixed(0)}%
+                                        </PieCenterLabel>
+                                    </PieChart>
+                                ) : (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                        <Typography color="text.secondary">No cache data available</Typography>
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
+                    </Paper>
+                </Grid>
+
+                {/* Cache Status */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <Paper
+                        variant="glass"
+                        sx={{
+                            p: 3,
+                            borderRadius: '24px',
+                            height: '100%',
+                        }}
+                    >
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, fontSize: '1rem' }}>
+                            Cache Configuration
+                        </Typography>
+                        {isLoading ? (
+                            <Skeleton variant="rectangular" height={200} sx={{ borderRadius: '12px' }} />
+                        ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+                                    <Typography variant="body2" color="text.secondary">Status</Typography>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontWeight: 700,
+                                            color: cacheStats?.enabled ? theme.palette.success.main : theme.palette.error.main
+                                        }}
+                                    >
+                                        {cacheStats?.enabled ? 'Enabled' : 'Disabled'}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+                                    <Typography variant="body2" color="text.secondary">Cache Entries</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
+                                        {cacheStats?.size ?? 0}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+                                    <Typography variant="body2" color="text.secondary">Max Capacity</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
+                                        {cacheStats?.maxItems ?? 5000}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+                                    <Typography variant="body2" color="text.secondary">Hit Rate</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
+                                        {cacheStats ? `${cacheStats.hitRate.toFixed(1)}%` : 'N/A'}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+                                    <Typography variant="body2" color="text.secondary">Total Requests</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
+                                        {cacheStats ? (cacheStats.hits + cacheStats.misses).toLocaleString() : '0'}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        )}
+                    </Paper>
+                </Grid>
+            </Grid>
+
             {/* Charts Grid */}
             <Grid container spacing={3}>
                 {/* Request Volume Chart */}
@@ -474,15 +717,7 @@ export default function AnalyticsPerformancePage() {
                                 <PieChart
                                     series={[
                                         {
-                                            data: statusDistribution.map((item) => ({
-                                                id: item._id,
-                                                value: item.count,
-                                                label: `HTTP ${item._id}`,
-                                                color:
-                                                    item._id < 300 ? theme.palette.success.main :
-                                                        item._id < 400 ? theme.palette.warning.main :
-                                                            theme.palette.error.main,
-                                            })),
+                                            data: groupedStatusDistribution,
                                             innerRadius: '50%',
                                             outerRadius: '90%',
                                             paddingAngle: 1,

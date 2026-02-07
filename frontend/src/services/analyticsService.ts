@@ -103,6 +103,20 @@ export interface AuditLogsResponse {
     };
 }
 
+export interface CacheStats {
+    enabled: boolean;
+    hits: number;
+    misses: number;
+    size: number;
+    hitRate: number;
+    maxItems: number;
+}
+
+export interface CacheStatsResponse {
+    success: boolean;
+    data: CacheStats;
+}
+
 /**
  * Verify analytics access password
  */
@@ -259,6 +273,19 @@ export const getAuditLogs = async (
     return response.data;
 };
 
+/**
+ * Get cache statistics
+ */
+export const getCacheStats = async (password: string): Promise<CacheStatsResponse> => {
+    const response = await apiClient.get('/analytics/cache', {
+        headers: {
+            'X-Analytics-Password': password,
+        },
+    });
+
+    return response.data;
+};
+
 export default {
     verifyAnalyticsAccess,
     getMetrics,
@@ -266,4 +293,5 @@ export default {
     getMetricsTimeseries,
     getLogs,
     getAuditLogs,
+    getCacheStats,
 };
