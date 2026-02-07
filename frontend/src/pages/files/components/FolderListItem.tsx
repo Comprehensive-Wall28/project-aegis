@@ -4,7 +4,9 @@ import type { Theme } from '@mui/material';
 import {
     Folder as FolderIcon,
     Delete as TrashIcon,
-    MoreVert as MoreVertIcon
+    MoreVert as MoreVertIcon,
+    DriveFileRenameOutline as RenameIcon,
+    Palette as PaletteIcon
 } from '@mui/icons-material';
 import type { Folder } from '@/services/folderService';
 import type { ContextMenuTarget } from '../types';
@@ -15,6 +17,8 @@ interface FolderListItemProps {
     onNavigate: (folder: Folder) => void;
     onContextMenu: (e: React.MouseEvent, target: ContextMenuTarget) => void;
     onDelete: (id: string) => void;
+    onRename?: (folder: Folder) => void;
+    onChangeColor?: (folder: Folder) => void;
     onDragOver: (id: string | null) => void;
     onDrop: (targetId: string, droppedFileId: string) => void;
     insideContainer?: boolean;
@@ -26,6 +30,8 @@ export const FolderListItem = memo(({
     onNavigate,
     onContextMenu,
     onDelete,
+    onRename,
+    onChangeColor,
     onDragOver,
     onDrop,
     insideContainer = false
@@ -82,8 +88,12 @@ export const FolderListItem = memo(({
                         disabled
                         sx={{
                             p: 0.5,
-                            visibility: 'hidden',
-                            pointerEvents: 'none'
+                            opacity: 0.2, // Subtle greyed-out look
+                            color: 'text.secondary',
+                            '&.Mui-disabled': {
+                                color: 'text.secondary',
+                                opacity: 0.2
+                            }
                         }}
                     />
                 </Box>
@@ -202,6 +212,18 @@ export const FolderListItem = memo(({
                                     }
                                 }}
                             >
+                                <MenuItem onClick={() => handleMenuAction(() => onRename?.(folder))}>
+                                    <ListItemIcon>
+                                        <RenameIcon fontSize="small" />
+                                    </ListItemIcon>
+                                    <ListItemText>Rename</ListItemText>
+                                </MenuItem>
+                                <MenuItem onClick={() => handleMenuAction(() => onChangeColor?.(folder))}>
+                                    <ListItemIcon>
+                                        <PaletteIcon fontSize="small" />
+                                    </ListItemIcon>
+                                    <ListItemText>Change Color</ListItemText>
+                                </MenuItem>
                                 <MenuItem onClick={() => handleMenuAction(() => onDelete(folder._id))}>
                                     <ListItemIcon>
                                         <TrashIcon fontSize="small" color="error" />
@@ -220,7 +242,31 @@ export const FolderListItem = memo(({
                         <>
                             <IconButton
                                 size="small"
-                                onClick={() => onDelete(folder._id)}
+                                onClick={(e) => { e.stopPropagation(); onRename?.(folder); }}
+                                aria-label="Rename folder"
+                                sx={{
+                                    color: 'text.secondary',
+                                    p: 0.5,
+                                    '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.1) }
+                                }}
+                            >
+                                <RenameIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                                size="small"
+                                onClick={(e) => { e.stopPropagation(); onChangeColor?.(folder); }}
+                                aria-label="Change color"
+                                sx={{
+                                    color: folder.color || 'text.secondary',
+                                    p: 0.5,
+                                    '&:hover': { bgcolor: alpha(folder.color || theme.palette.text.primary, 0.1) }
+                                }}
+                            >
+                                <PaletteIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                                size="small"
+                                onClick={(e) => { e.stopPropagation(); onDelete(folder._id); }}
                                 aria-label="Delete folder"
                                 sx={{
                                     color: '#EF5350',

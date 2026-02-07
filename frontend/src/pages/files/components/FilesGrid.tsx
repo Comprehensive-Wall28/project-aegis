@@ -29,6 +29,8 @@ interface FilesGridProps {
     onContextMenu: (e: React.MouseEvent, target: ContextMenuTarget) => void;
     onDeleteFile: (id: string) => void;
     onDeleteFolder: (id: string) => void;
+    onRenameFolder: (folder: Folder) => void;
+    onChangeFolderColor: (folder: Folder) => void;
     onDownload: (file: FileMetadata) => void;
     onDragOver: (id: string | null) => void;
     onDrop: (targetId: string, droppedFileId: string) => void;
@@ -59,6 +61,8 @@ export function FilesGrid({
     onContextMenu,
     onDeleteFile,
     onDeleteFolder,
+    onRenameFolder,
+    onChangeFolderColor,
     onDownload,
     onDragOver,
     onDrop,
@@ -295,6 +299,8 @@ export function FilesGrid({
                                                         onNavigate={onNavigate}
                                                         onContextMenu={onContextMenu}
                                                         onDelete={onDeleteFolder}
+                                                        onRename={onRenameFolder}
+                                                        onChangeColor={onChangeFolderColor}
                                                         onDragOver={onDragOver}
                                                         onDrop={onDrop}
                                                         insideContainer

@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload as UploadIcon } from '@mui/icons-material';
+import type { Folder } from '@/services/folderService';
 
 // Hooks
 import { useFilesData } from './hooks/useFilesData';
@@ -236,6 +237,8 @@ export function FilesPage() {
                 onContextMenu={handleContextMenu}
                 onDeleteFile={actions.handleDeleteFile}
                 onDeleteFolder={actions.handleDeleteFolder}
+                onRenameFolder={(folder: Folder) => dialogState.setRenameFolderDialog({ open: true, folder })}
+                onChangeFolderColor={(folder: Folder) => dialogState.setColorPickerFolderId(folder._id)}
                 onDownload={handleDownload}
                 onDragOver={setDragOverId}
                 onDrop={(targetId, droppedId) => handleInternalDrop(targetId, droppedId, selectedIds)}
