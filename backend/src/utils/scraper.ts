@@ -6,7 +6,7 @@ import metascraperTitle from 'metascraper-title';
 import metascraperDescription from 'metascraper-description';
 import metascraperImage from 'metascraper-image';
 import metascraperLogo from 'metascraper-logo';
-import metascraperClearbit from 'metascraper-clearbit';
+
 import metascraperAuthor from 'metascraper-author';
 import metascraperUrl from 'metascraper-url';
 import metascraperYoutube from 'metascraper-youtube';
@@ -26,7 +26,7 @@ const metascraper = createMetascraper([
     metascraperDescription(),
     metascraperImage(),
     metascraperLogo(),
-    metascraperClearbit(),
+
     metascraperAuthor(),
     metascraperUrl(),
     metascraperYoutube(),

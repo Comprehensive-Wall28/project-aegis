@@ -60,39 +60,7 @@ export class UserRepository extends BaseRepository<IUser> {
         } as unknown as SafeFilter<IUser>);
     }
 
-    /**
-     * Update user's current challenge for WebAuthn
-     */
-    async updateChallenge(userId: string, challenge: string | undefined): Promise<IUser | null> {
-        return this.updateById(userId, { $set: { currentChallenge: challenge } } as any);
-    }
 
-    /**
-     * Add WebAuthn credential
-     */
-    async addWebAuthnCredential(
-        userId: string,
-        credential: {
-            credentialID: string;
-            publicKey: string;
-            counter: number;
-            transports?: string[];
-        }
-    ): Promise<IUser | null> {
-        return this.updateById(userId, {
-            $push: { webauthnCredentials: credential },
-            $unset: { currentChallenge: 1 }
-        } as any);
-    }
-
-    /**
-     * Remove WebAuthn credential
-     */
-    async removeWebAuthnCredential(userId: string, credentialID: string): Promise<IUser | null> {
-        return this.updateById(userId, {
-            $pull: { webauthnCredentials: { credentialID } }
-        } as any);
-    }
 
     /**
      * Update password hash

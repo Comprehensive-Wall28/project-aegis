@@ -13,7 +13,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthForm } from './useAuthForm';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
-import { TwoFactorPrompt } from './TwoFactorPrompt';
 
 interface AuthDialogProps {
     open: boolean;
@@ -175,20 +174,11 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                                     data-lpignore="false"
                                     onSubmit={(e) => {
                                         e.preventDefault();
-                                        if (state.show2FA) {
-                                            actions.handleComplete2FA();
-                                        } else {
-                                            actions.handleAuth();
-                                        }
+                                        actions.handleAuth();
                                     }}
                                     sx={{ gap: 2.5 }}
                                 >
-                                    {state.show2FA ? (
-                                        <TwoFactorPrompt
-                                            loading={state.loading}
-                                            onCancel={() => actions.setShow2FA(false)}
-                                        />
-                                    ) : state.isRegisterMode ? (
+                                    {state.isRegisterMode ? (
                                         <RegisterForm
                                             email={state.email}
                                             onEmailChange={actions.setEmail}
@@ -219,7 +209,8 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                         </MotionPaper>
                     </Box>
                 </>
-            )}
-        </AnimatePresence>
+            )
+            }
+        </AnimatePresence >
     );
 }

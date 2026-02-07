@@ -18,8 +18,6 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const [show2FA, setShow2FA] = useState(false);
-    const [authOptions, setAuthOptions] = useState<Record<string, unknown> | null>(null);
 
     // Track open count to force fresh state on each open
     const [openCount, setOpenCount] = useState(0);
@@ -42,8 +40,6 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
         setPassword('');
         setError('');
         setSuccess('');
-        setShow2FA(false);
-        setAuthOptions(null);
     };
 
     const toggleMode = () => {
@@ -66,14 +62,6 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
             } else {
                 const response = await authService.login(email, password);
 
-                if (response.status === '2FA_REQUIRED') {
-                    setAuthOptions(response.options ?? null);
-                    setShow2FA(true);
-                    setLoading(false);
-                    // Automatically trigger passkey auth after a short delay for UX
-                    setTimeout(() => handleComplete2FA(response.options ?? null), 500);
-                    return;
-                }
 
                 // CRITICAL: Clear any existing user data before setting new user
                 // This ensures no stale data from a previous session persists
@@ -102,39 +90,6 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
         }
     };
 
-    const handleComplete2FA = async (options = authOptions) => {
-        if (!options) return;
-        setLoading(true);
-        setError('');
-
-        try {
-            // Use consolidated authService method which handles Passkey verify + V1/V2 fallback
-            const response = await authService.loginWithPasskey(email, password);
-
-            if (response._id) {
-                // CRITICAL: Clear any existing user data before setting new user
-                // This ensures no stale data from a previous session persists
-                clearAllStores();
-                clearAllCaches();
-
-                setUser({ _id: response._id, email: response.email, username: response.username });
-                if (response.pqcSeed) {
-                    storeSeed(response.pqcSeed);
-                    initializeQuantumKeys(response.pqcSeed);
-                }
-                await refreshCsrfToken();
-                onClose();
-                navigate('/dashboard');
-            }
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } } };
-            console.error(err);
-            setError(error.response?.data?.message || 'Passkey 2FA failed');
-            setShow2FA(false);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     return {
         state: {
@@ -145,9 +100,7 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
             password,
             error,
             success,
-            show2FA,
             openCount,
-            authOptions
         },
         actions: {
             setEmail,
@@ -157,8 +110,6 @@ export function useAuthForm(open: boolean, initialMode: 'login' | 'register', on
             setSuccess,
             toggleMode,
             handleAuth,
-            handleComplete2FA,
-            setShow2FA,
             resetForm
         }
     };

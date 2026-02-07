@@ -89,12 +89,7 @@ const AegisEditor: React.FC<AegisEditorProps> = ({
             }),
             SearchExtension,
             SecureImage,
-            ImageResize.configure({
-                allowBase64: false, // Disallow Base64 to save memory/space
-                HTMLAttributes: {
-                    class: 'aegis-editor-image',
-                },
-            }),
+            ImageResize,
         ],
         content: initialContent,
         editable: !readOnly,

@@ -1,16 +1,6 @@
 import { Request } from 'express';
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
-import {
-    generateRegistrationOptions,
-    verifyRegistrationResponse,
-    generateAuthenticationOptions,
-    verifyAuthenticationResponse,
-    VerifiedRegistrationResponse,
-    VerifiedAuthenticationResponse,
-    AuthenticatorTransportFuture
-} from '@simplewebauthn/server';
-import { isoBase64URL, isoUint8Array } from '@simplewebauthn/server/helpers';
 import { BaseService, ServiceError } from './base/BaseService';
 import { UserRepository } from '../repositories/UserRepository';
 import { IUser } from '../models/User';
@@ -59,11 +49,6 @@ export interface UserResponse {
         backgroundOpacity?: number;
     };
     hasPassword: boolean;
-    webauthnCredentials: Array<{
-        credentialID: string;
-        counter: number;
-        transports?: string[];
-    }>;
 }
 
 /**
@@ -95,11 +80,6 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 backgroundOpacity: 0.4
             },
             hasPassword: !!user.passwordHash,
-            webauthnCredentials: user.webauthnCredentials.map(c => ({
-                credentialID: c.credentialID,
-                counter: c.counter,
-                transports: c.transports
-            }))
         };
     }
 
@@ -151,7 +131,7 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         data: LoginDTO,
         req: Request,
         setCookie: (token: string) => void
-    ): Promise<UserResponse | { status: '2FA_REQUIRED'; options: any }> {
+    ): Promise<UserResponse> {
         try {
             if (!data.email || !data.argon2Hash) {
                 throw new ServiceError('Missing credentials', 400);
@@ -202,25 +182,6 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             }
 
 
-            // Check if 2FA required
-            if (user.webauthnCredentials && user.webauthnCredentials.length > 0) {
-                const options = await generateAuthenticationOptions({
-                    rpID: config.rpId,
-                    allowCredentials: user.webauthnCredentials.map(cred => ({
-                        id: cred.credentialID,
-                        type: 'public-key',
-                        transports: cred.transports as AuthenticatorTransportFuture[]
-                    })),
-                    userVerification: 'preferred'
-                });
-
-                await this.repository.updateChallenge(user._id.toString(), options.challenge);
-
-                return {
-                    status: '2FA_REQUIRED',
-                    options
-                };
-            }
 
             // No 2FA, complete login
             const token = await this.generateToken(user._id.toString(), user.username, user.tokenVersion || 0);
@@ -376,193 +337,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         }
     }
 
-    // ============== WebAuthn Registration ==============
-
-    async getRegistrationOptions(userId: string): Promise<any> {
-        try {
-            const user = await this.repository.findById(userId);
-            if (!user) {
-                throw new ServiceError('User not found', 404);
-            }
-
-            const options = await generateRegistrationOptions({
-                rpName: 'Project Aegis',
-                rpID: config.rpId,
-                userID: isoUint8Array.fromUTF8String(user._id.toString()),
-                userName: user.username,
-                attestationType: 'none',
-                excludeCredentials: user.webauthnCredentials.map(cred => ({
-                    id: cred.credentialID,
-                    type: 'public-key',
-                    transports: cred.transports as any
-                })),
-                authenticatorSelection: {
-                    residentKey: 'preferred',
-                    userVerification: 'preferred'
-                }
-            });
-
-            await this.repository.updateChallenge(userId, options.challenge);
-            return options;
-        } catch (error) {
-            if (error instanceof ServiceError) throw error;
-            logger.error('Get registration options error:', error);
-            throw new ServiceError('Failed to generate registration options', 500);
-        }
-    }
-
-    async verifyRegistration(userId: string, body: any, req: Request): Promise<boolean> {
-        try {
-            const user = await this.repository.findById(userId);
-            if (!user || !user.currentChallenge) {
-                throw new ServiceError('Registration challenge not found', 400);
-            }
-
-            const verification: VerifiedRegistrationResponse = await verifyRegistrationResponse({
-                response: body,
-                expectedChallenge: user.currentChallenge,
-                expectedOrigin: config.clientOrigin,
-                expectedRPID: config.rpId
-            });
-
-            if (verification.verified && verification.registrationInfo) {
-                const { credential } = verification.registrationInfo;
-
-                await this.repository.addWebAuthnCredential(userId, {
-                    credentialID: credential.id,
-                    publicKey: isoBase64URL.fromBuffer(credential.publicKey),
-                    counter: credential.counter,
-                    transports: credential.transports as any
-                });
-
-                await this.logAction(userId, 'PASSKEY_REGISTER', 'SUCCESS', req, {
-                    credentialID: credential.id
-                });
-
-                return true;
-            }
-
-            return false;
-        } catch (error) {
-            if (error instanceof ServiceError) throw error;
-            logger.error('Verify registration error:', error);
-            throw new ServiceError('Failed to verify registration', 500);
-        }
-    }
-
-    // ============== WebAuthn Authentication ==============
-
-    async getAuthenticationOptions(email: string): Promise<any> {
-        try {
-            if (!email) {
-                throw new ServiceError('Email required', 400);
-            }
-
-            const normalizedEmail = email.toLowerCase().trim();
-            const user = await this.repository.findByEmail(normalizedEmail);
-            if (!user) {
-                throw new ServiceError('User not found', 404);
-            }
-
-            const options = await generateAuthenticationOptions({
-                rpID: config.rpId,
-                allowCredentials: user.webauthnCredentials.map(cred => ({
-                    id: cred.credentialID,
-                    type: 'public-key',
-                    transports: cred.transports as any
-                })),
-                userVerification: 'preferred'
-            });
-
-            await this.repository.updateChallenge(user._id.toString(), options.challenge);
-            return options;
-        } catch (error) {
-            if (error instanceof ServiceError) throw error;
-            logger.error('Get authentication options error:', error);
-            throw new ServiceError('Failed to generate authentication options', 500);
-        }
-    }
-
-    async verifyAuthentication(
-        email: string,
-        body: any,
-        req: Request,
-        setCookie: (token: string) => void
-    ): Promise<UserResponse> {
-        try {
-            if (!email || !body) {
-                throw new ServiceError('Email and body required', 400);
-            }
-
-            const normalizedEmail = email.toLowerCase().trim();
-            const user = await this.repository.findByEmail(normalizedEmail);
-            if (!user || !user.currentChallenge) {
-                throw new ServiceError('Authentication challenge not found', 400);
-            }
-
-            const dbCredential = user.webauthnCredentials.find(c => c.credentialID === body.id);
-            if (!dbCredential) {
-                throw new ServiceError('Credential not found', 400);
-            }
-
-            const verification: VerifiedAuthenticationResponse = await verifyAuthenticationResponse({
-                response: body,
-                expectedChallenge: user.currentChallenge,
-                expectedOrigin: config.clientOrigin,
-                expectedRPID: config.rpId,
-                credential: {
-                    id: dbCredential.credentialID,
-                    publicKey: isoBase64URL.toBuffer(dbCredential.publicKey),
-                    counter: dbCredential.counter,
-                    transports: dbCredential.transports as any
-                }
-            });
-
-            if (!verification.verified || !verification.authenticationInfo) {
-                throw new ServiceError('Verification failed', 400);
-            }
-
-            // Update counter and clear challenge
-            dbCredential.counter = verification.authenticationInfo.newCounter;
-            user.currentChallenge = undefined;
-            await user.save();
-
-            const token = await this.generateToken(user._id.toString(), user.username, user.tokenVersion || 0);
-            setCookie(token);
-
-            await this.logAction(user._id.toString(), 'PASSKEY_LOGIN', 'SUCCESS', req, {
-                email: user.email
-            });
-
-            return this.formatUserResponse(user);
-        } catch (error) {
-            if (error instanceof ServiceError) throw error;
-            logger.error('Verify authentication error:', error);
-            throw new ServiceError('Failed to verify authentication', 500);
-        }
-    }
 
     // ============== Password & Passkey Management ==============
-
-    async removePassword(userId: string, req: Request): Promise<void> {
-        try {
-            const user = await this.repository.findById(userId);
-            if (!user) {
-                throw new ServiceError('User not found', 404);
-            }
-
-            if (user.webauthnCredentials.length === 0) {
-                throw new ServiceError('Must have at least one passkey registered to remove password', 400);
-            }
-
-            await this.repository.updatePasswordHash(userId, undefined);
-            await this.logAction(userId, 'PASSWORD_REMOVE', 'SUCCESS', req, {});
-        } catch (error) {
-            if (error instanceof ServiceError) throw error;
-            logger.error('Remove password error:', error);
-            throw new ServiceError('Failed to remove password', 500);
-        }
-    }
 
     async setPassword(userId: string, argon2Hash: string, req: Request): Promise<void> {
         try {
@@ -591,34 +367,6 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             if (error instanceof ServiceError) throw error;
             logger.error('Set password error:', error);
             throw new ServiceError('Failed to set password', 500);
-        }
-    }
-
-    async removePasskey(userId: string, credentialID: string, req: Request): Promise<number> {
-        try {
-            if (!credentialID || typeof credentialID !== 'string') {
-                throw new ServiceError('Missing or invalid credentialID', 400);
-            }
-
-            const user = await this.repository.findById(userId);
-            if (!user) {
-                throw new ServiceError('User not found', 404);
-            }
-
-            const credentialExists = user.webauthnCredentials.some(c => c.credentialID === credentialID);
-            if (!credentialExists) {
-                throw new ServiceError('Passkey not found', 404);
-            }
-
-            await this.repository.removeWebAuthnCredential(userId, credentialID);
-
-            await this.logAction(userId, 'PASSKEY_REMOVE', 'SUCCESS', req, { credentialID });
-
-            return user.webauthnCredentials.length - 1;
-        } catch (error) {
-            if (error instanceof ServiceError) throw error;
-            logger.error('Remove passkey error:', error);
-            throw new ServiceError('Failed to remove passkey', 500);
         }
     }
 }

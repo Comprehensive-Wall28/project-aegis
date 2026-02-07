@@ -18,7 +18,6 @@
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
     "@noble/post-quantum": "^0.5.4",
-    "@simplewebauthn/server": "^13.2.2",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -29,7 +28,7 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
-    "googleapis": "^171.0.0",
+    "googleapis": "^171.4.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "lru-cache": "^11.2.5",
@@ -37,7 +36,6 @@
     "metascraper-amazon": "^5.49.21",
     "metascraper-audio": "^5.49.21",
     "metascraper-author": "^5.49.21",
-    "metascraper-clearbit": "^5.49.2",
     "metascraper-description": "^5.49.21",
     "metascraper-image": "^5.49.21",
     "metascraper-instagram": "^5.49.21",
@@ -48,16 +46,15 @@
     "metascraper-url": "^5.49.21",
     "metascraper-video": "^5.49.21",
     "metascraper-youtube": "^5.49.21",
-    "mongoose": "^9.1.5",
+    "mongoose": "^9.1.6",
     "open-graph-scraper": "^6.11.0",
     "p-queue": "^9.1.0",
-    "playwright": "^1.58.1",
+    "playwright": "^1.58.2",
     "socket.io": "^4.8.3",
     "typescript": "^5.9.3",
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "@types/lru-cache": "^7.10.9",
     "@types/node": "^25.0.10",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
@@ -66,5 +63,8 @@
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0"
+  },
+  "overrides": {
+    "cheerio": "^1.2.0"
   }
 }

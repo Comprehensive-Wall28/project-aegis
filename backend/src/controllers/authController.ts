@@ -41,14 +41,6 @@ export const loginUser = catchAsync(async (req: Request, res: Response) => {
     }
     const result = await authService.login(req.body, req, setCookie(res));
 
-    if ('status' in result && result.status === '2FA_REQUIRED') {
-        return res.json({
-            status: '2FA_REQUIRED',
-            options: result.options,
-            message: 'Passkey 2FA required'
-        });
-    }
-
     res.json({ ...result, message: 'Login successful' });
 });
 
@@ -85,53 +77,3 @@ export const getCsrfToken = (req: Request, res: Response) => {
     res.json({ csrfToken: res.locals.csrfToken });
 };
 
-// ============== WebAuthn Registration ==============
-
-export const getRegistrationOptions = withAuth(async (req: AuthRequest, res: Response) => {
-    const options = await authService.getRegistrationOptions(req.user!.id);
-    res.json(options);
-});
-
-export const verifyRegistration = withAuth(async (req: AuthRequest, res: Response) => {
-    const verified = await authService.verifyRegistration(req.user!.id, req.body, req);
-    if (verified) {
-        res.json({ verified: true });
-    } else {
-        res.status(400).json({ verified: false, message: 'Verification failed' });
-    }
-});
-
-// ============== WebAuthn Authentication ==============
-
-export const getAuthenticationOptions = catchAsync(async (req: Request, res: Response) => {
-    const options = await authService.getAuthenticationOptions(req.body.email);
-    res.json(options);
-});
-
-export const verifyAuthentication = catchAsync(async (req: Request, res: Response) => {
-    const { email, body } = req.body;
-    const normalizedEmail = email ? email.toLowerCase().trim() : email;
-    const result = await authService.verifyAuthentication(normalizedEmail, body, req, setCookie(res));
-    res.json({ ...result, message: 'Login successful' });
-});
-
-// ============== Password & Passkey Management ==============
-
-export const removePassword = withAuth(async (req: AuthRequest, res: Response) => {
-    await authService.removePassword(req.user!.id, req);
-    res.json({ message: 'Password removed successfully' });
-});
-
-export const setPassword = withAuth(async (req: AuthRequest, res: Response) => {
-    await authService.setPassword(req.user!.id, req.body.argon2Hash, req);
-    res.json({ message: 'Password set successfully' });
-});
-
-export const removePasskey = withAuth(async (req: AuthRequest, res: Response) => {
-    const remainingCredentials = await authService.removePasskey(
-        req.user!.id,
-        req.body.credentialID,
-        req
-    );
-    res.json({ message: 'Passkey removed successfully', remainingCredentials });
-});
