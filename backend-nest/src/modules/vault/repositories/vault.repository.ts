@@ -2,170 +2,202 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { BaseRepository } from '../../../common/repositories/base.repository';
-import { FileMetadata, FileMetadataDocument } from '../schemas/file-metadata.schema';
-import { SafeFilter, BulkWriteOperation } from '../../../common/repositories/types';
+import {
+  FileMetadata,
+  FileMetadataDocument,
+} from '../schemas/file-metadata.schema';
+import {
+  SafeFilter,
+  BulkWriteOperation,
+} from '../../../common/repositories/types';
 import { escapeRegex } from '../../../common/utils/regex-utils';
 
 @Injectable()
 export class VaultRepository extends BaseRepository<FileMetadataDocument> {
-    constructor(
-        @InjectModel(FileMetadata.name, 'primary')
-        readonly fileMetadataModel: Model<FileMetadataDocument>,
-    ) {
-        super(fileMetadataModel);
+  constructor(
+    @InjectModel(FileMetadata.name, 'primary')
+    readonly fileMetadataModel: Model<FileMetadataDocument>,
+  ) {
+    super(fileMetadataModel);
+  }
+
+  async findByIdAndOwner(
+    id: string,
+    ownerId: string,
+  ): Promise<FileMetadataDocument | null> {
+    const file = await this.findById(id);
+    if (!file || file.ownerId.toString() !== ownerId) {
+      return null;
+    }
+    return file;
+  }
+
+  async updateUploadStatus(id: string, status: string): Promise<void> {
+    await this.updateById(id, { status } as any);
+  }
+
+  async completeUpload(id: string, googleDriveFileId: string): Promise<void> {
+    await this.updateById(id, {
+      status: 'completed',
+      googleDriveFileId,
+    } as any);
+  }
+
+  async findByIdAndStream(
+    id: string,
+    ownerId: string,
+  ): Promise<FileMetadataDocument | null> {
+    const file = await this.findById(id);
+    if (!file || file.ownerId.toString() !== ownerId) {
+      return null;
+    }
+    return file;
+  }
+
+  async findByOwnerAndFolder(
+    ownerId: string,
+    folderId: string | null,
+    search?: string,
+  ): Promise<FileMetadataDocument[]> {
+    const filter: SafeFilter<FileMetadataDocument> = {
+      ownerId: new Types.ObjectId(ownerId) as any,
+    };
+
+    if (search) {
+      (filter as any).originalFileName = {
+        $regex: escapeRegex(search),
+        $options: 'i',
+      };
+      // Global search ignores folderId
+    } else if (folderId && folderId !== 'null') {
+      filter.folderId = new Types.ObjectId(folderId) as any;
+    } else {
+      filter.folderId = null;
     }
 
-    async findByIdAndOwner(id: string, ownerId: string): Promise<FileMetadataDocument | null> {
-        const file = await this.findById(id);
-        if (!file || file.ownerId.toString() !== ownerId) {
-            return null;
-        }
-        return file;
+    return this.findMany(filter, {
+      sort: { createdAt: -1 },
+    });
+  }
+
+  async findByOwnerAndFolderPaginated(
+    ownerId: string,
+    folderId: string | null,
+    options: { limit: number; cursor?: string; search?: string },
+  ): Promise<{ items: FileMetadataDocument[]; nextCursor: string | null }> {
+    const filter: SafeFilter<FileMetadataDocument> = {
+      ownerId: new Types.ObjectId(ownerId) as any,
+    };
+
+    if (options.search) {
+      (filter as any).originalFileName = {
+        $regex: escapeRegex(options.search),
+        $options: 'i',
+      };
+      // Global search ignores folderId
+    } else if (folderId && folderId !== 'null') {
+      filter.folderId = new Types.ObjectId(folderId) as any;
+    } else {
+      filter.folderId = null;
     }
 
-    async updateUploadStatus(id: string, status: string): Promise<void> {
-        await this.updateById(id, { status } as any);
+    if (options.cursor) {
+      const [timestamp, id] = options.cursor.split('_');
+      if (timestamp && id) {
+        const tsDate = new Date(parseInt(timestamp));
+        filter.$or = [
+          { createdAt: { $lt: tsDate } } as any,
+          {
+            $and: [
+              { createdAt: tsDate },
+              { _id: { $lt: new Types.ObjectId(id) } },
+            ],
+          } as any,
+        ];
+      }
     }
 
-    async completeUpload(id: string, googleDriveFileId: string): Promise<void> {
-        await this.updateById(id, {
-            status: 'completed',
-            googleDriveFileId,
-        } as any);
+    const items = await this.model
+      .find(filter as any)
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(options.limit)
+      .exec();
+
+    let nextCursor: string | null = null;
+    if (items.length === options.limit) {
+      const lastItem = items[items.length - 1];
+      nextCursor = `${lastItem.createdAt.getTime()}_${lastItem._id}`;
     }
 
-    async findByIdAndStream(id: string, ownerId: string): Promise<FileMetadataDocument | null> {
-        const file = await this.findById(id);
-        if (!file || file.ownerId.toString() !== ownerId) {
-            return null;
-        }
-        return file;
+    return { items, nextCursor };
+  }
+
+  async deleteByIdAndOwner(id: string, ownerId: string): Promise<void> {
+    await this.model
+      .deleteOne({
+        _id: new Types.ObjectId(id),
+        ownerId: new Types.ObjectId(ownerId),
+      } as any)
+      .exec();
+  }
+
+  /**
+   * Count files by folder ID and owner
+   */
+  async countFilesByFolder(
+    folderId: string | null,
+    ownerId: string,
+  ): Promise<number> {
+    const filter: SafeFilter<FileMetadataDocument> = {
+      ownerId: new Types.ObjectId(ownerId) as any,
+    };
+
+    if (folderId && folderId !== 'null') {
+      filter.folderId = new Types.ObjectId(folderId) as any;
+    } else {
+      filter.folderId = null;
     }
 
-    async findByOwnerAndFolder(
-        ownerId: string,
-        folderId: string | null,
-        search?: string,
-    ): Promise<FileMetadataDocument[]> {
-        const filter: SafeFilter<FileMetadataDocument> = {
-            ownerId: new Types.ObjectId(ownerId) as any,
-        };
+    return this.count(filter);
+  }
 
-        if (search) {
-            (filter as any).originalFileName = { $regex: escapeRegex(search), $options: 'i' };
-            // Global search ignores folderId
-        } else if (folderId && folderId !== 'null') {
-            filter.folderId = new Types.ObjectId(folderId) as any;
-        } else {
-            filter.folderId = null;
-        }
+  /**
+   * Bulk move files with new encrypted keys
+   */
+  async bulkMoveFiles(
+    updates: {
+      fileId: string;
+      encryptedKey: string;
+      encapsulatedKey: string;
+      folderId: string | null;
+    }[],
+    ownerId: string,
+  ): Promise<number> {
+    if (updates.length === 0) return 0;
 
-        return this.findMany(filter, {
-            sort: { createdAt: -1 },
-        });
-    }
+    const ownerObjectId = new Types.ObjectId(ownerId);
 
-    async findByOwnerAndFolderPaginated(
-        ownerId: string,
-        folderId: string | null,
-        options: { limit: number; cursor?: string; search?: string },
-    ): Promise<{ items: FileMetadataDocument[]; nextCursor: string | null }> {
-        const filter: SafeFilter<FileMetadataDocument> = {
-            ownerId: new Types.ObjectId(ownerId) as any,
-        };
+    const operations: BulkWriteOperation<FileMetadataDocument>[] = updates.map(
+      (update) => ({
+        updateOne: {
+          filter: {
+            _id: new Types.ObjectId(update.fileId),
+            ownerId: ownerObjectId,
+          } as SafeFilter<FileMetadataDocument>,
+          update: {
+            $set: {
+              encryptedSymmetricKey: update.encryptedKey,
+              encapsulatedKey: update.encapsulatedKey,
+              folderId: update.folderId
+                ? new Types.ObjectId(update.folderId)
+                : null,
+            },
+          },
+        },
+      }),
+    );
 
-        if (options.search) {
-            (filter as any).originalFileName = { $regex: escapeRegex(options.search), $options: 'i' };
-            // Global search ignores folderId
-        } else if (folderId && folderId !== 'null') {
-            filter.folderId = new Types.ObjectId(folderId) as any;
-        } else {
-            filter.folderId = null;
-        }
-
-        if (options.cursor) {
-            const [timestamp, id] = options.cursor.split('_');
-            if (timestamp && id) {
-                const tsDate = new Date(parseInt(timestamp));
-                filter.$or = [
-                    { createdAt: { $lt: tsDate } } as any,
-                    {
-                        $and: [
-                            { createdAt: tsDate },
-                            { _id: { $lt: new Types.ObjectId(id) } },
-                        ],
-                    } as any,
-                ];
-            }
-        }
-
-        const items = await this.model
-            .find(filter as any)
-            .sort({ createdAt: -1, _id: -1 })
-            .limit(options.limit)
-            .exec();
-
-        let nextCursor: string | null = null;
-        if (items.length === options.limit) {
-            const lastItem = items[items.length - 1];
-            nextCursor = `${lastItem.createdAt.getTime()}_${lastItem._id}`;
-        }
-
-        return { items, nextCursor };
-    }
-
-    async deleteByIdAndOwner(id: string, ownerId: string): Promise<void> {
-        await this.model.deleteOne({
-            _id: new Types.ObjectId(id),
-            ownerId: new Types.ObjectId(ownerId),
-        } as any).exec();
-    }
-
-    /**
-     * Count files by folder ID and owner
-     */
-    async countFilesByFolder(folderId: string | null, ownerId: string): Promise<number> {
-        const filter: SafeFilter<FileMetadataDocument> = {
-            ownerId: new Types.ObjectId(ownerId) as any,
-        };
-
-        if (folderId && folderId !== 'null') {
-            filter.folderId = new Types.ObjectId(folderId) as any;
-        } else {
-            filter.folderId = null;
-        }
-
-        return this.count(filter);
-    }
-
-    /**
-     * Bulk move files with new encrypted keys
-     */
-    async bulkMoveFiles(
-        updates: { fileId: string; encryptedKey: string; encapsulatedKey: string; folderId: string | null }[],
-        ownerId: string
-    ): Promise<number> {
-        if (updates.length === 0) return 0;
-
-        const ownerObjectId = new Types.ObjectId(ownerId);
-
-        const operations: BulkWriteOperation<FileMetadataDocument>[] = updates.map(update => ({
-            updateOne: {
-                filter: {
-                    _id: new Types.ObjectId(update.fileId),
-                    ownerId: ownerObjectId
-                } as SafeFilter<FileMetadataDocument>,
-                update: {
-                    $set: {
-                        encryptedSymmetricKey: update.encryptedKey,
-                        encapsulatedKey: update.encapsulatedKey,
-                        folderId: update.folderId ? new Types.ObjectId(update.folderId) : null
-                    }
-                }
-            }
-        }));
-
-        const result = await this.bulkWrite(operations);
-        return result.modifiedCount || 0;
-    }
+    const result = await this.bulkWrite(operations);
+    return result.modifiedCount || 0;
+  }
 }

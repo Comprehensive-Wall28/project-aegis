@@ -1,9 +1,9 @@
 import { IsString, IsNumber } from 'class-validator';
 
 export class MoveFilesResponseDto {
-    @IsString()
-    message: string;
+  @IsString()
+  message: string;
 
-    @IsNumber()
-    modifiedCount: number;
+  @IsNumber()
+  modifiedCount: number;
 }

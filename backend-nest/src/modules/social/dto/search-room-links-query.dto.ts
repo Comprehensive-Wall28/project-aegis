@@ -2,13 +2,13 @@ import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SearchRoomLinksQueryDto {
-    @IsString()
-    q: string;
+  @IsString()
+  q: string;
 
-    @IsOptional()
-    @IsInt()
-    @Min(1)
-    @Max(100)
-    @Type(() => Number)
-    limit?: number = 50;
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  @Type(() => Number)
+  limit?: number = 50;
 }

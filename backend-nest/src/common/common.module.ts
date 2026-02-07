@@ -3,7 +3,7 @@ import { CryptoUtils } from './utils/crypto.utils';
 
 @Global()
 @Module({
-    providers: [CryptoUtils],
-    exports: [CryptoUtils],
+  providers: [CryptoUtils],
+  exports: [CryptoUtils],
 })
-export class CommonModule { }
+export class CommonModule {}

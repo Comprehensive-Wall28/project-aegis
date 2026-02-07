@@ -5,23 +5,23 @@ export type FolderDocument = Folder & Document;
 
 @Schema({ timestamps: true })
 export class Folder {
-    @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-    ownerId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  ownerId: Types.ObjectId;
 
-    @Prop({ required: true })
-    name: string;
+  @Prop({ required: true })
+  name: string;
 
-    @Prop({ type: Types.ObjectId, ref: 'Folder', default: null })
-    parentId?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Folder', default: null })
+  parentId?: Types.ObjectId;
 
-    @Prop({ required: true })
-    encryptedSessionKey: string;
+  @Prop({ required: true })
+  encryptedSessionKey: string;
 
-    @Prop({ default: false })
-    isShared: boolean;
+  @Prop({ default: false })
+  isShared: boolean;
 
-    @Prop({ type: String, default: null })
-    color?: string | null;
+  @Prop({ type: String, default: null })
+  color?: string | null;
 }
 
 export const FolderSchema = SchemaFactory.createForClass(Folder);

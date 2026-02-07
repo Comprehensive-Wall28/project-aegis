@@ -1,5 +1,5 @@
 export class InviteInfoResponseDto {
-    name: string;
-    description: string;
-    icon: string;
+  name: string;
+  description: string;
+  icon: string;
 }

@@ -1,3 +1,3 @@
 export class InviteCodeResponseDto {
-    inviteCode: string;
+  inviteCode: string;
 }

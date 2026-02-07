@@ -5,17 +5,17 @@ export type CollectionDocument = Collection & Document;
 
 @Schema({ timestamps: true })
 export class Collection {
-    @Prop({ type: Types.ObjectId, ref: 'Room', required: true })
-    roomId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Room', required: true })
+  roomId: Types.ObjectId;
 
-    @Prop({ default: '' })
-    name: string;
+  @Prop({ default: '' })
+  name: string;
 
-    @Prop({ default: 0 })
-    order: number;
+  @Prop({ default: 0 })
+  order: number;
 
-    @Prop({ type: String, enum: ['links', 'discussion'], default: 'links' })
-    type: 'links' | 'discussion';
+  @Prop({ type: String, enum: ['links', 'discussion'], default: 'links' })
+  type: 'links' | 'discussion';
 }
 
 export const CollectionSchema = SchemaFactory.createForClass(Collection);

@@ -1,4 +1,17 @@
-import { Controller, Get, Post, Put, Delete, Query, Param, Body, UseGuards, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Query,
+  Param,
+  Body,
+  UseGuards,
+  ValidationPipe,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CsrfGuard } from '../../common/guards/csrf.guard';
@@ -11,64 +24,66 @@ import { MoveFilesResponseDto } from './dto/move-files-response.dto';
 
 @Controller('api/folders')
 export class FoldersController {
-    constructor(
-        private readonly foldersService: FoldersService,
-    ) { }
+  constructor(private readonly foldersService: FoldersService) {}
 
-    @Get()
-    @UseGuards(JwtAuthGuard)
-    async getFolders(
-        @CurrentUser() user: any,
-        @Query('parentId') parentId?: string | null,
-    ): Promise<FolderResponseDto[]> {
-        return await this.foldersService.getFolders(user.id, parentId);
-    }
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async getFolders(
+    @CurrentUser() user: any,
+    @Query('parentId') parentId?: string | null,
+  ): Promise<FolderResponseDto[]> {
+    return await this.foldersService.getFolders(user.id, parentId);
+  }
 
-    @Get(':id')
-    @UseGuards(JwtAuthGuard)
-    async getFolder(
-        @CurrentUser() user: any,
-        @Param('id') id: string,
-    ): Promise<FolderResponseDto> {
-        return await this.foldersService.getFolder(user.id, id);
-    }
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  async getFolder(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ): Promise<FolderResponseDto> {
+    return await this.foldersService.getFolder(user.id, id);
+  }
 
-    @Post()
-    @UseGuards(JwtAuthGuard)
-    @HttpCode(HttpStatus.CREATED)
-    async createFolder(
-        @CurrentUser() user: any,
-        @Body(ValidationPipe) data: CreateFolderRequestDto,
-    ): Promise<FolderResponseDto> {
-        return await this.foldersService.createFolder(user.id, data);
-    }
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async createFolder(
+    @CurrentUser() user: any,
+    @Body(ValidationPipe) data: CreateFolderRequestDto,
+  ): Promise<FolderResponseDto> {
+    return await this.foldersService.createFolder(user.id, data);
+  }
 
-    @Put(':id')
-    @UseGuards(JwtAuthGuard, CsrfGuard)
-    async updateFolder(
-        @CurrentUser() user: any,
-        @Param('id') id: string,
-        @Body(ValidationPipe) data: UpdateFolderRequestDto,
-    ): Promise<FolderResponseDto> {
-        return await this.foldersService.updateFolder(user.id, id, data);
-    }
+  @Put(':id')
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  async updateFolder(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body(ValidationPipe) data: UpdateFolderRequestDto,
+  ): Promise<FolderResponseDto> {
+    return await this.foldersService.updateFolder(user.id, id, data);
+  }
 
-    @Delete(':id')
-    @UseGuards(JwtAuthGuard, CsrfGuard)
-    async deleteFolder(
-        @CurrentUser() user: any,
-        @Param('id') id: string,
-    ): Promise<{ message: string }> {
-        await this.foldersService.deleteFolder(user.id, id);
-        return { message: 'Folder deleted successfully' };
-    }
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  async deleteFolder(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ): Promise<{ message: string }> {
+    await this.foldersService.deleteFolder(user.id, id);
+    return { message: 'Folder deleted successfully' };
+  }
 
-    @Put('move-files')
-    @UseGuards(JwtAuthGuard, CsrfGuard)
-    async moveFiles(
-        @CurrentUser() user: any,
-        @Body(ValidationPipe) data: MoveFilesRequestDto,
-    ): Promise<MoveFilesResponseDto> {
-        return await this.foldersService.moveFiles(user.id, data.updates, data.folderId ?? null);
-    }
+  @Put('move-files')
+  @UseGuards(JwtAuthGuard, CsrfGuard)
+  async moveFiles(
+    @CurrentUser() user: any,
+    @Body(ValidationPipe) data: MoveFilesRequestDto,
+  ): Promise<MoveFilesResponseDto> {
+    return await this.foldersService.moveFiles(
+      user.id,
+      data.updates,
+      data.folderId ?? null,
+    );
+  }
 }

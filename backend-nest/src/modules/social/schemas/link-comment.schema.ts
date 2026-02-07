@@ -5,14 +5,14 @@ export type LinkCommentDocument = LinkComment & Document;
 
 @Schema({ timestamps: true })
 export class LinkComment {
-    @Prop({ type: Types.ObjectId, ref: 'LinkPost', required: true })
-    linkId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'LinkPost', required: true })
+  linkId: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-    userId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  userId: Types.ObjectId;
 
-    @Prop({ required: true })
-    encryptedContent: string;
+  @Prop({ required: true })
+  encryptedContent: string;
 }
 
 export const LinkCommentSchema = SchemaFactory.createForClass(LinkComment);

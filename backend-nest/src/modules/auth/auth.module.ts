@@ -9,20 +9,23 @@ import { User, UserSchema } from './schemas/user.schema';
 import { AuditModule } from '../audit/audit.module';
 
 @Module({
-    imports: [
-        MongooseModule.forFeature([{ name: User.name, schema: UserSchema }], 'primary'),
-        AuditModule,
-        JwtModule.registerAsync({
-            imports: [ConfigModule],
-            useFactory: async (configService: ConfigService) => ({
-                secret: configService.get<string>('JWT_SECRET'),
-                signOptions: { expiresIn: '365d' },
-            }),
-            inject: [ConfigService],
-        }),
-    ],
-    controllers: [AuthController],
-    providers: [AuthService, UserRepository],
-    exports: [AuthService, UserRepository],
+  imports: [
+    MongooseModule.forFeature(
+      [{ name: User.name, schema: UserSchema }],
+      'primary',
+    ),
+    AuditModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '365d' },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, UserRepository],
+  exports: [AuthService, UserRepository],
 })
-export class AuthModule { }
+export class AuthModule {}

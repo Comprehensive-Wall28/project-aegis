@@ -5,20 +5,20 @@ export type LinkViewDocument = LinkView & Document;
 
 @Schema({ timestamps: true })
 export class LinkView {
-    @Prop({ type: Types.ObjectId, ref: 'LinkPost', required: true })
-    linkId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'LinkPost', required: true })
+  linkId: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-    userId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  userId: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'Collection' })
-    collectionId?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Collection' })
+  collectionId?: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'Room' })
-    roomId?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Room' })
+  roomId?: Types.ObjectId;
 
-    @Prop({ default: Date.now })
-    viewedAt: Date;
+  @Prop({ default: Date.now })
+  viewedAt: Date;
 }
 
 export const LinkViewSchema = SchemaFactory.createForClass(LinkView);

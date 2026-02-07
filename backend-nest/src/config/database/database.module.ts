@@ -7,12 +7,8 @@ import { databaseImports, databaseProviders } from './database.providers';
 
 @Global()
 @Module({
-    imports: [
-        ...databaseImports,
-    ],
-    providers: [
-        ...databaseProviders,
-    ],
-    exports: [DatabaseManagerService, MongooseModule],
+  imports: [...databaseImports],
+  providers: [...databaseProviders],
+  exports: [DatabaseManagerService, MongooseModule],
 })
-export class DatabaseModule { }
+export class DatabaseModule {}

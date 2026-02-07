@@ -1,20 +1,20 @@
 import { IsString, IsEmail, MinLength, IsOptional } from 'class-validator';
 
 export class RegisterRequestDto {
-    @IsString()
-    @MinLength(3)
-    username: string;
+  @IsString()
+  @MinLength(3)
+  username: string;
 
-    @IsEmail()
-    email: string;
+  @IsEmail()
+  email: string;
 
-    @IsString()
-    pqcPublicKey: string;
+  @IsString()
+  pqcPublicKey: string;
 
-    @IsString()
-    @IsOptional()
-    legacyHash?: string;
+  @IsString()
+  @IsOptional()
+  legacyHash?: string;
 
-    @IsString()
-    argon2Hash: string;
+  @IsString()
+  argon2Hash: string;
 }

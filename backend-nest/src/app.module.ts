@@ -40,4 +40,4 @@ import { SocialModule } from './modules/social/social.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

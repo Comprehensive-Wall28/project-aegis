@@ -8,15 +8,16 @@ import { AuthModule } from '../auth/auth.module';
 import { VaultModule } from '../vault/vault.module';
 
 @Module({
-    imports: [
-        MongooseModule.forFeature([
-            { name: Folder.name, schema: FolderSchema },
-        ], 'primary'),
-        AuthModule,
-        forwardRef(() => VaultModule),
-    ],
-    controllers: [FoldersController],
-    providers: [FoldersService, FolderRepository],
-    exports: [FoldersService, FolderRepository, MongooseModule],
+  imports: [
+    MongooseModule.forFeature(
+      [{ name: Folder.name, schema: FolderSchema }],
+      'primary',
+    ),
+    AuthModule,
+    forwardRef(() => VaultModule),
+  ],
+  controllers: [FoldersController],
+  providers: [FoldersService, FolderRepository],
+  exports: [FoldersService, FolderRepository, MongooseModule],
 })
-export class FoldersModule { }
+export class FoldersModule {}

@@ -1,5 +1,5 @@
 export class UploadChunkResponseDto {
-    message: string;
-    googleDriveFileId?: string;
-    receivedSize?: number;
+  message: string;
+  googleDriveFileId?: string;
+  receivedSize?: number;
 }

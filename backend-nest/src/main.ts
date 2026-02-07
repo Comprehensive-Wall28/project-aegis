@@ -26,9 +26,12 @@ async function bootstrap() {
 
   const fastifyInstance = app.getHttpAdapter().getInstance();
   // Register parser for raw binary streams
-  fastifyInstance.addContentTypeParser('application/octet-stream', (_req, _payload, done) => {
-    done(null); // Just pass through, we'll use req.raw
-  });
+  fastifyInstance.addContentTypeParser(
+    'application/octet-stream',
+    (_req, _payload, done) => {
+      done(null); // Just pass through, we'll use req.raw
+    },
+  );
 
   const configService = app.get(ConfigService);
   const auditService = app.get(AuditService);
@@ -37,7 +40,9 @@ async function bootstrap() {
   // Security Plugins
   await app.register(helmet);
   await app.register(fastifyCookie, {
-    secret: configService.get<string>('app.auth.cookieEncryptionKey') || 'fallback-secret', // Type requires string
+    secret:
+      configService.get<string>('app.auth.cookieEncryptionKey') ||
+      'fallback-secret', // Type requires string
   });
 
   // CSRF Protection
@@ -48,13 +53,13 @@ async function bootstrap() {
       httpOnly: false, // Frontend reads it
       path: '/',
       secure: configService.get('app.nodeEnv') === 'production',
-      sameSite: configService.get('app.nodeEnv') === 'production' ? 'none' : 'lax',
+      sameSite:
+        configService.get('app.nodeEnv') === 'production' ? 'none' : 'lax',
     },
     getToken: (req) => {
-      return (req.headers['x-xsrf-token'] as string);
-    }
+      return req.headers['x-xsrf-token'] as string;
+    },
   });
-
 
   // Global Pipes & Filters
   app.useGlobalPipes(
@@ -71,13 +76,20 @@ async function bootstrap() {
   const allowedOrigins = [
     configService.get('app.webAuthn.clientOrigin'),
     'http://localhost:3000',
-    'http://localhost:5173'
+    'http://localhost:5173',
   ].filter((origin): origin is string => !!origin);
 
   app.enableCors({
     origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-XSRF-TOKEN', 'Content-Range', 'Accept-Ranges', 'X-CSRF-Token'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-XSRF-TOKEN',
+      'Content-Range',
+      'Accept-Ranges',
+      'X-CSRF-Token',
+    ],
     exposedHeaders: ['Content-Range', 'Accept-Ranges'],
     credentials: true,
   });

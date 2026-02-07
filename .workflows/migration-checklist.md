@@ -95,7 +95,7 @@ Priority: MEDIUM - Can be done in parallel after auth
 - [x] GET /api/social/rooms/:roomId (get room content)
 - [x] GET /api/social/rooms/:roomId/search
 - [x] DELETE /api/social/links/:linkId
-- [ ] PATCH /api/social/links/:linkId (move link)
+- [x] PATCH /api/social/links/:linkId (move link)
 - [ ] POST /api/social/links/:linkId/view
 - [ ] DELETE /api/social/links/:linkId/view
 - [ ] GET /api/social/proxy-image (public)
@@ -120,11 +120,11 @@ Priority: MEDIUM - Can be done in parallel after auth
 ## Statistics
 
 **Total Routes:** 53
-**Completed:** 33
+**Completed:** 34
 **In Progress:** 0
-**Remaining:** 20
+**Remaining:** 19
 
-**Progress:** 62%
+**Progress:** 64%
 
 ---
 

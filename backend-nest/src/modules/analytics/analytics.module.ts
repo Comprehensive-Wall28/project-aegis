@@ -3,7 +3,7 @@ import { AnalyticsBufferService } from './analytics-buffer.service';
 
 @Global()
 @Module({
-    providers: [AnalyticsBufferService],
-    exports: [AnalyticsBufferService],
+  providers: [AnalyticsBufferService],
+  exports: [AnalyticsBufferService],
 })
-export class AnalyticsModule { }
+export class AnalyticsModule {}

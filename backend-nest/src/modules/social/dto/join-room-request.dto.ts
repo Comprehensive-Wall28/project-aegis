@@ -1,9 +1,9 @@
 import { IsString } from 'class-validator';
 
 export class JoinRoomRequestDto {
-    @IsString()
-    inviteCode: string;
+  @IsString()
+  inviteCode: string;
 
-    @IsString()
-    encryptedRoomKey: string;
+  @IsString()
+  encryptedRoomKey: string;
 }

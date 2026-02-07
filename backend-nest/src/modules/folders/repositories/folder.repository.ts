@@ -7,134 +7,143 @@ import { SafeFilter, QueryOptions } from '../../../common/repositories/types';
 
 @Injectable()
 export class FolderRepository extends BaseRepository<FolderDocument> {
-    constructor(
-        @InjectModel(Folder.name, 'primary')
-        readonly folderModel: Model<FolderDocument>,
-    ) {
-        super(folderModel);
+  constructor(
+    @InjectModel(Folder.name, 'primary')
+    readonly folderModel: Model<FolderDocument>,
+  ) {
+    super(folderModel);
+  }
+
+  /**
+   * Find folders by owner and parent
+   */
+  async findByOwnerAndParent(
+    ownerId: string,
+    parentId: string | null,
+    options: QueryOptions = {},
+  ): Promise<FolderDocument[]> {
+    const filter: SafeFilter<FolderDocument> = {
+      ownerId: new Types.ObjectId(ownerId) as any,
+    };
+
+    if (parentId === null || parentId === 'null') {
+      (filter as any).parentId = null;
+    } else {
+      (filter as any).parentId = new Types.ObjectId(parentId);
     }
 
-    /**
-     * Find folders by owner and parent
-     */
-    async findByOwnerAndParent(
-        ownerId: string,
-        parentId: string | null,
-        options: QueryOptions = {}
-    ): Promise<FolderDocument[]> {
-        const filter: SafeFilter<FolderDocument> = {
-            ownerId: new Types.ObjectId(ownerId) as any
-        };
+    return this.findMany(filter, {
+      sort: { name: 1 },
+      ...options,
+    });
+  }
 
-        if (parentId === null || parentId === 'null') {
-            (filter as any).parentId = null;
-        } else {
-            (filter as any).parentId = new Types.ObjectId(parentId);
-        }
+  /**
+   * Find subfolders by parent and folder owner
+   */
+  async findSubfolders(
+    parentId: string,
+    ownerId: string,
+    options: QueryOptions = {},
+  ): Promise<FolderDocument[]> {
+    return this.findMany(
+      {
+        parentId: new Types.ObjectId(parentId) as any,
+        ownerId: new Types.ObjectId(ownerId) as any,
+      } as SafeFilter<FolderDocument>,
+      {
+        sort: { name: 1 },
+        ...options,
+      },
+    );
+  }
 
-        return this.findMany(filter, {
-            sort: { name: 1 },
-            ...options
-        });
+  /**
+   * Find folder by ID and owner
+   */
+  async findByIdAndOwner(
+    folderId: string,
+    ownerId: string,
+  ): Promise<FolderDocument | null> {
+    const folder = await this.findById(folderId);
+    if (!folder || folder.ownerId.toString() !== ownerId) {
+      return null;
+    }
+    return folder;
+  }
+
+  /**
+   * Update folder by ID and owner
+   */
+  async updateByIdAndOwner(
+    folderId: string,
+    ownerId: string,
+    data: Partial<FolderDocument>,
+  ): Promise<FolderDocument | null> {
+    return this.updateOne(
+      {
+        _id: new Types.ObjectId(folderId),
+        ownerId: new Types.ObjectId(ownerId) as any,
+      } as SafeFilter<FolderDocument>,
+      { $set: data },
+      { returnNew: true },
+    );
+  }
+
+  /**
+   * Get all ancestors of a folder
+   */
+  async getAncestors(folderId: string): Promise<FolderDocument[]> {
+    interface AggregationResult {
+      _id: Types.ObjectId;
+      ancestors: FolderDocument[];
     }
 
-    /**
-     * Find subfolders by parent and folder owner
-     */
-    async findSubfolders(
-        parentId: string,
-        ownerId: string,
-        options: QueryOptions = {}
-    ): Promise<FolderDocument[]> {
-        return this.findMany({
-            parentId: new Types.ObjectId(parentId) as any,
-            ownerId: new Types.ObjectId(ownerId) as any
-        } as SafeFilter<FolderDocument>, {
-            sort: { name: 1 },
-            ...options
-        });
+    const results = await this.model.aggregate<AggregationResult>([
+      {
+        $match: {
+          _id: new Types.ObjectId(folderId),
+        },
+      },
+      {
+        $graphLookup: {
+          from: 'folders',
+          startWith: '$parentId',
+          connectFromField: 'parentId',
+          connectToField: '_id',
+          as: 'ancestors',
+          maxDepth: 10,
+        },
+      },
+    ]);
+
+    if (results.length === 0 || !results[0].ancestors) {
+      return [];
     }
 
-    /**
-     * Find folder by ID and owner
-     */
-    async findByIdAndOwner(folderId: string, ownerId: string): Promise<FolderDocument | null> {
-        const folder = await this.findById(folderId);
-        if (!folder || folder.ownerId.toString() !== ownerId) {
-            return null;
-        }
-        return folder;
-    }
+    return results[0].ancestors;
+  }
 
-    /**
-     * Update folder by ID and owner
-     */
-    async updateByIdAndOwner(
-        folderId: string,
-        ownerId: string,
-        data: Partial<FolderDocument>
-    ): Promise<FolderDocument | null> {
-        return this.updateOne(
-            {
-                _id: new Types.ObjectId(folderId),
-                ownerId: new Types.ObjectId(ownerId) as any
-            } as SafeFilter<FolderDocument>,
-            { $set: data },
-            { returnNew: true }
-        );
-    }
+  /**
+   * Count subfolders by parent and owner
+   */
+  async countSubfolders(parentId: string, ownerId: string): Promise<number> {
+    return this.count({
+      parentId: new Types.ObjectId(parentId) as any,
+      ownerId: new Types.ObjectId(ownerId) as any,
+    } as SafeFilter<FolderDocument>);
+  }
 
-    /**
-     * Get all ancestors of a folder
-     */
-    async getAncestors(folderId: string): Promise<FolderDocument[]> {
-        interface AggregationResult {
-            _id: Types.ObjectId;
-            ancestors: FolderDocument[];
-        }
-
-        const results = await this.model.aggregate<AggregationResult>([
-            {
-                $match: {
-                    _id: new Types.ObjectId(folderId)
-                }
-            },
-            {
-                $graphLookup: {
-                    from: 'folders',
-                    startWith: '$parentId',
-                    connectFromField: 'parentId',
-                    connectToField: '_id',
-                    as: 'ancestors',
-                    maxDepth: 10
-                }
-            }
-        ]);
-
-        if (results.length === 0 || !results[0].ancestors) {
-            return [];
-        }
-
-        return results[0].ancestors;
-    }
-
-    /**
-     * Count subfolders by parent and owner
-     */
-    async countSubfolders(parentId: string, ownerId: string): Promise<number> {
-        return this.count({
-            parentId: new Types.ObjectId(parentId) as any,
-            ownerId: new Types.ObjectId(ownerId) as any
-        } as SafeFilter<FolderDocument>);
-    }
-
-    /**
-     * Delete folder by ID and owner
-     */
-    async deleteByIdAndOwner(folderId: string, ownerId: string): Promise<boolean> {
-        return this.deleteOne({
-            _id: new Types.ObjectId(folderId),
-            ownerId: new Types.ObjectId(ownerId) as any
-        } as SafeFilter<FolderDocument>);
-    }
+  /**
+   * Delete folder by ID and owner
+   */
+  async deleteByIdAndOwner(
+    folderId: string,
+    ownerId: string,
+  ): Promise<boolean> {
+    return this.deleteOne({
+      _id: new Types.ObjectId(folderId),
+      ownerId: new Types.ObjectId(ownerId) as any,
+    } as SafeFilter<FolderDocument>);
+  }
 }

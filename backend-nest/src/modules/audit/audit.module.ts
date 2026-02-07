@@ -5,10 +5,13 @@ import { AuditService } from './audit.service';
 
 @Global()
 @Module({
-    imports: [
-        MongooseModule.forFeature([{ name: AuditLog.name, schema: AuditLogSchema }], 'primary'),
-    ],
-    providers: [AuditService],
-    exports: [AuditService],
+  imports: [
+    MongooseModule.forFeature(
+      [{ name: AuditLog.name, schema: AuditLogSchema }],
+      'primary',
+    ),
+  ],
+  providers: [AuditService],
+  exports: [AuditService],
 })
-export class AuditModule { }
+export class AuditModule {}
