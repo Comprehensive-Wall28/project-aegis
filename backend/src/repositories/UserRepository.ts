@@ -25,7 +25,7 @@ export class UserRepository extends BaseRepository<IUser> {
     async findForLogin(email: string): Promise<IUser | null> {
         return this.findOne(
             { email: { $eq: email } } as unknown as SafeFilter<IUser>,
-            { select: '_id username email passwordHash passwordHashVersion tokenVersion' }
+            { select: '_id username email passwordHash passwordHashVersion tokenVersion pqcPublicKey preferences' }
         );
     }
 
