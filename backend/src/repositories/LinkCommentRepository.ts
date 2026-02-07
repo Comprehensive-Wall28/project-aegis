@@ -104,4 +104,15 @@ export class LinkCommentRepository extends BaseRepository<ILinkComment> {
             linkId: { $eq: linkId as any }
         } as SafeFilter<ILinkComment>);
     }
+
+    /**
+     * Delete all comments for multiple links in a single operation
+     * Prevents N+1 query issues during bulk deletes
+     */
+    async deleteByLinkIds(linkIds: string[]): Promise<number> {
+        if (linkIds.length === 0) return 0;
+        return this.deleteMany({
+            linkId: { $in: linkIds as any }
+        } as SafeFilter<ILinkComment>);
+    }
 }
