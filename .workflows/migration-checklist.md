@@ -88,7 +88,7 @@ Priority: MEDIUM - Can be done in parallel after auth
 - [x] DELETE /api/social/collections/:collectionId
 - [x] PATCH /api/social/collections/:collectionId
 - [x] PATCH /api/social/rooms/:roomId/collections/order
-- [ ] GET /api/social/rooms/:roomId/collections/:collectionId/links
+- [x] GET /api/social/rooms/:roomId/collections/:collectionId/links
 
 ### Links (8 routes)
 - [ ] POST /api/social/rooms/:roomId/links
@@ -120,11 +120,11 @@ Priority: MEDIUM - Can be done in parallel after auth
 ## Statistics
 
 **Total Routes:** 53
-**Completed:** 31
+**Completed:** 32
 **In Progress:** 0
-**Remaining:** 22
+**Remaining:** 21
 
-**Progress:** 58%
+**Progress:** 60%
 
 ---
 

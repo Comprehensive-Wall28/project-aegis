@@ -20,4 +20,25 @@ export class LinkCommentRepository extends BaseRepository<LinkCommentDocument> {
             linkId: { $eq: validatedId }
         } as unknown as SafeFilter<LinkCommentDocument>);
     }
+
+    /**
+     * Count comments for multiple links.
+     * Returns a map of linkId to comment count.
+     */
+    async countByLinkIds(linkIds: string[]): Promise<Record<string, number>> {
+        if (linkIds.length === 0) return {};
+
+        const validatedIds = linkIds.map(id => new Types.ObjectId(this.validateId(id)));
+
+        const results = await this.linkCommentModel.aggregate<{ _id: Types.ObjectId; count: number }>([
+            { $match: { linkId: { $in: validatedIds } } },
+            { $group: { _id: '$linkId', count: { $sum: 1 } } }
+        ]).exec();
+
+        const countMap: Record<string, number> = {};
+        results.forEach(r => {
+            countMap[r._id.toString()] = r.count;
+        });
+        return countMap;
+    }
 }

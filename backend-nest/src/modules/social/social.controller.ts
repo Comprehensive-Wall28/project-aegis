@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Patch, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { SocialService } from './social.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -12,6 +12,8 @@ import { CreateCollectionRequestDto } from './dto/create-collection-request.dto'
 import { UpdateCollectionRequestDto } from './dto/update-collection-request.dto';
 import { ReorderCollectionsRequestDto } from './dto/reorder-collections-request.dto';
 import { CollectionResponseDto } from './dto/collection-response.dto';
+import { GetCollectionLinksQueryDto } from './dto/get-collection-links-query.dto';
+import { GetCollectionLinksResponseDto } from './dto/get-collection-links-response.dto';
 
 @Controller('api/social')
 export class SocialController {
@@ -141,5 +143,25 @@ export class SocialRoomsController {
         @Body() reorderDto: ReorderCollectionsRequestDto,
     ) {
         return await this.socialService.reorderCollections(user.id, roomId, reorderDto);
+    }
+
+    @Get(':roomId/collections/:collectionId/links')
+    @UseGuards(JwtAuthGuard)
+    async getCollectionLinks(
+        @CurrentUser() user: any,
+        @Param('roomId') roomId: string,
+        @Param('collectionId') collectionId: string,
+        @Query() query: GetCollectionLinksQueryDto,
+    ): Promise<GetCollectionLinksResponseDto> {
+        const beforeCursor = query.cursorCreatedAt && query.cursorId
+            ? { createdAt: query.cursorCreatedAt, id: query.cursorId }
+            : undefined;
+        return await this.socialService.getCollectionLinks(
+            user.id,
+            roomId,
+            collectionId,
+            query.limit || 12,
+            beforeCursor
+        );
     }
 }

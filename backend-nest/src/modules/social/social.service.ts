@@ -13,6 +13,7 @@ import { CreateCollectionRequestDto } from './dto/create-collection-request.dto'
 import { UpdateCollectionRequestDto } from './dto/update-collection-request.dto';
 import { ReorderCollectionsRequestDto } from './dto/reorder-collections-request.dto';
 import { CollectionResponseDto } from './dto/collection-response.dto';
+import { GetCollectionLinksResponseDto } from './dto/get-collection-links-response.dto';
 import { RoomDocument } from './schemas/room.schema';
 import { CollectionDocument } from './schemas/collection.schema';
 import { Types } from 'mongoose';
@@ -362,4 +363,73 @@ export class SocialService {
             throw new InternalServerErrorException('Failed to reorder collections');
         }
     }
+
+    async getCollectionLinks(
+        userId: string,
+        roomId: string,
+        collectionId: string,
+        limit: number = 12,
+        beforeCursor?: { createdAt: string; id: string }
+    ): Promise<GetCollectionLinksResponseDto> {
+        try {
+            const room = await this.roomRepository.findByIdAndMember(roomId, userId);
+            if (!room) {
+                throw new NotFoundException('Room not found or access denied');
+            }
+
+            const collection = await this.collectionRepository.findById(collectionId);
+            if (!collection || collection.roomId.toString() !== roomId) {
+                throw new NotFoundException('Collection not found');
+            }
+
+            const cursor = beforeCursor ? {
+                createdAt: new Date(beforeCursor.createdAt),
+                id: beforeCursor.id
+            } : undefined;
+
+            const { links, totalCount } = await this.linkPostRepository.findByCollectionCursor(
+                collectionId,
+                limit,
+                cursor
+            );
+
+            const linkIds = links.map(l => l._id.toString());
+            const [viewedLinkIds, commentCounts] = await Promise.all([
+                this.linkViewRepository.findViewedLinkIds(userId, linkIds),
+                this.linkCommentRepository.countByLinkIds(linkIds)
+            ]);
+
+            return {
+                links: links.map(link => ({
+                    _id: link._id.toString(),
+                    collectionId: link.collectionId.toString(),
+                    userId: {
+                        _id: (link.userId as any)?._id?.toString() || link.userId.toString(),
+                        username: (link.userId as any)?.username || ''
+                    },
+                    url: link.url,
+                    previewData: link.previewData || {
+                        title: '',
+                        description: '',
+                        image: '',
+                        favicon: '',
+                        scrapeStatus: ''
+                    },
+                    createdAt: (link as any).createdAt?.toISOString() || '',
+                    updatedAt: (link as any).updatedAt?.toISOString() || ''
+                })),
+                totalCount,
+                hasMore: links.length === limit,
+                viewedLinkIds,
+                commentCounts
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            this.logger.error('Get collection links error:', error);
+            throw new InternalServerErrorException('Failed to get collection links');
+        }
+    }
 }
+

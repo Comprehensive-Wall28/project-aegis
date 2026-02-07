@@ -20,4 +20,21 @@ export class LinkViewRepository extends BaseRepository<LinkViewDocument> {
             roomId: { $eq: validatedId }
         } as unknown as SafeFilter<LinkViewDocument>);
     }
+
+    /**
+     * Find viewed link IDs for a user within a set of links.
+     */
+    async findViewedLinkIds(userId: string, linkIds: string[]): Promise<string[]> {
+        if (linkIds.length === 0) return [];
+
+        const validatedUserId = new Types.ObjectId(this.validateId(userId));
+        const validatedLinkIds = linkIds.map(id => new Types.ObjectId(this.validateId(id)));
+
+        const views = await this.linkViewModel.find({
+            userId: { $eq: validatedUserId },
+            linkId: { $in: validatedLinkIds }
+        }).select('linkId').lean().exec();
+
+        return views.map(v => v.linkId.toString());
+    }
 }
