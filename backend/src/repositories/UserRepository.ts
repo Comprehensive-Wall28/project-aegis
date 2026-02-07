@@ -20,6 +20,16 @@ export class UserRepository extends BaseRepository<IUser> {
     }
 
     /**
+     * Find user for login (selects only necessary fields)
+     */
+    async findForLogin(email: string): Promise<IUser | null> {
+        return this.findOne(
+            { email: { $eq: email } } as unknown as SafeFilter<IUser>,
+            { select: '_id username email passwordHash passwordHashVersion tokenVersion' }
+        );
+    }
+
+    /**
      * Find user by username
      */
     async findByUsername(username: string): Promise<IUser | null> {

@@ -2,6 +2,7 @@ import { Request } from 'express';
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import { BaseService, ServiceError } from './base/BaseService';
+import { RepositoryError, RepositoryErrorCode } from '../repositories/base/types';
 import { UserRepository } from '../repositories/UserRepository';
 import { IUser } from '../models/User';
 import logger from '../utils/logger';
@@ -93,28 +94,28 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
             const normalizedEmail = data.email.toLowerCase().trim();
 
-            const [existingByEmail, existingByUsername] = await Promise.all([
-                this.repository.findByEmail(normalizedEmail),
-                this.repository.findByUsername(data.username)
-            ]);
-
-            if (existingByEmail || existingByUsername) {
-                logger.warn(`Failed registration: Email ${data.email} or username ${data.username} exists`);
-                throw new ServiceError('Invalid data or user already exists', 400);
-            }
-
             const passwordHash = await argon2.hash(data.argon2Hash);
             const passwordHashVersion = 2; // New accounts are version 2
 
-            const user = await this.repository.create({
-                username: data.username,
-                email: normalizedEmail,
-                pqcPublicKey: data.pqcPublicKey,
-                passwordHash,
-                passwordHashVersion
-            } as any);
+            let user;
+            try {
+                user = await this.repository.create({
+                    username: data.username,
+                    email: normalizedEmail,
+                    pqcPublicKey: data.pqcPublicKey,
+                    passwordHash,
+                    passwordHashVersion
+                } as any);
+            } catch (error: any) {
+                if (error instanceof RepositoryError && error.code === RepositoryErrorCode.DUPLICATE_KEY) {
+                    logger.warn(`Failed registration: Email ${data.email} or username ${data.username} exists`);
+                    throw new ServiceError('Invalid data or user already exists', 400);
+                }
+                throw error;
+            }
 
-            await this.logAction(user._id.toString(), 'REGISTER', 'SUCCESS', req, {
+            // Non-blocking audit log
+            this.logAction(user._id.toString(), 'REGISTER', 'SUCCESS', req, {
                 username: user.username,
                 email: user.email
             });
@@ -141,10 +142,11 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             const argon2Hash = data.argon2Hash.toLowerCase();
             const legacyHash = data.legacyHash?.toLowerCase();
 
-            const user = await this.repository.findByEmail(normalizedEmail);
+            const user = await this.repository.findForLogin(normalizedEmail);
             if (!user || !user.passwordHash) {
                 logger.warn(`Failed login for email: ${normalizedEmail} (user not found)`);
-                await logFailedAuth(normalizedEmail, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
+                // Non-blocking audit log
+                logFailedAuth(normalizedEmail, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
                 throw new ServiceError('Invalid credentials', 401);
             }
 
@@ -177,7 +179,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
             if (!verified) {
                 logger.warn(`Failed login for email: ${normalizedEmail} (invalid password)`);
-                await logFailedAuth(normalizedEmail, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
+                // Non-blocking audit log
+                logFailedAuth(normalizedEmail, 'LOGIN_FAILED', req, { userAgent: req.headers['user-agent'] });
                 throw new ServiceError('Invalid credentials', 401);
             }
 
@@ -187,7 +190,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             const token = await this.generateToken(user._id.toString(), user.username, user.tokenVersion || 0);
             setCookie(token);
 
-            await this.logAction(user._id.toString(), 'LOGIN', 'SUCCESS', req, {
+            // Non-blocking audit log
+            this.logAction(user._id.toString(), 'LOGIN', 'SUCCESS', req, {
                 email: user.email,
                 userAgent: req.headers['user-agent']
             });
