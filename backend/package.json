@@ -1,6 +1,6 @@
 {
   "name": "aegis-backend",
-  "version": "3.0.0",
+  "version": "3.5.0",
   "description": "project-aegis backend",
   "main": "index.js",
   "scripts": {
@@ -32,6 +32,7 @@
     "googleapis": "^171.0.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "lru-cache": "^11.2.5",
     "metascraper": "^5.49.21",
     "metascraper-amazon": "^5.49.21",
     "metascraper-audio": "^5.49.21",
@@ -56,6 +57,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@types/lru-cache": "^7.10.9",
     "@types/node": "^25.0.10",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",

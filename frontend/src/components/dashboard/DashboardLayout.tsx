@@ -269,7 +269,11 @@ export function DashboardLayout() {
                 </Box>
             </Box>
 
-            <MobileBottomBar visible={isBottomBarVisible} onHide={() => setIsBottomBarVisible(false)} />
+            <MobileBottomBar
+                visible={isBottomBarVisible}
+                onHide={() => setIsBottomBarVisible(false)}
+                onShow={() => setIsBottomBarVisible(true)}
+            />
 
             {/* Persistent Upload Manager */}
             <UploadManager />

@@ -15,6 +15,8 @@ import {
     deleteFile
 } from './googleDriveService';
 import logger from '../utils/logger';
+import { withCache, CacheInvalidator } from '../utils/cacheUtils';
+import CacheKeyBuilder from './cache/CacheKeyBuilder';
 
 /**
  * DTO for initiating file upload
@@ -119,6 +121,9 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 fileId: fileRecord._id.toString()
             });
 
+            // Invalidate file list caches since a new file is being added
+            CacheInvalidator.userFiles(userId);
+
             return { fileId: fileRecord._id.toString() };
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -188,6 +193,9 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                     $inc: { totalStorageUsed: fileRecord.fileSize }
                 });
 
+                // Invalidate storage stats and file list caches
+                CacheInvalidator.userFiles(userId);
+
                 return { complete: true, googleDriveFileId };
             }
 
@@ -224,14 +232,21 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
     }
 
     /**
-     * Get a single file by ID
+     * Get a single file by ID (cached)
      */
     public async getFile(userId: string, fileId: string): Promise<IFileMetadata> {
-        const file = await this.repository.findByIdAndOwner(fileId, userId);
-        if (!file) {
-            throw new ServiceError('File not found', 404);
-        }
-        return file;
+        const cacheKey = CacheKeyBuilder.userFile(userId, fileId);
+        
+        return withCache(
+            { key: cacheKey, ttl: 60000 }, // 1 minute TTL for single items
+            async () => {
+                const file = await this.repository.findByIdAndOwner(fileId, userId);
+                if (!file) {
+                    throw new ServiceError('File not found', 404);
+                }
+                return file;
+            }
+        );
     }
 
     /**
@@ -325,6 +340,9 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 fileName: fileRecord.originalFileName,
                 fileId
             });
+
+            // Invalidate all file-related caches for this user
+            CacheInvalidator.userFiles(userId);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Delete file error:', error);
@@ -333,22 +351,29 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
     }
 
     /**
-     * Get user storage stats
+     * Get user storage stats (cached)
      */
     async getStorageStats(userId: string): Promise<{ totalStorageUsed: number; maxStorage: number }> {
-        const user = await this.userRepository.findById(userId);
-        if (!user) {
-            throw new ServiceError('User not found', 404);
-        }
+        const cacheKey = CacheKeyBuilder.userStorageStats(userId);
+        
+        return withCache(
+            { key: cacheKey, ttl: 60000 }, // 1 minute for storage stats
+            async () => {
+                const user = await this.userRepository.findById(userId);
+                if (!user) {
+                    throw new ServiceError('User not found', 404);
+                }
 
-        return {
-            totalStorageUsed: user.totalStorageUsed || 0,
-            maxStorage: this.MAX_STORAGE
-        };
+                return {
+                    totalStorageUsed: user.totalStorageUsed || 0,
+                    maxStorage: this.MAX_STORAGE
+                };
+            }
+        );
     }
 
     /**
-     * Get files for user in a folder (paginated)
+     * Get files for user in a folder (paginated, cached)
      */
     async getUserFilesPaginated(
         userId: string,
@@ -363,14 +388,21 @@ export class VaultService extends BaseService<IFileMetadata, FileMetadataReposit
                 }
             }
 
-            // Root level files - user's own files
-            return await this.repository.findByOwnerAndFolderPaginated(
-                userId,
-                folderId,
-                {
-                    limit: Math.min(options.limit || 20, 100),
-                    cursor: options.cursor,
-                    search: options.search
+            const cacheKey = CacheKeyBuilder.userFiles(userId, folderId, options.search) + 
+                `:cursor_${options.cursor || 'first'}:limit_${Math.min(options.limit || 20, 100)}`;
+            
+            return await withCache(
+                { key: cacheKey, ttl: 300000 }, // 5 minutes for paginated lists
+                async () => {
+                    return await this.repository.findByOwnerAndFolderPaginated(
+                        userId,
+                        folderId,
+                        {
+                            limit: Math.min(options.limit || 20, 100),
+                            cursor: options.cursor,
+                            search: options.search
+                        }
+                    );
                 }
             );
         } catch (error: any) {

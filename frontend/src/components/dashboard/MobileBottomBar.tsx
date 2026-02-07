@@ -29,6 +29,7 @@ import performLogoutCleanup from '@/utils/logoutCleanup';
 interface MobileBottomBarProps {
     visible: boolean;
     onHide?: () => void;
+    onShow?: () => void;
 }
 
 const navItems = [
@@ -45,7 +46,7 @@ const overflowItems = [
     { name: 'Settings', href: '/dashboard/security', icon: SettingsIcon },
 ];
 
-export const MobileBottomBar = memo(({ visible, onHide }: MobileBottomBarProps) => {
+export const MobileBottomBar = memo(({ visible, onHide, onShow }: MobileBottomBarProps) => {
     const theme = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
@@ -84,9 +85,10 @@ export const MobileBottomBar = memo(({ visible, onHide }: MobileBottomBarProps) 
                 pointerEvents: 'none'
             }}
         >
-            <AnimatePresence>
-                {visible && (
+            <AnimatePresence mode="wait">
+                {visible ? (
                     <Box
+                        key="active-bar"
                         component={motion.div}
                         drag="y"
                         dragConstraints={{ top: 0, bottom: 200 }}
@@ -105,7 +107,7 @@ export const MobileBottomBar = memo(({ visible, onHide }: MobileBottomBarProps) 
                             bgcolor: alpha(theme.palette.background.paper, 0.8),
                             backdropFilter: 'blur(16px)',
                             WebkitBackdropFilter: 'blur(16px)',
-                            borderRadius: '24px',
+                            borderRadius: '100px',
                             border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
                             boxShadow: `0 8px 32px -4px ${alpha('#000', 0.5)}`,
                             display: 'flex',
@@ -134,15 +136,18 @@ export const MobileBottomBar = memo(({ visible, onHide }: MobileBottomBarProps) 
                                         to={item.href}
                                         sx={{
                                             color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
+                                            bgcolor: 'transparent',
                                             transition: 'all 0.2s',
                                             '&:hover': {
-                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                bgcolor: 'transparent',
+                                                color: theme.palette.primary.main
                                             },
                                             display: 'flex',
                                             flexDirection: 'column',
+                                            alignItems: 'center',
                                             gap: 0.2,
-                                            borderRadius: 3,
-                                            p: 1.5
+                                            borderRadius: '100px',
+                                            p: 1
                                         }}
                                     >
                                         <Icon sx={{ fontSize: 24 }} />
@@ -173,15 +178,18 @@ export const MobileBottomBar = memo(({ visible, onHide }: MobileBottomBarProps) 
                                 onClick={handleOpenMenu}
                                 sx={{
                                     color: Boolean(anchorEl) ? theme.palette.primary.main : theme.palette.text.secondary,
+                                    bgcolor: 'transparent',
                                     transition: 'all 0.2s',
                                     '&:hover': {
-                                        bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                        bgcolor: 'transparent',
+                                        color: theme.palette.primary.main
                                     },
                                     display: 'flex',
                                     flexDirection: 'column',
+                                    alignItems: 'center',
                                     gap: 0.2,
-                                    borderRadius: 3,
-                                    p: 1.5
+                                    borderRadius: '100px',
+                                    p: 1
                                 }}
                             >
                                 <MoreIcon sx={{ fontSize: 24 }} />
@@ -263,6 +271,50 @@ export const MobileBottomBar = memo(({ visible, onHide }: MobileBottomBarProps) 
                             </MenuItem>
                         </Menu>
                     </Box>
+                ) : (
+                    <Box
+                        key="pull-handle"
+                        component={motion.div}
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{
+                            y: 0,
+                            opacity: 1,
+                            scale: [1, 1.1, 1],
+                        }}
+                        exit={{ y: 20, opacity: 0 }}
+                        transition={{
+                            scale: {
+                                duration: 2,
+                                repeat: Infinity,
+                                repeatType: 'reverse'
+                            },
+                            opacity: { duration: 0.3 },
+                            y: { duration: 0.3 }
+                        }}
+                        onClick={onShow}
+                        sx={{
+                            pointerEvents: 'auto',
+                            width: 60,
+                            height: 6,
+                            bgcolor: alpha(theme.palette.primary.main, 0.4),
+                            borderRadius: '100px',
+                            mx: 'auto',
+                            cursor: 'pointer',
+                            boxShadow: `0 0 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                            '&:hover': {
+                                bgcolor: alpha(theme.palette.primary.main, 0.6),
+                            },
+                            // Add a touch target area
+                            '&::before': {
+                                content: '""',
+                                position: 'absolute',
+                                top: -20,
+                                left: -20,
+                                right: -20,
+                                bottom: -20,
+                            }
+                        }}
+                    />
                 )}
             </AnimatePresence>
         </Box>

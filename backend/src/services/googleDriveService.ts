@@ -90,6 +90,9 @@ export const initiateUpload = async (
     const folderId = getFolderId();
     const sessionId = generateSessionId();
 
+    // Ensure client is initialized
+    initializeDriveClient();
+
     // Prepare file metadata for Google Drive
     // Note: PQC keys are NOT stored in Drive appProperties due to 124 byte limit
     // They are stored in MongoDB FileMetadata instead

@@ -54,6 +54,12 @@ export const config = {
 
     // Analytics
     analyticsAccessPassword: getEnv('ANALYTICS_ACCESS_PASSWORD', false, 'admin-analytics-2024'),
+
+    // Cache Configuration
+    cacheEnabled: getEnv('CACHE_ENABLED', false, 'true') === 'true',
+    cacheMaxItems: parseInt(getEnv('CACHE_MAX_ITEMS', false, '5000'), 10),
+    cacheDefaultTtl: parseInt(getEnv('CACHE_DEFAULT_TTL', false, '300000'), 10), // 5min in ms
+    cacheMaxSizeMb: parseInt(getEnv('CACHE_MAX_SIZE_MB', false, '50'), 10),
 };
 
 /**
