@@ -225,6 +225,7 @@ export function RegisterForm({
                     endIcon={!loading && <ArrowRightIcon />}
                     sx={{
                         py: 1.75,
+                        minHeight: 56, // Fixed height to prevent layout shift
                         fontWeight: 800,
                         borderRadius: 3,
                         mt: 1,

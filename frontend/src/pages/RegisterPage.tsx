@@ -25,9 +25,9 @@ export default function RegisterPage() {
         try {
             await authService.register(username, email, password);
             setSuccess('Vault created successfully! Redirecting to login...');
-            // Optional: Redirect after a short delay
+            // Keep loading state while redirecting for smooth transition
             setTimeout(() => {
-                navigate('/login');
+                navigate('/login', { state: { email } });
             }, 2000);
         } catch (err: unknown) {
             const error = err as { code?: string; message?: string; response?: { data?: { message?: string } } };
@@ -35,8 +35,7 @@ export default function RegisterPage() {
             if (error.code !== 'ERR_NETWORK' && error.message !== 'Network Error') {
                 setError(error.response?.data?.message || 'Registration failed');
             }
-        } finally {
-            setLoading(false);
+            setLoading(false); // Only reset on error
         }
     };
 

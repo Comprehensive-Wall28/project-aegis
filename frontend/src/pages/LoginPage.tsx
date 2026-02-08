@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
 import authService from '@/services/authService';
 import { Box, Typography, Link, useTheme, alpha } from '@mui/material';
@@ -11,11 +11,15 @@ import { motion } from 'framer-motion';
 
 export default function LoginPage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { setUser, initializeQuantumKeys } = useSessionStore();
+
+    // Get email from navigation state (passed from register page)
+    const stateEmail = (location.state as { email?: string } | null)?.email || '';
 
     // Form State
     const [loading, setLoading] = useState(false);
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(stateEmail);
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
@@ -37,6 +41,7 @@ export default function LoginPage() {
                 initializeQuantumKeys(response.pqcSeed);
             }
             await refreshCsrfToken();
+            // Don't reset loading state - navigation will unmount component
             navigate('/dashboard');
         } catch (err: unknown) {
             const error = err as { code?: string; message?: string; response?: { data?: { message?: string } } };
@@ -44,8 +49,7 @@ export default function LoginPage() {
             if (error.code !== 'ERR_NETWORK' && error.message !== 'Network Error') {
                 setError(error.response?.data?.message || 'Authentication failed');
             }
-        } finally {
-            setLoading(false);
+            setLoading(false); // Only reset on error
         }
     };
 
