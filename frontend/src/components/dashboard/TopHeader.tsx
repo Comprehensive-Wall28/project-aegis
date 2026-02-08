@@ -26,11 +26,7 @@ import {
 } from '@mui/material';
 import { ThemeSelectorOverlay } from '@/components/common/ThemeSelectorOverlay';
 
-interface TopHeaderProps {
-    // onMobileMenuOpen removed as navigation moved to Bottom Bar
-}
-
-export function TopHeader({ }: TopHeaderProps) {
+export function TopHeader() {
     // onMobileMenuOpen is currently unused and removed to resolve lint errors
     const navigate = useNavigate();
     const { user } = useSessionStore();

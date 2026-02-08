@@ -158,7 +158,7 @@ export const useCourseEncryption = () => {
         } finally {
             setCryptoStatus('idle');
         }
-    }, [user, setCryptoStatus, generateAESKey, encryptAESKey]);
+    }, [user, setCryptoStatus, generateAESKey]);
 
     /**
      * Decrypt an encrypted course and return the plaintext course data.
@@ -197,7 +197,7 @@ export const useCourseEncryption = () => {
             createdAt: encryptedCourse.createdAt,
             updatedAt: encryptedCourse.updatedAt,
         };
-    }, [user, decryptAESKey]);
+    }, [user]);
 
     /**
      * Decrypt multiple courses in parallel using worker batch processing.

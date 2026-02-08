@@ -50,7 +50,7 @@ export const PasswordGateDialog = ({ onAccessGranted }: PasswordGateDialogProps)
             } else {
                 setError('Invalid password. Please try again.');
             }
-        } catch (err) {
+        } catch {
             setError('Failed to verify password. Please try again.');
         } finally {
             setIsLoading(false);

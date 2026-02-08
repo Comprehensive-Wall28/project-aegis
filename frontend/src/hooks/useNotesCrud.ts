@@ -219,7 +219,7 @@ export const useNotesCrud = (
             setError(error.message || 'Failed to move note');
             throw err;
         }
-    }, [selectedNote, setNotes]);
+    }, [selectedNote, setNotes, selectedFolderId]);
 
     return {
         selectedNote,

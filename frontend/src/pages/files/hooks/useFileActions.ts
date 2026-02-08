@@ -293,7 +293,8 @@ export function useFileActions({
             // Revert or fetch on error if needed, but for now just show error
             fetchData();
         }
-    }, [filesToMove, clearSelection, fetchData, files, folders, setFilesToMove, setMoveToFolderDialog, setNotification, setFiles, setSelectedIds, selectedIds]);
+         
+    }, [filesToMove, fetchData, files, folders, setFilesToMove, setMoveToFolderDialog, setNotification, setFiles, setSelectedIds, selectedIds]);
 
     const handleFolderColorChange = useCallback(async (color: string) => {
         if (!colorPickerFolderId) return;

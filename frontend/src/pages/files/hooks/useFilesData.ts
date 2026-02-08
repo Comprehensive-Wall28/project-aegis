@@ -161,11 +161,15 @@ export function useFilesData() {
     // Optimistic Update: Append new files when upload completes
     useEffect(() => {
 
+        // Type for upload items 
+        type UploadItem = { status: string; result?: FileMetadata };
+        type UploadStoreState = { uploads: Map<string, UploadItem> };
+
         // Subscribe to store changes to avoid re-renders on progress
-        const unsub = useUploadStore.subscribe((state: any, prevState: any) => {
+        const unsub = useUploadStore.subscribe((state: UploadStoreState, prevState: UploadStoreState) => {
             const newFilesToAdd: FileMetadata[] = [];
 
-            state.uploads.forEach((item: any, id: string) => {
+            state.uploads.forEach((item: UploadItem, id: string) => {
                 const prevItem = prevState.uploads.get(id);
                 // If item is completed now, and was not completed before, and has a result
                 if (item.status === 'completed' && item.result) {

@@ -73,7 +73,7 @@ export const AuditLogDetailOverlay = memo(({
 
     if (!log) return null;
 
-    const metadata = (log.metadata as Record<string, any>) || {};
+    const metadata = (log.metadata as Record<string, unknown>) || {};
 
     return (
         <DialogPortal>

@@ -11,7 +11,7 @@ export interface ApiMetric {
     userAgent?: string;
     timestamp: string;
     metadata?: {
-        query?: Record<string, any>;
+        query?: Record<string, unknown>;
         contentLength?: number;
         errorMessage?: string;
     };
@@ -22,7 +22,7 @@ export interface LogEntry {
     level: 'INFO' | 'WARN' | 'ERROR';
     message: string;
     source: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
     timestamp: string;
     stackTrace?: string;
     userId?: string;
@@ -36,7 +36,7 @@ export interface AuditLogEntry {
     action: string;
     status: 'SUCCESS' | 'FAILURE';
     ipAddress: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
     timestamp: string;
 }
 
@@ -124,7 +124,7 @@ export const verifyAnalyticsAccess = async (password: string): Promise<boolean> 
     try {
         const response = await apiClient.post('/analytics/verify-access', { password });
         return response.data.success === true;
-    } catch (error) {
+    } catch {
         return false;
     }
 };

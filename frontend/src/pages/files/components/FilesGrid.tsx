@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
-import { Box, Paper, Typography, CircularProgress, useTheme, useMediaQuery, alpha } from '@mui/material';
-import { FolderOpen as FolderOpenIcon } from '@mui/icons-material';
+import { Box, Paper, Typography, CircularProgress, useTheme, useMediaQuery, alpha, IconButton } from '@mui/material';
+import {
+    FolderOpen as FolderOpenIcon,
+    ArrowBack as ArrowBackIcon
+} from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 import type { FileMetadata } from '@/services/vaultService';
 import type { Folder } from '@/services/folderService';
@@ -76,6 +80,7 @@ export function FilesGrid({
     onSortChange
 }: FilesGridProps) {
     const theme = useTheme();
+    const navigate = useNavigate();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const gridSize = useMemo<Record<string, number>>(() => {
@@ -107,7 +112,8 @@ export function FilesGrid({
             case 'gallery': return { name: 'body1', size: 16, mb: 1 };
             default: return { name: 'body1', size: 18, mb: 1 };
         }
-    }, [viewPreset, isMobile]);
+         
+    }, [viewPreset]);
 
     // Unified data set
     const allData = useMemo(() => {
@@ -176,7 +182,25 @@ export function FilesGrid({
                         {/* List Header - hidden on mobile */}
                         {!isMobile && (
                             <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 2, borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`, gap: 2 }}>
-                                <Box sx={{ width: 40, flexShrink: 0 }} /> {/* Checkbox spacer */}
+                                {/* Back Button - aligns above checkboxes */}
+                                <Box sx={{ width: 40, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => navigate(-1)}
+                                        title="Back"
+                                        sx={{
+                                            width: 28,
+                                            height: 28,
+                                            color: 'text.secondary',
+                                            bgcolor: alpha(theme.palette.text.primary, 0.04),
+                                            '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.08) },
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <ArrowBackIcon sx={{ fontSize: '1.1rem' }} />
+                                    </IconButton>
+                                </Box>
+
                                 <Box sx={{ width: 40, flexShrink: 0 }} /> {/* Icon spacer */}
 
                                 {/* Name Header */}
