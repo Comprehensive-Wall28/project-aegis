@@ -192,69 +192,6 @@ export function HowItWorks() {
                     ))}
                 </Box>
 
-                {/* CTA Section */}
-                <Box sx={{
-                    mt: { xs: 6, md: 10 },
-                    textAlign: 'center'
-                }}>
-                    <Paper
-                        component={motion.div}
-                        elevation={4}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5 }}
-                        sx={{
-                            p: { xs: 4, md: 6 },
-                            border: `1px solid ${alpha(theme.palette.divider, 0.25)}`,
-                            borderRadius: 4
-                        }}
-                    >
-                        <Typography
-                            variant="h4"
-                            sx={{
-                                fontWeight: 900,
-                                color: 'text.primary',
-                                mb: 2,
-                                fontSize: { xs: '1.5rem', md: '2rem' }
-                            }}
-                        >
-                            Ready to get started?
-                        </Typography>
-                        <Typography
-                            variant="body1"
-                            sx={{
-                                color: 'text.secondary',
-                                mb: 4,
-                                maxWidth: 500,
-                                mx: 'auto'
-                            }}
-                        >
-                            Get started for free.
-                        </Typography>
-                        <Button
-                            variant="contained"
-                            size="large"
-                            endIcon={<ArrowRightIcon />}
-                            onClick={() => navigate('/dashboard')}
-                            sx={{
-                                px: 5,
-                                py: 1.5,
-                                fontSize: '1.1rem',
-                                fontWeight: 700,
-                                borderRadius: 3,
-                                boxShadow: `0 0 30px ${alpha(theme.palette.primary.main, 0.4)}`,
-                                '&:hover': {
-                                    boxShadow: `0 0 40px ${alpha(theme.palette.primary.main, 0.6)}`,
-                                    '& .MuiButton-endIcon': { transform: 'translateX(4px)' }
-                                },
-                                '& .MuiButton-endIcon': { transition: 'transform 0.2s' }
-                            }}
-                        >
-                            Get Started
-                        </Button>
-                    </Paper>
-                </Box>
             </Container>
         </Box>
     );

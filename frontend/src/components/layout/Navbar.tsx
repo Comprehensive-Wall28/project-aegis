@@ -239,10 +239,14 @@ export function Navbar() {
 
                         {/* Mobile Menu Icon */}
                         <IconButton
-                            onClick={() => setMobileOpen(true)}
-                            sx={{ display: { md: 'none' }, color: 'text.primary' }}
+                            onClick={() => setMobileOpen(!mobileOpen)}
+                            sx={{
+                                display: { md: 'none' },
+                                color: 'text.primary',
+                                zIndex: theme.zIndex.drawer + 2
+                            }}
                         >
-                            <MenuIcon />
+                            {mobileOpen ? <XIcon /> : <MenuIcon />}
                         </IconButton>
                     </Toolbar>
                 </Container>
@@ -253,20 +257,25 @@ export function Navbar() {
                 anchor="top"
                 open={mobileOpen}
                 onClose={() => setMobileOpen(false)}
+                ModalProps={{
+                    disableEnforceFocus: true, // Prevents ARIA hidden focus warnings
+                }}
                 sx={{
                     '& .MuiDrawer-paper': {
                         bgcolor: theme.palette.background.default,
                         px: 2,
-                        py: 4,
+                        pt: 12, // More padding at top to account for the fixed AppBar
+                        pb: 4,
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 2
+                        gap: 2,
+                        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        boxShadow: theme.shadows[8]
                     }
                 }}
             >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <AegisLogo size={32} />
-                    <IconButton onClick={() => setMobileOpen(false)}><XIcon /></IconButton>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                    <AegisLogo size={40} />
                 </Box>
                 <List sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {[
