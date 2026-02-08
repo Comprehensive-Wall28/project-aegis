@@ -72,14 +72,24 @@ export class NoteService extends BaseService<INote, NoteRepository> {
     }
 
     /**
-     * Get all notes for a user with optional filters
+     * Get all notes for a user with optional filters (cached)
      */
     async getNotes(
         userId: string,
         filters?: { tags?: string[]; subject?: string; semester?: string; folderId?: string | null }
     ): Promise<INote[]> {
         try {
-            return await this.repository.findByUserId(userId, filters);
+            const cacheKey = CacheKeyBuilder.noteList(userId, filters?.folderId || undefined) + 
+                (filters?.tags ? `:tags_${filters.tags.sort().join(',')}` : '') +
+                (filters?.subject ? `:subject_${filters.subject}` : '') +
+                (filters?.semester ? `:semester_${filters.semester}` : '');
+
+            return await withCache(
+                { key: cacheKey, ttl: 300000 },
+                async () => {
+                    return await this.repository.findByUserId(userId, filters);
+                }
+            );
         } catch (error) {
             this.handleRepositoryError(error);
         }

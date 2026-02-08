@@ -48,6 +48,14 @@ export class CacheKeyBuilder {
     return `${this.PREFIX}:${userId}:notes:folders`;
   }
 
+  static folderList(userId: string, parentId?: string | null): string {
+    return `${this.PREFIX}:${userId}:folders:list:parent_${parentId || 'root'}`;
+  }
+
+  static userProfile(userId: string): string {
+    return `${this.PREFIX}:${userId}:profile:me`;
+  }
+
   private static hashString(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {

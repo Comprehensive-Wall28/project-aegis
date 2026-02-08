@@ -50,6 +50,18 @@ export const CacheInvalidator = {
     return count;
   },
 
+  userFolders(userId: string): number {
+    const count = cacheService.deleteByPattern(`aegis:${userId}:folders:*`);
+    logger.debug(`Invalidated ${count} folder cache entries for user ${userId}`);
+    return count;
+  },
+
+  userProfile(userId: string): number {
+    const count = cacheService.deleteByPattern(`aegis:${userId}:profile:*`);
+    logger.debug(`Invalidated ${count} profile cache entries for user ${userId}`);
+    return count;
+  },
+
   clearAll(): void {
     cacheService.clear();
     logger.info('All cache entries cleared');

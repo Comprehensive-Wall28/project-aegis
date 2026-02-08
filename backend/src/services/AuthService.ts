@@ -9,6 +9,8 @@ import logger from '../utils/logger';
 import { logFailedAuth } from '../utils/auditLogger';
 import { encryptToken } from '../utils/cryptoUtils';
 import { config } from '../config/env';
+import { CacheInvalidator, withCache } from '../utils/cacheUtils';
+import CacheKeyBuilder from './cache/CacheKeyBuilder';
 
 // DTOs
 export interface RegisterDTO {
@@ -215,11 +217,17 @@ export class AuthService extends BaseService<IUser, UserRepository> {
 
     async getMe(userId: string): Promise<UserResponse> {
         try {
-            const user = await this.repository.findById(userId);
-            if (!user) {
-                throw new ServiceError('User not found', 404);
-            }
-            return this.formatUserResponse(user);
+            const cacheKey = CacheKeyBuilder.userProfile(userId);
+            return await withCache(
+                { key: cacheKey, ttl: 300000 },
+                async () => {
+                    const user = await this.repository.findById(userId);
+                    if (!user) {
+                        throw new ServiceError('User not found', 404);
+                    }
+                    return this.formatUserResponse(user);
+                }
+            );
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('GetMe error:', error);
@@ -334,6 +342,9 @@ export class AuthService extends BaseService<IUser, UserRepository> {
                 updatedFields: Object.keys(updateFields)
             });
 
+            // Invalidate user profile cache
+            CacheInvalidator.userProfile(userId);
+
             return this.formatUserResponse(updatedUser);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -376,6 +387,8 @@ export class AuthService extends BaseService<IUser, UserRepository> {
             await this.logAction(userId, 'PASSWORD_UPDATE', 'SUCCESS', req, {
                 note: 'Password re-added'
             });
+
+            CacheInvalidator.userProfile(userId);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Set password error:', error);
