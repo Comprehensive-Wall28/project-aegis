@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, memo, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Shield as VaultIcon,
@@ -10,7 +10,9 @@ import {
     NoteAlt as NotesIcon,
     Settings as SettingsIcon,
     Logout as LogOutIcon,
-    MoreHoriz as MoreIcon
+    MoreHoriz as MoreIcon,
+    KeyboardArrowDown as HideIcon,
+    KeyboardArrowUp as ShowIcon
 } from '@mui/icons-material';
 import {
     Box,
@@ -28,7 +30,6 @@ import performLogoutCleanup from '@/utils/logoutCleanup';
 
 interface MobileBottomBarProps {
     visible: boolean;
-    onHide?: () => void;
     onShow?: () => void;
 }
 
@@ -46,11 +47,15 @@ const overflowItems = [
     { name: 'Settings', href: '/dashboard/security', icon: SettingsIcon },
 ];
 
-export const MobileBottomBar = memo(({ visible, onHide, onShow }: MobileBottomBarProps) => {
+export const MobileBottomBar = memo(({ visible: autoVisible, onShow }: MobileBottomBarProps) => {
     const theme = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [manuallyHidden, setManuallyHidden] = useState(false);
+
+    // Final visibility is a combination of auto-scroll and manual toggle
+    const isVisible = autoVisible && !manuallyHidden;
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -71,252 +76,214 @@ export const MobileBottomBar = memo(({ visible, onHide, onShow }: MobileBottomBa
         handleCloseMenu();
     };
 
+    const toggleManualHide = useCallback(() => {
+        setManuallyHidden(prev => !prev);
+    }, []);
+
+    const handleShow = useCallback(() => {
+        setManuallyHidden(false);
+        onShow?.();
+    }, [onShow]);
+
     return (
         <Box
             sx={{
                 position: 'fixed',
-                bottom: 24,
+                bottom: 16,
                 left: '50%',
                 transform: 'translateX(-50%)',
                 zIndex: 1100,
-                width: 'calc(100% - 48px)',
-                maxWidth: 400,
+                width: 'calc(100% - 32px)',
+                maxWidth: 420,
                 display: { xs: 'block', lg: 'none' },
                 pointerEvents: 'none'
             }}
         >
             <AnimatePresence mode="wait">
-                {visible ? (
+                {isVisible ? (
                     <Box
-                        key="active-bar"
+                        key="main-bar"
                         component={motion.div}
-                        drag="y"
-                        dragConstraints={{ top: 0, bottom: 200 }}
-                        dragElastic={0.2}
-                        onDragEnd={(_, info) => {
-                            if (info.offset.y > 60) {
-                                onHide?.();
-                            }
-                        }}
-                        initial={{ y: 100, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 100, opacity: 0 }}
-                        transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+                        initial={{ y: 80, opacity: 0, scale: 0.95 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: 80, opacity: 0, scale: 0.95 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                         sx={{
                             pointerEvents: 'auto',
-                            bgcolor: alpha(theme.palette.background.paper, 0.8),
-                            backdropFilter: 'blur(16px)',
-                            WebkitBackdropFilter: 'blur(16px)',
-                            borderRadius: '100px',
+                            bgcolor: alpha(theme.palette.background.paper, 0.88),
+                            backdropFilter: 'blur(24px)',
+                            WebkitBackdropFilter: 'blur(24px)',
+                            borderRadius: '24px',
                             border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-                            boxShadow: `0 8px 32px -4px ${alpha('#000', 0.5)}`,
+                            boxShadow: `0 8px 32px -8px ${alpha('#000', 0.6)}`,
                             display: 'flex',
-                            justifyContent: 'space-around',
+                            justifyContent: 'space-between',
                             alignItems: 'center',
                             px: 1,
                             py: 0.5,
                         }}
                     >
-                        {navItems.map((item) => {
-                            const isActive = location.pathname === item.href;
-                            const Icon = item.icon;
+                        {/* Compact Nav Items */}
+                        <Box sx={{ display: 'flex', flex: 1, justifyContent: 'space-around' }}>
+                            {navItems.map((item) => {
+                                const isActive = location.pathname === item.href;
+                                const Icon = item.icon;
 
-                            return (
-                                <Box
-                                    key={item.name}
-                                    sx={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        flex: 1
-                                    }}
-                                >
+                                return (
                                     <IconButton
+                                        key={item.name}
                                         component={Link}
                                         to={item.href}
+                                        disableTouchRipple
                                         sx={{
                                             color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
-                                            bgcolor: 'transparent',
-                                            transition: 'all 0.2s',
-                                            '&:hover': {
-                                                bgcolor: 'transparent',
-                                                color: theme.palette.primary.main
-                                            },
+                                            bgcolor: 'transparent !important',
                                             display: 'flex',
                                             flexDirection: 'column',
-                                            alignItems: 'center',
-                                            gap: 0.2,
-                                            borderRadius: '100px',
-                                            p: 1
-                                        }}
-                                    >
-                                        <Icon sx={{ fontSize: 24 }} />
-                                        <Typography
-                                            variant="caption"
-                                            sx={{
-                                                fontSize: '10px',
-                                                fontWeight: isActive ? 700 : 500,
-                                                letterSpacing: 0.2
-                                            }}
-                                        >
-                                            {item.name}
-                                        </Typography>
-                                    </IconButton>
-                                </Box>
-                            );
-                        })}
-
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                flex: 1
-                            }}
-                        >
-                            <IconButton
-                                onClick={handleOpenMenu}
-                                sx={{
-                                    color: Boolean(anchorEl) ? theme.palette.primary.main : theme.palette.text.secondary,
-                                    bgcolor: 'transparent',
-                                    transition: 'all 0.2s',
-                                    '&:hover': {
-                                        bgcolor: 'transparent',
-                                        color: theme.palette.primary.main
-                                    },
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: 0.2,
-                                    borderRadius: '100px',
-                                    p: 1
-                                }}
-                            >
-                                <MoreIcon sx={{ fontSize: 24 }} />
-                                <Typography
-                                    variant="caption"
-                                    sx={{
-                                        fontSize: '10px',
-                                        fontWeight: Boolean(anchorEl) ? 700 : 500,
-                                        letterSpacing: 0.2
-                                    }}
-                                >
-                                    More
-                                </Typography>
-                            </IconButton>
-                        </Box>
-
-                        <Menu
-                            anchorEl={anchorEl}
-                            open={Boolean(anchorEl)}
-                            onClose={handleCloseMenu}
-                            slotProps={{
-                                paper: {
-                                    sx: {
-                                        mb: 2,
-                                        width: 220,
-                                        p: 1,
-                                        borderRadius: '20px',
-                                        bgcolor: theme.palette.background.paper,
-                                        backgroundImage: 'none',
-                                        boxShadow: theme.shadows[20],
-                                        border: `1px solid ${alpha(theme.palette.divider, 0.25)}`,
-                                        backdropFilter: 'blur(20px)',
-                                    }
-                                }
-                            }}
-                            transformOrigin={{ horizontal: 'center', vertical: 'bottom' }}
-                            anchorOrigin={{ horizontal: 'center', vertical: 'top' }}
-                        >
-                            {overflowItems.map((item) => {
-                                const Icon = item.icon;
-                                const isActive = location.pathname === item.href;
-                                return (
-                                    <MenuItem
-                                        key={item.name}
-                                        onClick={() => handleNavigate(item.href)}
-                                        sx={{
-                                            borderRadius: 2.5,
-                                            gap: 1.5,
-                                            py: 1.2,
-                                            color: isActive ? theme.palette.primary.main : theme.palette.text.primary,
-                                            bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                                            '&:hover': {
-                                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                            borderRadius: '16px',
+                                            p: 0.8,
+                                            minWidth: 50,
+                                            transition: 'color 0.2s',
+                                            '&:hover, &:active, &.Mui-focusVisible': {
+                                                bgcolor: 'transparent !important',
                                             }
                                         }}
                                     >
-                                        <ListItemIcon sx={{ minWidth: 0, color: 'inherit' }}>
-                                            <Icon sx={{ fontSize: 20 }} />
-                                        </ListItemIcon>
-                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{item.name}</Typography>
-                                    </MenuItem>
+                                        <Icon sx={{ fontSize: 20 }} />
+                                        <Typography variant="caption" sx={{ fontSize: '9px', mt: 0.2, fontWeight: isActive ? 700 : 500 }}>
+                                            {item.name}
+                                        </Typography>
+                                    </IconButton>
                                 );
                             })}
-                            <Divider sx={{ my: 1, opacity: 0.5 }} />
-                            <MenuItem
-                                onClick={handleLogout}
+
+                            <IconButton
+                                onClick={handleOpenMenu}
+                                disableTouchRipple
                                 sx={{
-                                    borderRadius: 2.5,
-                                    gap: 1.5,
-                                    py: 1.2,
-                                    color: 'error.main',
-                                    '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) }
+                                    color: anchorEl ? theme.palette.primary.main : theme.palette.text.secondary,
+                                    bgcolor: 'transparent !important',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    borderRadius: '16px',
+                                    p: 0.8,
+                                    minWidth: 50,
+                                    '&:hover, &:active, &.Mui-focusVisible': {
+                                        bgcolor: 'transparent !important',
+                                    }
                                 }}
                             >
-                                <ListItemIcon sx={{ minWidth: 0, color: 'inherit' }}>
-                                    <LogOutIcon sx={{ fontSize: 20 }} />
-                                </ListItemIcon>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>Logout</Typography>
-                            </MenuItem>
-                        </Menu>
+                                <MoreIcon sx={{ fontSize: 20 }} />
+                                <Typography variant="caption" sx={{ fontSize: '9px', mt: 0.2 }}>More</Typography>
+                            </IconButton>
+                        </Box>
+
+                        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 1, opacity: 0.3 }} />
+
+                        {/* Manual Hide Button */}
+                        <IconButton
+                            onClick={toggleManualHide}
+                            sx={{
+                                color: theme.palette.text.secondary,
+                                opacity: 0.6,
+                                p: 0.8,
+                                '&:hover': { opacity: 1 }
+                            }}
+                        >
+                            <HideIcon sx={{ fontSize: 20 }} />
+                        </IconButton>
                     </Box>
                 ) : (
                     <Box
-                        key="pull-handle"
+                        key="pull-up-handle"
                         component={motion.div}
                         initial={{ y: 20, opacity: 0 }}
-                        animate={{
-                            y: 0,
-                            opacity: 1,
-                            scale: [1, 1.1, 1],
-                        }}
+                        animate={{ y: 0, opacity: 1 }}
                         exit={{ y: 20, opacity: 0 }}
-                        transition={{
-                            scale: {
-                                duration: 2,
-                                repeat: Infinity,
-                                repeatType: 'reverse'
-                            },
-                            opacity: { duration: 0.3 },
-                            y: { duration: 0.3 }
-                        }}
-                        onClick={onShow}
+                        onClick={handleShow}
                         sx={{
                             pointerEvents: 'auto',
-                            width: 60,
-                            height: 6,
-                            bgcolor: alpha(theme.palette.primary.main, 0.4),
-                            borderRadius: '100px',
+                            width: 50,
+                            height: 32,
+                            bgcolor: alpha(theme.palette.background.paper, 0.9),
+                            backdropFilter: 'blur(12px)',
+                            borderRadius: '12px 12px 0 0',
+                            border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                            borderBottom: 'none',
                             mx: 'auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             cursor: 'pointer',
-                            boxShadow: `0 0 12px ${alpha(theme.palette.primary.main, 0.3)}`,
-                            '&:hover': {
-                                bgcolor: alpha(theme.palette.primary.main, 0.6),
-                            },
-                            // Add a touch target area
-                            '&::before': {
-                                content: '""',
-                                position: 'absolute',
-                                top: -20,
-                                left: -20,
-                                right: -20,
-                                bottom: -20,
-                            }
+                            boxShadow: `0 -4px 16px -4px ${alpha('#000', 0.4)}`,
                         }}
-                    />
+                    >
+                        <ShowIcon sx={{ color: theme.palette.primary.main, fontSize: 24 }} />
+                    </Box>
                 )}
             </AnimatePresence>
+
+            <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleCloseMenu}
+                slotProps={{
+                    paper: {
+                        sx: {
+                            mb: 2,
+                            width: 200,
+                            borderRadius: '20px',
+                            bgcolor: theme.palette.background.paper,
+                            backgroundImage: 'none',
+                            boxShadow: theme.shadows[20],
+                            border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                            backdropFilter: 'blur(20px)',
+                        }
+                    }
+                }}
+                transformOrigin={{ horizontal: 'center', vertical: 'bottom' }}
+                anchorOrigin={{ horizontal: 'center', vertical: 'top' }}
+            >
+                {overflowItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.href;
+                    return (
+                        <MenuItem
+                            key={item.name}
+                            onClick={() => handleNavigate(item.href)}
+                            sx={{
+                                borderRadius: 1.5,
+                                gap: 1.2,
+                                py: 1,
+                                m: 0.5,
+                                color: isActive ? theme.palette.primary.main : theme.palette.text.primary,
+                                bgcolor: isActive ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+                            }}
+                        >
+                            <ListItemIcon sx={{ minWidth: 0, color: 'inherit' }}>
+                                <Icon sx={{ fontSize: 18 }} />
+                            </ListItemIcon>
+                            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '13px' }}>{item.name}</Typography>
+                        </MenuItem>
+                    );
+                })}
+                <Divider sx={{ my: 0.5, opacity: 0.5 }} />
+                <MenuItem
+                    onClick={handleLogout}
+                    sx={{
+                        borderRadius: 1.5,
+                        gap: 1.2,
+                        py: 1,
+                        m: 0.5,
+                        color: 'error.main',
+                    }}
+                >
+                    <ListItemIcon sx={{ minWidth: 0, color: 'inherit' }}>
+                        <LogOutIcon sx={{ fontSize: 18 }} />
+                    </ListItemIcon>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '13px' }}>Logout</Typography>
+                </MenuItem>
+            </Menu>
         </Box>
     );
 });

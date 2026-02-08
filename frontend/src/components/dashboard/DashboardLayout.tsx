@@ -152,15 +152,30 @@ export function DashboardLayout() {
     useEffect(() => {
         const handleGlobalScroll = (e: Event) => {
             const target = e.target as HTMLElement;
-            if (!target || !target.scrollTop) return;
+            if (!target) return;
 
-            const scrollTop = target.scrollTop;
-            if (scrollTop > lastScrollTop.current && scrollTop > 50) {
-                setIsBottomBarVisible(false);
-            } else if (scrollTop < lastScrollTop.current) {
+            const scrollTop = target.scrollTop || 0;
+            
+            // Always show at the top
+            if (scrollTop < 20) {
                 setIsBottomBarVisible(true);
+                lastScrollTop.current = scrollTop;
+                return;
             }
-            lastScrollTop.current = scrollTop;
+
+            const diff = scrollTop - lastScrollTop.current;
+            
+            // Use a threshold to prevent jitter on small movements
+            if (Math.abs(diff) > 15) {
+                if (diff > 0 && scrollTop > 80) {
+                    // Scrolling down - hide
+                    setIsBottomBarVisible(false);
+                } else if (diff < 0) {
+                    // Scrolling up - show
+                    setIsBottomBarVisible(true);
+                }
+                lastScrollTop.current = scrollTop;
+            }
         };
 
         window.addEventListener('scroll', handleGlobalScroll, true);
@@ -271,7 +286,6 @@ export function DashboardLayout() {
 
             <MobileBottomBar
                 visible={isBottomBarVisible}
-                onHide={() => setIsBottomBarVisible(false)}
                 onShow={() => setIsBottomBarVisible(true)}
             />
 
