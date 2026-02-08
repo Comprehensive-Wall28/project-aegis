@@ -25,7 +25,12 @@ const PublicSharedFilePage = lazy(() => import('@/pages/PublicSharedFilePage').t
 const AnalyticsPerformancePage = lazy(() => import('@/pages/AnalyticsPerformancePage').then(m => ({ default: m.default })));
 const AnalyticsAuditPage = lazy(() => import('@/pages/AnalyticsAuditPage').then(m => ({ default: m.default })));
 const AnalyticsLogsPage = lazy(() => import('@/pages/AnalyticsLogsPage').then(m => ({ default: m.default })));
+
+const LoginPage = lazy(() => import('@/pages/LoginPage').then(m => ({ default: m.default })));
+const RegisterPage = lazy(() => import('@/pages/RegisterPage').then(m => ({ default: m.default })));
+
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import { AuthLayout } from '@/components/auth/AuthLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { RouteErrorBoundary } from '@/components/error/RouteErrorBoundary';
 import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
@@ -116,6 +121,27 @@ const router = createBrowserRouter([
                     </SuspensePage>
                 ),
                 errorElement: <RouteErrorBoundary />,
+            },
+            {
+                element: <AuthLayout />,
+                children: [
+                    {
+                        path: '/login',
+                        element: (
+                            <SuspensePage>
+                                <LoginPage />
+                            </SuspensePage>
+                        ),
+                    },
+                    {
+                        path: '/register',
+                        element: (
+                            <SuspensePage>
+                                <RegisterPage />
+                            </SuspensePage>
+                        ),
+                    },
+                ]
             },
             {
                 path: '/dashboard',

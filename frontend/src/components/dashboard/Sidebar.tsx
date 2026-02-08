@@ -69,7 +69,7 @@ const SidebarContent = memo(({ isCollapsed, onToggle, isMobile, onClose }: Sideb
 
     const handleLogout = async () => {
         await performLogoutCleanup();
-        navigate('/');
+        navigate('/login');
     };
 
     return (

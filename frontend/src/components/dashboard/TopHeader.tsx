@@ -45,7 +45,7 @@ export function TopHeader() {
 
     const handleLogout = async () => {
         await performLogoutCleanup();
-        navigate('/');
+        navigate('/login');
         handleCloseMenu();
     };
 

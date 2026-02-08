@@ -67,7 +67,7 @@ export const MobileBottomBar = memo(({ visible: autoVisible, onShow }: MobileBot
 
     const handleLogout = async () => {
         await performLogoutCleanup();
-        navigate('/');
+        navigate('/login');
         handleCloseMenu();
     };
 

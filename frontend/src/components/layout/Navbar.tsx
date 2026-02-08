@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
     Menu as MenuIcon,
     Close as XIcon,
@@ -29,19 +29,20 @@ import performLogoutCleanup from '@/utils/logoutCleanup';
 
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
-import { AuthDialog } from '@/components/auth/AuthDialog';
-import { useAuthModalStore } from '@/stores/authModalStore';
+
 
 export function Navbar() {
     const theme = useTheme();
     const navigate = useNavigate();
-    const location = useLocation();
+
     const { user } = useSessionStore();
     const { theme: currentTheme, toggleTheme } = useThemeStore();
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    // Auth Dialog Global State
-    const { isOpen: isAuthOpen, mode: authMode, openModal, closeModal } = useAuthModalStore();
+    const handleLogout = async () => {
+        await performLogoutCleanup();
+        navigate('/login'); // Redirect to login page after logout
+    };
 
     // Security: Scrub any PQC keys from localStorage (fix for leaked keys)
     useEffect(() => {
@@ -64,21 +65,7 @@ export function Navbar() {
 
 
     // Check if we should show login dialog from redirect
-    useEffect(() => {
-        if (location.state?.showLogin) {
-            openModal('login');
-            // Clear status to prevent popup from reopening on refresh
-            navigate(location.pathname, { replace: true, state: { ...location.state, showLogin: undefined } });
-        }
-    }, [location.state, location.pathname, navigate, openModal]);
 
-    const handleLogout = async () => {
-        await performLogoutCleanup();
-    };
-
-    const openAuth = (mode: 'login' | 'register') => {
-        openModal(mode);
-    };
 
     return (
         <>
@@ -208,7 +195,8 @@ export function Navbar() {
                             ) : (
                                 <>
                                     <Button
-                                        onClick={() => openAuth('login')}
+                                        component={RouterLink}
+                                        to="/login"
                                         sx={{
                                             color: 'text.primary',
                                             fontWeight: 700,
@@ -220,7 +208,8 @@ export function Navbar() {
                                     </Button>
                                     <Button
                                         variant="contained"
-                                        onClick={() => openAuth('register')}
+                                        component={RouterLink}
+                                        to="/register"
                                         sx={{
                                             borderRadius: 2.5,
                                             px: 3,
@@ -322,10 +311,9 @@ export function Navbar() {
                     <Button
                         variant="contained"
                         fullWidth
-                        onClick={() => {
-                            openAuth('login');
-                            setMobileOpen(false);
-                        }}
+                        component={RouterLink}
+                        to="/login"
+                        onClick={() => setMobileOpen(false)}
                         sx={{ py: 1.5, fontWeight: 700 }}
                     >
                         Login / Register
@@ -333,12 +321,8 @@ export function Navbar() {
                 )}
             </Drawer>
 
-            {/* Replaced Dialog with AuthDialog */}
-            <AuthDialog
-                open={isAuthOpen}
-                onClose={closeModal}
-                initialMode={authMode}
-            />
+
+
         </>
     );
 }

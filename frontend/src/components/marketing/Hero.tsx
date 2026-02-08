@@ -24,13 +24,10 @@ import type { Variants } from 'framer-motion';
 import { StatelessIndicator } from "./StatelessIndicator";
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
-import { useAuthModalStore } from '@/stores/authModalStore';
-
 export function Hero() {
     const theme = useTheme();
     const navigate = useNavigate();
     const { isAuthenticated } = useSessionStore();
-    const openAuthModal = useAuthModalStore((state) => state.openModal);
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -239,7 +236,7 @@ export function Hero() {
                                 if (isAuthenticated) {
                                     navigate('/dashboard');
                                 } else {
-                                    openAuthModal('register');
+                                    navigate('/register');
                                 }
                             }}
                         >
