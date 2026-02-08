@@ -50,7 +50,7 @@ export const analyticsMiddleware = (req: Request, res: Response, next: NextFunct
         // Queue metric (fire and forget - never await)
         analyticsBuffer.queueMetric({
             method: req.method,
-            path: req.route?.path || req.path,
+            path: req.route ? (req.baseUrl + req.route.path) : req.path,
             statusCode: res.statusCode,
             durationMs,
             userId,
