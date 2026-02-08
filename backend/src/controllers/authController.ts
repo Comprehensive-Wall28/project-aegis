@@ -16,7 +16,7 @@ const setCookie = (res: Response) => (token: string) => {
         httpOnly: true,
         secure: config.nodeEnv === 'production',
         sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
-        maxAge: 365 * 24 * 60 * 60 * 1000,
+        maxAge: 3 * 24 * 60 * 60 * 1000,
         path: '/',
         partitioned: config.nodeEnv === 'production'
     } as any);

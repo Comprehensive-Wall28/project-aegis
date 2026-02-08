@@ -60,11 +60,20 @@ export class AuthService extends BaseService<IUser, UserRepository> {
         super(new UserRepository());
     }
 
-    private async generateToken(id: string, username: string, tokenVersion: number): Promise<string> {
+    public async generateToken(id: string, username: string, tokenVersion: number): Promise<string> {
         const jwtToken = jwt.sign({ id, username, tokenVersion }, config.jwtSecret, {
-            expiresIn: '365d'
+            expiresIn: '3d'
         });
         return await encryptToken(jwtToken);
+    }
+
+    async refreshToken(userId: string): Promise<string> {
+        const user = await this.repository.findById(userId);
+        if (!user) {
+            throw new ServiceError('User not found', 404);
+        }
+        // Use existing token version
+        return this.generateToken(user._id.toString(), user.username, user.tokenVersion || 0);
     }
 
     private formatUserResponse(user: IUser): UserResponse {

@@ -5,8 +5,10 @@ import logger from '../utils/logger';
 import { decryptToken } from '../utils/cryptoUtils';
 import { config } from '../config/env';
 import User from '../models/User';
+import { AuthService } from '../services/AuthService';
 
 const verifyJwt = promisify(jwt.verify) as any;
+const authService = new AuthService();
 
 interface AuthRequest extends Request {
     user?: any;
@@ -48,6 +50,39 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
         }
 
         req.user = decoded;
+
+        // Sliding window: Refresh token if it's older than 1 hour
+        // This ensures that active users always have a fresh 3-day session
+        if (decoded.exp) {
+            const expMs = decoded.exp * 1000;
+            const nowMs = Date.now();
+            const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+            const refreshThresholdMs = threeDaysMs - (60 * 60 * 1000); // 3 days - 1 hour
+
+            // If remaining time is less than threshold (meaning > 1 hour passed since issue)
+            if (expMs - nowMs < refreshThresholdMs) {
+                try {
+                    // Generate new token with fresh 3-day expiry
+                    const newToken = await authService.refreshToken(decoded.id);
+                    
+                    res.cookie('token', newToken, {
+                        httpOnly: true,
+                        secure: config.nodeEnv === 'production',
+                        sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
+                        maxAge: threeDaysMs,
+                        path: '/',
+                        partitioned: config.nodeEnv === 'production'
+                    } as any);
+                    
+                    // Optional: Debug log
+                    // logger.debug(`Refreshed session for user ${decoded.id}`);
+                } catch (refreshError) {
+                    logger.error('Failed to refresh session token:', refreshError);
+                    // Continue without failing the request
+                }
+            }
+        }
+
         next();
     } catch (error) {
         logger.error('Auth middleware error:', error);
