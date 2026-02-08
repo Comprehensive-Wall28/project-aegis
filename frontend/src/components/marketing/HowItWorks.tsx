@@ -4,17 +4,14 @@ import {
     Typography,
     Paper,
     alpha,
-    useTheme,
-    Button
+    useTheme
 } from '@mui/material';
 import {
     PersonAddOutlined as SignUpIcon,
     CloudUploadOutlined as UploadIcon,
-    SecurityOutlined as SecurityIcon,
-    ArrowForward as ArrowRightIcon
+    SecurityOutlined as SecurityIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 
 const steps = [
     {
@@ -42,7 +39,6 @@ const steps = [
 
 export function HowItWorks() {
     const theme = useTheme();
-    const navigate = useNavigate();
 
     return (
         <Box
