@@ -60,17 +60,6 @@ export interface Preferences {
     gpaSystem: 'NORMAL' | 'GERMAN';
 }
 
-// Legacy unmigrated course (plaintext from old schema)
-export interface UnmigratedCourse {
-    _id: string;
-    name: string;
-    grade: number;
-    credits: number;
-    semester: string;
-    createdAt: string;
-    updatedAt: string;
-}
-
 const gpaService = {
     // Course CRUD - now handles encrypted data
     getEncryptedCourses: async (): Promise<EncryptedCourse[]> => {
@@ -95,17 +84,6 @@ const gpaService = {
 
     updatePreferences: async (data: Preferences): Promise<Preferences> => {
         const response = await apiClient.put<Preferences>(`${PREFIX}/preferences`, data);
-        return response.data;
-    },
-
-    // Migration endpoints
-    getUnmigratedCourses: async (): Promise<UnmigratedCourse[]> => {
-        const response = await apiClient.get<UnmigratedCourse[]>(`${PREFIX}/courses/unmigrated`);
-        return response.data;
-    },
-
-    migrateCourse: async (id: string, data: EncryptedCoursePayload): Promise<EncryptedCourse> => {
-        const response = await apiClient.put<EncryptedCourse>(`${PREFIX}/courses/${id}/migrate`, data);
         return response.data;
     },
 };

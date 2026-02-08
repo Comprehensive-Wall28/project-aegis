@@ -44,42 +44,4 @@ export class CourseRepository extends BaseRepository<ICourse> {
             userId: { $eq: validatedUserId }
         } as unknown as SafeFilter<ICourse>);
     }
-
-    /**
-     * Find unmigrated (plaintext) courses
-     */
-    async findUnmigrated(userId: string): Promise<ICourse[]> {
-        return this.findMany({
-            userId: { $eq: userId },
-            name: { $exists: true, $ne: null },
-            encryptedData: { $exists: false }
-        } as unknown as SafeFilter<ICourse>, {
-            sort: { createdAt: -1 }
-        });
-    }
-
-    /**
-     * Migrate course to encrypted format
-     */
-    async migrateToEncrypted(
-        courseId: string,
-        userId: string,
-        encryptedData: string,
-        encapsulatedKey: string,
-        encryptedSymmetricKey: string
-    ): Promise<ICourse | null> {
-        const validatedCourseId = this.validateId(courseId);
-        const validatedUserId = this.validateId(userId);
-        return this.updateOne(
-            {
-                _id: { $eq: validatedCourseId },
-                userId: { $eq: validatedUserId }
-            } as unknown as SafeFilter<ICourse>,
-            {
-                $set: { encryptedData, encapsulatedKey, encryptedSymmetricKey },
-                $unset: { name: 1, grade: 1, credits: 1, semester: 1 }
-            },
-            { returnNew: true }
-        );
-    }
 }

@@ -5,8 +5,6 @@ import {
     deleteCourse,
     updatePreferences,
     getPreferences,
-    getUnmigratedCourses,
-    migrateCourse,
 } from '../controllers/gpaController';
 import { protect } from '../middleware/authMiddleware';
 import { csrfProtection } from '../middleware/customCsrf';
@@ -21,10 +19,6 @@ router.use(csrfProtection);
 router.get('/courses', getCourses);
 router.post('/courses', createCourse);
 router.delete('/courses/:id', deleteCourse);
-
-// Migration endpoints
-router.get('/courses/unmigrated', getUnmigratedCourses);
-router.put('/courses/:id/migrate', migrateCourse);
 
 // User Preferences
 router.get('/preferences', getPreferences);

@@ -48,19 +48,3 @@ export const getPreferences = withAuth(async (req: AuthRequest, res: Response) =
     const result = await gpaService.getPreferences(req.user!.id);
     res.status(200).json(result);
 });
-
-/**
- * Get unmigrated (plaintext) courses for client-side encryption migration.
- */
-export const getUnmigratedCourses = withAuth(async (req: AuthRequest, res: Response) => {
-    const courses = await gpaService.getUnmigratedCourses(req.user!.id);
-    res.status(200).json(courses);
-});
-
-/**
- * Migrate a single course from plaintext to encrypted format.
- */
-export const migrateCourse = withAuth(async (req: AuthRequest, res: Response) => {
-    const course = await gpaService.migrateCourse(req.user!.id, req.params.id as string, req.body);
-    res.status(200).json(course);
-});
