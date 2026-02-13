@@ -1,15 +1,24 @@
 export class CacheKeyBuilder {
   private static readonly PREFIX = 'aegis';
 
+  /**
+   * Coerce a value to a string at runtime to prevent type confusion attacks.
+   * Express may pass arrays instead of strings when duplicate query params are sent.
+   */
+  private static ensureString(value: unknown): string {
+    if (typeof value === 'string') return value;
+    return String(value);
+  }
+
   static userFiles(userId: string, folderId?: string | null, search?: string): string {
     const parts = [this.PREFIX, userId, 'files', 'list'];
-    if (folderId) parts.push(`folder_${folderId}`);
-    if (search) parts.push(`search_${this.hashString(search)}`);
+    if (folderId) parts.push(`folder_${this.ensureString(folderId)}`);
+    if (search) parts.push(`search_${this.hashString(this.ensureString(search))}`);
     return parts.join(':');
   }
 
   static userFile(userId: string, fileId: string): string {
-    return `${this.PREFIX}:${userId}:files:item:${fileId}`;
+    return `${this.PREFIX}:${userId}:files:item:${this.ensureString(fileId)}`;
   }
 
   static userStorageStats(userId: string): string {
@@ -17,16 +26,16 @@ export class CacheKeyBuilder {
   }
 
   static calendarRange(userId: string, start: string, end: string): string {
-    return `${this.PREFIX}:${userId}:calendar:range:${start}_${end}`;
+    return `${this.PREFIX}:${userId}:calendar:range:${this.ensureString(start)}_${this.ensureString(end)}`;
   }
 
   static calendarPaginated(userId: string, cursor?: string): string {
-    return `${this.PREFIX}:${userId}:calendar:list:${cursor || 'first'}`;
+    return `${this.PREFIX}:${userId}:calendar:list:${cursor ? this.ensureString(cursor) : 'first'}`;
   }
 
   static taskList(userId: string, status?: string): string {
     const parts = [this.PREFIX, userId, 'tasks', 'list'];
-    if (status) parts.push(`status_${status}`);
+    if (status) parts.push(`status_${this.ensureString(status)}`);
     return parts.join(':');
   }
 
@@ -36,7 +45,7 @@ export class CacheKeyBuilder {
 
   static noteList(userId: string, folderId?: string): string {
     const parts = [this.PREFIX, userId, 'notes', 'list'];
-    if (folderId) parts.push(`folder_${folderId}`);
+    if (folderId) parts.push(`folder_${this.ensureString(folderId)}`);
     return parts.join(':');
   }
 
@@ -49,17 +58,21 @@ export class CacheKeyBuilder {
   }
 
   static folderList(userId: string, parentId?: string | null): string {
-    return `${this.PREFIX}:${userId}:folders:list:parent_${parentId || 'root'}`;
+    return `${this.PREFIX}:${userId}:folders:list:parent_${parentId ? this.ensureString(parentId) : 'root'}`;
   }
 
   static userProfile(userId: string): string {
     return `${this.PREFIX}:${userId}:profile:me`;
   }
 
+  private static readonly MAX_HASH_INPUT_LENGTH = 2048;
+
   private static hashString(str: string): string {
+    const safeStr = this.ensureString(str);
+    const len = Math.min(safeStr.length, this.MAX_HASH_INPUT_LENGTH);
     let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
+    for (let i = 0; i < len; i++) {
+      const char = safeStr.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash;
     }
