@@ -65,10 +65,13 @@ export class CacheKeyBuilder {
     return `${this.PREFIX}:${userId}:profile:me`;
   }
 
+  private static readonly MAX_HASH_INPUT_LENGTH = 2048;
+
   private static hashString(str: string): string {
     const safeStr = this.ensureString(str);
+    const len = Math.min(safeStr.length, this.MAX_HASH_INPUT_LENGTH);
     let hash = 0;
-    for (let i = 0; i < safeStr.length; i++) {
+    for (let i = 0; i < len; i++) {
       const char = safeStr.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash;
