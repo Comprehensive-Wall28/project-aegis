@@ -1,7 +1,7 @@
 {
   "name": "aegis-frontend",
   "private": true,
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "project-aegis frontend component",
   "type": "module",
   "scripts": {
@@ -36,7 +36,7 @@
     "@tiptap/react": "^3.19.0",
     "@tiptap/starter-kit": "^3.19.0",
     "argon2-browser": "^1.18.0",
-    "axios": "^1.13.4",
+    "axios": "^1.13.5",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "dayjs": "^1.11.19",
