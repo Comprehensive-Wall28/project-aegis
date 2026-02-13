@@ -206,7 +206,7 @@ export abstract class BaseRepository<T extends Document> {
             const result = await this.model.findByIdAndUpdate(
                 sanitizedId,
                 sanitizedUpdate as any,
-                { new: options.returnNew ?? true }
+                { returnDocument: 'after' }
             ).exec();
 
             return result;
@@ -235,7 +235,7 @@ export abstract class BaseRepository<T extends Document> {
             const result = await this.model.findOneAndUpdate(
                 sanitizedFilter as any,
                 sanitizedUpdate as any,
-                { new: options.returnNew ?? true, upsert: options.upsert ?? false }
+                { returnDocument: 'after', upsert: options.upsert ?? false }
             ).exec();
 
             return result;

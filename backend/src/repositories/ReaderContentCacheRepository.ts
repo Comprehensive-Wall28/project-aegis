@@ -49,7 +49,7 @@ export class ReaderContentCacheRepository {
                     error: content.error,
                     lastFetched: new Date()
                 },
-                { upsert: true, new: true }
+                { upsert: true, returnDocument: 'after' }
             );
         } catch (error) {
             // Log but don't throw - caching is best-effort
