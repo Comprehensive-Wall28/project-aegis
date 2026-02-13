@@ -25,7 +25,7 @@ import { SocialErrorBoundary } from './SocialErrorBoundary';
 import { LinkCardSkeleton } from './SocialSkeletons';
 import { useSocial } from '@/hooks/useSocial';
 import { useDecryptedCollectionMetadata } from '@/hooks/useDecryptedMetadata';
-import { useInfiniteScroll } from '@/pages/files/hooks/useInfiniteScroll';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import type { Collection } from '@/services/socialService';
 
 const CollectionName = memo(({ collection }: { collection: Collection }) => {

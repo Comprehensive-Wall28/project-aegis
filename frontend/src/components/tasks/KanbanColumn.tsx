@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Box, Paper, Typography, Button, Badge, alpha, useTheme, styled } from '@mui/material';
+import { Box, Paper, Typography, Button, Badge, alpha, useTheme, styled, CircularProgress } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { Virtuoso } from 'react-virtuoso';
 import { SortableTaskItem } from './SortableTaskItem';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import type { DecryptedTask } from '@/stores/useTaskStore';
 
 interface KanbanColumnProps {
@@ -16,6 +17,9 @@ interface KanbanColumnProps {
     onTaskClick: (task: DecryptedTask) => void;
     onAddTask: (status: 'todo' | 'in_progress' | 'done') => void;
     isOverParent?: boolean;
+    hasMore?: boolean;
+    isLoadingMore?: boolean;
+    onLoadMore?: () => void;
 }
 
 const StyledVirtuoso = styled(Virtuoso)(({ theme }) => ({
@@ -40,6 +44,9 @@ const KanbanColumnComponent = ({
     onTaskClick,
     onAddTask,
     isOverParent,
+    hasMore = false,
+    isLoadingMore = false,
+    onLoadMore,
 }: KanbanColumnProps) => {
     const theme = useTheme();
     // Column is a droppable zone (mostly for empty columns or appending)
@@ -51,6 +58,39 @@ const KanbanColumnComponent = ({
     const activeOver = isOver || isOverParent;
 
     const taskIds = useMemo(() => tasks.map(t => t._id), [tasks]);
+
+    const handleLoadMore = useCallback(() => {
+        onLoadMore?.();
+    }, [onLoadMore]);
+
+    const { sentinelRef } = useInfiniteScroll({
+        hasMore,
+        isLoading: isLoadingMore,
+        onLoadMore: handleLoadMore,
+        rootMargin: '200px',
+    });
+
+    // Footer component for Virtuoso — renders the sentinel + loading indicator
+    const FooterComponent = useCallback(() => {
+        if (!hasMore && !isLoadingMore) return null;
+        return (
+            <Box
+                ref={sentinelRef}
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    py: 2,
+                    gap: 1,
+                }}
+            >
+                {isLoadingMore && <CircularProgress size={16} thickness={4} />}
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                    {isLoadingMore ? 'Loading...' : 'Scroll for more'}
+                </Typography>
+            </Box>
+        );
+    }, [hasMore, isLoadingMore, sentinelRef]);
 
     return (
         <Box sx={{ height: '100%' }}>
@@ -149,6 +189,7 @@ const KanbanColumnComponent = ({
                                         />
                                     </Box>
                                 )}
+                                components={{ Footer: FooterComponent }}
                                 style={{ height: '100%' }}
                             />
                         </SortableContext>

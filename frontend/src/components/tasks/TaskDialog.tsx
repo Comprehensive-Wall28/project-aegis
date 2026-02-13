@@ -50,7 +50,6 @@ const STATUS_OPTIONS = Object.entries(TASK_STATUS_LABELS).map(([key, label]) => 
 export interface TaskDialogData {
     title: string;
     description: string;
-    notes: string;
     dueDate?: string;
     priority: 'high' | 'medium' | 'low';
     status: 'todo' | 'in_progress' | 'done';
@@ -93,7 +92,6 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
     const [formData, setFormData] = useState<TaskDialogData>(() => ({
         title: initialData?.title || '',
         description: initialData?.description || '',
-        notes: initialData?.notes || '',
         dueDate: formatDateForInput(initialData?.dueDate),
         priority: initialData?.priority || 'medium',
         status: initialData?.status || 'todo',
@@ -102,7 +100,7 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
     // Mention Picker State
     const [mentionPicker, setMentionPicker] = useState<{
         open: boolean;
-        field: 'description' | 'notes';
+        field: 'description';
         anchorEl: HTMLElement | null;
         cursorPos: number;
     }>({ open: false, field: 'description', anchorEl: null, cursorPos: 0 });
@@ -119,7 +117,7 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
         }));
 
         // Handle Mention Picker Trigger / Search Persistence
-        if (field === 'description' || field === 'notes') {
+        if (field === 'description') {
             const input = e.target as HTMLTextAreaElement;
             const cursorPos = input.selectionStart;
             const textBefore = value.substring(0, cursorPos);
@@ -132,7 +130,7 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
                 if (!/[\s\n]/.test(textSinceAt)) {
                     setMentionPicker({
                         open: true,
-                        field: field as 'description' | 'notes',
+                        field: field as 'description',
                         anchorEl: input,
                         cursorPos: lastAtIndex + 1
                     });
@@ -325,21 +323,6 @@ const TaskForm = ({ initialData, isSaving, onClose, onSubmit, onDelete }: TaskFo
                                     }
                                 }
                             }
-                        }}
-                    />
-
-                    <TextField
-                        label="Notes"
-                        value={formData.notes}
-                        onChange={handleChange('notes')}
-                        fullWidth
-                        multiline
-                        minRows={2}
-                        maxRows={6}
-                        variant="outlined"
-                        placeholder="Private notes (encrypted)... (Use @ for mentions)"
-                        slotProps={{
-                            input: { sx: { borderRadius: '12px' } }
                         }}
                     />
 

@@ -14,7 +14,7 @@ import { FolderGridItem } from './FolderGridItem';
 import { FileGridItem } from './FileGridItem';
 import { FolderListItem } from './FolderListItem';
 import { FileListItem } from './FileListItem';
-import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 interface FilesGridProps {
     isLoading: boolean;
@@ -112,7 +112,7 @@ export function FilesGrid({
             case 'gallery': return { name: 'body1', size: 16, mb: 1 };
             default: return { name: 'body1', size: 18, mb: 1 };
         }
-         
+
     }, [viewPreset]);
 
     // Unified data set

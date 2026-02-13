@@ -20,7 +20,6 @@ import {
     PriorityHigh as PriorityIcon,
     Info as StatusIcon,
     Description as DescriptionIcon,
-    Notes as NotesIcon,
     DeleteOutline as DeleteIcon,
     AssignmentOutlined as TaskIcon,
     EventOutlined as EventIcon,
@@ -158,25 +157,6 @@ export const TaskPreviewDialog = memo(({ open, onClose, onEdit, onDelete, task }
                             </Typography>
                         )}
                     </Box>
-
-                    {/* Notes */}
-                    <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, color: theme.palette.text.secondary }}>
-                            <NotesIcon fontSize="small" />
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '0.75rem' }}>
-                                Private Notes
-                            </Typography>
-                        </Box>
-                        {task.notes ? (
-                            <Box>
-                                <TaskDescriptionRenderer text={task.notes} variant="body2" sx={{ color: theme.palette.text.primary }} />
-                            </Box>
-                        ) : (
-                            <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', opacity: 0.6 }}>
-                                No private notes.
-                            </Typography>
-                        )}
-                    </Box>
                 </Box>
 
                 {/* Sidebar Metadata */}
@@ -288,6 +268,6 @@ export const TaskPreviewDialog = memo(({ open, onClose, onEdit, onDelete, task }
                     </Box>
                 </Box>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     );
 });

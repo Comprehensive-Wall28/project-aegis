@@ -80,9 +80,9 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
                 }
             }
 
-            const cacheKey = CacheKeyBuilder.taskList(userId, sanitizedFilters.status) + 
+            const cacheKey = CacheKeyBuilder.taskList(userId, sanitizedFilters.status) +
                 (sanitizedFilters.priority ? `:priority_${sanitizedFilters.priority}` : '');
-            
+
             return await withCache(
                 { key: cacheKey, ttl: 180000 }, // 3 minutes for tasks
                 async () => {
@@ -303,17 +303,28 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
      */
     async getPaginatedTasks(
         userId: string,
-        options: { limit: number; cursor?: string }
+        options: { limit: number; cursor?: string; status?: string }
     ): Promise<{ items: ITask[]; nextCursor: string | null }> {
         try {
-            const cacheKey = CacheKeyBuilder.taskList(userId) + 
-                `:cursor_${options.cursor || 'first'}:limit_${Math.min(options.limit || 50, 100)}`;
-            
+            const validStatuses = ['todo', 'in_progress', 'done'];
+            const status = (typeof options.status === 'string' && validStatuses.includes(options.status))
+                ? options.status
+                : undefined;
+
+            const cacheKey = CacheKeyBuilder.taskList(userId) +
+                `:cursor_${options.cursor || 'first'}:limit_${Math.min(options.limit || 50, 100)}` +
+                (status ? `:status_${status}` : '');
+
             return await withCache(
                 { key: cacheKey, ttl: 180000 }, // 3 minutes for tasks
                 async () => {
+                    const filter: Record<string, unknown> = { userId: { $eq: userId } };
+                    if (status) {
+                        filter.status = { $eq: status };
+                    }
+
                     return await this.repository.findPaginated(
-                        { userId: { $eq: userId } } as any,
+                        filter as any,
                         {
                             limit: Math.min(options.limit || 50, 100),
                             cursor: options.cursor,
@@ -337,7 +348,7 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
     ): Promise<ITask[]> {
         try {
             const cacheKey = CacheKeyBuilder.upcomingTasks(userId) + `:limit_${limit}`;
-            
+
             return await withCache(
                 { key: cacheKey, ttl: 60000 }, // 1 minute for upcoming (highly dynamic)
                 async () => {

@@ -46,6 +46,8 @@ export function TasksPage() {
 
     // Fetch full task list on mount (global hydration only fetches upcoming tasks for dashboard)
     const fetchTasks = useTaskStore((state) => state.fetchTasks);
+    const fetchMoreTasks = useTaskStore((state) => state.fetchMoreTasks);
+    const columnState = useTaskStore((state) => state.columnState);
     const { decryptTasks } = useTaskEncryption();
 
     useEffect(() => {
@@ -89,7 +91,6 @@ export function TasksPage() {
         return tasks.filter((t) =>
             t.title.toLowerCase().includes(lowerTerm) ||
             (t.description && t.description.toLowerCase().includes(lowerTerm)) ||
-            (t.notes && t.notes.toLowerCase().includes(lowerTerm)) ||
             t.priority.toLowerCase().includes(lowerTerm)
         );
     }, [tasks, searchTerm]);
@@ -115,7 +116,7 @@ export function TasksPage() {
     const previewOpen = !!urlTaskId && !dialogOpen;
 
     // Derived type for task state (full task or status template)
-    type TaskState = DecryptedTask | { status: 'todo' | 'in_progress' | 'done'; _id?: undefined; _tempId?: number; title?: string; description?: string; notes?: string; priority?: 'high' | 'medium' | 'low'; dueDate?: string };
+    type TaskState = DecryptedTask | { status: 'todo' | 'in_progress' | 'done'; _id?: undefined; _tempId?: number; title?: string; description?: string; priority?: 'high' | 'medium' | 'low'; dueDate?: string };
 
     const intentTask = useMemo<TaskState | null>(() => {
         if (urlEditId) {
@@ -179,7 +180,7 @@ export function TasksPage() {
             setIsSaving(true);
 
             const recordHash = await generateRecordHash(
-                { title: data.title, description: data.description, notes: data.notes },
+                { title: data.title, description: data.description },
                 data.priority,
                 data.status,
                 data.dueDate
@@ -188,11 +189,10 @@ export function TasksPage() {
             const encryptedPayload = await encryptTaskData({
                 title: data.title,
                 description: data.description,
-                notes: data.notes,
             });
 
             // Extract mentions for backend indexing
-            const mentions = extractMentionedIds(`${data.description} ${data.notes}`);
+            const mentions = extractMentionedIds(`${data.description}`);
 
             if (selectedTask?._id) {
                 // Update existing task
@@ -412,6 +412,7 @@ export function TasksPage() {
                                 fontWeight: 600,
                                 px: 3,
                                 width: { xs: '100%', md: 'auto' },
+                                display: { xs: 'none', md: 'flex' },
                             }}
                         >
                             New Task
@@ -461,6 +462,8 @@ export function TasksPage() {
                         sortMode={sortMode}
                         isDragDisabled={!!searchTerm.trim()}
                         deleteStatus={deleteStatus}
+                        columnState={columnState}
+                        onLoadMore={(status) => fetchMoreTasks(status, decryptTasks)}
                     />
                 </Box>
             )}

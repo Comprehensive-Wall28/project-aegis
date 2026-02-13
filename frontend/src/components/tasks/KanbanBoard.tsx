@@ -17,9 +17,11 @@ import { motion } from 'framer-motion';
 
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
-import type { DecryptedTask } from '@/stores/useTaskStore';
+import type { DecryptedTask, ColumnPaginationState } from '@/stores/useTaskStore';
 import { TASK_COLUMNS_CONFIG, TASK_STATUS } from '@/constants/taskDefaults';
 import { useKanbanLogic } from '@/hooks/useKanbanLogic';
+
+type TaskStatus = 'todo' | 'in_progress' | 'done';
 
 export type SortMode = 'manual' | 'priority' | 'date';
 
@@ -34,6 +36,8 @@ interface KanbanBoardProps {
     sortMode: SortMode;
     isDragDisabled?: boolean;
     deleteStatus?: DeleteStatus;
+    columnState?: Record<TaskStatus, ColumnPaginationState>;
+    onLoadMore?: (status: TaskStatus) => void;
 }
 
 const COLUMN_ICONS = {
@@ -75,7 +79,7 @@ const styles = {
     },
 } as const;
 
-const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, onDeleteTask, sortMode, isDragDisabled, deleteStatus = 'idle' }: KanbanBoardProps) => {
+const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, onDeleteTask, sortMode, isDragDisabled, deleteStatus = 'idle', columnState, onLoadMore }: KanbanBoardProps) => {
     const {
         sensors,
         activeId,
@@ -111,9 +115,12 @@ const KanbanBoardComponent = ({ tasks, onTaskClick, onAddTask, onTaskMove, onDel
                 onTaskClick={onTaskClick}
                 onAddTask={onAddTask}
                 isOverParent={overColumnId === column.id}
+                hasMore={columnState?.[column.id]?.hasMore}
+                isLoadingMore={columnState?.[column.id]?.isLoadingMore}
+                onLoadMore={onLoadMore ? () => onLoadMore(column.id) : undefined}
             />
         </Box>
-    )), [tasksByStatus, onTaskClick, onAddTask, overColumnId]);
+    )), [tasksByStatus, onTaskClick, onAddTask, overColumnId, columnState, onLoadMore]);
 
     return (
         <DndContext

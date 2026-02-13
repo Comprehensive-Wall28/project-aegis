@@ -18,7 +18,8 @@ export const getTasks = withAuth(async (req: AuthRequest, res: Response) => {
     const cursor = req.query.cursor as string | undefined;
 
     if (limit !== undefined || cursor !== undefined) {
-        const result = await taskService.getPaginatedTasks(req.user!.id, { limit: limit || 50, cursor });
+        const status = req.query.status as string | undefined;
+        const result = await taskService.getPaginatedTasks(req.user!.id, { limit: limit || 50, cursor, status });
         return res.status(200).json(result);
     }
 

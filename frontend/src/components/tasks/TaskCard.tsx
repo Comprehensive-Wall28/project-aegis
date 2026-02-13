@@ -45,10 +45,7 @@ export const TaskCard = memo(({ task, onClick, isDragging }: TaskCardProps) => {
 
     return (
         <Paper
-            component={isDragging ? 'div' : motion.div}
-            initial={isDragging ? undefined : { opacity: 0, y: 10 }}
-            animate={isDragging ? undefined : { opacity: 1, y: 0 }}
-            exit={isDragging ? undefined : { opacity: 0, y: -10 }}
+            component={motion.div}
             onClick={onClick}
             sx={{
                 p: 2,

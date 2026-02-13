@@ -7,7 +7,6 @@ export interface Task {
     _id: string;
     title: string;
     description: string;
-    notes: string;
     dueDate?: string;
     priority: 'high' | 'medium' | 'low';
     status: 'todo' | 'in_progress' | 'done';
@@ -19,7 +18,6 @@ export interface Task {
 export interface TaskInput {
     title: string;
     description: string;
-    notes: string;
 }
 
 // Types for encrypted task data (from/to backend)
@@ -79,10 +77,11 @@ const taskService = {
         return response.data;
     },
 
-    getTasksPaginated: async (filters: { limit: number; cursor?: string; signal?: AbortSignal }): Promise<PaginatedTasks> => {
+    getTasksPaginated: async (filters: { limit: number; cursor?: string; status?: string; signal?: AbortSignal }): Promise<PaginatedTasks> => {
         const params = new URLSearchParams();
         params.append('limit', filters.limit.toString());
         if (filters.cursor) params.append('cursor', filters.cursor);
+        if (filters.status) params.append('status', filters.status);
 
         const response = await apiClient.get<PaginatedTasks>(`${PREFIX}`, { params, signal: filters.signal });
         return response.data;

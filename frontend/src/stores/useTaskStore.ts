@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import taskService from '../services/taskService';
 import type { CreateTaskInput, UpdateTaskInput, ReorderUpdate, EncryptedTask } from '../services/taskService';
+import { queryClient } from '../api/queryClient';
 
 export interface DecryptedTask {
     _id: string;
     title: string;
     description: string;
-    notes: string;
     dueDate?: string;
     priority: 'high' | 'medium' | 'low';
     status: 'todo' | 'in_progress' | 'done';
@@ -15,14 +15,33 @@ export interface DecryptedTask {
     updatedAt: string;
 }
 
+type TaskStatus = 'todo' | 'in_progress' | 'done';
+
+const ALL_STATUSES: TaskStatus[] = ['todo', 'in_progress', 'done'];
+const PAGE_SIZE = 20;
+
+export interface ColumnPaginationState {
+    cursor: string | null;
+    hasMore: boolean;
+    isLoadingMore: boolean;
+}
+
 interface TaskState {
     tasks: DecryptedTask[];
     isLoading: boolean;
     error: string | null;
 
+    /** Per-column pagination state */
+    columnState: Record<TaskStatus, ColumnPaginationState>;
+
     fetchTasks: (
         filters?: { status?: string; priority?: string },
         decryptFn?: (tasks: EncryptedTask[]) => Promise<DecryptedTask[] | { tasks: DecryptedTask[], failedTaskIds: string[] }>
+    ) => Promise<void>;
+
+    fetchMoreTasks: (
+        status: TaskStatus,
+        decryptFn: (tasks: EncryptedTask[]) => Promise<DecryptedTask[] | { tasks: DecryptedTask[], failedTaskIds: string[] }>
     ) => Promise<void>;
 
     addTask: (
@@ -56,46 +75,149 @@ interface TaskState {
     reset: () => void;
 }
 
-import { queryClient } from '../api/queryClient';
+function makeInitialColumnState(): Record<TaskStatus, ColumnPaginationState> {
+    return {
+        todo: { cursor: null, hasMore: true, isLoadingMore: false },
+        in_progress: { cursor: null, hasMore: true, isLoadingMore: false },
+        done: { cursor: null, hasMore: true, isLoadingMore: false },
+    };
+}
 
-// ... existing code ...
+/** Extract decrypted tasks from the polymorphic decryptFn result */
+function extractDecrypted(result: DecryptedTask[] | { tasks: DecryptedTask[], failedTaskIds: string[] }): {
+    tasks: DecryptedTask[];
+    failedCount: number;
+} {
+    if (Array.isArray(result)) {
+        return { tasks: result, failedCount: 0 };
+    }
+    if (result && typeof result === 'object' && 'tasks' in result) {
+        return { tasks: result.tasks, failedCount: result.failedTaskIds?.length ?? 0 };
+    }
+    return { tasks: [], failedCount: 0 };
+}
 
 export const useTaskStore = create<TaskState>((set, get) => ({
     tasks: [],
     isLoading: false,
     error: null,
+    columnState: makeInitialColumnState(),
 
-    fetchTasks: async (filters, decryptFn) => {
-        set({ isLoading: true, error: null });
+    /**
+     * Initial fetch — loads the first page for each status column in parallel.
+     * Replaces the old full-list fetch.
+     */
+    fetchTasks: async (_filters, decryptFn) => {
+        if (!decryptFn) {
+            set({ tasks: [], isLoading: false, error: 'Decryption function not provided' });
+            return;
+        }
+
+        set({ isLoading: true, error: null, columnState: makeInitialColumnState() });
+
         try {
-            const encryptedTasks = await taskService.getTasks(filters);
-            if (decryptFn) {
-                const result = await decryptFn(encryptedTasks);
+            // Fetch first page for all 3 columns in parallel
+            const results = await Promise.all(
+                ALL_STATUSES.map(status =>
+                    taskService.getTasksPaginated({ limit: PAGE_SIZE, status })
+                )
+            );
 
-                if (Array.isArray(result)) {
-                    set({ tasks: result, isLoading: false });
-                } else if (result && typeof result === 'object' && 'tasks' in result) {
-                    set({
-                        tasks: result.tasks,
-                        isLoading: false,
-                        error: result.failedTaskIds?.length
-                            ? `Warning: ${result.failedTaskIds.length} tasks failed to decrypt.`
-                            : null
-                    });
-                } else {
-                    // unexpected result shape
-                    set({ tasks: [], isLoading: false, error: 'Failed to decrypt tasks: Invalid return format' });
-                }
-            } else {
-                set({
-                    tasks: [],
-                    isLoading: false,
-                    error: 'Decryption function not provided'
-                });
-            }
+            // Collect all encrypted tasks
+            const allEncrypted: EncryptedTask[] = [];
+            const newColumnState = makeInitialColumnState();
+
+            ALL_STATUSES.forEach((status, i) => {
+                const { items, nextCursor } = results[i];
+                allEncrypted.push(...items);
+                newColumnState[status] = {
+                    cursor: nextCursor,
+                    hasMore: nextCursor !== null,
+                    isLoadingMore: false,
+                };
+            });
+
+            // Decrypt all at once
+            const result = await decryptFn(allEncrypted);
+            const { tasks: decrypted, failedCount } = extractDecrypted(result);
+
+            set({
+                tasks: decrypted,
+                isLoading: false,
+                columnState: newColumnState,
+                error: failedCount > 0
+                    ? `Warning: ${failedCount} tasks failed to decrypt.`
+                    : null,
+            });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to fetch tasks';
             set({ error: errorMessage, isLoading: false });
+        }
+    },
+
+    /**
+     * Load the next page for a single column.
+     */
+    fetchMoreTasks: async (status, decryptFn) => {
+        const { columnState } = get();
+        const col = columnState[status];
+
+        // Guard: don't fetch if already loading or no more data
+        if (col.isLoadingMore || !col.hasMore) return;
+
+        // Set loading for this column
+        set(state => ({
+            columnState: {
+                ...state.columnState,
+                [status]: { ...state.columnState[status], isLoadingMore: true },
+            },
+        }));
+
+        try {
+            const { items, nextCursor } = await taskService.getTasksPaginated({
+                limit: PAGE_SIZE,
+                cursor: col.cursor ?? undefined,
+                status,
+            });
+
+            if (items.length === 0) {
+                set(state => ({
+                    columnState: {
+                        ...state.columnState,
+                        [status]: { cursor: null, hasMore: false, isLoadingMore: false },
+                    },
+                }));
+                return;
+            }
+
+            const result = await decryptFn(items);
+            const { tasks: decrypted } = extractDecrypted(result);
+
+            set(state => {
+                // Merge new tasks, avoiding duplicates
+                const existingIds = new Set(state.tasks.map(t => t._id));
+                const newTasks = decrypted.filter(t => !existingIds.has(t._id));
+
+                return {
+                    tasks: [...state.tasks, ...newTasks],
+                    columnState: {
+                        ...state.columnState,
+                        [status]: {
+                            cursor: nextCursor,
+                            hasMore: nextCursor !== null,
+                            isLoadingMore: false,
+                        },
+                    },
+                };
+            });
+        } catch (error) {
+            console.error(`[TaskStore] Failed to load more ${status} tasks:`, error);
+            set(state => ({
+                columnState: {
+                    ...state.columnState,
+                    [status]: { ...state.columnState[status], isLoadingMore: false },
+                },
+            }));
         }
     },
 
@@ -210,15 +332,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             const encryptedTasks = await taskService.getUpcomingTasks(limit);
             if (decryptFn) {
                 const result = await decryptFn(encryptedTasks);
-                // Type guard to handle both return types
-                let decrypted: DecryptedTask[];
-                if (Array.isArray(result)) {
-                    decrypted = result;
-                } else if (result && 'tasks' in result) {
-                    decrypted = result.tasks;
-                } else {
-                    decrypted = [];
-                }
+                const { tasks: decrypted } = extractDecrypted(result);
 
                 // Merge upcoming tasks into store (update existing or add new)
                 set(state => {
@@ -240,7 +354,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         set({
             tasks: [],
             isLoading: false,
-            error: null
+            error: null,
+            columnState: makeInitialColumnState(),
         });
     }
 }));

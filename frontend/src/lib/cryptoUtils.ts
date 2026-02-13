@@ -295,7 +295,6 @@ export async function decapsulateFolderKey(wrappedBundleHex: string, privateKeyH
 export interface TaskData {
     title: string;
     description: string;
-    notes: string;
 }
 
 export interface EncryptedTaskPayload {
@@ -445,7 +444,7 @@ export async function generateRecordHash(
     status: string,
     dueDate?: string
 ): Promise<string> {
-    const content = `${data.title}|${data.description}|${data.notes}|${priority}|${status}|${dueDate || ''}`;
+    const content = `${data.title}|${data.description}|${priority}|${status}|${dueDate || ''}`;
     const msgUint8 = new TextEncoder().encode(content);
     const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgUint8);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
