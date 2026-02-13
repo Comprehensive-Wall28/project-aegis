@@ -1,10 +1,6 @@
 import apiClient from './api';
 import { pqcWorkerManager } from '../lib/pqcWorkerManager';
 import type { UserPreferences } from '../stores/sessionStore';
-import {
-    startRegistration,
-    startAuthentication,
-} from '@simplewebauthn/browser';
 
 
 
@@ -32,9 +28,6 @@ export interface AuthResponse {
     token?: string;
     pqcSeed?: Uint8Array;
     pqcPublicKey?: string;
-    preferences?: UserPreferences;
-    status?: string;
-    options?: Record<string, unknown>;
 }
 
 // Migration helper: SHA-256 for legacy support
@@ -75,7 +68,7 @@ const authService = {
 
         // 4. Dual-salt fallback logic for PQC seed
         let pqcSeed: Uint8Array;
-        if (v2PublicKey === userData.pqcPublicKey) {
+        if (userData && v2PublicKey === userData.pqcPublicKey) {
             // New account (V2)
             pqcSeed = await pqcWorkerManager.derivePQCSeed(passwordRaw, normalizedEmail);
             console.log("PQC Seed derived using V2 (email) salt (Worker)");
@@ -154,78 +147,6 @@ const authService = {
         return response.data;
     },
 
-    registerPasskey: async (): Promise<boolean> => {
-        try {
-            // 1. Get options from backend
-            const optionsResponse = await apiClient.post('/auth/webauthn/register-options');
-            const options = optionsResponse.data;
-
-            // 2. Start registration in browser
-            const credential = await startRegistration({ optionsJSON: options });
-
-            // 3. Verify with backend
-            const verifyResponse = await apiClient.post('/auth/webauthn/register-verify', credential);
-            return verifyResponse.data.verified;
-        } catch (error) {
-            console.error('Passkey registration failed:', error);
-            throw error;
-        }
-    },
-
-    loginWithPasskey: async (email: string, passwordRaw: string): Promise<AuthResponse> => {
-        try {
-            // 0. Normalize email
-            const normalizedEmail = email.toLowerCase().trim();
-
-            // 1. Get options from backend
-            const optionsResponse = await apiClient.post('/auth/webauthn/login-options', { email: normalizedEmail });
-            const options = optionsResponse.data;
-
-            // 2. Start authentication in browser
-            const credential = await startAuthentication({ optionsJSON: options });
-
-            // 3. Verify with backend
-            const verifyResponse = await apiClient.post<AuthResponse>('/auth/webauthn/login-verify', {
-                email: normalizedEmail,
-                body: credential
-            });
-
-            const userData = verifyResponse.data;
-
-            // 4. Derive PQC Seed with fallback (same as regular login)
-            const v2PublicKey = await pqcWorkerManager.getPQCDiscoveryKey(passwordRaw, normalizedEmail);
-
-            let pqcSeed: Uint8Array;
-            if (v2PublicKey === userData.pqcPublicKey) {
-                pqcSeed = await pqcWorkerManager.derivePQCSeed(passwordRaw, normalizedEmail);
-                console.log("PQC Seed (Passkey) derived using V2 (email) salt (Worker)");
-            } else {
-                pqcSeed = await pqcWorkerManager.derivePQCSeed(passwordRaw);
-                console.log("PQC Seed (Passkey) derived using legacy V1 (static) salt (Worker)");
-            }
-
-            return {
-                ...userData,
-                pqcSeed
-            };
-        } catch (error) {
-            console.error('Passkey login failed:', error);
-            throw error;
-        }
-    },
-
-    removePasskey: async (credentialID: string): Promise<{ message: string; remainingCredentials: number }> => {
-        try {
-            const response = await apiClient.delete<{ message: string; remainingCredentials: number }>(
-                '/auth/webauthn/passkey',
-                { data: { credentialID } }
-            );
-            return response.data;
-        } catch (error) {
-            console.error('Failed to remove passkey:', error);
-            throw error;
-        }
-    },
 };
 
 export default authService;

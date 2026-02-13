@@ -6,7 +6,7 @@ import metascraperTitle from 'metascraper-title';
 import metascraperDescription from 'metascraper-description';
 import metascraperImage from 'metascraper-image';
 import metascraperLogo from 'metascraper-logo';
-import metascraperClearbit from 'metascraper-clearbit';
+
 import metascraperAuthor from 'metascraper-author';
 import metascraperUrl from 'metascraper-url';
 import metascraperYoutube from 'metascraper-youtube';
@@ -26,7 +26,7 @@ const metascraper = createMetascraper([
     metascraperDescription(),
     metascraperImage(),
     metascraperLogo(),
-    metascraperClearbit(),
+
     metascraperAuthor(),
     metascraperUrl(),
     metascraperYoutube(),
@@ -228,7 +228,7 @@ const getBrowser = async (): Promise<Browser> => {
         try {
             await fs.promises.access(executablePath);
             launchOptions.executablePath = executablePath;
-        } catch (err) {
+        } catch (_err) {
             // Path doesn't exist or isn't accessible, use default
         }
     }
@@ -571,7 +571,7 @@ async function handleWafChallenge(page: Page): Promise<boolean> {
                         await page.waitForTimeout(1000);
                         return true;
                     }
-                } catch (e) {
+                } catch (_e) {
                 }
             }
         }
@@ -587,7 +587,7 @@ async function handleWafChallenge(page: Page): Promise<boolean> {
                         !html.includes('cf_chl_opt');
                 }, { timeout: 15000 });
                 return true;
-            } catch (e) {
+            } catch (_e) {
                 logger.warn('[WAF] Cloudflare challenge bypass timed out');
             }
         }
@@ -692,7 +692,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             // Wait for page to fully load after bypass (important for images)
             try {
                 await page.waitForLoadState('load', { timeout: 8000 });
-            } catch (e) {
+            } catch (_e) {
                 // Continue even if timeout - page might already be loaded
             }
             // Re-check the response status after bypass
@@ -726,7 +726,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
                 // Fallback for smaller pages
                 return bodyText.length > 800 && !bodyText.includes('Loading...');
             }, { timeout: 2000 }).catch(() => { });
-        } catch (e) { }
+        } catch (_e) { }
 
         // 3. Extraction + Processing in Browser
         const script = await loadReadabilityScript();
@@ -800,7 +800,6 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
             const paragraphs = container.querySelectorAll('p');
             paragraphs.forEach(function (p, idx) {
                 if (!p.id) {
-                    const text = (p.textContent || '').slice(0, 30).replace(/\s+/g, '_');
                     p.id = `aegis-p-${idx}`;
                 }
                 p.setAttribute('data-aegis-paragraph', 'true');
@@ -826,7 +825,7 @@ const readerScrapeInternal = async (targetUrl: string): Promise<ReaderContentRes
                         if (isDownloadLink(absUrl, a.textContent || '')) {
                             a.setAttribute('data-aegis-download', 'true');
                         }
-                    } catch (e) { }
+                    } catch (_e) { }
                 }
                 a.setAttribute('target', '_blank');
                 a.setAttribute('rel', 'noopener noreferrer');

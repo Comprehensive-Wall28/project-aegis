@@ -91,6 +91,7 @@ export const useImageGallery = (
                 setCryptoStatus('idle');
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- user and vaultKey are accessed via closure to avoid re-renders
     }, [vaultCtrKey, setCryptoStatus]);
 
     // Cleanup Object URLs outside the cache window
@@ -219,6 +220,7 @@ export const useImageGallery = (
 
     // Cleanup when unmounting
     useEffect(() => {
+        const pendingSet = pendingRef.current;
         return () => {
             Object.values(cacheRef.current).forEach(entry => {
                 if (entry.blobUrl) {
@@ -226,7 +228,7 @@ export const useImageGallery = (
                 }
             });
             cacheRef.current = {};
-            pendingRef.current.clear();
+            pendingSet.clear();
         };
     }, []);
 

@@ -25,9 +25,11 @@ export class RoomRepository extends BaseRepository<IRoom> {
      * Find room by ID and member
      */
     async findByIdAndMember(roomId: string, userId: string): Promise<IRoom | null> {
+        const validatedRoomId = this.validateId(roomId);
+        const validatedUserId = this.validateId(userId);
         return this.findOne({
-            _id: { $eq: roomId },
-            'members.userId': { $eq: userId }
+            _id: { $eq: validatedRoomId },
+            'members.userId': { $eq: validatedUserId }
         } as unknown as SafeFilter<IRoom>);
     }
 

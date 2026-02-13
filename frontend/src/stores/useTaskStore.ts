@@ -51,6 +51,9 @@ interface TaskState {
         limit: number,
         decryptFn: (tasks: EncryptedTask[]) => Promise<DecryptedTask[] | { tasks: DecryptedTask[], failedTaskIds: string[] }>
     ) => Promise<void>;
+
+    // Reset store to initial state (for logout)
+    reset: () => void;
 }
 
 import { queryClient } from '../api/queryClient';
@@ -227,5 +230,17 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         } catch (error) {
             console.error('[TaskStore] Failed to fetch upcoming tasks:', error);
         }
+    },
+
+    /**
+     * Reset the store to its initial state.
+     * Called during logout to clear user data.
+     */
+    reset: () => {
+        set({
+            tasks: [],
+            isLoading: false,
+            error: null
+        });
     }
 }));

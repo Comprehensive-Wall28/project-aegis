@@ -32,6 +32,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import apiClient from '@/services/api';
 import { unwrapKey, hexToBytes } from '@/lib/cryptoUtils';
 import { AegisLogo } from '@/components/AegisLogo';
+import { Footer } from '@/components/layout/Footer';
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -408,27 +409,6 @@ export const PublicSharedFilePage = () => {
                             >
                                 Get Started for Free
                             </Button>
-                            <Button
-                                component={Link}
-                                to="/"
-                                variant="outlined"
-                                size="large"
-                                sx={{
-                                    py: 1.5,
-                                    borderRadius: '16px',
-                                    borderColor: '#333',
-                                    color: alpha('#fff', 0.7),
-                                    fontWeight: 700,
-                                    '&:hover': {
-                                        borderColor: '#fff',
-                                        color: '#fff',
-                                        bgcolor: alpha('#fff', 0.05)
-                                    },
-                                    transition: 'all 0.3s ease'
-                                }}
-                            >
-                                Back to Home
-                            </Button>
                         </Stack>
                     </Paper>
                 </Container>
@@ -757,11 +737,7 @@ export const PublicSharedFilePage = () => {
                     </Paper>
                 </motion.div>
 
-                <Box sx={{ mt: 10, pb: 10, textAlign: 'center' }}>
-                    <Typography variant="caption" sx={{ color: alpha('#fff', 0.15), fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                        Aegis Quantum-Safe Infrastructure • Protected by Open-Source Cryptography
-                    </Typography>
-                </Box>
+                <Footer />
             </Container >
         </Box >
     );

@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { Request } from 'express';
-import { BaseService, ServiceError } from './base/BaseService';
+import { ServiceError } from './base/BaseService';
 import { SharedFileRepository } from '../repositories/SharedFileRepository';
 import { SharedLinkRepository } from '../repositories/SharedLinkRepository';
 import { FileMetadataRepository } from '../repositories/FileMetadataRepository';
@@ -43,7 +43,7 @@ export class ShareService {
     /**
      * Invite a user to a shared file
      */
-    async inviteToFile(userId: string, data: InviteDTO, req: Request): Promise<ISharedFile> {
+    async inviteToFile(userId: string, data: InviteDTO, _req: Request): Promise<ISharedFile> {
         try {
             if (!data.id || !data.email || !data.encryptedSharedKey) {
                 throw new ServiceError('Missing required fields', 400);

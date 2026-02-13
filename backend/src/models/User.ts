@@ -8,12 +8,6 @@ export interface IUserPreferences {
     backgroundOpacity?: number;
 }
 
-export interface IWebAuthnCredential {
-    credentialID: string;
-    publicKey: string;
-    counter: number;
-    transports?: string[];
-}
 
 export interface IUser extends Document {
     username: string;
@@ -22,9 +16,8 @@ export interface IUser extends Document {
     passwordHash?: string;
     gpaSystem: 'NORMAL' | 'GERMAN';
     preferences: IUserPreferences;
-    webauthnCredentials: IWebAuthnCredential[];
     passwordHashVersion: number;
-    currentChallenge?: string;
+    tokenVersion: number;
     totalStorageUsed: number;
 }
 
@@ -46,6 +39,11 @@ const UserSchema: Schema = new Schema({
         default: 1 // 1: SHA-256 (Legacy), 2: Argon2 (New)
     },
 
+    tokenVersion: {
+        type: Number,
+        default: 0 // Incremented on logout to invalidate all existing tokens
+    },
+
     gpaSystem: { type: String, enum: ['NORMAL', 'GERMAN'], default: 'NORMAL' },
 
     preferences: {
@@ -56,19 +54,8 @@ const UserSchema: Schema = new Schema({
         backgroundOpacity: { type: Number, default: 0.4, min: 0, max: 1 }
     },
 
-    webauthnCredentials: [{
-        credentialID: { type: String, required: true },
-        publicKey: { type: String, required: true },
-        counter: { type: Number, required: true, default: 0 },
-        transports: [{ type: String }]
-    }],
-
-    currentChallenge: { type: String },
-
     totalStorageUsed: { type: Number, default: 0, min: 0 }
 
 }, { timestamps: true });
-
-UserSchema.index({ 'webauthnCredentials.credentialID': 1 });
 
 export default mongoose.model<IUser>('User', UserSchema);

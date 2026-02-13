@@ -5,6 +5,8 @@ import { FileMetadataRepository } from '../repositories/FileMetadataRepository';
 import { IFolder } from '../models/Folder';
 import Folder from '../models/Folder';
 import logger from '../utils/logger';
+import { CacheInvalidator, withCache } from '../utils/cacheUtils';
+import CacheKeyBuilder from './cache/CacheKeyBuilder';
 
 /**
  * DTO for creating a folder
@@ -45,35 +47,42 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
                 normalizedParentId = parentId;
             }
 
-            if (normalizedParentId === null) {
-                // Root level: owned folders only (shared folders removed)
-                const ownedFolders = await this.repository.findByOwnerAndParent(userId, null);
-                return ownedFolders;
-            }
+            const cacheKey = CacheKeyBuilder.folderList(userId, normalizedParentId);
 
-            // Validate normalizedParentId before usage
-            if (!mongoose.isValidObjectId(normalizedParentId)) {
-                logger.warn(`Invalid parentId format in getFolders: ${normalizedParentId}`);
-                throw new ServiceError('Invalid folder ID format', 400);
-            }
+            return await withCache(
+                { key: cacheKey, ttl: 300000 },
+                async () => {
+                    if (normalizedParentId === null) {
+                        // Root level: owned folders only (shared folders removed)
+                        const ownedFolders = await this.repository.findByOwnerAndParent(userId, null);
+                        return ownedFolders;
+                    }
 
-            // Subfolder: verify access first
-            const parentFolder = await Folder.findById(normalizedParentId);
-            if (!parentFolder) {
-                throw new ServiceError('Parent folder not found', 404);
-            }
-            const isOwner = parentFolder.ownerId.toString() === userId;
-            if (!isOwner) {
-                throw new ServiceError('Access denied', 403);
-            }
+                    // Validate normalizedParentId before usage
+                    if (!mongoose.isValidObjectId(normalizedParentId)) {
+                        logger.warn(`Invalid parentId format in getFolders: ${normalizedParentId}`);
+                        throw new ServiceError('Invalid folder ID format', 400);
+                    }
 
-            // Fetch subfolders owned by folder's owner
-            const subfolders = await this.repository.findSubfolders(
-                normalizedParentId,
-                parentFolder.ownerId.toString()
+                    // Subfolder: verify access first
+                    const parentFolder = await Folder.findById(normalizedParentId);
+                    if (!parentFolder) {
+                        throw new ServiceError('Parent folder not found', 404);
+                    }
+                    const isOwner = parentFolder.ownerId.toString() === userId;
+                    if (!isOwner) {
+                        throw new ServiceError('Access denied', 403);
+                    }
+
+                    // Fetch subfolders owned by folder's owner
+                    const subfolders = await this.repository.findSubfolders(
+                        normalizedParentId,
+                        parentFolder.ownerId.toString()
+                    );
+
+                    return subfolders;
+                }
             );
-
-            return subfolders;
         } catch (error: any) {
             if (error instanceof ServiceError) throw error;
 
@@ -149,6 +158,9 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
                 encryptedSessionKey: data.encryptedSessionKey
             } as any);
 
+            // Invalidate folder caches for this user
+            CacheInvalidator.userFolders(userId);
+
             return folder;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -184,6 +196,9 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             if (!folder) {
                 throw new ServiceError('Folder not found', 404);
             }
+
+            // Invalidate folder caches for this user
+            CacheInvalidator.userFolders(userId);
 
             return folder;
         } catch (error) {
@@ -224,6 +239,9 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             if (!deleted) {
                 throw new ServiceError('Folder not found', 404);
             }
+
+            // Invalidate folder caches for this user
+            CacheInvalidator.userFolders(userId);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Delete folder error:', error);
@@ -264,6 +282,9 @@ export class FolderService extends BaseService<IFolder, FolderRepository> {
             }));
 
             const result = await this.fileMetadataRepo.bulkMoveFiles(bulkUpdates, userId);
+
+            // Invalidate file list caches for the user
+            CacheInvalidator.userFiles(userId);
 
             return result;
         } catch (error) {

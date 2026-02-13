@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FileMetadata } from '@/services/vaultService';
 
-export type ViewPreset = 'standard' | 'compact' | 'gallery';
+export type ViewPreset = 'compact' | 'standard' | 'comfort' | 'detailed' | 'gallery' | 'list';
 
 export interface NotificationState {
     open: boolean;
@@ -11,7 +11,7 @@ export interface NotificationState {
 
 export function useFilesPageState() {
     // View State
-    const [viewPreset, setViewPreset] = useState<ViewPreset>('standard');
+    const [viewPreset, setViewPreset] = useState<ViewPreset>('list');
     const [showUpload, setShowUpload] = useState(false);
 
     // Operation State

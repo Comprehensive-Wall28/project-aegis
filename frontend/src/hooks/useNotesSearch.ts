@@ -89,6 +89,7 @@ export const useNotesSearch = (
                 tags: selectedTags
             }
         });
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- only trigger on notes/titles changes, not on search params
     }, [notes, decryptedTitles]);
 
     // Trigger search/filter when query or filters change

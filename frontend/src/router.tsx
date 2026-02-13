@@ -22,7 +22,15 @@ const PqcLearn = lazy(() => import('@/pages/PqcLearn').then(m => ({ default: m.P
 const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })));
 const BackendDownPage = lazy(() => import('@/pages/BackendDown').then(m => ({ default: m.BackendDownPage })));
 const PublicSharedFilePage = lazy(() => import('@/pages/PublicSharedFilePage').then(m => ({ default: m.PublicSharedFilePage })));
+const AnalyticsPerformancePage = lazy(() => import('@/pages/AnalyticsPerformancePage').then(m => ({ default: m.default })));
+const AnalyticsAuditPage = lazy(() => import('@/pages/AnalyticsAuditPage').then(m => ({ default: m.default })));
+const AnalyticsLogsPage = lazy(() => import('@/pages/AnalyticsLogsPage').then(m => ({ default: m.default })));
+
+const LoginPage = lazy(() => import('@/pages/LoginPage').then(m => ({ default: m.default })));
+const RegisterPage = lazy(() => import('@/pages/RegisterPage').then(m => ({ default: m.default })));
+
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import { AuthLayout } from '@/components/auth/AuthLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { RouteErrorBoundary } from '@/components/error/RouteErrorBoundary';
 import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
@@ -115,6 +123,27 @@ const router = createBrowserRouter([
                 errorElement: <RouteErrorBoundary />,
             },
             {
+                element: <AuthLayout />,
+                children: [
+                    {
+                        path: '/login',
+                        element: (
+                            <SuspensePage>
+                                <LoginPage />
+                            </SuspensePage>
+                        ),
+                    },
+                    {
+                        path: '/register',
+                        element: (
+                            <SuspensePage>
+                                <RegisterPage />
+                            </SuspensePage>
+                        ),
+                    },
+                ]
+            },
+            {
                 path: '/dashboard',
                 element: (
                     <ProtectedRoute>
@@ -171,6 +200,33 @@ const router = createBrowserRouter([
                     {
                         path: 'social/:roomId',
                         element: <SocialPage />,
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'analytics/performance',
+                        element: (
+                            <SuspensePage>
+                                <AnalyticsPerformancePage />
+                            </SuspensePage>
+                        ),
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'analytics/audit',
+                        element: (
+                            <SuspensePage>
+                                <AnalyticsAuditPage />
+                            </SuspensePage>
+                        ),
+                        errorElement: <RouteErrorBoundary />,
+                    },
+                    {
+                        path: 'analytics/logs',
+                        element: (
+                            <SuspensePage>
+                                <AnalyticsLogsPage />
+                            </SuspensePage>
+                        ),
                         errorElement: <RouteErrorBoundary />,
                     },
                 ],

@@ -1,4 +1,5 @@
 import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
 import { Hero } from '@/components/marketing/Hero';
 import { Features } from '@/components/marketing/Features';
 import { HowItWorks } from '@/components/marketing/HowItWorks';
@@ -9,7 +10,7 @@ import { KeyboardArrowDown as ArrowDownIcon, KeyboardArrowUp as ArrowUpIcon } fr
 export function Landing() {
     const theme = useTheme();
     const [currentSection, setCurrentSection] = useState(0);
-    const sections = ['hero', 'features', 'security', 'how-it-works'];
+    const sections = ['hero', 'features', 'security', 'how-it-works', 'footer'];
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -18,7 +19,16 @@ export function Landing() {
     // Track which section is currently in view
     useEffect(() => {
         const handleScroll = () => {
-            const scrollPosition = window.scrollY + window.innerHeight / 2;
+            // Check if we are at the bottom of the page (with 50px buffer for better desktop detection)
+            const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 50;
+            
+            if (isAtBottom) {
+                setCurrentSection(sections.length - 1);
+                return;
+            }
+
+            // Normal section detection
+            const scrollPosition = window.scrollY + window.innerHeight / 3; // Use 1/3 for slightly earlier detection
 
             for (let i = sections.length - 1; i >= 0; i--) {
                 const element = document.getElementById(sections[i]) ||
@@ -35,6 +45,8 @@ export function Landing() {
         };
 
         window.addEventListener('scroll', handleScroll);
+        // Initial check
+        handleScroll();
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
@@ -71,6 +83,7 @@ export function Landing() {
             <Hero />
             <Features />
             <HowItWorks />
+            <Footer />
 
             {/* Fixed scroll button */}
             <Fab

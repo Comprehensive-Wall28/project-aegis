@@ -138,7 +138,7 @@ export class LinkPreviewService {
             let parsed: URL;
             try {
                 parsed = new URL(url);
-            } catch (e) {
+            } catch (_e) {
                 throw new ServiceError('Invalid URL', 400);
             }
 

@@ -3,6 +3,8 @@ import { BaseService, ServiceError } from './base/BaseService';
 import { CalendarEventRepository } from '../repositories/CalendarEventRepository';
 import { ICalendarEvent } from '../models/CalendarEvent';
 import logger from '../utils/logger';
+import { withCache, CacheInvalidator } from '../utils/cacheUtils';
+import CacheKeyBuilder from './cache/CacheKeyBuilder';
 
 /**
  * DTO for creating a calendar event
@@ -28,7 +30,7 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
     }
 
     /**
-     * Get events for user with optional date range filter
+     * Get events for user with optional date range filter (cached)
      */
     async getEvents(
         userId: string,
@@ -36,10 +38,16 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
         end?: string
     ): Promise<ICalendarEvent[]> {
         try {
-            const startDate = start ? new Date(start) : undefined;
-            const endDate = end ? new Date(end) : undefined;
-
-            return await this.repository.findByUserAndDateRange(userId, startDate, endDate);
+            const cacheKey = CacheKeyBuilder.calendarRange(userId, start || 'all', end || 'all');
+            
+            return await withCache(
+                { key: cacheKey, ttl: 300000 }, // 5 minutes
+                async () => {
+                    const startDate = start ? new Date(start) : undefined;
+                    const endDate = end ? new Date(end) : undefined;
+                    return await this.repository.findByUserAndDateRange(userId, startDate, endDate);
+                }
+            );
         } catch (error) {
             logger.error('Get events error:', error);
             throw new ServiceError('Failed to fetch events', 500);
@@ -78,6 +86,9 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
                 eventId: event._id.toString()
             });
 
+            // Invalidate calendar caches for this user
+            CacheInvalidator.userCalendar(userId);
+
             return event;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -114,6 +125,9 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
                 eventId
             });
 
+            // Invalidate calendar caches for this user
+            CacheInvalidator.userCalendar(userId);
+
             return event;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -137,6 +151,9 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
             await this.logAction(userId, 'CALENDAR_EVENT_DELETE', 'SUCCESS', req, {
                 eventId
             });
+
+            // Invalidate calendar caches for this user
+            CacheInvalidator.userCalendar(userId);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             logger.error('Delete event error:', error);
@@ -145,20 +162,28 @@ export class CalendarService extends BaseService<ICalendarEvent, CalendarEventRe
     }
 
     /**
-     * Get paginated events for a user
+     * Get paginated events for a user (cached)
      */
     async getPaginatedEvents(
         userId: string,
         options: { limit: number; cursor?: string }
     ): Promise<{ items: ICalendarEvent[]; nextCursor: string | null }> {
         try {
-            return await this.repository.findPaginated(
-                { userId: { $eq: userId } } as any,
-                {
-                    limit: Math.min(options.limit || 50, 100),
-                    cursor: options.cursor,
-                    sortField: '_id',
-                    sortOrder: -1 // Most recent first
+            const cacheKey = CacheKeyBuilder.calendarPaginated(userId, options.cursor) + 
+                `:limit_${Math.min(options.limit || 50, 100)}`;
+            
+            return await withCache(
+                { key: cacheKey, ttl: 300000 }, // 5 minutes
+                async () => {
+                    return await this.repository.findPaginated(
+                        { userId: { $eq: userId } } as any,
+                        {
+                            limit: Math.min(options.limit || 50, 100),
+                            cursor: options.cursor,
+                            sortField: '_id',
+                            sortOrder: -1 // Most recent first
+                        }
+                    );
                 }
             );
         } catch (error) {

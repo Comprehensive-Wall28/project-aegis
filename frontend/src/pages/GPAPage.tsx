@@ -27,7 +27,6 @@ import {
 // New abstractions
 import { useGPAActions } from '@/hooks/useGPAActions';
 import { GPAMetrics } from '@/components/gpa/GPAMetrics';
-import { GPABanner } from '@/components/gpa/GPABanner';
 import { GPASystemToggle } from '@/components/gpa/GPASystemToggle';
 
 type SnackbarState = {
@@ -56,10 +55,6 @@ export function GPAPage() {
         courses,
         isLoading,
         isSaving,
-        unmigratedCount,
-        isMigrating,
-        migrationProgress,
-        handleMigration,
         handleAddCourse,
         handleDeleteCourse,
     } = useGPAActions(showSnackbar);
@@ -152,13 +147,6 @@ export function GPAPage() {
                 </Box>
             ) : (
                 <>
-                    <GPABanner
-                        unmigratedCount={unmigratedCount}
-                        isMigrating={isMigrating}
-                        migrationProgress={migrationProgress}
-                        onMigrate={handleMigration}
-                    />
-
                     <GPAMetrics
                         cumulativeGPA={gpaData.cumulativeGPA}
                         totalCredits={gpaData.totalCredits}

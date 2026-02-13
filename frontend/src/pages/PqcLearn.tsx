@@ -3,6 +3,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowBack, Security, Lock, Speed, GppGood, WarningAmber } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { Footer } from '@/components/layout/Footer';
 
 const Section = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => (
     <Box
@@ -279,27 +280,8 @@ const { sharedSecret, cipherText } =
                         </Grid>
                     </Paper>
                 </Section>
-
-                <Box sx={{ textAlign: 'center', mt: 12 }}>
-                    <Typography variant="h2" gutterBottom fontWeight={800}>
-                        Ready to get started?
-                    </Typography>
-                    <Button
-                        variant="contained"
-                        size="large"
-                        onClick={() => navigate('/dashboard')}
-                        sx={{
-                            mt: 4,
-                            px: 6,
-                            py: 2,
-                            fontSize: '1.2rem',
-                            borderRadius: 4,
-                        }}
-                    >
-                        Get Started Now
-                    </Button>
-                </Box>
             </Container>
+            <Footer />
         </Box>
     );
 }

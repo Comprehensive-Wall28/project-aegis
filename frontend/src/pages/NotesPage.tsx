@@ -197,6 +197,7 @@ const NotesPage: React.FC = () => {
             }, 0);
             return () => clearTimeout(timer);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedFolderId is intentionally excluded to prevent sync loops
     }, [searchParams, notes, isMobile, handleSelectNote, setSelectedFolderId, setSelectedNote]);
 
     const handleSelectNoteDesktop = useCallback(async (note: NoteMetadata) => {

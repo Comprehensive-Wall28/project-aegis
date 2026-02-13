@@ -3,6 +3,8 @@ import { Request } from 'express';
 import { BaseService, ServiceError } from './base/BaseService';
 import { TaskRepository } from '../repositories/TaskRepository';
 import { ITask } from '../models/Task';
+import { withCache, CacheInvalidator } from '../utils/cacheUtils';
+import CacheKeyBuilder from './cache/CacheKeyBuilder';
 
 /**
  * DTO for creating a task
@@ -57,7 +59,7 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
     }
 
     /**
-     * Get all tasks for a user with optional filters
+     * Get all tasks for a user with optional filters (cached)
      */
     async getTasks(
         userId: string,
@@ -78,7 +80,15 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
                 }
             }
 
-            return await this.repository.findByUserId(userId, sanitizedFilters);
+            const cacheKey = CacheKeyBuilder.taskList(userId, sanitizedFilters.status) + 
+                (sanitizedFilters.priority ? `:priority_${sanitizedFilters.priority}` : '');
+            
+            return await withCache(
+                { key: cacheKey, ttl: 180000 }, // 3 minutes for tasks
+                async () => {
+                    return await this.repository.findByUserId(userId, sanitizedFilters);
+                }
+            );
         } catch (error) {
             this.handleRepositoryError(error);
         }
@@ -138,6 +148,9 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
             await this.logAction(userId, 'TASK_CREATE', 'SUCCESS', req, {
                 taskId: task._id.toString()
             });
+
+            // Invalidate task caches for this user
+            CacheInvalidator.userTasks(userId);
 
             return task;
         } catch (error) {
@@ -204,6 +217,9 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
                 taskId: validatedId
             });
 
+            // Invalidate task caches for this user
+            CacheInvalidator.userTasks(userId);
+
             return task;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -231,6 +247,9 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
             await this.logAction(userId, 'TASK_DELETE', 'SUCCESS', req, {
                 taskId: validatedId
             });
+
+            // Invalidate task caches for this user
+            CacheInvalidator.userTasks(userId);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             this.handleRepositoryError(error);
@@ -270,6 +289,9 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
             await this.logAction(userId, 'TASK_REORDER', 'SUCCESS', req, {
                 count: updates.length
             });
+
+            // Invalidate task caches for this user
+            CacheInvalidator.userTasks(userId);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             this.handleRepositoryError(error);
@@ -277,20 +299,28 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
     }
 
     /**
-     * Get paginated tasks for a user
+     * Get paginated tasks for a user (cached)
      */
     async getPaginatedTasks(
         userId: string,
         options: { limit: number; cursor?: string }
     ): Promise<{ items: ITask[]; nextCursor: string | null }> {
         try {
-            return await this.repository.findPaginated(
-                { userId: { $eq: userId } } as any,
-                {
-                    limit: Math.min(options.limit || 50, 100),
-                    cursor: options.cursor,
-                    sortField: '_id',
-                    sortOrder: -1 // Most recent first
+            const cacheKey = CacheKeyBuilder.taskList(userId) + 
+                `:cursor_${options.cursor || 'first'}:limit_${Math.min(options.limit || 50, 100)}`;
+            
+            return await withCache(
+                { key: cacheKey, ttl: 180000 }, // 3 minutes for tasks
+                async () => {
+                    return await this.repository.findPaginated(
+                        { userId: { $eq: userId } } as any,
+                        {
+                            limit: Math.min(options.limit || 50, 100),
+                            cursor: options.cursor,
+                            sortField: '_id',
+                            sortOrder: -1 // Most recent first
+                        }
+                    );
                 }
             );
         } catch (error) {
@@ -299,14 +329,21 @@ export class TaskService extends BaseService<ITask, TaskRepository> {
     }
 
     /**
-     * Get upcoming incomplete tasks for dashboard widget
+     * Get upcoming incomplete tasks for dashboard widget (cached)
      */
     async getUpcomingTasks(
         userId: string,
         limit: number = 10
     ): Promise<ITask[]> {
         try {
-            return await this.repository.findUpcoming(userId, limit);
+            const cacheKey = CacheKeyBuilder.upcomingTasks(userId) + `:limit_${limit}`;
+            
+            return await withCache(
+                { key: cacheKey, ttl: 60000 }, // 1 minute for upcoming (highly dynamic)
+                async () => {
+                    return await this.repository.findUpcoming(userId, limit);
+                }
+            );
         } catch (error) {
             this.handleRepositoryError(error);
         }

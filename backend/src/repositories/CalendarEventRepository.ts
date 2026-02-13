@@ -35,9 +35,11 @@ export class CalendarEventRepository extends BaseRepository<ICalendarEvent> {
      * Find event by ID and user
      */
     async findByIdAndUser(eventId: string, userId: string): Promise<ICalendarEvent | null> {
+        const validatedEventId = this.validateId(eventId);
+        const validatedUserId = this.validateId(userId);
         return this.findOne({
-            _id: { $eq: eventId },
-            userId: { $eq: userId }
+            _id: { $eq: validatedEventId },
+            userId: { $eq: validatedUserId }
         } as unknown as SafeFilter<ICalendarEvent>);
     }
 
@@ -49,13 +51,15 @@ export class CalendarEventRepository extends BaseRepository<ICalendarEvent> {
         userId: string,
         data: Partial<ICalendarEvent>
     ): Promise<ICalendarEvent | null> {
+        const validatedEventId = this.validateId(eventId);
+        const validatedUserId = this.validateId(userId);
         // Remove userId from update data
         const { userId: _, ...updateData } = data as any;
 
         return this.updateOne(
             {
-                _id: { $eq: eventId },
-                userId: { $eq: userId }
+                _id: { $eq: validatedEventId },
+                userId: { $eq: validatedUserId }
             } as unknown as SafeFilter<ICalendarEvent>,
             { $set: updateData },
             { returnNew: true }
@@ -66,9 +70,11 @@ export class CalendarEventRepository extends BaseRepository<ICalendarEvent> {
      * Delete event by ID and user
      */
     async deleteByIdAndUser(eventId: string, userId: string): Promise<boolean> {
+        const validatedEventId = this.validateId(eventId);
+        const validatedUserId = this.validateId(userId);
         return this.deleteOne({
-            _id: { $eq: eventId },
-            userId: { $eq: userId }
+            _id: { $eq: validatedEventId },
+            userId: { $eq: validatedUserId }
         } as unknown as SafeFilter<ICalendarEvent>);
     }
 

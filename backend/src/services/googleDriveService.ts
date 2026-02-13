@@ -87,9 +87,11 @@ export const initiateUpload = async (
     totalSize: number,
     metadata?: Record<string, any>
 ): Promise<{ sessionId: string; sessionUrl: string }> => {
-    const drive = initializeDriveClient();
     const folderId = getFolderId();
     const sessionId = generateSessionId();
+
+    // Ensure client is initialized
+    initializeDriveClient();
 
     // Prepare file metadata for Google Drive
     // Note: PQC keys are NOT stored in Drive appProperties due to 124 byte limit
@@ -268,7 +270,7 @@ export const cancelUpload = async (sessionUrl: string): Promise<void> => {
             await fetch(sessionUrl, {
                 method: 'DELETE'
             });
-        } catch (error) {
+        } catch (_error) {
             // Ignore errors when cancelling
             logger.warn(`Failed to cancel Google Drive upload: sessionUrl=${sessionUrl}`);
         }

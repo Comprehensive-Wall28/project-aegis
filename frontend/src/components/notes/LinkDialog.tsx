@@ -32,7 +32,7 @@ export const LinkDialog: React.FC<LinkDialogProps> = ({
         if (open) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setUrl(initialUrl);
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+             
             setText(initialText);
         }
     }, [open, initialUrl, initialText]);

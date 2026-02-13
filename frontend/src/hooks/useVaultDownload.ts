@@ -184,7 +184,7 @@ export const useVaultDownload = () => {
         error: null,
     });
 
-    const { vaultCtrKey, setCryptoStatus } = useSessionStore();
+    const { setCryptoStatus } = useSessionStore();
 
     const downloadAndDecrypt = useCallback(async (file: FileMetadata, downloadUrl?: string): Promise<Blob | null> => {
         const { user: sessionUser, vaultCtrKey, setCryptoStatus } = useSessionStore.getState();
@@ -225,7 +225,8 @@ export const useVaultDownload = () => {
         } finally {
             setCryptoStatus('idle');
         }
-    }, [vaultCtrKey, setCryptoStatus]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- vaultCtrKey is accessed via closure to prevent premature re-renders
+    }, [setCryptoStatus]);
 
     const resetState = () => {
         setState({ status: 'idle', progress: 0, error: null });

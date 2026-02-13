@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
-import { TaskService, ServiceError } from '../services';
-import logger from '../utils/logger';
+import { TaskService } from '../services';
 import { withAuth } from '../middleware/controllerWrapper';
 
 interface AuthRequest extends Request {

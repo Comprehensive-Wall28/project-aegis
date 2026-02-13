@@ -172,7 +172,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 setLocalSearchTerm(storage.searchTerm as string);
             }
             if (localReplaceText !== (storage.replaceText as string)) {
-                // eslint-disable-next-line react-hooks/set-state-in-effect
+                 
                 setLocalReplaceText(storage.replaceText as string);
             }
         }

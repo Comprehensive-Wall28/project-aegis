@@ -4,7 +4,6 @@ import { usePreferenceStore } from '@/stores/preferenceStore';
 import gpaService from '@/services/gpaService';
 import type { Course, CourseInput } from '@/services/gpaService';
 import { useCourseEncryption } from '@/hooks/useCourseEncryption';
-import { useCourseMigration } from '@/hooks/useCourseMigration';
 
 export const useGPAActions = (showSnackbar: (msg: string, severity: 'success' | 'error' | 'info' | 'warning') => void) => {
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
@@ -13,12 +12,9 @@ export const useGPAActions = (showSnackbar: (msg: string, severity: 'success' | 
     const [courses, setCourses] = useState<Course[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [unmigratedCount, setUnmigratedCount] = useState(0);
-    const [isMigrating, setIsMigrating] = useState(false);
 
     const hasFetched = useRef(false);
     const { encryptCourseData, decryptCourses } = useCourseEncryption();
-    const { progress: migrationProgress, checkMigrationNeeded, migrateAllCourses } = useCourseMigration();
 
     const fetchData = useCallback(async () => {
         try {
@@ -53,36 +49,11 @@ export const useGPAActions = (showSnackbar: (msg: string, severity: 'success' | 
     }, [setGPASystem, decryptCourses]);
 
     useEffect(() => {
-        const checkMigration = async () => {
-            if (pqcEngineStatus === 'operational') {
-                const count = await checkMigrationNeeded();
-                setUnmigratedCount(count);
-            }
-        };
-        checkMigration();
-    }, [pqcEngineStatus, checkMigrationNeeded]);
-
-    useEffect(() => {
         if (pqcEngineStatus === 'operational' && !hasFetched.current) {
             hasFetched.current = true;
             fetchData();
         }
     }, [pqcEngineStatus, fetchData]);
-
-    const handleMigration = async () => {
-        setIsMigrating(true);
-        const result = await migrateAllCourses();
-        setIsMigrating(false);
-
-        if (result.success) {
-            showSnackbar(`Successfully migrated ${result.migrated} course(s)`, 'success');
-            setUnmigratedCount(0);
-            hasFetched.current = false;
-            fetchData();
-        } else {
-            showSnackbar(`Migration completed with errors: ${result.errors[0]}`, 'warning');
-        }
-    };
 
     const handleAddCourse = async (courseData: CourseInput) => {
         if (pqcEngineStatus !== 'operational') {
@@ -130,11 +101,7 @@ export const useGPAActions = (showSnackbar: (msg: string, severity: 'success' | 
         courses,
         isLoading,
         isSaving,
-        unmigratedCount,
-        isMigrating,
-        migrationProgress,
         fetchData,
-        handleMigration,
         handleAddCourse,
         handleDeleteCourse,
     };

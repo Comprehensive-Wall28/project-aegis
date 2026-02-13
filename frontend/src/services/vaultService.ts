@@ -38,6 +38,8 @@ const vaultService = {
         limit: number;
         cursor?: string;
         search?: string;
+        sortField?: string;
+        sortOrder?: 'asc' | 'desc';
         signal?: AbortSignal;
     }): Promise<PaginatedFiles> => {
         const queryParams = new URLSearchParams();
@@ -45,6 +47,10 @@ const vaultService = {
         if (params.folderId) queryParams.append('folderId', params.folderId);
         if (params.cursor) queryParams.append('cursor', params.cursor);
         if (params.search) queryParams.append('search', params.search);
+
+        // Sort params
+        if (params.sortField) queryParams.append('sortField', params.sortField);
+        if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
         const response = await apiClient.get<PaginatedFiles>(`${PREFIX}/files`, {
             params: queryParams,

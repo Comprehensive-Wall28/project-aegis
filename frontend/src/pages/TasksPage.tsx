@@ -257,6 +257,7 @@ export function TasksPage() {
         } finally {
             setIsSaving(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- updateTaskParams is stable (no deps change)
     }, [deleteTask]);
 
     const handleTaskMove = useCallback(async (updates: { id: string; status: 'todo' | 'in_progress' | 'done'; order: number }[]) => {

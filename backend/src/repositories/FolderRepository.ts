@@ -56,9 +56,11 @@ export class FolderRepository extends BaseRepository<IFolder> {
      * Find folder by ID and owner
      */
     async findByIdAndOwner(folderId: string, ownerId: string): Promise<IFolder | null> {
+        const validatedFolderId = this.validateId(folderId);
+        const validatedOwnerId = this.validateId(ownerId);
         return this.findOne({
-            _id: folderId,
-            ownerId: { $eq: ownerId as any }
+            _id: validatedFolderId,
+            ownerId: { $eq: validatedOwnerId as any }
         } as SafeFilter<IFolder>);
     }
 
@@ -70,10 +72,12 @@ export class FolderRepository extends BaseRepository<IFolder> {
         ownerId: string,
         data: Partial<IFolder>
     ): Promise<IFolder | null> {
+        const validatedFolderId = this.validateId(folderId);
+        const validatedOwnerId = this.validateId(ownerId);
         return this.updateOne(
             {
-                _id: folderId,
-                ownerId: { $eq: ownerId as any }
+                _id: validatedFolderId,
+                ownerId: { $eq: validatedOwnerId as any }
             } as SafeFilter<IFolder>,
             { $set: data },
             { returnNew: true }
@@ -84,9 +88,11 @@ export class FolderRepository extends BaseRepository<IFolder> {
      * Delete folder by ID and owner
      */
     async deleteByIdAndOwner(folderId: string, ownerId: string): Promise<boolean> {
+        const validatedFolderId = this.validateId(folderId);
+        const validatedOwnerId = this.validateId(ownerId);
         return this.deleteOne({
-            _id: folderId,
-            ownerId: { $eq: ownerId as any }
+            _id: validatedFolderId,
+            ownerId: { $eq: validatedOwnerId as any }
         } as SafeFilter<IFolder>);
     }
 

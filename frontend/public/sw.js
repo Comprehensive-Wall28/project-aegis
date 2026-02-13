@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aegis-cache-v3';
+const CACHE_NAME = 'aegis-cache-v4';
 const STATIC_ASSETS = '/assets/';
 const FONT_ASSETS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
@@ -26,6 +26,18 @@ self.addEventListener('activate', (event) => {
         })
     );
     self.clients.claim();
+});
+
+// Handle messages from the main thread (e.g., logout cleanup)
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'CLEAR_CACHE') {
+        event.waitUntil(
+            caches.delete(CACHE_NAME).then(() => {
+                // Re-create empty cache with core assets
+                return caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS));
+            })
+        );
+    }
 });
 
 self.addEventListener('fetch', (event) => {
@@ -79,7 +91,10 @@ self.addEventListener('fetch', (event) => {
                     return response;
                 });
             }).catch(() => {
-                return caches.match(event.request);
+                // Fallback to cached root/index.html for SPA routing
+                return caches.match(event.request).then((cached) => {
+                    return cached || caches.match('/');
+                });
             })
         );
         return;
@@ -89,13 +104,24 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request).then((cached) => {
             const fetched = fetch(event.request).then((response) => {
-                return caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, response.clone());
-                    return response;
-                });
-            }).catch(() => null);
+                // Only cache successful responses
+                if (response && response.status === 200) {
+                    return caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, response.clone());
+                        return response;
+                    });
+                }
+                return response;
+            }).catch(() => {
+                // Return null if network fails, but handle it below
+                return null;
+            });
 
-            return cached || fetched;
+            // Return cached version immediately if available, 
+            // otherwise wait for the network response.
+            // If both fail, the browser will handle the error.
+            if (cached) return cached;
+            return fetched.then(res => res || new Response('Network error', { status: 408 }));
         })
     );
 });

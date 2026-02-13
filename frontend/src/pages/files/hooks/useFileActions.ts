@@ -271,17 +271,30 @@ export function useFileActions({
 
             await folderService.moveFiles(updates, targetFolderId);
 
+            // Optimistic update: Remove moved files from current view
+            setFiles(current => current.filter(f => !ids.includes(f._id)));
+            // Also remove from selection
+            if (selectedIds.size > 0) {
+                setSelectedIds(prev => {
+                    const next = new Set(prev);
+                    ids.forEach(id => next.delete(id));
+                    return next;
+                });
+            }
+
             setFilesToMove([]);
-            clearSelection();
             setMoveToFolderDialog(false);
-            fetchData();
+            // fetchData(); // Removed to prevent stale data race condition
             setNotification({ open: true, message: `Moved ${updates.length} files successfully`, type: 'success' });
         } catch (err: unknown) {
             const error = err as { message?: string };
             console.error('Failed to move files:', err);
             setNotification({ open: true, message: error.message || 'Failed to move files', type: 'error' });
+            // Revert or fetch on error if needed, but for now just show error
+            fetchData();
         }
-    }, [filesToMove, clearSelection, fetchData, files, folders, setFilesToMove, setMoveToFolderDialog, setNotification]);
+         
+    }, [filesToMove, fetchData, files, folders, setFilesToMove, setMoveToFolderDialog, setNotification, setFiles, setSelectedIds, selectedIds]);
 
     const handleFolderColorChange = useCallback(async (color: string) => {
         if (!colorPickerFolderId) return;

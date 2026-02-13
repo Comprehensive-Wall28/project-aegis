@@ -99,6 +99,7 @@ export const useNotesData = () => {
             setIsRefreshing(false);
             setIsInitialLoad(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- setPaginationState is stable (from custom hook)
     }, [decryptTitles, pqcEngineStatus, selectedFolderId, selectedTags, resetPagination, setFolders, setUserTags, setMetadataError, setCrudError]);
 
     useEffect(() => {

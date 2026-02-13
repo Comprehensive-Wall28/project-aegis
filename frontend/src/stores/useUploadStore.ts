@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { useSessionStore } from './sessionStore';
 import { useFolderKeyStore } from './useFolderKeyStore';
 import apiClient from '@/services/api';
+import { type FileMetadata } from '@/services/vaultService';
 import { generateDEK, wrapKey, bytesToHex } from '../lib/cryptoUtils';
 
 // Constants
@@ -18,6 +19,7 @@ export interface UploadItem {
     status: UploadItemStatus;
     progress: number;
     error: string | null;
+    result?: FileMetadata;
 }
 
 export interface GlobalUploadState {
@@ -39,6 +41,9 @@ interface UploadState {
     // Derived values (computed at runtime in components or via helpers)
     getActiveUploads: () => UploadItem[];
     getGlobalState: () => GlobalUploadState;
+
+    // Reset store to initial state (for logout)
+    reset: () => void;
 }
 
 // Helper functions (defined in cryptoUtils)
@@ -224,7 +229,7 @@ export const useUploadStore = create<UploadState>((set, get) => ({
                         const contentRange = `bytes ${rangeStart}-${rangeEnd}/${totalEncryptedSize}`;
 
                         // Upload Chunk
-                        await apiClient.put(`/vault/upload-chunk?fileId=${fileId}`, encryptedChunk, {
+                        const response = await apiClient.put(`/vault/upload-chunk?fileId=${fileId}`, encryptedChunk, {
                             headers: {
                                 'Content-Type': 'application/octet-stream',
                                 'Content-Range': contentRange
@@ -236,6 +241,11 @@ export const useUploadStore = create<UploadState>((set, get) => ({
                         uploadedEncryptedBytes += currentEncryptedChunkSize;
 
                         const percent = Math.round((uploadedBytes / totalSize) * 100);
+
+                        // Capture result if completed
+                        if (response.status === 200 && response.data.file) {
+                            get().updateUploadItem(item.id, { result: response.data.file });
+                        }
 
                         // Throttle progress updates to avoid overwhelming the UI
                         const currentItem = get().uploads.get(item.id);
@@ -255,15 +265,15 @@ export const useUploadStore = create<UploadState>((set, get) => ({
 
                 } catch (err: unknown) {
                     console.error(`Upload failed for ${item.file.name}:`, err);
-                    
+
                     // Handle potential API error response
                     const apiError = err as { response?: { data?: { message?: string } }; message?: string };
                     if (apiError.response?.data) {
                         console.error('Server error details:', apiError.response.data);
                     }
 
-                    const errorMessage = apiError.response?.data?.message || 
-                                       (err instanceof Error ? err.message : 'Upload failed');
+                    const errorMessage = apiError.response?.data?.message ||
+                        (err instanceof Error ? err.message : 'Upload failed');
 
                     get().updateUploadItem(item.id, {
                         status: 'error',
@@ -325,5 +335,17 @@ export const useUploadStore = create<UploadState>((set, get) => ({
         }
 
         return { status: 'idle', progress: 0 };
+    },
+
+    /**
+     * Reset the store to its initial state.
+     * Called during logout to clear user data.
+     */
+    reset: () => {
+        set({
+            uploads: new Map(),
+            activeCount: 0,
+            processing: false
+        });
     }
 }));

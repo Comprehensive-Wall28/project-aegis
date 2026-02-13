@@ -139,7 +139,8 @@ export const useCalendarEncryption = () => {
         } finally {
             setCryptoStatus('idle');
         }
-    }, [user, generateAESKey, encryptAESKey, setCryptoStatus]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- encryptAESKey is stable (empty deps)
+    }, [user, generateAESKey, setCryptoStatus]);
 
     const decryptEventData = useCallback(async (encryptedEvent: EncryptedCalendarEvent): Promise<CalendarEventData & { _id: string; startDate: string; endDate: string; isAllDay: boolean; color: string; createdAt: string; updatedAt: string }> => {
         if (!user || !user.privateKey) {
@@ -175,7 +176,8 @@ export const useCalendarEncryption = () => {
             createdAt: encryptedEvent.createdAt,
             updatedAt: encryptedEvent.updatedAt,
         };
-    }, [user, decryptAESKey]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- decryptAESKey is stable (empty deps)
+    }, [user]);
 
     const decryptEvents = useCallback(async (encryptedEvents: EncryptedCalendarEvent[]) => {
         try {

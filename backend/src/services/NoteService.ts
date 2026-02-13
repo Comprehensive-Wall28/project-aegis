@@ -13,6 +13,8 @@ import {
     getFileStream
 } from './gridfsService';
 import logger from '../utils/logger';
+import { withCache, CacheInvalidator } from '../utils/cacheUtils';
+import CacheKeyBuilder from './cache/CacheKeyBuilder';
 
 /**
  * DTO for creating a note
@@ -70,33 +72,52 @@ export class NoteService extends BaseService<INote, NoteRepository> {
     }
 
     /**
-     * Get all notes for a user with optional filters
+     * Get all notes for a user with optional filters (cached)
      */
     async getNotes(
         userId: string,
         filters?: { tags?: string[]; subject?: string; semester?: string; folderId?: string | null }
     ): Promise<INote[]> {
         try {
-            return await this.repository.findByUserId(userId, filters);
+            const cacheKey = CacheKeyBuilder.noteList(userId, filters?.folderId || undefined) + 
+                (filters?.tags ? `:tags_${filters.tags.sort().join(',')}` : '') +
+                (filters?.subject ? `:subject_${filters.subject}` : '') +
+                (filters?.semester ? `:semester_${filters.semester}` : '');
+
+            return await withCache(
+                { key: cacheKey, ttl: 300000 },
+                async () => {
+                    return await this.repository.findByUserId(userId, filters);
+                }
+            );
         } catch (error) {
             this.handleRepositoryError(error);
         }
     }
 
     /**
-     * Get paginated notes for a user
+     * Get paginated notes for a user (cached)
      */
     async getNotesPaginated(
         userId: string,
         options: { limit: number; cursor?: string; tags?: string[]; folderId?: string | null }
     ): Promise<{ items: INote[]; nextCursor: string | null }> {
         try {
-            return await this.repository.findByUserIdPaginated(userId, {
-                limit: Math.min(options.limit || 20, 100),
-                cursor: options.cursor,
-                tags: options.tags,
-                folderId: options.folderId
-            });
+            const cacheKey = CacheKeyBuilder.noteList(userId, options.folderId || undefined) + 
+                `:cursor_${options.cursor || 'first'}:limit_${Math.min(options.limit || 20, 100)}` +
+                (options.tags ? `:tags_${options.tags.join(',')}` : '');
+            
+            return await withCache(
+                { key: cacheKey, ttl: 300000 }, // 5 minutes for notes
+                async () => {
+                    return await this.repository.findByUserIdPaginated(userId, {
+                        limit: Math.min(options.limit || 20, 100),
+                        cursor: options.cursor,
+                        tags: options.tags,
+                        folderId: options.folderId
+                    });
+                }
+            );
         } catch (error) {
             this.handleRepositoryError(error);
         }
@@ -204,6 +225,9 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 contentSize: contentBuffer.length
             });
 
+            // Invalidate note-related caches
+            CacheInvalidator.userNotes(userId);
+
             return note;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -256,6 +280,9 @@ export class NoteService extends BaseService<INote, NoteRepository> {
             await this.logAction(userId, 'NOTE_UPDATE_METADATA', 'SUCCESS', req, {
                 noteId: validatedId
             });
+
+            // Invalidate note-related caches
+            CacheInvalidator.userNotes(userId);
 
             return note;
         } catch (error) {
@@ -326,6 +353,9 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 contentSize: contentBuffer.length
             });
 
+            // Invalidate note-related caches
+            CacheInvalidator.userNotes(userId);
+
             return note;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -367,6 +397,9 @@ export class NoteService extends BaseService<INote, NoteRepository> {
             await this.logAction(userId, 'NOTE_DELETE', 'SUCCESS', req, {
                 noteId: validatedId
             });
+
+            // Invalidate note-related caches
+            CacheInvalidator.userNotes(userId);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             this.handleRepositoryError(error);
@@ -374,11 +407,18 @@ export class NoteService extends BaseService<INote, NoteRepository> {
     }
 
     /**
-     * Get all unique tags for a user
+     * Get all unique tags for a user (cached)
      */
     async getUserTags(userId: string): Promise<string[]> {
         try {
-            return await this.repository.getUniqueTags(userId);
+            const cacheKey = CacheKeyBuilder.userTags(userId);
+            
+            return await withCache(
+                { key: cacheKey, ttl: 600000 }, // 10 minutes for tags (rarely change)
+                async () => {
+                    return await this.repository.getUniqueTags(userId);
+                }
+            );
         } catch (error) {
             this.handleRepositoryError(error);
         }
@@ -398,11 +438,18 @@ export class NoteService extends BaseService<INote, NoteRepository> {
     // ==================== FOLDER OPERATIONS ====================
 
     /**
-     * Get all folders for a user
+     * Get all folders for a user (cached)
      */
     async getFolders(userId: string): Promise<INoteFolder[]> {
         try {
-            return await this.folderRepository.findByUserId(userId);
+            const cacheKey = CacheKeyBuilder.noteFolders(userId);
+            
+            return await withCache(
+                { key: cacheKey, ttl: 600000 }, // 10 minutes for folders (rarely change)
+                async () => {
+                    return await this.folderRepository.findByUserId(userId);
+                }
+            );
         } catch (error) {
             this.handleRepositoryError(error);
         }
@@ -459,6 +506,9 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 folderId: folder._id.toString(),
                 name: folder.name
             });
+
+            // Invalidate folder cache
+            CacheInvalidator.userNotes(userId);
 
             return folder;
         } catch (error) {
@@ -522,6 +572,9 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 folderId: validatedId
             });
 
+            // Invalidate folder cache
+            CacheInvalidator.userNotes(userId);
+
             return folder;
         } catch (error) {
             if (error instanceof ServiceError) throw error;
@@ -565,6 +618,9 @@ export class NoteService extends BaseService<INote, NoteRepository> {
                 folderId: validatedId,
                 descendantsDeleted: descendantIds.length
             });
+
+            // Invalidate note and folder caches
+            CacheInvalidator.userNotes(userId);
         } catch (error) {
             if (error instanceof ServiceError) throw error;
             this.handleRepositoryError(error);

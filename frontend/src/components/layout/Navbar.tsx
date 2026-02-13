@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
     Menu as MenuIcon,
     Close as XIcon,
@@ -25,24 +25,24 @@ import {
     Divider
 } from '@mui/material';
 import { AegisLogo } from '@/components/AegisLogo';
-import authService from '@/services/authService';
+import performLogoutCleanup from '@/utils/logoutCleanup';
 
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
-import { clearStoredSeed } from '@/lib/cryptoUtils';
-import { AuthDialog } from '@/components/auth/AuthDialog';
-import { useAuthModalStore } from '@/stores/authModalStore';
+
 
 export function Navbar() {
     const theme = useTheme();
     const navigate = useNavigate();
-    const location = useLocation();
-    const { user, clearSession } = useSessionStore();
+
+    const { user } = useSessionStore();
     const { theme: currentTheme, toggleTheme } = useThemeStore();
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    // Auth Dialog Global State
-    const { isOpen: isAuthOpen, mode: authMode, openModal, closeModal } = useAuthModalStore();
+    const handleLogout = async () => {
+        await performLogoutCleanup();
+        navigate('/login'); // Redirect to login page after logout
+    };
 
     // Security: Scrub any PQC keys from localStorage (fix for leaked keys)
     useEffect(() => {
@@ -65,23 +65,7 @@ export function Navbar() {
 
 
     // Check if we should show login dialog from redirect
-    useEffect(() => {
-        if (location.state?.showLogin) {
-            openModal('login');
-            // Clear status to prevent popup from reopening on refresh
-            navigate(location.pathname, { replace: true, state: { ...location.state, showLogin: undefined } });
-        }
-    }, [location.state, location.pathname, navigate, openModal]);
 
-    const handleLogout = async () => {
-        await authService.logout();
-        clearStoredSeed();
-        clearSession();
-    };
-
-    const openAuth = (mode: 'login' | 'register') => {
-        openModal(mode);
-    };
 
     return (
         <>
@@ -211,7 +195,8 @@ export function Navbar() {
                             ) : (
                                 <>
                                     <Button
-                                        onClick={() => openAuth('login')}
+                                        component={RouterLink}
+                                        to="/login"
                                         sx={{
                                             color: 'text.primary',
                                             fontWeight: 700,
@@ -223,7 +208,8 @@ export function Navbar() {
                                     </Button>
                                     <Button
                                         variant="contained"
-                                        onClick={() => openAuth('register')}
+                                        component={RouterLink}
+                                        to="/register"
                                         sx={{
                                             borderRadius: 2.5,
                                             px: 3,
@@ -242,10 +228,14 @@ export function Navbar() {
 
                         {/* Mobile Menu Icon */}
                         <IconButton
-                            onClick={() => setMobileOpen(true)}
-                            sx={{ display: { md: 'none' }, color: 'text.primary' }}
+                            onClick={() => setMobileOpen(!mobileOpen)}
+                            sx={{
+                                display: { md: 'none' },
+                                color: 'text.primary',
+                                zIndex: theme.zIndex.drawer + 2
+                            }}
                         >
-                            <MenuIcon />
+                            {mobileOpen ? <XIcon /> : <MenuIcon />}
                         </IconButton>
                     </Toolbar>
                 </Container>
@@ -256,20 +246,25 @@ export function Navbar() {
                 anchor="top"
                 open={mobileOpen}
                 onClose={() => setMobileOpen(false)}
+                ModalProps={{
+                    disableEnforceFocus: true, // Prevents ARIA hidden focus warnings
+                }}
                 sx={{
                     '& .MuiDrawer-paper': {
                         bgcolor: theme.palette.background.default,
                         px: 2,
-                        py: 4,
+                        pt: 12, // More padding at top to account for the fixed AppBar
+                        pb: 4,
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 2
+                        gap: 2,
+                        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        boxShadow: theme.shadows[8]
                     }
                 }}
             >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <AegisLogo size={32} />
-                    <IconButton onClick={() => setMobileOpen(false)}><XIcon /></IconButton>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                    <AegisLogo size={40} />
                 </Box>
                 <List sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {[
@@ -316,10 +311,9 @@ export function Navbar() {
                     <Button
                         variant="contained"
                         fullWidth
-                        onClick={() => {
-                            openAuth('login');
-                            setMobileOpen(false);
-                        }}
+                        component={RouterLink}
+                        to="/login"
+                        onClick={() => setMobileOpen(false)}
                         sx={{ py: 1.5, fontWeight: 700 }}
                     >
                         Login / Register
@@ -327,12 +321,8 @@ export function Navbar() {
                 )}
             </Drawer>
 
-            {/* Replaced Dialog with AuthDialog */}
-            <AuthDialog
-                open={isAuthOpen}
-                onClose={closeModal}
-                initialMode={authMode}
-            />
+
+
         </>
     );
 }

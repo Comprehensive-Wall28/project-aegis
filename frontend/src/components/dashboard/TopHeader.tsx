@@ -2,15 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
-import authService from '@/services/authService';
-import { clearStoredSeed } from '@/lib/cryptoUtils';
+import performLogoutCleanup from '@/utils/logoutCleanup';
 import {
     Person as UserIcon,
     Logout as LogOutIcon,
     KeyboardArrowDown as ChevronDownIcon,
     Settings as SettingsIcon,
-    Palette as PaletteIcon,
-    Menu as MenuIcon
+    Palette as PaletteIcon
 } from '@mui/icons-material';
 import { Command } from 'lucide-react';
 import {
@@ -28,13 +26,10 @@ import {
 } from '@mui/material';
 import { ThemeSelectorOverlay } from '@/components/common/ThemeSelectorOverlay';
 
-interface TopHeaderProps {
-    onMobileMenuOpen: () => void;
-}
-
-export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
+export function TopHeader() {
+    // onMobileMenuOpen is currently unused and removed to resolve lint errors
     const navigate = useNavigate();
-    const { user, clearSession } = useSessionStore();
+    const { user } = useSessionStore();
     const { theme: currentTheme } = useThemeStore();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
@@ -49,10 +44,8 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
     };
 
     const handleLogout = async () => {
-        await authService.logout();
-        clearStoredSeed();
-        clearSession();
-        navigate('/');
+        await performLogoutCleanup();
+        navigate('/login');
         handleCloseMenu();
     };
 
@@ -256,8 +249,8 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                     </Menu>
                 </Box>
 
-                {/* Mobile Menu Button - Far right */}
-                <IconButton
+                {/* Mobile Menu Button - Far right - Hidden as navigation moved to Bottom Bar */}
+                {/* <IconButton
                     onClick={onMobileMenuOpen}
                     sx={{
                         display: { lg: 'none' },
@@ -270,7 +263,7 @@ export function TopHeader({ onMobileMenuOpen }: TopHeaderProps) {
                     }}
                 >
                     <MenuIcon sx={{ fontSize: 28 }} />
-                </IconButton>
+                </IconButton> */}
             </Box>
         </Box>
     );

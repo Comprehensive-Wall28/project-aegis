@@ -15,9 +15,11 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
      * Find file by ID and owner
      */
     async findByIdAndOwner(fileId: string, ownerId: string): Promise<IFileMetadata | null> {
+        const validatedFileId = this.validateId(fileId);
+        const validatedOwnerId = this.validateId(ownerId);
         return this.findOne({
-            _id: fileId,
-            ownerId: { $eq: ownerId }
+            _id: validatedFileId,
+            ownerId: { $eq: validatedOwnerId }
         } as SafeFilter<IFileMetadata>);
     }
 
@@ -25,9 +27,11 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
      * Find file by ID and upload stream ID
      */
     async findByIdAndStream(fileId: string, ownerId: string): Promise<IFileMetadata | null> {
+        const validatedFileId = this.validateId(fileId);
+        const validatedOwnerId = this.validateId(ownerId);
         const file = await this.findOne({
-            _id: fileId,
-            ownerId: { $eq: ownerId }
+            _id: validatedFileId,
+            ownerId: { $eq: validatedOwnerId }
         } as SafeFilter<IFileMetadata>);
 
         return file?.uploadStreamId ? file : null;
@@ -43,7 +47,8 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
         options: QueryOptions = {}
     ): Promise<IFileMetadata[]> {
         const filter: any = {
-            ownerId: { $eq: ownerId }
+            ownerId: { $eq: ownerId },
+            status: 'completed'
         };
 
         if (search) {
@@ -71,7 +76,8 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
     ): Promise<IFileMetadata[]> {
         return this.findMany({
             folderId: { $eq: folderId },
-            ownerId: { $eq: folderOwnerId }
+            ownerId: { $eq: folderOwnerId },
+            status: 'completed'
         } as SafeFilter<IFileMetadata>, {
             sort: { createdAt: -1 },
             ...options
@@ -108,9 +114,11 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
      * Delete file by ID and owner
      */
     async deleteByIdAndOwner(fileId: string, ownerId: string): Promise<boolean> {
+        const validatedFileId = this.validateId(fileId);
+        const validatedOwnerId = this.validateId(ownerId);
         return this.deleteOne({
-            _id: fileId,
-            ownerId: { $eq: ownerId }
+            _id: validatedFileId,
+            ownerId: { $eq: validatedOwnerId }
         } as SafeFilter<IFileMetadata>);
     }
     /**
@@ -122,9 +130,16 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
     ): Promise<number> {
         if (updates.length === 0) return 0;
 
-        const operations: BulkWriteOperation<IFileMetadata>[] = updates.map(update => ({
+        // Validate ownerId and all fileIds before building operations
+        const validatedOwnerId = this.validateId(ownerId);
+        const validatedUpdates = updates.map(update => ({
+            ...update,
+            fileId: this.validateId(update.fileId)
+        }));
+
+        const operations: BulkWriteOperation<IFileMetadata>[] = validatedUpdates.map(update => ({
             updateOne: {
-                filter: { _id: update.fileId, ownerId: ownerId } as SafeFilter<IFileMetadata>,
+                filter: { _id: update.fileId, ownerId: validatedOwnerId } as SafeFilter<IFileMetadata>,
                 update: {
                     $set: {
                         encryptedSymmetricKey: update.encryptedKey,
@@ -145,10 +160,16 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
     async findByOwnerAndFolderPaginated(
         ownerId: string,
         folderId: string | null,
-        options: { limit: number; cursor?: string; search?: string }
+        options: {
+            limit: number;
+            cursor?: string;
+            search?: string;
+            sort?: { field: string; order: 'asc' | 'desc' }
+        }
     ): Promise<{ items: IFileMetadata[]; nextCursor: string | null }> {
         const filter: any = {
-            ownerId: { $eq: ownerId }
+            ownerId: { $eq: ownerId },
+            status: 'completed'
         };
 
         if (options.search) {
@@ -160,11 +181,14 @@ export class FileMetadataRepository extends BaseRepository<IFileMetadata> {
             filter.folderId = null;
         }
 
+        const sortField = options.sort?.field || 'createdAt';
+        const sortOrder = options.sort?.order === 'asc' ? 1 : -1;
+
         return this.findPaginated(filter, {
             limit: Math.min(options.limit || 20, 100),
             cursor: options.cursor,
-            sortField: 'createdAt',
-            sortOrder: -1
+            sortField,
+            sortOrder
         });
     }
 }

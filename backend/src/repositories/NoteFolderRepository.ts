@@ -45,9 +45,11 @@ export class NoteFolderRepository extends BaseRepository<INoteFolder> {
      * Find folder by ID and verify ownership
      */
     async findByIdAndUser(folderId: string, userId: string): Promise<INoteFolder | null> {
+        const validatedFolderId = this.validateId(folderId);
+        const validatedUserId = this.validateId(userId);
         return this.findOne({
-            _id: folderId,
-            userId: { $eq: userId }
+            _id: validatedFolderId,
+            userId: { $eq: validatedUserId }
         } as SafeFilter<INoteFolder>);
     }
 
@@ -59,10 +61,12 @@ export class NoteFolderRepository extends BaseRepository<INoteFolder> {
         userId: string,
         data: Partial<INoteFolder>
     ): Promise<INoteFolder | null> {
+        const validatedFolderId = this.validateId(folderId);
+        const validatedUserId = this.validateId(userId);
         return this.updateOne(
             {
-                _id: folderId,
-                userId: { $eq: userId }
+                _id: validatedFolderId,
+                userId: { $eq: validatedUserId }
             } as SafeFilter<INoteFolder>,
             { $set: data },
             { returnNew: true }
@@ -73,9 +77,11 @@ export class NoteFolderRepository extends BaseRepository<INoteFolder> {
      * Delete folder and verify ownership
      */
     async deleteByIdAndUser(folderId: string, userId: string): Promise<boolean> {
+        const validatedFolderId = this.validateId(folderId);
+        const validatedUserId = this.validateId(userId);
         return this.deleteOne({
-            _id: folderId,
-            userId: { $eq: userId }
+            _id: validatedFolderId,
+            userId: { $eq: validatedUserId }
         } as SafeFilter<INoteFolder>);
     }
 

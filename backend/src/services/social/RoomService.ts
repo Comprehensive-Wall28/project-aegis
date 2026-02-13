@@ -331,31 +331,32 @@ export class RoomService extends BaseService<IRoom, RoomRepository> {
                 throw new ServiceError('Only room owners can delete rooms', 403);
             }
 
-            // Cascading delete
+            // Cascading delete with bulk operations to prevent N+1 queries
             // 1. Find all collections
             const collections = await this.collectionRepo.findByRoom(roomId);
             const collectionIds = collections.map(c => c._id.toString());
 
-            // 2. Find all links
-            const links = await this.linkPostRepo.findByCollections(collectionIds);
-            const linkIds = links.map(l => l._id.toString());
+            // 2. Find all links (lightweight - just get IDs and collectionIds)
+            const linkIdMappings = await this.linkPostRepo.findIdsAndCollectionsByCollections(collectionIds);
+            const linkIds = linkIdMappings.map(l => l._id);
 
-            // 3. Delete related entities in order
+            // 3. Delete related entities in parallel using bulk operations
+            // Use deleteByLinkIds for comments and annotations to avoid N+1 queries
             await Promise.all([
-                // Delete comments for all links
-                ...linkIds.map(linkId => this.linkCommentRepo.deleteByLinkId(linkId)),
-                // Delete annotations for the room
-                this.readerAnnotationRepo.deleteByRoom(roomId),
-                // Delete views for the room
+                // Delete all comments for all links in a single operation
+                linkIds.length > 0 ? this.linkCommentRepo.deleteByLinkIds(linkIds) : Promise.resolve(0),
+                // Delete all annotations for all links in a single operation
+                linkIds.length > 0 ? this.readerAnnotationRepo.deleteByLinkIds(linkIds) : Promise.resolve(0),
+                // Delete all views for the room
                 this.linkViewRepo.deleteByRoom(roomId)
             ]);
 
-            // 4. Delete links
+            // 4. Delete all links across all collections in parallel
             if (collectionIds.length > 0) {
                 await Promise.all(collectionIds.map(cid => this.linkPostRepo.deleteByCollection(cid)));
             }
 
-            // 5. Delete collections
+            // 5. Delete all collections in a single operation
             await this.collectionRepo.deleteByRoom(roomId);
 
             // 6. Delete the room itself

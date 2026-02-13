@@ -20,6 +20,16 @@ export class UserRepository extends BaseRepository<IUser> {
     }
 
     /**
+     * Find user for login (selects only necessary fields)
+     */
+    async findForLogin(email: string): Promise<IUser | null> {
+        return this.findOne(
+            { email: { $eq: email } } as unknown as SafeFilter<IUser>,
+            { select: '_id username email passwordHash passwordHashVersion tokenVersion pqcPublicKey preferences' }
+        );
+    }
+
+    /**
      * Find user by username
      */
     async findByUsername(username: string): Promise<IUser | null> {
@@ -60,39 +70,7 @@ export class UserRepository extends BaseRepository<IUser> {
         } as unknown as SafeFilter<IUser>);
     }
 
-    /**
-     * Update user's current challenge for WebAuthn
-     */
-    async updateChallenge(userId: string, challenge: string | undefined): Promise<IUser | null> {
-        return this.updateById(userId, { $set: { currentChallenge: challenge } } as any);
-    }
 
-    /**
-     * Add WebAuthn credential
-     */
-    async addWebAuthnCredential(
-        userId: string,
-        credential: {
-            credentialID: string;
-            publicKey: string;
-            counter: number;
-            transports?: string[];
-        }
-    ): Promise<IUser | null> {
-        return this.updateById(userId, {
-            $push: { webauthnCredentials: credential },
-            $unset: { currentChallenge: 1 }
-        } as any);
-    }
-
-    /**
-     * Remove WebAuthn credential
-     */
-    async removeWebAuthnCredential(userId: string, credentialID: string): Promise<IUser | null> {
-        return this.updateById(userId, {
-            $pull: { webauthnCredentials: { credentialID } }
-        } as any);
-    }
 
     /**
      * Update password hash
@@ -102,6 +80,14 @@ export class UserRepository extends BaseRepository<IUser> {
             return this.updateById(userId, { $unset: { passwordHash: 1 } } as any);
         }
         return this.updateById(userId, { $set: { passwordHash } } as any);
+    }
+
+    /**
+     * Increment token version to invalidate all existing tokens for a user.
+     * Called on logout to ensure old tokens can't be reused.
+     */
+    async incrementTokenVersion(userId: string): Promise<IUser | null> {
+        return this.updateById(userId, { $inc: { tokenVersion: 1 } } as any);
     }
 
     /**

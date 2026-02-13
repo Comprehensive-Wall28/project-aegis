@@ -49,6 +49,7 @@ export function useSocialState() {
             markLinkViewed: state.markLinkViewed,
             unmarkLinkViewed: state.unmarkLinkViewed,
             getUnviewedCountByCollection: state.getUnviewedCountByCollection,
+            loadMoreLinks: state.loadMoreLinks,
             loadAllLinks: state.loadAllLinks,
             searchRoomLinks: state.searchRoomLinks,
             clearRoomContent: state.clearRoomContent,
@@ -113,7 +114,8 @@ export function useSocialState() {
         if (collectionId && collectionId !== store.currentCollectionId) {
             store.selectCollection(collectionId);
         }
-    }, [searchParams, store.currentCollectionId, store.selectCollection]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally exclude store.selectCollection to prevent loops
+    }, [searchParams, store.currentCollectionId]);
 
     return {
         // Shared context & route info

@@ -24,13 +24,10 @@ import type { Variants } from 'framer-motion';
 import { StatelessIndicator } from "./StatelessIndicator";
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
-import { useAuthModalStore } from '@/stores/authModalStore';
-
 export function Hero() {
     const theme = useTheme();
     const navigate = useNavigate();
     const { isAuthenticated } = useSessionStore();
-    const openAuthModal = useAuthModalStore((state) => state.openModal);
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -141,26 +138,47 @@ export function Hero() {
                         variants={itemVariants}
                         variant="h1"
                         sx={{
-                            fontSize: { xs: '2.25rem', sm: '3.25rem', md: '5rem', lg: '5.5rem' },
+                            fontSize: {
+                                xs: 'clamp(2.15rem, 9vw, 2.5rem)',
+                                sm: 'clamp(3.5rem, 8vw, 5rem)',
+                                md: '5.5rem'
+                            },
                             fontWeight: 950,
-                            letterSpacing: '-0.03em',
-                            color: 'text.primary',
-                            mb: 3,
-                            maxWidth: 1000,
-                            lineHeight: { xs: 1.1, md: 1.05 },
-                            textShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.5)}`
-                        }}
-                    >
-                        Productivity Reimagined for the {' '}
-                        <Box component="span" sx={{
-                            background: `linear-gradient(135deg, ${theme.palette.primary.light}, ${theme.palette.info.light})`,
+                            letterSpacing: { xs: '-0.04em', md: '-0.05em' },
+                            background: `linear-gradient(to bottom, ${theme.palette.text.primary} 0%, ${alpha(theme.palette.text.primary, 0.8)} 100%)`,
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
-                            whiteSpace: { xs: 'normal', sm: 'nowrap' },
-                            display: 'inline-block',
-                            filter: 'drop-shadow(0 0 15px rgba(14, 165, 233, 0.3))'
+                            mb: { xs: 2.5, md: 3 },
+                            maxWidth: 1100,
+                            lineHeight: { xs: 1.1, md: 1.05 },
+                            textShadow: theme.palette.mode === 'dark'
+                                ? `0 10px 40px ${alpha(theme.palette.common.black, 0.4)}`
+                                : `0 4px 20px ${alpha(theme.palette.primary.main, 0.1)}`,
+                            px: { xs: 2.5, sm: 0 },
+                            textWrap: 'balance'
+                        }}
+                    >
+                        Productivity Reimagined {' '}
+                        <Box component="span" sx={{
+                            display: { xs: 'block', sm: 'inline' },
+                            fontSize: { xs: '0.9em', sm: '1em' },
+                            mt: { xs: 1, sm: 0 }
                         }}>
-                            Post-Quantum Era
+                            for the {' '}
+                            <Box component="span" sx={{
+                                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.info.main}, ${theme.palette.primary.main})`,
+                                backgroundSize: '200% auto',
+                                animation: 'shine 4s linear infinite',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                whiteSpace: 'nowrap',
+                                display: 'inline-block',
+                                filter: theme.palette.mode === 'dark'
+                                    ? 'drop-shadow(0 0 20px rgba(14, 165, 233, 0.4))'
+                                    : 'none'
+                            }}>
+                                Post-Quantum Era
+                            </Box>
                         </Box>
                     </Typography>
 
@@ -168,18 +186,19 @@ export function Hero() {
                         component={motion.p}
                         variants={itemVariants}
                         sx={{
-                            fontSize: { xs: '1.05rem', sm: '1.2rem', md: '1.35rem' },
+                            fontSize: { xs: '0.95rem', sm: '1.2rem', md: '1.35rem' },
                             color: 'text.secondary',
-                            maxWidth: 750,
+                            maxWidth: 700,
                             mb: { xs: 5, md: 6 },
-                            lineHeight: 1.7,
+                            lineHeight: { xs: 1.5, md: 1.7 },
                             fontWeight: 400,
                             textWrap: 'balance',
-                            px: { xs: 2, sm: 0 }
+                            px: { xs: 4, sm: 0 },
+                            opacity: 0.85
                         }}
                     >
-                        A stateless productivity suite powered by ML-KEM encryption.
-                        Experience total data sovereignty with private-by-design architecture.
+                        A stateless productivity suite secured by ML-KEM encryption.
+                        Total data sovereignty with private-by-design architecture.
                     </Typography>
 
                     <Box
@@ -190,7 +209,7 @@ export function Hero() {
                             flexDirection: { xs: 'column', sm: 'row' },
                             gap: { xs: 2, sm: 2.5 },
                             width: { xs: '100%', sm: 'auto' },
-                            px: { xs: 2, sm: 0 }
+                            px: { xs: 4, sm: 0 }
                         }}
                     >
                         <Button
@@ -217,7 +236,7 @@ export function Hero() {
                                 if (isAuthenticated) {
                                     navigate('/dashboard');
                                 } else {
-                                    openAuthModal('register');
+                                    navigate('/register');
                                 }
                             }}
                         >
@@ -343,6 +362,9 @@ export function Hero() {
                 @keyframes scan {
                     from { transform: translateY(-100%); }
                     to { transform: translateY(100%); }
+                }
+                @keyframes shine {
+                    to { background-position: 200% center; }
                 }
             `}</style>
         </Box>

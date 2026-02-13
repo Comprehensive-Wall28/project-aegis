@@ -39,7 +39,8 @@ export type AuditAction =
     | 'ROOM_INVITE_CREATE'
     | 'ROOM_JOIN'
     | 'LINK_POST'
-    | 'COLLECTION_DELETE';
+    | 'COLLECTION_DELETE'
+    | 'API_ERROR';
 
 export type AuditStatus = 'SUCCESS' | 'FAILURE';
 
@@ -49,7 +50,7 @@ export interface AuditLog {
     action: AuditAction;
     status: AuditStatus;
     ipAddress: string;
-    metadata: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
     timestamp: string;
 }
 
@@ -105,6 +106,7 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
     ROOM_JOIN: 'Room Joined',
     LINK_POST: 'Link Posted',
     COLLECTION_DELETE: 'Collection Deleted',
+    API_ERROR: 'API Error',
 };
 
 /**
@@ -147,6 +149,7 @@ export const ACTION_ICONS: Record<AuditAction, string> = {
     ROOM_JOIN: 'Users',
     LINK_POST: 'Link',
     COLLECTION_DELETE: 'Trash2',
+    API_ERROR: 'AlertTriangle',
 };
 
 const auditService = {

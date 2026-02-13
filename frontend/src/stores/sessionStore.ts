@@ -22,11 +22,6 @@ interface User {
     vaultKey?: CryptoKey | null; // AES-GCM vault key for file encryption (in-memory only)
     preferences?: UserPreferences;
     hasPassword?: boolean;
-    webauthnCredentials?: Array<{
-        credentialID: string;
-        counter: number;
-        transports?: string[];
-    }>;
     totalStorageUsed?: number;
 }
 

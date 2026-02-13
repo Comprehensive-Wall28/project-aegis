@@ -9,17 +9,27 @@ import { useQueryClient } from '@tanstack/react-query';
  */
 export function useGlobalData() {
     const pqcEngineStatus = useSessionStore((state) => state.pqcEngineStatus);
+    const userId = useSessionStore((state) => state.user?._id);
     const queryClient = useQueryClient();
 
     const hasHydrated = useRef(false);
+    const lastUserId = useRef<string | undefined>(undefined);
+
+    // Reset hydration state when user changes (logout/login with different account)
+    useEffect(() => {
+        if (userId !== lastUserId.current) {
+            hasHydrated.current = false;
+            lastUserId.current = userId;
+        }
+    }, [userId]);
 
     useEffect(() => {
-        if (pqcEngineStatus === 'operational' && !hasHydrated.current) {
+        if (pqcEngineStatus === 'operational' && !hasHydrated.current && userId) {
             hasHydrated.current = true;
 
-            // Prefetch dashboard activity for instant loading
+            // Prefetch dashboard activity for instant loading (user-specific query key)
             queryClient.prefetchQuery({
-                queryKey: ['dashboardActivity'],
+                queryKey: ['dashboardActivity', userId],
                 queryFn: () => activityService.getDashboardActivity(),
                 staleTime: 1000 * 60,
             }).catch(err => {
@@ -29,6 +39,6 @@ export function useGlobalData() {
             // Note: Full task list is fetched by TasksPage when visited
             // Note: Events are fetched by CalendarPage when visited
         }
-    }, [pqcEngineStatus, queryClient]);
+    }, [pqcEngineStatus, queryClient, userId]);
 }
 
