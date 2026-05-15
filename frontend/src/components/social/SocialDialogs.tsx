@@ -686,7 +686,7 @@ export const DeleteRoomDialog = memo(({
                                     </Typography>
                                 </Alert>
 
-                                <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>
+                                <Typography variant="body2" sx={{ mb: 2, opacity: 0.8, wordBreak: 'break-all' }}>
                                     Please type the room name <strong>{decryptedName}</strong> to confirm:
                                 </Typography>
 

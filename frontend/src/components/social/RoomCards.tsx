@@ -66,6 +66,7 @@ export const RoomCard = memo(({
                 flexDirection: 'column',
                 gap: 2,
                 minHeight: 140,
+                minWidth: 0,
                 border: `1px solid ${alpha(theme.palette.divider, 0.4)}`,
                 transition: theme.transitions.create(['border-color', 'background-color', 'box-shadow'], {
                     duration: theme.transitions.duration.shorter,
