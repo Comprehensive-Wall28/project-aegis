@@ -357,33 +357,59 @@ export const SocialHeader = memo(({
                                 </span>
                             </Tooltip>
 
-                            {!isMobile && (
-                                <Button
-                                    variant="outlined"
-                                    startIcon={<CopyIcon sx={{ fontSize: 20 }} />}
-                                    onClick={handleCopyInvite}
-                                    disabled={!currentRoom}
-                                    sx={{
-                                        borderRadius: SOCIAL_RADIUS_MEDIUM,
-                                        height: 44,
-                                        px: 3,
-                                        textTransform: 'none',
-                                        fontWeight: 700,
-                                        fontSize: '0.95rem',
-                                        border: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
-                                        bgcolor: alpha(theme.palette.text.primary, 0.03),
-                                        color: 'text.secondary',
-                                        transition: theme.transitions.create(['background-color', 'border-color', 'color']),
-                                        '&:hover': {
-                                            borderColor: alpha(theme.palette.primary.main, 0.3),
-                                            bgcolor: alpha(theme.palette.primary.main, 0.05),
-                                            color: 'primary.main',
-                                        }
-                                    }}
-                                >
-                                    Invite
-                                </Button>
-                            )}
+                            <Tooltip title="Invite Members">
+                                <span>
+                                    {isMobile ? (
+                                        <IconButton
+                                            onClick={handleCopyInvite}
+                                            disabled={!currentRoom}
+                                            sx={{
+                                                color: 'text.secondary',
+                                                bgcolor: alpha(theme.palette.text.primary, 0.03),
+                                                border: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
+                                                borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                                width: 40,
+                                                height: 40,
+                                                transition: theme.transitions.create(['background-color', 'border-color', 'color']),
+                                                '&:hover': {
+                                                    color: 'primary.main',
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                                    borderColor: alpha(theme.palette.primary.main, 0.3),
+                                                }
+                                            }}
+                                            aria-label="Invite members"
+                                        >
+                                            <CopyIcon sx={{ fontSize: 20 }} />
+                                        </IconButton>
+                                    ) : (
+                                        <Button
+                                            variant="outlined"
+                                            startIcon={<CopyIcon sx={{ fontSize: 20 }} />}
+                                            onClick={handleCopyInvite}
+                                            disabled={!currentRoom}
+                                            sx={{
+                                                borderRadius: SOCIAL_RADIUS_MEDIUM,
+                                                height: 44,
+                                                px: 3,
+                                                textTransform: 'none',
+                                                fontWeight: 700,
+                                                fontSize: '0.95rem',
+                                                border: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
+                                                bgcolor: alpha(theme.palette.text.primary, 0.03),
+                                                color: 'text.secondary',
+                                                transition: theme.transitions.create(['background-color', 'border-color', 'color']),
+                                                '&:hover': {
+                                                    borderColor: alpha(theme.palette.primary.main, 0.3),
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.05),
+                                                    color: 'primary.main',
+                                                }
+                                            }}
+                                        >
+                                            Invite
+                                        </Button>
+                                    )}
+                                </span>
+                            </Tooltip>
                         </Box>
                     ) : null}
                 </AnimatePresence>
