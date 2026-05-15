@@ -245,13 +245,17 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             if (user) {
                 const currentState = get();
 
+                currentState.initializeQuantumKeys(seed);
+
+                // Fetch CSRF token for the new session (if cookie was cleared)
+                const { refreshCsrfToken } = await import('@/services/api');
+                await refreshCsrfToken();
+
                 set({
                     user,
                     isAuthenticated: true,
                     isAuthChecking: false
                 });
-
-                currentState.initializeQuantumKeys(seed);
             } else {
                 // Server says not authenticated but we have a seed - clear it
                 const { clearStoredSeed } = cryptoUtils;
