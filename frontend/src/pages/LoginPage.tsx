@@ -38,7 +38,7 @@ export default function LoginPage() {
             setUser({ _id: response._id, email: response.email, username: response.username });
             if (response.pqcSeed) {
                 storeSeed(response.pqcSeed);
-                initializeQuantumKeys(response.pqcSeed);
+                await initializeQuantumKeys(response.pqcSeed);
             }
             await refreshCsrfToken();
             // Don't reset loading state - navigation will unmount component

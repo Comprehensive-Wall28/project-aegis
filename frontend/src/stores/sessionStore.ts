@@ -48,7 +48,7 @@ interface SessionState {
     lockSession: () => void;
     setPqcEngineStatus: (status: 'operational' | 'initializing' | 'error') => void;
     setCryptoStatus: (status: CryptoStatus) => void;
-    initializeQuantumKeys: (seed?: Uint8Array) => void;
+    initializeQuantumKeys: (seed?: Uint8Array) => Promise<void>;
     checkAuth: () => Promise<void>;
     updateUser: (updates: Partial<Pick<User, 'username' | 'email' | 'totalStorageUsed' | 'preferences'>>) => void;
     setRecentActivity: (logs: AuditLog[]) => void;
@@ -145,54 +145,52 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         }
     },
 
-    initializeQuantumKeys: (seed) => {
+    initializeQuantumKeys: async (seed) => {
         // Set to initializing state
         set({ pqcEngineStatus: 'initializing' });
 
-        (async () => {
-            try {
-                // Use centralized PQC Worker Manager for heavy computation
-                const { publicKey, secretKey } = await pqcWorkerManager.generateKeys(seed);
+        try {
+            // Use centralized PQC Worker Manager for heavy computation
+            const { publicKey, secretKey } = await pqcWorkerManager.generateKeys(seed);
 
-                // Helper to convert to Hex
-                const bytesToHex = (bytes: Uint8Array) =>
-                    Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+            // Helper to convert to Hex
+            const bytesToHex = (bytes: Uint8Array) =>
+                Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-                const pubHex = bytesToHex(publicKey);
-                const privHex = bytesToHex(secretKey);
+            const pubHex = bytesToHex(publicKey);
+            const privHex = bytesToHex(secretKey);
 
-                // Derive vault key for high-performance symmetric encryption
-                let vaultKey: CryptoKey | null = null;
-                if (seed) {
-                    const { deriveVaultKey, deriveGlobalCtrKey } = cryptoUtils;
-                    vaultKey = await deriveVaultKey(seed);
+            // Derive vault key for high-performance symmetric encryption
+            let vaultKey: CryptoKey | null = null;
+            if (seed) {
+                const { deriveVaultKey, deriveGlobalCtrKey } = cryptoUtils;
+                vaultKey = await deriveVaultKey(seed);
 
-                    // Derive CTR key for Eco-Mode encryption
-                    const ctrKey = await deriveGlobalCtrKey(seed);
-                    set({ vaultCtrKey: ctrKey });
-                }
-
-                const currentState = get();
-                if (currentState.user) {
-                    set({
-                        user: {
-                            ...currentState.user,
-                            publicKey: pubHex,
-                            privateKey: privHex,
-                            vaultKey
-                        },
-                        pqcEngineStatus: 'operational'
-                    });
-                    console.log(`Quantum Keys Initialized (Worker) for Session ${seed ? '(Persistent)' : '(Ephemeral)'}, Vault Key: ${vaultKey ? 'Yes' : 'No'}`);
-                } else {
-                    // If no user, we still set it as operational for the engine itself
-                    set({ pqcEngineStatus: 'operational' });
-                }
-            } catch (e) {
-                console.error("Failed to generate PQC keys (Worker):", e);
-                set({ pqcEngineStatus: 'error' });
+                // Derive CTR key for Eco-Mode encryption
+                const ctrKey = await deriveGlobalCtrKey(seed);
+                set({ vaultCtrKey: ctrKey });
             }
-        })();
+
+            const currentState = get();
+            if (currentState.user) {
+                set({
+                    user: {
+                        ...currentState.user,
+                        publicKey: pubHex,
+                        privateKey: privHex,
+                        vaultKey
+                    },
+                    pqcEngineStatus: 'operational'
+                });
+                console.log(`Quantum Keys Initialized (Worker) for Session ${seed ? '(Persistent)' : '(Ephemeral)'}, Vault Key: ${vaultKey ? 'Yes' : 'No'}`);
+            } else {
+                // If no user, we still set it as operational for the engine itself
+                set({ pqcEngineStatus: 'operational' });
+            }
+        } catch (e) {
+            console.error("Failed to generate PQC keys (Worker):", e);
+            set({ pqcEngineStatus: 'error' });
+        }
     },
 
     updateUser: (updates) => {
@@ -243,16 +241,17 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             const user = await authService.validateSession();
 
             if (user) {
-                const currentState = get();
+                // Set the user identity first so initializeQuantumKeys can attach keys to it
+                set({ user });
 
-                currentState.initializeQuantumKeys(seed);
+                const currentState = get();
+                await currentState.initializeQuantumKeys(seed);
 
                 // Fetch CSRF token for the new session (if cookie was cleared)
                 const { refreshCsrfToken } = await import('@/services/api');
                 await refreshCsrfToken();
 
                 set({
-                    user,
                     isAuthenticated: true,
                     isAuthChecking: false
                 });
