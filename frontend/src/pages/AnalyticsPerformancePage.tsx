@@ -373,6 +373,24 @@ export default function AnalyticsPerformancePage() {
         },
     };
 
+    const lineChartStyle = {
+        ...chartBaseStyle,
+        '& .MuiMarkElement-root': {
+            opacity: 0,
+            transition: 'opacity 0.15s ease, transform 0.15s ease',
+        },
+        '& .MuiMarkElement-highlighted': {
+            opacity: 1,
+            scale: '1.5',
+        },
+        '& .MuiLineElement-root': {
+            strokeWidth: 3,
+        },
+        '& .MuiAreaElement-root': {
+            fillOpacity: 0.15,
+        },
+    };
+
     if (!isAuthenticated) {
         return <PasswordGateDialog onAccessGranted={onAccessGranted} />;
     }
@@ -689,7 +707,7 @@ export default function AnalyticsPerformancePage() {
                                             curve: 'catmullRom',
                                         },
                                     ]}
-                                    sx={chartBaseStyle}
+                                    sx={lineChartStyle}
                                     margin={{ left: 40, right: 20, top: 10, bottom: 30 }}
                                 />
                             </Box>
@@ -757,13 +775,13 @@ export default function AnalyticsPerformancePage() {
                             <Skeleton variant="rectangular" height={220} sx={{ borderRadius: '12px' }} />
                         ) : (
                             <Box sx={{ height: 240, width: '100%' }}>
-                                <BarChart
+                                <LineChart
                                     dataset={timeseries}
                                     xAxis={[
                                         {
                                             dataKey: 'timestamp',
-                                            scaleType: 'band',
-                                            valueFormatter: (value) => dayjs(value).format('HH:mm'),
+                                            scaleType: 'point',
+                                            valueFormatter: (value) => dayjs(value).format('MMM D, HH:mm'),
                                         },
                                     ]}
                                     series={[
@@ -771,10 +789,12 @@ export default function AnalyticsPerformancePage() {
                                             dataKey: 'avgDurationMs',
                                             label: 'Avg Latency',
                                             color: theme.palette.success.main,
+                                            area: true,
+                                            showMark: true,
+                                            curve: 'catmullRom',
                                         },
                                     ]}
-                                    sx={chartBaseStyle}
-                                    borderRadius={6}
+                                    sx={lineChartStyle}
                                     margin={{ left: 40, right: 20, top: 20, bottom: 40 }}
                                 />
                             </Box>
